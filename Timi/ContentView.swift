@@ -7,18 +7,36 @@
 
 import SwiftUI
 
+enum AppTab: Hashable {
+    case overview, accounts, transactions, assistant
+}
+
 struct ContentView: View {
+    @State private var selectedTab: AppTab = .overview
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView(selection: $selectedTab) {
+            OverviewView(selectedTab: $selectedTab)
+                .tabItem { Label("Tổng quan", systemImage: "chart.pie.fill") }
+                .tag(AppTab.overview)
+
+            AccountsView()
+                .tabItem { Label("Tài khoản", systemImage: "creditcard.fill") }
+                .tag(AppTab.accounts)
+
+            TransactionsView()
+                .tabItem { Label("Giao dịch", systemImage: "arrow.left.arrow.right") }
+                .tag(AppTab.transactions)
+
+            AssistantView()
+                .tabItem { Label("Trợ lý AI", systemImage: "sparkles") }
+                .tag(AppTab.assistant)
         }
-        .padding()
     }
 }
 
 #Preview {
     ContentView()
+        .environment(FinanceStore())
+        .environment(\.locale, .vietnam)
 }
