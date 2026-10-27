@@ -41,15 +41,16 @@ struct AddTransactionView: View {
                 }
 
                 Section("Số tiền") {
-                    HStack(alignment: .firstTextBaseline) {
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
                         TextField("0", text: $amountText)
-                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .font(Typography.font(.largeTitle, size: 40, weight: .bold))
                             .foregroundStyle(kind == .income ? .green : .primary)
                             .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
                             .focused($isAmountFocused)
-                        Text("₫")
-                            .font(.title.weight(.bold))
-                            .foregroundStyle(.secondary)
+                        Text("đ")
+                            .font(Typography.font(.largeTitle, size: 40, weight: .bold))
+                            .foregroundStyle(kind == .income ? .green : .primary)
                     }
                 }
 
@@ -57,7 +58,7 @@ struct AddTransactionView: View {
                     TextField("Tên giao dịch (VD: Cà phê sáng)", text: $title)
                     Picker("Danh mục", selection: $category) {
                         ForEach(TransactionCategory.categories(for: kind)) { category in
-                            Label(category.title, systemImage: category.icon).tag(category)
+                            Label(category.title, image: category.icon).tag(category)
                         }
                     }
                     .pickerStyle(.navigationLink)

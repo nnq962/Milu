@@ -7,13 +7,12 @@ import SwiftUI
 
 /// Biểu tượng bo góc trên nền màu nhạt, dùng cho danh mục và tài khoản.
 struct IconBadge: View {
-    let systemName: String
+    let name: String
     let color: Color
     var size: CGFloat = 40
 
     var body: some View {
-        Image(systemName: systemName)
-            .font(.system(size: size * 0.42, weight: .semibold))
+        SolarIcon(name, size: size * 0.5)
             .foregroundStyle(color)
             .frame(width: size, height: size)
             .background(color.opacity(0.15), in: RoundedRectangle(cornerRadius: size * 0.3, style: .continuous))
@@ -31,11 +30,11 @@ struct CardSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text(title)
-                    .font(.headline)
+                    .font(Typography.headline)
                 Spacer()
                 if let actionTitle, let onAction {
                     Button(actionTitle, action: onAction)
-                        .font(.subheadline.weight(.medium))
+                        .font(Typography.subheadline.weight(.medium))
                 }
             }
             content
@@ -54,19 +53,19 @@ struct TransactionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: transaction.category.icon, color: transaction.category.color)
+            IconBadge(name: transaction.category.icon, color: transaction.category.color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(transaction.title)
-                    .font(.body.weight(.medium))
+                    .font(Typography.body.weight(.medium))
                     .lineLimit(1)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
             Text(transaction.signedAmountText)
-                .font(.callout.weight(.semibold))
+                .font(Typography.callout.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(transaction.kind == .income ? .green : .primary)
         }

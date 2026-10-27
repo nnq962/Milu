@@ -1,286 +1,628 @@
-//
-//  OverviewView.swift
-//  Timi
-//
-
-import Charts
 import SwiftUI
+
+private enum OverviewStyle {
+    // Exact sRGB tokens from examples; the app intentionally uses light appearance.
+    static let background = Color(red: 250/255, green: 250/255, blue: 247/255)
+    static let card = Color.white
+    static let muted = Color(red: 241/255, green: 241/255, blue: 236/255)
+    // CSS bg-muted/60 composited over the white card.
+    static let balanceTile = Color(red: 246.6/255, green: 246.6/255, blue: 243.6/255)
+    static let incomeTile = Color(red: 237.9/255, green: 251.7/255, blue: 188.1/255)
+    static let ink = Color(red: 17/255, green: 24/255, blue: 39/255)
+    static let secondary = Color(red: 107/255, green: 114/255, blue: 128/255)
+    static let secondarySurface = Color(red: 238/255, green: 240/255, blue: 243/255)
+    static let border = Color(red: 229/255, green: 229/255, blue: 224/255)
+    // User-requested optical adjustment for small text; keep control tints separate.
+    static let secondaryText = Color(red: 89/255, green: 97/255, blue: 113/255)
+    static let lime = Color(red: 198/255, green: 244/255, blue: 50/255)
+    static let red = Color(red: 220/255, green: 38/255, blue: 38/255)
+}
 
 struct OverviewView: View {
     @Environment(FinanceStore.self) private var store
     @Binding var selectedTab: AppTab
-    @State private var isAddingTransaction = false
+    @AppStorage("overview.monthlyBudget") private var monthlyBudget = SampleData.monthlyBudget
+    @State private var isEditingBudget = false
+    @State private var budgetInput = ""
+    @State private var information: Information?
+    @State private var displayedMonth = Date.now
+    @State private var selectedDay: CalendarDay?
+    @ScaledMetric(relativeTo: .caption2) private var calendarDayHeight = 52
+
+    private struct Information: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
+    private struct CalendarDay: Identifiable {
+        let date: Date
+        var id: Date { date }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 20) {
+                    greetingHeader
                     balanceCard
+                    promotions
                     monthSummary
-                    insightCard
-                    weeklyChart
-                    categoryBreakdown
-                    recentTransactions
+                    attentionCard
+                    calendarCard
+
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
                 .padding(.bottom, 24)
             }
-            .background(Theme.screenBackground)
-            .navigationTitle("Tổng quan")
+            .background(OverviewStyle.background)
+            .foregroundStyle(OverviewStyle.ink)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Thêm giao dịch", systemImage: "plus") {
-                        isAddingTransaction = true
+                if #available(iOS 26.0, *) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        profileButton.nativeCircleButton(diameter: 44)
                     }
+                    .sharedBackgroundVisibility(.hidden)
+                    ToolbarItem(placement: .topBarTrailing) {
+                        notificationButton.nativeCircleButton(diameter: 44)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .topBarLeading) { profileButton }
+                    ToolbarItem(placement: .topBarTrailing) { notificationButton }
                 }
             }
-            .sheet(isPresented: $isAddingTransaction) {
-                AddTransactionView()
+            .sheet(isPresented: $isEditingBudget) { budgetEditor }
+            .sheet(item: $information) { info in
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(info.title).font(Typography.font(.title2, size: 22, weight: .semibold))
+                        Text(info.message).font(Typography.body).foregroundStyle(OverviewStyle.secondaryText)
+                        Spacer()
+                    }
+                    .padding(24)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Đóng") { information = nil } } }
+                }
+                .presentationDetents([.medium])
             }
+            .sheet(item: $selectedDay) { day in dayDetails(day.date) }
         }
     }
 
-    // MARK: - Thẻ tổng tài sản
+    // Native navigation-bar items: iOS owns their glass and the scroll-edge backdrop.
+    private var profileButton: some View {
+        Button {
+            information = Information(title: "Hồ sơ", message: "Quyet\nTài khoản mẫu của Timi.")
+        } label: {
+            Text("Q")
+                .font(Typography.font(.title3, size: 20, weight: .semibold))
+                .frame(width: 28, height: 28)
+        }
+        .buttonBorderShape(.circle)
+        .tint(OverviewStyle.ink)
+        .accessibilityLabel("Hồ sơ của Quyet")
+    }
+
+    private var notificationButton: some View {
+        Button {
+            information = Information(title: "Thông báo", message: "Bạn chưa có thông báo mới. Nhắc hạn thanh toán sẽ xuất hiện ở đây khi tính năng được bổ sung.")
+        } label: {
+            SolarIcon("solar-bell-linear", size: 20)
+                .frame(width: 28, height: 28)
+        }
+        .buttonBorderShape(.circle)
+        .tint(OverviewStyle.ink)
+        .accessibilityLabel("Thông báo")
+    }
+
+    private var greetingHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)).capitalizedFirstLetter)
+                .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                .designLineHeight(16, relativeTo: .caption)
+            Text("\(greeting), Quyet")
+                .font(Typography.font(.title2, size: 24, weight: .semibold))
+                .designLineHeight(32, relativeTo: .title2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var greeting: String {
+        switch Calendar.current.component(.hour, from: .now) {
+        case 5..<12: "Chào buổi sáng"
+        case 12..<18: "Chào buổi chiều"
+        default: "Chào buổi tối"
+        }
+    }
 
     private var balanceCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Tổng tài sản ròng")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
+                Text("Tổng tài sản").font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                    .designLineHeight(16, relativeTo: .caption)
                 Text(store.netWorth.vnd)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .contentTransition(.numericText())
+                    .font(Typography.font(.largeTitle, size: 34, weight: .heavy))
+                    .designLineHeight(42.5, relativeTo: .largeTitle)
+                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
             }
-            HStack(spacing: 10) {
-                balanceStat(title: "Tài sản", value: store.totalAssets, icon: "arrow.up.right")
-                balanceStat(title: "Dư nợ", value: store.totalDebt, icon: "arrow.down.right")
+            HStack(spacing: 8) {
+                balanceStat("Số dư", value: store.totalAssets.vndCompact, icon: "solar-wallet-linear")
+                balanceStat("Cho vay", value: store.totalLent.vndCompact, icon: "solar-hand-money-linear")
+                balanceStat("Nợ", value: (-store.totalDebt).vndCompact, icon: "solar-card-linear", color: OverviewStyle.red)
             }
         }
-        .padding(20)
+        .overviewCard()
+        .accessibilityElement(children: .contain)
+    }
+
+    private func balanceStat(_ title: String, value: String, icon: String, color: Color = OverviewStyle.ink) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SolarIcon(icon, size: 16)
+                .accessibilityHidden(true)
+                .frame(width: 28, height: 28)
+                .background(OverviewStyle.card, in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(Typography.font(.caption, size: 11, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                    .designLineHeight(16.5, relativeTo: .caption)
+                Text(value)
+                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
+                    .foregroundStyle(color).monospacedDigit().lineLimit(1).minimumScaleFactor(0.65)
+                    .frame(minHeight: 20)
+            }
+        }
+        .accessibilityElement(children: .combine)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.brandGradient, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(alignment: .topTrailing) {
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.white.opacity(0.12))
-                .padding(16)
+        .padding(12)
+        .cardSurface(radius: CardCorners.inset, color: OverviewStyle.balanceTile)
+    }
+
+    private var promotions: some View {
+        VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    SolarIcon("solar-crown-bold", size: 20)
+                        .foregroundStyle(OverviewStyle.ink)
+                        .frame(width: 40, height: 40)
+                        .background(OverviewStyle.lime, in: RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Nâng cấp Timi Pro")
+                            .font(Typography.font(.callout, size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Nhận 300 lượt AI mỗi tháng, xuất báo cáo và đồng bộ trên mọi thiết bị.")
+                            .font(Typography.font(.caption, size: 12))
+                            .foregroundStyle(.white.opacity(0.85))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Button {
+                    information = Information(title: "Timi Pro · Sắp ra mắt", message: "Gói Pro đang được chuẩn bị. Hiện chưa mở đăng ký hoặc thanh toán; trợ lý trong app vẫn dùng dữ liệu giả lập.")
+                } label: {
+                    Text("Nâng cấp ngay")
+                        .font(Typography.font(.caption, size: 12, weight: .semibold))
+                        .foregroundColor(Color(red: 17/255, green: 24/255, blue: 39/255))
+                        .frame(maxWidth: .infinity, minHeight: 24)
+                }
+                .nativeGlassButton(tint: OverviewStyle.lime)
+                .buttonBorderShape(.capsule)
+                .controlSize(.regular)
+                .tint(OverviewStyle.lime)
+                .foregroundStyle(OverviewStyle.ink)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                Color.clear
+                    .cardSurface(color: Color(red: 17/255, green: 24/255, blue: 39/255))
+                    .overlay(alignment: .topTrailing) {
+                        Circle()
+                            .fill(OverviewStyle.lime.opacity(0.25))
+                            .frame(width: 144, height: 144)
+                            .blur(radius: 40)
+                            .offset(x: 40, y: -40)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+
+            onboardingCard
         }
     }
 
-    private func balanceStat(title: String, value: Double, icon: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.caption.weight(.bold))
-                .frame(width: 24, height: 24)
-                .background(.white.opacity(0.2), in: Circle())
-            VStack(alignment: .leading, spacing: 0) {
-                Text(title)
-                    .font(.caption)
-                    .opacity(0.85)
-                Text(value.vndCompact)
-                    .font(.subheadline.weight(.semibold))
+    private var onboardingCard: some View {
+        let hasAccount = !store.accounts.isEmpty
+        let hasTransaction = !store.transactions.isEmpty
+        let hasLoan = !store.loans.isEmpty
+        let completed = [hasAccount, hasTransaction, hasLoan].filter { $0 }.count
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Làm quen với Timi")
+                        .font(Typography.font(.callout, size: 16, weight: .semibold))
+                    Text("Hoàn thành để nhận thêm lượt AI")
+                        .font(Typography.font(.caption, size: 11))
+                        .foregroundStyle(OverviewStyle.secondaryText)
+                }
+                Spacer()
+                Text("\(completed)/4")
+                    .font(Typography.font(.caption, size: 11, weight: .semibold))
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(OverviewStyle.lime, in: Capsule())
             }
+            GeometryReader { geometry in
+                Capsule().fill(OverviewStyle.muted)
+                    .overlay(alignment: .leading) {
+                        Capsule().fill(OverviewStyle.lime)
+                            .frame(width: geometry.size.width * Double(completed) / 4)
+                    }
+            }
+            .frame(height: 8)
+            .padding(.top, 4)
+            VStack(spacing: 8) {
+                onboardingRow("Thêm ví đầu tiên", completed: hasAccount)
+                onboardingRow("Ghi một khoản thu chi", completed: hasTransaction)
+                onboardingRow("Ghi một khoản cho vay", completed: hasLoan)
+                onboardingRow("Hỏi AI một câu hỏi", completed: false)
+            }
+            .accessibilityElement(children: .contain)
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overviewCard()
     }
 
-    // MARK: - Thu chi tháng này
+    private func onboardingRow(_ title: String, completed: Bool) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                if completed {
+                    Circle().fill(OverviewStyle.ink)
+                    SolarIcon("solar-check-read-linear", size: 12).foregroundStyle(.white)
+                } else {
+                    Circle().strokeBorder(OverviewStyle.border, lineWidth: 2)
+                }
+            }
+            .frame(width: 20, height: 20)
+            Text(title)
+                .font(Typography.font(.caption, size: 12, weight: completed ? .regular : .medium))
+                .foregroundStyle(completed ? OverviewStyle.secondaryText : OverviewStyle.ink)
+            Spacer(minLength: 4)
+            Text("+5")
+                .font(Typography.font(.caption2, size: 10, weight: .semibold))
+                .foregroundStyle(completed ? OverviewStyle.secondaryText : OverviewStyle.ink)
+                .padding(.horizontal, 8).padding(.vertical, 2)
+                .background(completed ? OverviewStyle.muted : OverviewStyle.lime.opacity(0.4), in: Capsule())
+        }
+        .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title), +5")
+        .accessibilityValue(completed ? "Đã hoàn thành" : "Chưa hoàn thành")
+    }
 
     private var monthSummary: some View {
-        let income = store.total(.income)
         let expense = store.total(.expense)
-        let ratio = income > 0 ? expense / income : 0
-        let month = Calendar.current.component(.month, from: .now)
-
-        return CardSection(title: "Tháng \(month)") {
-            HStack {
-                monthStat(title: "Thu nhập", value: income, icon: "arrow.down.circle.fill", color: .green)
-                Divider().frame(height: 36)
-                monthStat(title: "Chi tiêu", value: expense, icon: "arrow.up.circle.fill", color: .red)
-                    .padding(.leading, 12)
+        let ratio = monthlyBudget > 0 ? expense / monthlyBudget : 0
+        let calendar = Calendar.current
+        let month = calendar.component(.month, from: .now)
+        let daysLeft = (calendar.range(of: .day, in: .month, for: .now)?.count ?? 0) - calendar.component(.day, from: .now)
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center) {
+                Text("Tháng \(month) tổng quan")
+                    .font(Typography.font(.callout, size: 16, weight: .semibold))
+                    .frame(minHeight: 24)
+                Spacer(minLength: 4)
+                Text("Còn \(daysLeft) ngày")
+                    .font(Typography.font(.caption, size: 11, weight: .medium))
+                    .foregroundStyle(OverviewStyle.secondaryText)
             }
-            VStack(alignment: .leading, spacing: 6) {
-                ProgressView(value: min(ratio, 1))
-                    .tint(ratio > 1 ? .red : .accentColor)
-                Text("Bạn đã chi \(ratio.percentText) thu nhập tháng này")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 12) {
+                flowStat("Tiền vào", amount: store.total(.income), income: true)
+                flowStat("Tiền ra", amount: expense, income: false)
             }
-        }
-    }
-
-    private func monthStat(title: String, value: Double, icon: String, color: Color) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value.vnd)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Gợi ý từ trợ lý
-
-    @ViewBuilder
-    private var insightCard: some View {
-        let totalExpense = store.total(.expense)
-        if let top = store.expensesByCategory().first, totalExpense > 0 {
             Button {
-                selectedTab = .assistant
+                budgetInput = monthlyBudget > 0 ? String(Int(monthlyBudget)) : ""
+                isEditingBudget = true
             } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.title3)
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Theme.brandGradient, in: Circle())
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Gợi ý từ Trợ lý AI")
-                            .font(.subheadline.weight(.semibold))
-                        Text("\(top.category.title) chiếm \((top.amount / totalExpense).percentText) chi tiêu tháng này. Chạm để hỏi cách tối ưu.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Hạn mức chi tiêu")
+                        Spacer()
+                        Text(monthlyBudget > 0 ? ratio.percentText : "Thiết lập")
+                            .monospacedDigit()
                     }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                    .font(Typography.font(.caption, size: 11, weight: .medium))
+                    .frame(minHeight: 16.5)
+                    GeometryReader { geometry in
+                        Capsule().fill(OverviewStyle.muted)
+                            .overlay(alignment: .leading) {
+                                Capsule()
+                                    .fill(ratio > 1 ? OverviewStyle.red : Color(red: 22/255, green: 163/255, blue: 74/255))
+                                    .frame(width: geometry.size.width * min(max(ratio, 0), 1))
+                            }
+                    }
+                    .frame(height: 8)
+                    .accessibilityHidden(true)
+                    Text(monthlyBudget > 0 ? "Đã dùng \(expense.vndCompact) / \(monthlyBudget.vndCompact)" : "Đặt hạn mức để theo dõi chi tiêu")
+                        .font(Typography.font(.caption, size: 11))
+                        .monospacedDigit()
+                        .frame(minHeight: 16.5)
                 }
-                .padding()
-                .background(Theme.cardBackground, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .foregroundStyle(OverviewStyle.secondaryText)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.automatic)
+            .accessibilityHint("Chỉnh hạn mức chi tiêu hàng tháng")
         }
+        .overviewCard()
     }
 
-    // MARK: - Biểu đồ 7 ngày
-
-    private var weeklyChart: some View {
-        let days = store.dailyExpenses(lastDays: 7)
-        let weekTotal = days.reduce(0) { $0 + $1.amount }
-
-        return CardSection(title: "Chi tiêu 7 ngày qua") {
-            Text(weekTotal.vnd)
-                .font(.title3.weight(.bold))
-                .padding(.top, -8)
-            Chart(days) { day in
-                BarMark(
-                    x: .value("Ngày", day.date, unit: .day),
-                    y: .value("Chi tiêu", day.amount)
-                )
-                .cornerRadius(6)
-                .foregroundStyle(Calendar.current.isDateInToday(day.date) ? Color.accentColor : Color.accentColor.opacity(0.35))
-            }
-            .chartYAxis {
-                AxisMarks(values: .automatic(desiredCount: 3)) { value in
-                    AxisGridLine()
-                    AxisValueLabel {
-                        if let amount = value.as(Double.self) {
-                            Text(amount.vndCompact)
-                        }
-                    }
-                }
-            }
-            .chartXAxis {
-                AxisMarks(values: .stride(by: .day)) { value in
-                    AxisValueLabel(centered: true) {
-                        if let date = value.as(Date.self) {
-                            // "T2", "T3", ... "CN"
-                            Text(date.formatted(.dateTime.weekday(.short).locale(.vietnam)))
-                        }
-                    }
-                }
-            }
-            .frame(height: 170)
+    private func flowStat(_ title: String, amount: Double, income: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(Typography.font(.caption, size: 11, weight: .medium))
+                .foregroundStyle(OverviewStyle.secondaryText)
+                .frame(minHeight: 16.5)
+            Text("\(income ? "+" : "-")\(amount.vndCompact)")
+                .font(Typography.font(.callout, size: 16, weight: .bold)).monospacedDigit()
+                .foregroundStyle(income ? OverviewStyle.ink : OverviewStyle.red)
+                .lineLimit(1).minimumScaleFactor(0.65)
+                .frame(minHeight: 24)
         }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+        .cardSurface(radius: CardCorners.flow, color: income ? OverviewStyle.incomeTile : OverviewStyle.muted)
     }
 
-    // MARK: - Chi theo danh mục
-
-    private var categoryBreakdown: some View {
-        let items = store.expensesByCategory()
-        let total = items.reduce(0) { $0 + $1.amount }
-
-        return CardSection(title: "Chi theo danh mục") {
-            if items.isEmpty {
-                Text("Tháng này chưa có khoản chi nào.")
-                    .foregroundStyle(.secondary)
+    private var attentionCard: some View {
+        let reminders = store.paymentReminders.sorted { $0.dueDate < $1.dueDate }
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Cần chú ý")
+                    .font(Typography.font(.callout, size: 16, weight: .semibold))
+                    .frame(minHeight: 24)
+                Spacer(minLength: 8)
+                Text("\(reminders.count) sắp đến hạn")
+                    .font(Typography.font(.caption, size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(OverviewStyle.muted, in: Capsule())
+            }
+            if reminders.isEmpty {
+                Text("Chưa có lịch thanh toán sắp tới.")
+                    .font(Typography.font(.caption, size: 11))
+                    .foregroundStyle(OverviewStyle.secondaryText)
             } else {
-                HStack(spacing: 20) {
-                    ZStack {
-                        Chart(items) { item in
-                            SectorMark(
-                                angle: .value("Số tiền", item.amount),
-                                innerRadius: .ratio(0.64),
-                                angularInset: 1.5
-                            )
-                            .cornerRadius(4)
-                            .foregroundStyle(item.category.color)
+                VStack(spacing: 0) {
+                    ForEach(Array(reminders.enumerated()), id: \.element.id) { index, reminder in
+                        if index > 0 {
+                            Rectangle().fill(OverviewStyle.border)
+                                .frame(height: 1)
+                                .padding(.leading, 52)
+                                .padding(.vertical, 12)
                         }
-                        VStack(spacing: 0) {
-                            Text("Tổng")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text(total.vndCompact)
-                                .font(.subheadline.weight(.bold))
-                        }
+                        attentionRow(reminder)
                     }
-                    .frame(width: 128, height: 128)
+                }
+            }
+        }
+        .overviewCard()
+    }
 
-                    VStack(alignment: .leading, spacing: 9) {
-                        ForEach(items.prefix(5)) { item in
-                            HStack(spacing: 8) {
-                                Circle()
-                                    .fill(item.category.color)
-                                    .frame(width: 8, height: 8)
-                                Text(item.category.title)
-                                    .font(.subheadline)
-                                    .lineLimit(1)
-                                Spacer(minLength: 4)
-                                Text((item.amount / total).percentText)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
+    private func attentionRow(_ reminder: PaymentReminder) -> some View {
+        HStack(spacing: 12) {
+            SolarIcon(reminder.isIncome ? "solar-user-linear" : "solar-calendar-linear", size: 20)
+                .frame(width: 40, height: 40)
+                .background(reminder.isIncome ? OverviewStyle.secondarySurface : OverviewStyle.muted, in: Circle())
+            VStack(alignment: .leading, spacing: 0) {
+                Text(reminder.title)
+                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
+                    .lineLimit(1)
+                    .frame(minHeight: 20)
+                Text(reminder.dueDescription)
+                    .font(Typography.font(.caption, size: 11))
+                    .foregroundStyle(OverviewStyle.secondaryText)
+                    .frame(minHeight: 16.5)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("\(reminder.isIncome ? "+" : "-")\(reminder.amount.vnd)")
+                .font(Typography.font(.subheadline, size: 14, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(reminder.isIncome ? OverviewStyle.ink : OverviewStyle.red)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var calendarCard: some View {
+        let calendar = Calendar.current
+        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
+        let dayCount = calendar.range(of: .day, in: .month, for: start)!.count
+        let offset = (calendar.component(.weekday, from: start) + 5) % 7
+        let cellCount = ((offset + dayCount + 6) / 7) * 7
+        let transactionsByDay = Dictionary(grouping: store.monthlyTransactions(for: start)) {
+            calendar.startOfDay(for: $0.date)
+        }
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                Text("Lịch thu chi")
+                    .font(Typography.font(.callout, size: 16, weight: .semibold))
+                    .frame(minHeight: 24)
+                Spacer(minLength: 4)
+                calendarMonthMenu
+            }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 4), count: 7), spacing: 4) {
+                ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
+                    Text(title)
+                        .font(Typography.font(.caption2, size: 10, weight: .medium))
+                        .foregroundStyle(OverviewStyle.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: 15)
+                        .padding(.vertical, 4)
+                        .accessibilityHidden(true)
+                }
+                ForEach(0..<cellCount, id: \.self) { index in
+                    if index < offset || index >= offset + dayCount {
+                        Color.clear.frame(height: calendarDayHeight).accessibilityHidden(true)
+                    } else {
+                        let date = calendar.date(byAdding: .day, value: index - offset, to: start)!
+                        let items = transactionsByDay[calendar.startOfDay(for: date)] ?? []
+                        let income = items.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
+                        let expense = items.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
+                        calendarDay(date, income: income, expense: expense)
+                    }
+                }
+            }
+        }
+        .overviewCard()
+    }
+
+    private var calendarMonthMenu: some View {
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: displayedMonth)
+        let month = calendar.component(.month, from: displayedMonth)
+        let isCurrentYear = year == calendar.component(.year, from: .now)
+        return Menu {
+            Button("Tháng trước") { changeMonth(-1) }
+            Button("Tháng hiện tại") { displayedMonth = .now }
+            Button("Tháng sau") { changeMonth(1) }
+            Divider()
+            ForEach((year - 1)...(year + 1), id: \.self) { targetYear in
+                Menu(String(targetYear)) {
+                    ForEach(1...12, id: \.self) { targetMonth in
+                        Button("Tháng \(targetMonth)") {
+                            if let date = calendar.date(from: DateComponents(year: targetYear, month: targetMonth, day: 1)) {
+                                displayedMonth = date
                             }
                         }
                     }
                 }
             }
+        } label: {
+            HStack(spacing: 6) {
+                SolarIcon("solar-calendar-linear", size: 14)
+                Text(isCurrentYear ? "Tháng \(month)" : "T\(month)/\(year.formatted(.number.grouping(.never)))")
+                    .font(Typography.font(.caption, size: 12, weight: .semibold))
+                    .monospacedDigit()
+                SolarIcon("solar-alt-arrow-down-linear", size: 12)
+                    .foregroundStyle(OverviewStyle.secondaryText)
+            }
+            .foregroundStyle(OverviewStyle.ink)
         }
+        .menuIndicator(.hidden)
+        .nativeGlassButton(tint: OverviewStyle.muted)
+        .buttonBorderShape(.capsule)
+        .controlSize(.small)
+        .accessibilityLabel("Chọn tháng, tháng \(month) năm \(String(year))")
     }
 
-    // MARK: - Giao dịch gần đây
-
-    private var recentTransactions: some View {
-        CardSection(title: "Giao dịch gần đây", actionTitle: "Xem tất cả", onAction: { selectedTab = .transactions }) {
-            VStack(spacing: 14) {
-                ForEach(store.transactions.prefix(5)) { transaction in
-                    TransactionRow(transaction: transaction)
+    private func calendarDay(_ date: Date, income: Double, expense: Double) -> some View {
+        let calendar = Calendar.current
+        let today = calendar.isDateInToday(date)
+        let total = income + expense
+        // Three neutral activity levels from the mockup; today overrides the heat map.
+        let fill = today ? OverviewStyle.lime
+            : total >= 3_000_000 ? OverviewStyle.secondary.opacity(0.25)
+            : total >= 1_000_000 ? OverviewStyle.muted
+            : OverviewStyle.muted.opacity(0.4)
+        return Button { selectedDay = CalendarDay(date: date) } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(calendar.component(.day, from: date))")
+                    .font(Typography.font(.caption, size: 11, weight: today ? .bold : .medium))
+                    .foregroundStyle(today ? OverviewStyle.ink : OverviewStyle.secondaryText)
+                    .frame(minHeight: 16.5, alignment: .topLeading)
+                VStack(alignment: .leading, spacing: 0) {
+                    if income > 0 {
+                        calendarAmount("+\(income.vndCompact)", color: OverviewStyle.ink)
+                    }
+                    if expense > 0 {
+                        calendarAmount("-\(expense.vndCompact)", color: OverviewStyle.red)
+                    }
                 }
             }
+            .padding(4)
+            .frame(maxWidth: .infinity, minHeight: calendarDayHeight, alignment: .topLeading)
+            .background(fill, in: RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
         }
+        // Calendar cells are flat data tiles in the design; only the month control uses glass.
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(today ? "Hôm nay, " : "")\(date.formatted(.dateTime.weekday(.wide).day().month().year().locale(.vietnam))), thu \(income.vnd), chi \(expense.vnd)")
+        .accessibilityHint("Xem giao dịch trong ngày")
     }
+
+    private func calendarAmount(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(Typography.font(.caption2, size: 9, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(color)
+            .lineLimit(1).minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity, minHeight: 11.25, alignment: .leading)
+    }
+
+    private func changeMonth(_ delta: Int) {
+        let calendar = Calendar.current
+        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
+        displayedMonth = calendar.date(byAdding: .month, value: delta, to: start) ?? start
+    }
+
+    private func dayDetails(_ date: Date) -> some View {
+        let items = store.transactions.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+        return NavigationStack {
+            List {
+                if items.isEmpty {
+                    Text("Chưa có giao dịch trong ngày này.").font(Typography.body).foregroundStyle(OverviewStyle.secondaryText)
+                } else {
+                    ForEach(items) { TransactionRow(transaction: $0) }
+                }
+            }
+            .navigationTitle(date.formatted(.dateTime.day().month().locale(.vietnam)))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Đóng") { selectedDay = nil } } }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var budgetEditor: some View {
+        NavigationStack {
+            Form {
+                Section("Hạn mức mỗi tháng (VND)") {
+                    TextField("Ví dụ: 30000000", text: $budgetInput).keyboardType(.numberPad)
+                    Text("Áp dụng cho mỗi tháng. Nhập 0 để bỏ hạn mức.")
+                        .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                }
+                Section {
+                    Button("Áp dụng hạn mức") {
+                        guard let value = Double(budgetInput), value.isFinite, value >= 0, value <= 1_000_000_000_000 else { return }
+                        monthlyBudget = value
+                        isEditingBudget = false
+                    }
+                    .disabled(Double(budgetInput).map { !$0.isFinite || $0 < 0 || $0 > 1_000_000_000_000 } ?? true)
+                }
+            }
+            .navigationTitle("Hạn mức chi tiêu").navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Huỷ") { isEditingBudget = false } }
+
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+private extension View {
+    func overviewCard() -> some View {
+        self.padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface(color: OverviewStyle.card, elevated: true)
+    }
+}
+
+private extension String {
+    var capitalizedFirstLetter: String { prefix(1).uppercased() + dropFirst() }
 }
 
 #Preview {
     OverviewView(selectedTab: .constant(.overview))
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
+        .font(Typography.body)
 }

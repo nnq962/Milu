@@ -15,14 +15,14 @@ struct AccountDetailView: View {
             List {
                 Section {
                     VStack(spacing: 8) {
-                        IconBadge(systemName: account.type.icon, color: account.color, size: 60)
+                        IconBadge(name: account.type.icon, color: account.color, size: 60)
                         Text(account.balance.vnd)
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(Typography.font(.largeTitle, size: 32, weight: .bold))
                             .foregroundStyle(account.balance < 0 ? .red : .primary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
                         Text("\(account.type.title) · \(account.detail)")
-                            .font(.subheadline)
+                            .font(Typography.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -42,7 +42,7 @@ struct AccountDetailView: View {
             .navigationTitle(account.name)
             .navigationBarTitleDisplayMode(.inline)
         } else {
-            ContentUnavailableView("Không tìm thấy tài khoản", systemImage: "exclamationmark.triangle")
+            ContentUnavailableView("Không tìm thấy tài khoản", image: "solar-danger-triangle-linear")
         }
     }
 }

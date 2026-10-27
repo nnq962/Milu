@@ -11,18 +11,26 @@ import Observation
 @Observable
 final class FinanceStore {
     var accounts: [Account]
+    var loans: [LoanReceivable]
+    var paymentReminders: [PaymentReminder]
     /// Luôn sắp xếp mới nhất lên đầu.
     var transactions: [FinanceTransaction]
 
-    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions) {
+    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [LoanReceivable] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders) {
         self.accounts = accounts
+        self.loans = loans
+        self.paymentReminders = paymentReminders
         self.transactions = transactions.sorted { $0.date > $1.date }
     }
 
     // MARK: - Tài khoản
 
     var netWorth: Double {
-        accounts.reduce(0) { $0 + $1.balance }
+        accounts.reduce(0) { $0 + $1.balance } + totalLent
+    }
+
+    var totalLent: Double {
+        loans.reduce(0) { $0 + $1.outstandingAmount }
     }
 
     var totalAssets: Double {

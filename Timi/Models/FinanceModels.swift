@@ -24,11 +24,11 @@ enum AccountType: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .cash: "banknote.fill"
-        case .bank: "building.columns.fill"
-        case .eWallet: "qrcode"
-        case .credit: "creditcard.fill"
-        case .savings: "leaf.fill"
+        case .cash: "solar-banknote-linear"
+        case .bank: "solar-buildings-3-linear"
+        case .eWallet: "solar-qr-code-linear"
+        case .credit: "solar-card-linear"
+        case .savings: "solar-leaf-linear"
         }
     }
 }
@@ -93,18 +93,18 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .food: "fork.knife"
-        case .transport: "car.fill"
-        case .shopping: "bag.fill"
-        case .bills: "bolt.fill"
-        case .entertainment: "film.fill"
-        case .health: "cross.case.fill"
-        case .education: "book.fill"
-        case .otherExpense: "ellipsis"
-        case .salary: "briefcase.fill"
-        case .bonus: "gift.fill"
-        case .investment: "chart.line.uptrend.xyaxis"
-        case .otherIncome: "plus"
+        case .food: "solar-chef-hat-minimalistic-linear"
+        case .transport: "solar-car-linear"
+        case .shopping: "solar-bag-linear"
+        case .bills: "solar-bolt-linear"
+        case .entertainment: "solar-clapperboard-play-linear"
+        case .health: "solar-medical-kit-linear"
+        case .education: "solar-book-linear"
+        case .otherExpense: "solar-menu-dots-linear"
+        case .salary: "solar-case-round-linear"
+        case .bonus: "solar-gift-linear"
+        case .investment: "solar-graph-up-linear"
+        case .otherIncome: "solar-add-linear"
         }
     }
 
@@ -143,4 +143,29 @@ struct FinanceTransaction: Identifiable, Hashable {
 
     /// Số tiền có dấu: thu là dương, chi là âm.
     var signedAmount: Double { kind == .income ? amount : -amount }
+}
+
+/// Khoản tiền đang cho vay; dư nợ phải thu được tính vào tài sản ròng.
+struct LoanReceivable: Identifiable {
+    let id = UUID()
+    var borrower: String
+    var outstandingAmount: Double
+}
+
+/// Scheduled amounts shown on the overview, separate from posted transactions/balances.
+struct PaymentReminder: Identifiable {
+    let id = UUID()
+    var title: String
+    var amount: Double
+    var isIncome: Bool
+    var dueDate: Date
+
+    var dueDescription: String {
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: .now),
+                                           to: calendar.startOfDay(for: dueDate)).day ?? 0
+        let date = "\(calendar.component(.day, from: dueDate))/\(calendar.component(.month, from: dueDate))"
+        let remaining = days > 0 ? "còn \(days) ngày" : days == 0 ? "hôm nay" : "quá hạn \(-days) ngày"
+        return "Hạn \(date) · \(remaining)"
+    }
 }

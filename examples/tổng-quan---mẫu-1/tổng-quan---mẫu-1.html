@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TổngQuanMẫu1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js"></script>
+    <style type="text/tailwindcss">
+      @theme inline {
+        --color-background: var(--background);
+        --color-foreground: var(--foreground);
+        --color-primary: var(--primary);
+        --color-primary-foreground: var(--primary-foreground);
+        --color-secondary: var(--secondary);
+        --color-secondary-foreground: var(--secondary-foreground);
+        --color-muted: var(--muted);
+        --color-muted-foreground: var(--muted-foreground);
+        --color-accent: var(--accent);
+        --color-accent-foreground: var(--accent-foreground);
+        --color-destructive: var(--destructive);
+        --color-destructive-foreground: var(--destructive-foreground);
+        --color-card: var(--card);
+        --color-card-foreground: var(--card-foreground);
+        --color-popover: var(--popover);
+        --color-popover-foreground: var(--popover-foreground);
+        --color-border: var(--border);
+        --color-input: var(--input);
+        --color-ring: var(--ring);
+        --color-chart-1: var(--chart-1);
+        --color-chart-2: var(--chart-2);
+        --color-chart-3: var(--chart-3);
+        --color-chart-4: var(--chart-4);
+        --color-chart-5: var(--chart-5);
+
+        --font-sans: var(--font-sans);
+        --font-heading: var(--font-heading, var(--font-sans));
+        --font-serif: var(--font-serif);
+        --font-mono: var(--font-mono);
+      }
+
+      @theme {
+        --radius-xs: calc(var(--radius) - 8px);
+        --radius-sm: calc(var(--radius) - 4px);
+        --radius-md: calc(var(--radius) - 2px);
+        --radius-lg: var(--radius);
+        --radius-xl: calc(var(--radius) + 4px);
+        --radius-2xl: calc(var(--radius) + 8px);
+        --radius-3xl: calc(var(--radius) + 16px);
+        --radius-4xl: calc(var(--radius) + 24px);
+      }
+
+      * {
+        corner-shape: var(--shape, round);
+      }
+
+      .rounded-full, .rounded-none,
+      .rounded-t-full, .rounded-t-none,
+      .rounded-r-full, .rounded-r-none,
+      .rounded-b-full, .rounded-b-none,
+      .rounded-l-full, .rounded-l-none,
+      .rounded-s-full, .rounded-s-none,
+      .rounded-e-full, .rounded-e-none,
+      .rounded-tl-full, .rounded-tl-none,
+      .rounded-tr-full, .rounded-tr-none,
+      .rounded-bl-full, .rounded-bl-none,
+      .rounded-br-full, .rounded-br-none,
+      .rounded-ss-full, .rounded-ss-none,
+      .rounded-se-full, .rounded-se-none,
+      .rounded-es-full, .rounded-es-none,
+      .rounded-ee-full, .rounded-ee-none {
+        corner-shape: round;
+      }
+
+      @utility rounded-* {
+        border-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-t-* {
+        border-top-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+        border-top-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-r-* {
+        border-top-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+        border-bottom-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-b-* {
+        border-bottom-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+        border-bottom-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-l-* {
+        border-top-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+        border-bottom-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-tl-* {
+        border-top-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-tr-* {
+        border-top-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-bl-* {
+        border-bottom-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-br-* {
+        border-bottom-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-s-* {
+        border-start-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+        border-end-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-e-* {
+        border-start-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+        border-end-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-ss-* {
+        border-start-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-se-* {
+        border-start-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-es-* {
+        border-end-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+      @utility rounded-ee-* {
+        border-end-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+      }
+
+      @layer base {
+        * {
+          @apply border-border outline-ring/50;
+        }
+        body {
+          @apply bg-background text-foreground font-sans;
+        }
+      }
+
+      :root {
+        --shape: squircle;
+        --shape-multiplier: 1;
+
+        --background: #FAFAF7;
+        --foreground: #111827;
+        --primary: #111827;
+        --primary-foreground: #FFFFFF;
+        --secondary: #EEF0F3;
+        --secondary-foreground: #111827;
+        --muted: #F1F1EC;
+        --muted-foreground: #6B7280;
+        --accent: #C6F432;
+        --accent-foreground: #111827;
+        --destructive: #DC2626;
+        --destructive-foreground: #FFFFFF;
+        --card: #FFFFFF;
+        --card-foreground: #111827;
+        --popover: #FFFFFF;
+        --popover-foreground: #111827;
+        --border: #E5E5E0;
+        --input: #F3F3EF;
+        --ring: #111827;
+        --chart-1: #111827;
+        --chart-2: #C6F432;
+        --chart-3: #16A34A;
+        --chart-4: #DC2626;
+        --chart-5: #9CA3AF;
+
+        --font-sans: "Manrope", sans-serif;
+        --font-heading: "Manrope", sans-serif;
+        --font-serif: "Playfair Display", serif;
+        --font-mono: "JetBrains Mono", monospace;
+
+        --radius: 1rem;
+      }
+
+      @supports (corner-shape: squircle) {
+        :root {
+          --shape-multiplier: 2.5;
+        }
+      }
+
+      /* Prevent layout shift for icons without explicit dimensions */
+      iconify-icon:not([width]):not([height]) {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+      }
+
+      /* Hide scrollbars */
+      *,
+      *::before,
+      *::after {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      *::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="min-h-screen bg-background pb-28 font-sans text-foreground">
+      <div class="flex items-center justify-between px-5 pt-12 pb-4">
+        <div class="relative">
+          <img
+            alt="Avatar"
+            src="https://lh3.googleusercontent.com/a/ACg8ocJZNIe_8PW6vPmM9uiYMk8-gFumpxy0tZxzwln16qAbJiGbdfFH=s96-c"
+            class="size-11 rounded-full object-cover"
+          />
+        </div>
+        <div
+          class="relative size-11 rounded-full bg-card flex items-center justify-center shadow-sm"
+        >
+          <iconify-icon
+            icon="solar:bell-linear"
+            width="20"
+            height="20"
+            class="text-foreground"
+          ></iconify-icon
+          ><span
+            class="absolute top-2.5 right-3 size-2.5 rounded-full bg-destructive ring-2 ring-card"
+          ></span>
+        </div>
+      </div>
+      <div class="px-5 space-y-5">
+        <div>
+          <p class="text-xs font-medium text-muted-foreground">Thứ Ba, 14 tháng 5</p>
+          <h1 class="font-heading text-2xl font-semibold text-foreground mt-1">
+            Chào buổi sáng, Quyet
+          </h1>
+        </div>
+        <div class="bg-card rounded-2xl p-5 shadow-[0_2px_16px_rgba(28,36,48,0.05)]">
+          <p class="text-xs font-medium text-muted-foreground">Tổng tài sản</p>
+          <p class="text-[34px] leading-tight font-extrabold text-foreground tabular-nums mt-1">
+            248.600.000 ₫
+          </p>
+          <div class="mt-4 grid grid-cols-3 gap-2">
+            <div class="rounded-xl bg-muted/60 p-3">
+              <div class="size-7 rounded-full bg-card flex items-center justify-center">
+                <iconify-icon
+                  icon="solar:wallet-linear"
+                  width="16"
+                  height="16"
+                  class="text-foreground"
+                ></iconify-icon>
+              </div>
+              <p class="text-[11px] font-medium text-muted-foreground mt-2">Số dư</p>
+              <p class="text-sm font-semibold tabular-nums mt-0.5">312,4tr</p>
+            </div>
+            <div class="rounded-xl bg-muted/60 p-3">
+              <div class="size-7 rounded-full bg-card flex items-center justify-center">
+                <iconify-icon
+                  icon="solar:hand-money-linear"
+                  width="16"
+                  height="16"
+                  class="text-foreground"
+                ></iconify-icon>
+              </div>
+              <p class="text-[11px] font-medium text-muted-foreground mt-2">Cho vay</p>
+              <p class="text-sm font-semibold tabular-nums mt-0.5">80tr</p>
+            </div>
+            <div class="rounded-xl bg-muted/60 p-3">
+              <div class="size-7 rounded-full bg-card flex items-center justify-center">
+                <iconify-icon
+                  icon="solar:card-linear"
+                  width="16"
+                  height="16"
+                  class="text-foreground"
+                ></iconify-icon>
+              </div>
+              <p class="text-[11px] font-medium text-muted-foreground mt-2">Nợ</p>
+              <p class="text-sm font-semibold tabular-nums text-destructive mt-0.5">-143,8tr</p>
+            </div>
+          </div>
+        </div>
+        <div class="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground p-5">
+          <div class="absolute -right-10 -top-10 size-36 rounded-full bg-accent/25 blur-2xl"></div>
+          <div class="relative flex items-start gap-3">
+            <div class="size-10 rounded-xl bg-accent flex items-center justify-center shrink-0">
+              <iconify-icon
+                icon="solar:crown-bold"
+                width="20"
+                height="20"
+                class="text-accent-foreground"
+              ></iconify-icon>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-heading text-base font-semibold">Nâng cấp Timi Pro</p>
+              <p class="text-xs leading-snug opacity-75 mt-0.5">
+                Nhận 300 lượt AI mỗi tháng, xuất báo cáo và đồng bộ trên mọi thiết bị.
+              </p>
+            </div>
+          </div>
+          <div class="relative mt-4">
+            <button
+              class="w-full rounded-full bg-accent text-accent-foreground text-xs font-semibold py-2.5"
+            >
+              Nâng cấp ngay
+            </button>
+          </div>
+        </div>
+        <div class="bg-card rounded-2xl p-5 shadow-[0_2px_16px_rgba(28,36,48,0.05)]">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h2 class="font-heading text-base font-semibold">Làm quen app</h2>
+              <p class="text-[11px] text-muted-foreground mt-0.5">
+                Hoàn thành để nhận thêm lượt AI
+              </p>
+            </div>
+            <span
+              class="rounded-full bg-accent text-accent-foreground text-[11px] font-semibold px-2.5 py-1 tabular-nums"
+              >2/4</span
+            >
+          </div>
+          <div class="mt-4 h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div style="width:50%" class="h-full rounded-full bg-accent"></div>
+          </div>
+          <div class="mt-3 space-y-2">
+            <div class="flex items-center gap-2.5">
+              <span class="size-5 rounded-full bg-primary flex items-center justify-center shrink-0"
+                ><iconify-icon
+                  icon="solar:check-read-linear"
+                  width="12"
+                  height="12"
+                  class="text-primary-foreground"
+                ></iconify-icon
+              ></span>
+              <p class="flex-1 text-xs text-muted-foreground line-through">Thêm ví đầu tiên</p>
+              <span
+                class="rounded-full bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 tabular-nums text-center"
+                >+5</span
+              >
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="size-5 rounded-full bg-primary flex items-center justify-center shrink-0"
+                ><iconify-icon
+                  icon="solar:check-read-linear"
+                  width="12"
+                  height="12"
+                  class="text-primary-foreground"
+                ></iconify-icon
+              ></span>
+              <p class="flex-1 text-xs text-muted-foreground line-through">Ghi một khoản thu chi</p>
+              <span
+                class="rounded-full bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 tabular-nums text-center"
+                >+5</span
+              >
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="size-5 rounded-full border-2 border-border shrink-0"></span>
+              <p class="flex-1 text-xs font-medium text-foreground">Ghi một khoản cho vay</p>
+              <span
+                class="rounded-full bg-accent/40 text-accent-foreground text-[10px] font-semibold px-2 py-0.5 tabular-nums text-center"
+                >+5</span
+              >
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="size-5 rounded-full border-2 border-border shrink-0"></span>
+              <p class="flex-1 text-xs font-medium text-foreground">Hỏi AI một câu hỏi</p>
+              <span
+                class="rounded-full bg-accent/40 text-accent-foreground text-[10px] font-semibold px-2 py-0.5 tabular-nums text-center"
+                >+5</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="bg-card rounded-2xl p-5 shadow-[0_2px_16px_rgba(28,36,48,0.05)]">
+          <div class="flex items-center justify-between">
+            <h2 class="font-heading text-base font-semibold">Tháng 5 tổng quan</h2>
+            <span class="text-[11px] font-medium text-muted-foreground">Còn 12 ngày</span>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <div class="rounded-xl bg-accent/30 p-3">
+              <p class="text-[11px] font-medium text-muted-foreground">Tiền vào</p>
+              <p class="text-base font-bold text-primary tabular-nums mt-0.5">+32,5tr</p>
+            </div>
+            <div class="rounded-xl bg-muted p-3">
+              <p class="text-[11px] font-medium text-muted-foreground">Tiền ra</p>
+              <p class="text-base font-bold text-destructive tabular-nums mt-0.5">-18,9tr</p>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="flex justify-between text-[11px] font-medium text-muted-foreground">
+              <span>Hạn mức chi tiêu</span><span class="tabular-nums">63%</span>
+            </div>
+            <div class="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div style="width:63%" class="h-full rounded-full bg-chart-3"></div>
+            </div>
+            <p class="text-[11px] text-muted-foreground mt-2 tabular-nums">Đã dùng 18,9tr / 30tr</p>
+          </div>
+        </div>
+        <div class="bg-card rounded-2xl p-5 shadow-[0_2px_16px_rgba(28,36,48,0.05)]">
+          <div class="flex items-center justify-between">
+            <h2 class="font-heading text-base font-semibold">Cần chú ý</h2>
+            <span
+              class="rounded-full bg-muted text-foreground text-[11px] font-semibold px-2.5 py-1"
+              >2 sắp đến hạn</span
+            >
+          </div>
+          <div class="mt-4">
+            <div class="flex items-center gap-3 pb-3">
+              <div class="size-10 rounded-full bg-muted flex items-center justify-center">
+                <iconify-icon
+                  icon="solar:calendar-linear"
+                  width="20"
+                  height="20"
+                  class="text-foreground"
+                ></iconify-icon>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold truncate">Trả nợ thẻ tín dụng</p>
+                <p class="text-[11px] text-muted-foreground">Hạn 18/5 · còn 4 ngày</p>
+              </div>
+              <p class="text-sm font-bold tabular-nums text-destructive">-12.000.000 ₫</p>
+            </div>
+            <div class="relative flex items-center gap-3 pt-3">
+              <div class="absolute top-0 left-[52px] right-0 h-px bg-border"></div>
+              <div class="size-10 rounded-full bg-secondary flex items-center justify-center">
+                <iconify-icon
+                  icon="solar:user-linear"
+                  width="20"
+                  height="20"
+                  class="text-primary"
+                ></iconify-icon>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold truncate">Minh thanh toán khoản vay</p>
+                <p class="text-[11px] text-muted-foreground">Hạn 22/5 · còn 8 ngày</p>
+              </div>
+              <p class="text-sm font-bold tabular-nums text-primary">+5.000.000 ₫</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-card rounded-2xl p-5 shadow-[0_2px_16px_rgba(28,36,48,0.05)]">
+          <div class="flex items-center justify-between">
+            <h2 class="font-heading text-base font-semibold">Lịch thu chi</h2>
+            <button
+              class="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-foreground"
+            >
+              <iconify-icon
+                icon="solar:calendar-linear"
+                width="14"
+                height="14"
+                class="text-foreground"
+              ></iconify-icon
+              ><span class="tabular-nums">Tháng 5</span
+              ><iconify-icon
+                icon="solar:alt-arrow-down-linear"
+                width="12"
+                height="12"
+                class="text-muted-foreground"
+              ></iconify-icon>
+            </button>
+          </div>
+          <div class="mt-4 grid grid-cols-7 gap-1 text-center">
+            <span class="text-[10px] font-medium text-muted-foreground py-1">T2</span
+            ><span class="text-[10px] font-medium text-muted-foreground py-1">T3</span
+            ><span class="text-[10px] font-medium text-muted-foreground py-1">T4</span
+            ><span class="text-[10px] font-medium text-muted-foreground py-1">T5</span
+            ><span class="text-[10px] font-medium text-muted-foreground py-1">T6</span
+            ><span class="text-[10px] font-medium text-muted-foreground py-1">T7</span
+            ><span class="text-[10px] font-medium text-muted-foreground py-1">CN</span>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">1</span>
+              <p class="text-[9px] font-semibold tabular-nums text-primary leading-tight mt-0.5">
+                +2,1tr
+              </p>
+              <p class="text-[9px] font-semibold tabular-nums text-destructive leading-tight">
+                -850k
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">2</span>
+              <p
+                class="text-[9px] font-semibold tabular-nums text-destructive leading-tight mt-0.5"
+              >
+                -850k
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">3</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">4</span>
+              <p
+                class="text-[9px] font-semibold tabular-nums text-destructive leading-tight mt-0.5"
+              >
+                -1,2tr
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted-foreground/25 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">5</span>
+              <p class="text-[9px] font-semibold tabular-nums text-primary leading-tight mt-0.5">
+                +3,4tr
+              </p>
+              <p class="text-[9px] font-semibold tabular-nums text-destructive leading-tight">
+                -1,6tr
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">6</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">7</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">8</span>
+              <p
+                class="text-[9px] font-semibold tabular-nums text-destructive leading-tight mt-0.5"
+              >
+                -420k
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">9</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">10</span>
+              <p class="text-[9px] font-semibold tabular-nums text-primary leading-tight mt-0.5">
+                +500k
+              </p>
+              <p class="text-[9px] font-semibold tabular-nums text-destructive leading-tight">
+                -300k
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">11</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">12</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">13</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-accent p-1 text-left">
+              <span class="text-[11px] font-bold text-accent-foreground">14</span>
+              <p class="text-[9px] font-semibold tabular-nums text-primary leading-tight mt-0.5">
+                +1,2tr
+              </p>
+              <p class="text-[9px] font-semibold tabular-nums text-destructive leading-tight">
+                -1,8tr
+              </p>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">15</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">16</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">17</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">18</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">19</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">20</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">21</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">22</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">23</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">24</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">25</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">26</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">27</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">28</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">29</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">30</span>
+            </div>
+            <div class="min-h-[52px] rounded-lg bg-muted/40 p-1 text-left">
+              <span class="text-[11px] font-medium text-muted-foreground">31</span>
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="fixed bottom-4 left-4 right-4 flex items-center justify-around rounded-full bg-card/80 backdrop-blur-xl shadow-[0_8px_24px_rgba(28,36,48,0.10)] py-3 px-2"
+      >
+        <div class="flex-1 flex flex-col items-center gap-0.5 text-primary">
+          <iconify-icon icon="solar:home-2-bold" width="24" height="24"></iconify-icon
+          ><span class="text-[10px] font-semibold">Tổng quan</span>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-0.5 text-muted-foreground">
+          <iconify-icon
+            icon="solar:transfer-horizontal-linear"
+            width="24"
+            height="24"
+          ></iconify-icon
+          ><span class="text-[10px] font-medium">Giao dịch</span>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-0.5 text-muted-foreground">
+          <iconify-icon icon="solar:chart-2-linear" width="24" height="24"></iconify-icon
+          ><span class="text-[10px] font-medium">Thống kê</span>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-0.5 text-muted-foreground">
+          <iconify-icon icon="solar:user-circle-linear" width="24" height="24"></iconify-icon
+          ><span class="text-[10px] font-medium">Tôi</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

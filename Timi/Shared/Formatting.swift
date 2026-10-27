@@ -10,21 +10,21 @@ extension Locale {
 }
 
 extension Double {
-    /// 1250000 → "1.250.000 ₫"
+    /// 1250000 → "1.250.000đ"
     nonisolated var vnd: String {
-        formatted(.currency(code: "VND").locale(.vietnam).precision(.fractionLength(0)))
+        formatted(.number.locale(.vietnam).precision(.fractionLength(0))) + "đ"
     }
 
-    /// Dạng rút gọn cho biểu đồ và nhãn nhỏ: 1250000 → "1,3 tr"
+    /// Dạng rút gọn cho biểu đồ và nhãn nhỏ: 1250000 → "1,3tr"
     nonisolated var vndCompact: String {
         let value = abs(self)
         let sign = self < 0 ? "-" : ""
         let style = FloatingPointFormatStyle<Double>(locale: .vietnam).precision(.fractionLength(0...1))
         switch value {
-        case 1_000_000_000...: return sign + (value / 1_000_000_000).formatted(style) + " tỷ"
-        case 1_000_000...: return sign + (value / 1_000_000).formatted(style) + " tr"
+        case 1_000_000_000...: return sign + (value / 1_000_000_000).formatted(style) + "tỷ"
+        case 1_000_000...: return sign + (value / 1_000_000).formatted(style) + "tr"
         case 1_000...: return sign + (value / 1_000).formatted(style.precision(.fractionLength(0))) + "k"
-        default: return sign + value.formatted(style)
+        default: return sign + value.formatted(style.precision(.fractionLength(0))) + "đ"
         }
     }
 
@@ -45,7 +45,7 @@ extension Date {
 }
 
 extension FinanceTransaction {
-    /// "+25.000.000 ₫" hoặc "-55.000 ₫"
+    /// "+25.000.000đ" hoặc "-55.000đ"
     var signedAmountText: String {
         (kind == .income ? "+" : "-") + amount.vnd
     }

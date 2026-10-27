@@ -46,10 +46,10 @@ struct AccountsView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Tổng số dư")
-                    .font(.subheadline)
+                    .font(Typography.subheadline)
                     .foregroundStyle(.secondary)
                 Text(store.netWorth.vnd)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(Typography.font(.largeTitle, size: 32, weight: .bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
@@ -69,11 +69,11 @@ struct AccountsView: View {
                     .fill(color)
                     .frame(width: 6, height: 6)
                 Text(title)
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
             }
             Text(text ?? value.vndCompact)
-                .font(.subheadline.weight(.semibold))
+                .font(Typography.subheadline.weight(.semibold))
         }
     }
 }
@@ -83,19 +83,19 @@ struct AccountRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(systemName: account.type.icon, color: account.color)
+            IconBadge(name: account.type.icon, color: account.color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(account.name)
-                    .font(.body.weight(.medium))
+                    .font(Typography.body.weight(.medium))
                     .lineLimit(1)
                 Text(account.detail)
-                    .font(.caption)
+                    .font(Typography.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
             Text(account.balance.vnd)
-                .font(.callout.weight(.semibold))
+                .font(Typography.callout.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(account.balance < 0 ? .red : .primary)
         }

@@ -12,10 +12,25 @@ enum SampleData {
     static let vietcombank = Account(name: "Vietcombank", type: .bank, balance: 45_800_000, color: .green, detail: "•••• 4821")
     static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, color: .red, detail: "•••• 1907")
     static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, color: .pink, detail: "0912 •••• 88")
-    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, color: .indigo, detail: "•••• 3360 · Hạn mức 50 tr")
+    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, color: .indigo, detail: "•••• 3360 · Hạn mức 50tr")
     static let savings = Account(name: "Sổ tiết kiệm 12 tháng", type: .savings, balance: 120_000_000, color: .teal, detail: "Lãi suất 5,2%/năm")
 
     static let accounts = [cash, vietcombank, techcombank, momo, creditCard, savings]
+
+    /// Prototype fixtures for the design; not real payment schedules or notifications.
+    static let monthlyBudget = 30_000_000.0
+    static let paymentReminders = [
+        PaymentReminder(title: "Trả nợ thẻ tín dụng", amount: abs(creditCard.balance), isIncome: false,
+                        dueDate: Calendar.current.date(byAdding: .day, value: 4, to: .now)!),
+        PaymentReminder(title: "Minh thanh toán khoản vay", amount: 5_000_000, isIncome: true,
+                        dueDate: Calendar.current.date(byAdding: .day, value: 8, to: .now)!),
+    ]
+
+    // Dữ liệu cho vay mẫu từ thiết kế Sleek, không phải giao dịch ngân hàng thật.
+    static let loans = [
+        LoanReceivable(borrower: "Minh Trần", outstandingAmount: 45_000_000),
+        LoanReceivable(borrower: "Hùng Lê", outstandingAmount: 35_000_000),
+    ]
 
     static let transactions: [FinanceTransaction] = [
         make("Cà phê Highlands", 55_000, .food, momo, daysAgo: 0, hour: 8),

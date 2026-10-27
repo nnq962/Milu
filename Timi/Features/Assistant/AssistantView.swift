@@ -62,8 +62,10 @@ struct AssistantView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cuộc trò chuyện mới", systemImage: "square.and.pencil") {
+                    Button {
                         messages = [ChatMessage(role: .assistant, text: MockAssistant.welcome)]
+                    } label: {
+                        Label("Cuộc trò chuyện mới", image: "solar-pen-new-square-linear")
                     }
                     .disabled(messages.count <= 1)
                 }
@@ -77,10 +79,9 @@ struct AssistantView: View {
                 HStack(spacing: 8) {
                     ForEach(suggestions, id: \.self) { suggestion in
                         Button(suggestion) { send(suggestion) }
-                            .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.accentColor.opacity(0.12), in: Capsule())
+                            .font(Typography.subheadline)
+                            .nativeGlassButton()
+                            .controlSize(.regular)
                     }
                 }
                 .padding(.horizontal)
@@ -99,9 +100,12 @@ struct AssistantView: View {
                 Button {
                     send(draft)
                 } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 36))
+                    SolarIcon("solar-arrow-up-linear", size: 18)
                 }
+                .nativeGlassButton(prominent: true)
+                .buttonBorderShape(.circle)
+                .controlSize(.large)
+                .accessibilityLabel("Gửi tin nhắn")
                 .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isThinking)
             }
             .padding(.horizontal)
@@ -165,8 +169,7 @@ struct MessageBubble: View {
 
 struct AssistantAvatar: View {
     var body: some View {
-        Image(systemName: "sparkles")
-            .font(.system(size: 14, weight: .semibold))
+        SolarIcon("solar-magic-wand-2-linear", size: 16)
             .foregroundStyle(.white)
             .frame(width: 30, height: 30)
             .background(Theme.brandGradient, in: Circle())
@@ -174,13 +177,18 @@ struct AssistantAvatar: View {
 }
 
 struct TypingIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
             AssistantAvatar()
-            Image(systemName: "ellipsis")
-                .font(.title2.weight(.bold))
+            SolarIcon("solar-menu-dots-linear", size: 20)
                 .foregroundStyle(.secondary)
-                .symbolEffect(.variableColor.iterative, options: .repeating)
+                .phaseAnimator([false, true]) { content, dimmed in
+                    content.opacity(reduceMotion ? 1 : (dimmed ? 0.35 : 1))
+                } animation: { _ in
+                    .easeInOut(duration: 0.7)
+                }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))

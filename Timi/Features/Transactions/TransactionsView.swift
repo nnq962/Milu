@@ -87,13 +87,13 @@ struct TransactionsView: View {
                     if searchText.isEmpty {
                         ContentUnavailableView(
                             "Chưa có giao dịch",
-                            systemImage: "tray",
+                            image: "solar-inbox-linear",
                             description: Text("Nhấn + để thêm giao dịch đầu tiên.")
                         )
                     } else {
                         ContentUnavailableView(
                             "Không tìm thấy",
-                            systemImage: "magnifyingglass",
+                            image: "solar-magnifier-linear",
                             description: Text("Không có giao dịch nào khớp với “\(searchText)”.")
                         )
                     }
@@ -104,8 +104,10 @@ struct TransactionsView: View {
             .navigationTitle("Giao dịch")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Thêm giao dịch", systemImage: "plus") {
+                    Button {
                         isAddingTransaction = true
+                    } label: {
+                        Label("Thêm giao dịch", image: "solar-add-linear")
                     }
                 }
             }
