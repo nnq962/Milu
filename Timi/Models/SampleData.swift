@@ -12,7 +12,8 @@ enum SampleData {
     static let vietcombank = Account(name: "Vietcombank", type: .bank, balance: 45_800_000, color: .green, detail: "•••• 4821")
     static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, color: .red, detail: "•••• 1907")
     static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, color: .pink, detail: "0912 •••• 88")
-    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, color: .indigo, detail: "•••• 3360 · Hạn mức 50tr")
+    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, color: .indigo, detail: "•••• 3360 · Hạn mức 50tr",
+                                    creditLimit: 50_000_000, paymentDueDate: daysFromNow(4))
 
     static let accounts = [cash, vietcombank, techcombank, momo, creditCard]
 
@@ -20,16 +21,20 @@ enum SampleData {
     static let monthlyBudget = 30_000_000.0
     static let paymentReminders = [
         PaymentReminder(title: "Trả nợ thẻ tín dụng", amount: abs(creditCard.balance), isIncome: false,
-                        dueDate: Calendar.current.date(byAdding: .day, value: 4, to: .now)!),
+                        dueDate: daysFromNow(4), detail: "Đi vay · \(creditCard.name)", avatar: .icon("solar-card-linear")),
         PaymentReminder(title: "Minh thanh toán khoản vay", amount: 5_000_000, isIncome: true,
-                        dueDate: Calendar.current.date(byAdding: .day, value: 8, to: .now)!),
+                        dueDate: daysFromNow(8), detail: "Cho vay · Minh Trần", avatar: .initials("M")),
     ]
 
-    // Dữ liệu cho vay mẫu từ thiết kế Sleek, không phải giao dịch ngân hàng thật.
+    // Khoản vay mẫu theo thiết kế Sleek (tổng cho vay còn 80tr), không phải giao dịch ngân hàng thật.
     static let loans = [
-        LoanReceivable(borrower: "Minh Trần", outstandingAmount: 45_000_000),
-        LoanReceivable(borrower: "Hùng Lê", outstandingAmount: 35_000_000),
+        Loan(name: "Minh Trần", direction: .lent, principal: 75_000_000, outstanding: 45_000_000, dueDate: daysFromNow(8)),
+        Loan(name: "Hùng Lê", direction: .lent, principal: 35_000_000, outstanding: 35_000_000, dueDate: daysFromNow(46)),
     ]
+
+    private static func daysFromNow(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: days, to: .now) ?? .now
+    }
 
     // Hũ tiết kiệm mẫu từ thiết kế Sleek (màn Tài khoản).
     static let savingsGoals = [

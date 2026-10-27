@@ -48,6 +48,30 @@ extension String {
 }
 
 extension Date {
+    /// "Hôm nay, 14/5", "Hôm qua, 13/5" hoặc "Thứ Hai, 12/5"
+    var transactionDayTitle: String {
+        let calendar = Calendar.current
+        let prefix = calendar.isDateInToday(self) ? "Hôm nay"
+            : calendar.isDateInYesterday(self) ? "Hôm qua"
+            : formatted(.dateTime.weekday(.wide).locale(.vietnam)).capitalized(with: .vietnam)
+        return "\(prefix), \(dayMonth)"
+    }
+
+    /// "22/5"
+    var dayMonth: String {
+        let calendar = Calendar.current
+        return "\(calendar.component(.day, from: self))/\(calendar.component(.month, from: self))"
+    }
+
+    /// "Hạn 22/5 · còn 8 ngày", "Hạn 22/5 · hôm nay" hoặc "Hạn 22/5 · quá hạn 2 ngày"
+    var dueDescription: String {
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: .now),
+                                           to: calendar.startOfDay(for: self)).day ?? 0
+        let remaining = days > 0 ? "còn \(days) ngày" : days == 0 ? "hôm nay" : "quá hạn \(-days) ngày"
+        return "Hạn \(dayMonth) · \(remaining)"
+    }
+
     /// "Hôm nay", "Hôm qua" hoặc "Thứ Năm, 16 tháng 10"
     var relativeDayTitle: String {
         let calendar = Calendar.current

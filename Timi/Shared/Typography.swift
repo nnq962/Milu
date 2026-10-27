@@ -80,6 +80,13 @@ enum Typography {
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
 
+        // Sleek segmented control: selected SemiBold ink, others Medium muted; iOS owns the shape.
+        let segmented = UISegmentedControl.appearance()
+        if let medium = UIFont(name: "Manrope-Medium", size: 14), let semibold = UIFont(name: "Manrope-SemiBold", size: 14) {
+            segmented.setTitleTextAttributes([.font: medium, .foregroundColor: UIColor(red: 89/255, green: 97/255, blue: 113/255, alpha: 1)], for: .normal)
+            segmented.setTitleTextAttributes([.font: semibold, .foregroundColor: UIColor(red: 17/255, green: 24/255, blue: 39/255, alpha: 1)], for: .selected)
+        }
+
         let navigation = UINavigationBar.appearance()
         navigation.titleTextAttributes = [.font: UIFont(name: "Manrope-SemiBold", size: 17) ?? regular.withSize(17)]
         navigation.largeTitleTextAttributes = [.font: UIFont(name: "Manrope-Bold", size: 34) ?? regular.withSize(34)]

@@ -82,6 +82,9 @@ struct Account: Identifiable, Hashable {
     var color: Color
     /// Dòng mô tả phụ, VD: "•••• 4821".
     var detail: String
+    /// Chỉ thẻ tín dụng: hạn mức và hạn thanh toán kỳ này, hiện ở mục Đi vay.
+    var creditLimit: Double? = nil
+    var paymentDueDate: Date? = nil
 }
 
 // MARK: - Giao dịch
@@ -133,15 +136,15 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .food: "solar-chef-hat-minimalistic-linear"
+        case .food: "solar-cup-hot-linear"
         case .transport: "solar-car-linear"
-        case .shopping: "solar-bag-linear"
+        case .shopping: "solar-bag-3-linear"
         case .bills: "solar-bolt-linear"
         case .entertainment: "solar-clapperboard-play-linear"
         case .health: "solar-medical-kit-linear"
         case .education: "solar-book-linear"
         case .otherExpense: "solar-menu-dots-linear"
-        case .salary: "solar-case-round-linear"
+        case .salary: "solar-wallet-money-linear"
         case .bonus: "solar-gift-linear"
         case .investment: "solar-graph-up-linear"
         case .otherIncome: "solar-add-linear"
@@ -185,27 +188,52 @@ struct FinanceTransaction: Identifiable, Hashable {
     var signedAmount: Double { kind == .income ? amount : -amount }
 }
 
-/// Khoản tiền đang cho vay; dư nợ phải thu được tính vào tài sản ròng.
-struct LoanReceivable: Identifiable {
+// MARK: - Vay nợ
+
+enum LoanDirection: String, CaseIterable, Identifiable {
+    case lent, borrowed
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .lent: "Cho vay"
+        case .borrowed: "Đi vay"
+        }
+    }
+}
+
+/// Khoản cho vay hoặc đi vay với người khác. Cho vay cộng vào tài sản ròng, đi vay tính vào nợ.
+struct Loan: Identifiable, Hashable {
     let id = UUID()
-    var borrower: String
-    var outstandingAmount: Double
+    /// Người vay hoặc người cho mình vay.
+    var name: String
+    var direction: LoanDirection
+    /// Số tiền gốc ban đầu.
+    var principal: Double
+    /// Số còn phải thu (cho vay) hoặc còn phải trả (đi vay).
+    var outstanding: Double
+    var dueDate: Date?
+
+    var isSettled: Bool { outstanding <= 0 }
+    var paidRatio: Double { principal > 0 ? min(max((principal - outstanding) / principal, 0), 1) : 0 }
 }
 
 /// Scheduled amounts shown on the overview, separate from posted transactions/balances.
 struct PaymentReminder: Identifiable {
+    enum Avatar {
+        case initials(String)
+        case icon(String)
+    }
+
     let id = UUID()
     var title: String
     var amount: Double
     var isIncome: Bool
     var dueDate: Date
+    /// Dòng phụ ở mục Cần chú ý của tab Vay nợ, VD: "Cho vay · Minh Trần".
+    var detail: String = ""
+    var avatar: Avatar = .icon("solar-calendar-linear")
 
-    var dueDescription: String {
-        let calendar = Calendar.current
-        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: .now),
-                                           to: calendar.startOfDay(for: dueDate)).day ?? 0
-        let date = "\(calendar.component(.day, from: dueDate))/\(calendar.component(.month, from: dueDate))"
-        let remaining = days > 0 ? "còn \(days) ngày" : days == 0 ? "hôm nay" : "quá hạn \(-days) ngày"
-        return "Hạn \(date) · \(remaining)"
-    }
+    var dueDescription: String { dueDate.dueDescription }
 }

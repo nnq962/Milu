@@ -9,14 +9,27 @@ struct AddTransactionView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
-    @State private var kind: TransactionKind = .expense
-    @State private var amountText = ""
-    @State private var title = ""
-    @State private var category: TransactionCategory = .food
+    /// Giao dịch đang sửa; nil khi thêm mới.
+    private let editing: FinanceTransaction?
+    @State private var kind: TransactionKind
+    @State private var amountText: String
+    @State private var title: String
+    @State private var category: TransactionCategory
     @State private var accountID: Account.ID?
-    @State private var date = Date.now
-    @State private var note = ""
+    @State private var date: Date
+    @State private var note: String
     @FocusState private var isAmountFocused: Bool
+
+    init(editing: FinanceTransaction? = nil) {
+        self.editing = editing
+        _kind = State(initialValue: editing?.kind ?? .expense)
+        _amountText = State(initialValue: editing.map { String(Int($0.amount)).groupedVNDInput } ?? "")
+        _title = State(initialValue: editing?.title ?? "")
+        _category = State(initialValue: editing?.category ?? .food)
+        _accountID = State(initialValue: editing?.accountID)
+        _date = State(initialValue: editing?.date ?? .now)
+        _note = State(initialValue: editing?.note ?? "")
+    }
 
     private var amount: Double {
         amountText.vndInputAmount
@@ -75,7 +88,7 @@ struct AddTransactionView: View {
                         .lineLimit(2...4)
                 }
             }
-            .navigationTitle("Thêm giao dịch")
+            .navigationTitle(editing == nil ? "Thêm giao dịch" : "Sửa giao dịch")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -97,7 +110,7 @@ struct AddTransactionView: View {
             }
             .onAppear {
                 accountID = accountID ?? store.accounts.first?.id
-                isAmountFocused = true
+                isAmountFocused = editing == nil
             }
         }
     }
@@ -105,14 +118,18 @@ struct AddTransactionView: View {
     private func save() {
         guard let accountID, amount > 0 else { return }
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        store.add(FinanceTransaction(
-            title: trimmedTitle.isEmpty ? category.title : trimmedTitle,
-            amount: amount,
-            category: category,
-            accountID: accountID,
-            date: date,
-            note: note
-        ))
+        var transaction = editing ?? FinanceTransaction(title: "", amount: 0, category: category, accountID: accountID, date: date)
+        transaction.title = trimmedTitle.isEmpty ? category.title : trimmedTitle
+        transaction.amount = amount
+        transaction.category = category
+        transaction.accountID = accountID
+        transaction.date = date
+        transaction.note = note
+        if editing == nil {
+            store.add(transaction)
+        } else {
+            store.update(transaction)
+        }
         dismiss()
     }
 }

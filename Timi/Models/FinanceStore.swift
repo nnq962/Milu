@@ -11,13 +11,13 @@ import Observation
 @Observable
 final class FinanceStore {
     var accounts: [Account]
-    var loans: [LoanReceivable]
+    var loans: [Loan]
     var paymentReminders: [PaymentReminder]
     var savingsGoals: [SavingsGoal]
     /// Luôn sắp xếp mới nhất lên đầu.
     var transactions: [FinanceTransaction]
 
-    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [LoanReceivable] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
+    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
         self.accounts = accounts
         self.loans = loans
         self.paymentReminders = paymentReminders
@@ -28,11 +28,17 @@ final class FinanceStore {
     // MARK: - Tài khoản
 
     var netWorth: Double {
-        accounts.reduce(0) { $0 + $1.balance } + totalLent + totalSaved
+        accounts.reduce(0) { $0 + $1.balance } + totalLent - totalBorrowed + totalSaved
     }
 
+    /// Số còn phải thu từ các khoản cho vay chưa tất toán.
     var totalLent: Double {
-        loans.reduce(0) { $0 + $1.outstandingAmount }
+        loans.filter { $0.direction == .lent }.reduce(0) { $0 + $1.outstanding }
+    }
+
+    /// Số còn phải trả của các khoản đi vay (không gồm thẻ tín dụng).
+    var totalBorrowed: Double {
+        loans.filter { $0.direction == .borrowed }.reduce(0) { $0 + $1.outstanding }
     }
 
     var totalSaved: Double {
@@ -80,8 +86,23 @@ final class FinanceStore {
         savingsGoals.removeAll { $0.id == goal.id }
     }
 
+    /// Dư nợ thẻ/tài khoản âm cộng các khoản đi vay.
     var totalDebt: Double {
-        accounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance }
+        accounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance } + totalBorrowed
+    }
+
+    // MARK: - Vay nợ
+
+    func save(_ loan: Loan) {
+        if let index = loans.firstIndex(where: { $0.id == loan.id }) {
+            loans[index] = loan
+        } else {
+            loans.append(loan)
+        }
+    }
+
+    func delete(_ loan: Loan) {
+        loans.removeAll { $0.id == loan.id }
     }
 
     func account(id: Account.ID) -> Account? {
@@ -100,7 +121,23 @@ final class FinanceStore {
         adjustBalance(of: transaction.accountID, by: transaction.signedAmount)
     }
 
+    /// Thay một giao dịch đã có và cập nhật lại số dư của tài khoản cũ lẫn mới.
+    func update(_ transaction: FinanceTransaction) {
+        guard let index = transactions.firstIndex(where: { $0.id == transaction.id }) else { return }
+        let old = transactions[index]
+        adjustBalance(of: old.accountID, by: -old.signedAmount)
+        transactions[index] = transaction
+        transactions.sort { $0.date > $1.date }
+        adjustBalance(of: transaction.accountID, by: transaction.signedAmount)
+    }
+
+    func transaction(id: FinanceTransaction.ID) -> FinanceTransaction? {
+        transactions.first { $0.id == id }
+    }
+
     func delete(_ transaction: FinanceTransaction) {
+        // Chat cards can ask twice; only reverse the balance for a transaction that still exists.
+        guard transactions.contains(where: { $0.id == transaction.id }) else { return }
         transactions.removeAll { $0.id == transaction.id }
         adjustBalance(of: transaction.accountID, by: -transaction.signedAmount)
     }

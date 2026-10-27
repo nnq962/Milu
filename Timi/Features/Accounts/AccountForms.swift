@@ -145,7 +145,7 @@ struct GoalEditorView: View {
 }
 
 /// Large VND amount input that groups thousands while typing.
-private struct AmountField: View {
+struct AmountField: View {
     @Binding var text: String
 
     var body: some View {

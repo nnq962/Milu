@@ -92,14 +92,14 @@ struct AccountsView: View {
                 .padding(.top, 4)
         }
         .accessibilityElement(children: .combine)
-        .accountsCard()
+        .sleekCard()
     }
 
     private var paymentSection: some View {
         // Each account is its own row, ordered cash → bank → e-wallet.
         let accounts = AccountType.paymentTypes.flatMap { store.accounts(of: $0) }
         return VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("Tài khoản thanh toán")
+            SectionHeader(title: "Tài khoản thanh toán")
             if accounts.isEmpty {
                 emptyCard("Chưa có tài khoản thanh toán.")
             } else {
@@ -123,7 +123,7 @@ struct AccountsView: View {
 
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("Mục tiêu tiết kiệm")
+            SectionHeader(title: "Mục tiêu tiết kiệm")
             if store.savingsGoals.isEmpty {
                 emptyCard("Chưa có hũ tiết kiệm. Nhấn + để tạo hũ đầu tiên.")
             }
@@ -134,18 +134,11 @@ struct AccountsView: View {
         }
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(Typography.font(.headline, size: 16, weight: .semibold))
-            .designLineHeight(24, relativeTo: .headline)
-            .padding(.horizontal, 4)
-    }
-
     private func emptyCard(_ message: String) -> some View {
         Text(message)
             .font(Typography.font(.footnote, size: 12))
             .foregroundStyle(Palette.secondaryText)
-            .accountsCard()
+            .sleekCard()
     }
 
     private func updatedText(_ date: Date?) -> String {
@@ -192,15 +185,6 @@ private struct DataRow: View {
         .padding(16)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// Hairline starting after the 44pt icon: 16 padding + 44 + 12 gap.
-private struct RowDivider: View {
-    var body: some View {
-        Palette.border
-            .frame(height: 1)
-            .padding(.leading, 72)
     }
 }
 
@@ -264,32 +248,6 @@ private struct GoalCard: View {
         .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityHint("Sửa hũ tiết kiệm")
-    }
-}
-
-private struct ProgressBar: View {
-    let value: Double
-
-    var body: some View {
-        Capsule()
-            .fill(Palette.muted)
-            .frame(height: 10)
-            .overlay(alignment: .leading) {
-                GeometryReader { proxy in
-                    Capsule()
-                        .fill(Palette.lime)
-                        .frame(width: proxy.size.width * value)
-                }
-            }
-            .clipShape(Capsule())
-    }
-}
-
-private extension View {
-    func accountsCard() -> some View {
-        self.padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(color: Palette.card, elevated: true)
     }
 }
 

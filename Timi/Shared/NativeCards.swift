@@ -4,6 +4,8 @@ import SwiftUI
 /// Values are native points, not the CSS radius multiplied by 2.5.
 enum CardCorners {
     static let large: CGFloat = 32
+    /// Sleek rounded-3xl (32px CSS × 2.5 squircle); same optical ratio as `large` for rounded-2xl.
+    static let extraLarge: CGFloat = 40
     static let inset: CGFloat = 28
     /// Short income/expense tiles: fitted to the supplied @2x reference silhouette.
     static let flow: CGFloat = 18

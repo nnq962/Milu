@@ -21,6 +21,23 @@ extension View {
         }
     }
 
+    /// Floating action button: Apple's prominent glass tinted with the design accent.
+    @ViewBuilder
+    func nativeFloatingButton(diameter: CGFloat, tint: Color) -> some View {
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+                .buttonSizing(.flexible)
+                .tint(tint)
+                .frame(width: diameter, height: diameter)
+        } else {
+            self.buttonStyle(.borderedProminent)
+                .buttonBorderShape(.circle)
+                .tint(tint)
+                .frame(width: diameter, height: diameter)
+        }
+    }
+
     /// Keep the system glass surface inside the specified design bounds.
     @ViewBuilder
     func nativeCircleButton(diameter: CGFloat) -> some View {
