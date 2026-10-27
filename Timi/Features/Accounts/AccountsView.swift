@@ -7,99 +7,289 @@ import SwiftUI
 
 struct AccountsView: View {
     @Environment(FinanceStore.self) private var store
+    @State private var isAddingAccount = false
+    @State private var isAddingGoal = false
+    @State private var editingGoal: SavingsGoal?
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    summary
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    totalCard
+                    paymentSection
+                    goalsSection
                 }
-
-                ForEach(AccountType.allCases) { type in
-                    let accounts = store.accounts.filter { $0.type == type }
-                    if !accounts.isEmpty {
-                        Section {
-                            ForEach(accounts) { account in
-                                NavigationLink(value: account.id) {
-                                    AccountRow(account: account)
-                                }
-                            }
-                        } header: {
-                            HStack {
-                                Text(type.title)
-                                Spacer()
-                                Text(accounts.reduce(0) { $0 + $1.balance }.vnd)
-                                    .monospacedDigit()
-                            }
-                        }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
+            }
+            .background(Palette.background)
+            .foregroundStyle(Palette.ink)
+            // The title names the back button of pushed screens; the leading heading is the visible title.
+            .navigationTitle("Tài khoản")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1) }
+                if #available(iOS 26.0, *) {
+                    // Sleek: the heading sits on the same row as the + button.
+                    ToolbarItem(placement: .topBarLeading) { heading }
+                        .sharedBackgroundVisibility(.hidden)
+                    ToolbarItem(placement: .topBarTrailing) {
+                        addMenu.nativeCircleButton(diameter: 44)
                     }
+                    .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .topBarLeading) { heading }
+                    ToolbarItem(placement: .topBarTrailing) { addMenu }
                 }
             }
-            .navigationTitle("Tài khoản")
             .navigationDestination(for: Account.ID.self) { accountID in
                 AccountDetailView(accountID: accountID)
             }
+            .sheet(isPresented: $isAddingAccount) { AddAccountView() }
+            .sheet(isPresented: $isAddingGoal) { GoalEditorView(goal: nil) }
+            .sheet(item: $editingGoal) { goal in GoalEditorView(goal: goal) }
         }
     }
 
-    private var summary: some View {
+    private var heading: some View {
+        Text("Tài khoản")
+            .font(Typography.font(.title2, size: 24, weight: .semibold))
+            .foregroundStyle(Palette.ink)
+            .fixedSize()
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var addMenu: some View {
+        Menu {
+            Button { isAddingAccount = true } label: { Label("Thêm tài khoản", image: "solar-wallet-linear") }
+            Button { isAddingGoal = true } label: { Label("Thêm hũ tiết kiệm", image: "mdi-piggy-bank") }
+        } label: {
+            SolarIcon("solar-add-circle-linear", size: 20)
+                .frame(width: 28, height: 28)
+        }
+        .menuStyle(.button)
+        .buttonBorderShape(.circle)
+        .tint(Palette.ink)
+        .accessibilityLabel("Thêm tài khoản hoặc hũ")
+    }
+
+    private var totalCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Tổng số dư")
+                .font(Typography.font(.caption, size: 12, weight: .medium))
+                .foregroundStyle(Palette.secondaryText)
+                .designLineHeight(16, relativeTo: .caption)
+            Text(store.paymentBalance.vnd)
+                .font(Typography.font(.largeTitle, size: 34, weight: .heavy))
+                .designLineHeight(42.5, relativeTo: .largeTitle)
+                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
+            Text("Gồm \(store.paymentAccounts.count) tài khoản và \(store.savingsGoals.count) hũ")
+                .font(Typography.font(.caption2, size: 11))
+                .foregroundStyle(Palette.secondaryText)
+                .designLineHeight(16.5, relativeTo: .caption2)
+                .padding(.top, 4)
+        }
+        .accessibilityElement(children: .combine)
+        .accountsCard()
+    }
+
+    private var paymentSection: some View {
+        // Each account is its own row, ordered cash → bank → e-wallet.
+        let accounts = AccountType.paymentTypes.flatMap { store.accounts(of: $0) }
+        return VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("Tài khoản thanh toán")
+            if accounts.isEmpty {
+                emptyCard("Chưa có tài khoản thanh toán.")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
+                        NavigationLink(value: account.id) {
+                            DataRow(icon: account.type.icon,
+                                    title: account.name,
+                                    subtitle: updatedText(store.lastActivity(of: account)),
+                                    amount: account.balance)
+                        }
+                        .buttonStyle(.plain)
+                        // Sleek draws the hairline absolutely, so it adds no row height.
+                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                    }
+                }
+                .cardSurface(color: Palette.card, elevated: true)
+            }
+        }
+    }
+
+    private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Tổng số dư")
-                    .font(Typography.subheadline)
-                    .foregroundStyle(.secondary)
-                Text(store.netWorth.vnd)
-                    .font(Typography.font(.largeTitle, size: 32, weight: .bold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+            sectionTitle("Mục tiêu tiết kiệm")
+            if store.savingsGoals.isEmpty {
+                emptyCard("Chưa có hũ tiết kiệm. Nhấn + để tạo hũ đầu tiên.")
             }
-            HStack(spacing: 24) {
-                summaryItem(title: "Tài sản", value: store.totalAssets, color: .green)
-                summaryItem(title: "Dư nợ", value: store.totalDebt, color: .red)
-                summaryItem(title: "Số tài khoản", text: "\(store.accounts.count)", color: .accentColor)
+            ForEach(store.savingsGoals) { goal in
+                Button { editingGoal = goal } label: { GoalCard(goal: goal) }
+                    .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, 6)
     }
 
-    private func summaryItem(title: String, value: Double = 0, text: String? = nil, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(color)
-                    .frame(width: 6, height: 6)
-                Text(title)
-                    .font(Typography.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Text(text ?? value.vndCompact)
-                .font(Typography.subheadline.weight(.semibold))
-        }
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(Typography.font(.headline, size: 16, weight: .semibold))
+            .designLineHeight(24, relativeTo: .headline)
+            .padding(.horizontal, 4)
+    }
+
+    private func emptyCard(_ message: String) -> some View {
+        Text(message)
+            .font(Typography.font(.footnote, size: 12))
+            .foregroundStyle(Palette.secondaryText)
+            .accountsCard()
+    }
+
+    private func updatedText(_ date: Date?) -> String {
+        guard let date else { return "Chưa có giao dịch" }
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Cập nhật hôm nay" }
+        if calendar.isDateInYesterday(date) { return "Cập nhật hôm qua" }
+        return "Cập nhật \(calendar.component(.day, from: date))/\(calendar.component(.month, from: date))"
     }
 }
 
-struct AccountRow: View {
-    let account: Account
+/// Sleek list row: 44pt muted circle icon, title/subtitle, bold amount and chevron.
+private struct DataRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let amount: Double
 
     var body: some View {
         HStack(spacing: 12) {
-            IconBadge(name: account.type.icon, color: account.color)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(account.name)
-                    .font(Typography.body.weight(.medium))
+            SolarIcon(icon, size: 20)
+                .frame(width: 44, height: 44)
+                .background(Palette.muted, in: Circle())
+            VStack(alignment: .leading, spacing: 0) {
+                Text(title)
+                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
+                    .designLineHeight(20, relativeTo: .subheadline)
                     .lineLimit(1)
-                Text(account.detail)
-                    .font(Typography.caption)
-                    .foregroundStyle(.secondary)
+                Text(subtitle)
+                    .font(Typography.font(.caption2, size: 11))
+                    .foregroundStyle(Palette.secondaryText)
+                    .designLineHeight(16.5, relativeTo: .caption2)
                     .lineLimit(1)
             }
-            Spacer(minLength: 8)
-            Text(account.balance.vnd)
-                .font(Typography.callout.weight(.semibold))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(amount.vnd)
+                .font(Typography.font(.subheadline, size: 14, weight: .bold))
+                .foregroundStyle(amount < 0 ? Palette.red : Palette.ink)
                 .monospacedDigit()
-                .foregroundStyle(account.balance < 0 ? .red : .primary)
+                .lineLimit(1)
+            SolarIcon("solar-alt-arrow-right-linear", size: 16)
+                .foregroundStyle(Palette.secondary)
         }
-        .padding(.vertical, 2)
+        .padding(16)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Hairline starting after the 44pt icon: 16 padding + 44 + 12 gap.
+private struct RowDivider: View {
+    var body: some View {
+        Palette.border
+            .frame(height: 1)
+            .padding(.leading, 72)
+    }
+}
+
+private struct GoalCard: View {
+    let goal: SavingsGoal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // justify-between: icon + text on the left, amount + chevron on the right.
+            HStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    SolarIcon(goal.icon.rawValue, size: 22)
+                        .frame(width: 44, height: 44)
+                        .background(Palette.muted, in: Circle())
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(goal.name)
+                            .font(Typography.font(.headline, size: 16, weight: .semibold))
+                            .designLineHeight(24, relativeTo: .headline)
+                            .lineLimit(1)
+                        Text("Mục tiêu \(goal.target.vnd)")
+                            .font(Typography.font(.caption2, size: 11))
+                            .foregroundStyle(Palette.secondaryText)
+                            .designLineHeight(16.5, relativeTo: .caption2)
+                            .lineLimit(1)
+                    }
+                }
+                // Keep the target readable; the saved amount scales down first.
+                .layoutPriority(1)
+                Spacer(minLength: 8)
+                HStack(spacing: 12) {
+                    Text(goal.saved.vnd)
+                        .font(Typography.font(.subheadline, size: 14, weight: .bold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    SolarIcon("solar-alt-arrow-right-linear", size: 16)
+                        .foregroundStyle(Palette.secondary)
+                }
+            }
+            ProgressBar(value: goal.progress)
+                .padding(.top, 20)
+            HStack {
+                Text("Đã đạt \(goal.progress.percentText)")
+                Spacer()
+                Text(goal.remaining > 0 ? "Còn \(goal.remaining.vnd)" : "Đã đủ mục tiêu")
+            }
+            .font(Typography.font(.caption2, size: 11, weight: .medium))
+            .foregroundStyle(Palette.secondaryText)
+            .monospacedDigit()
+            .designLineHeight(16.5, relativeTo: .caption2)
+            .padding(.top, 8)
+        }
+        // p-5 plus the 1pt border, which CSS adds inside the card's box.
+        .padding(21)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
+                .strokeBorder(Palette.border, lineWidth: 1)
+        }
+        .cardSurface(color: Palette.card, elevated: true)
+        .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Sửa hũ tiết kiệm")
+    }
+}
+
+private struct ProgressBar: View {
+    let value: Double
+
+    var body: some View {
+        Capsule()
+            .fill(Palette.muted)
+            .frame(height: 10)
+            .overlay(alignment: .leading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(Palette.lime)
+                        .frame(width: proxy.size.width * value)
+                }
+            }
+            .clipShape(Capsule())
+    }
+}
+
+private extension View {
+    func accountsCard() -> some View {
+        self.padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface(color: Palette.card, elevated: true)
     }
 }
 
@@ -107,4 +297,5 @@ struct AccountRow: View {
     AccountsView()
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
+        .font(Typography.body)
 }

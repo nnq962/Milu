@@ -1,23 +1,5 @@
 import SwiftUI
 
-private enum OverviewStyle {
-    // Exact sRGB tokens from examples; the app intentionally uses light appearance.
-    static let background = Color(red: 250/255, green: 250/255, blue: 247/255)
-    static let card = Color.white
-    static let muted = Color(red: 241/255, green: 241/255, blue: 236/255)
-    // CSS bg-muted/60 composited over the white card.
-    static let balanceTile = Color(red: 246.6/255, green: 246.6/255, blue: 243.6/255)
-    static let incomeTile = Color(red: 237.9/255, green: 251.7/255, blue: 188.1/255)
-    static let ink = Color(red: 17/255, green: 24/255, blue: 39/255)
-    static let secondary = Color(red: 107/255, green: 114/255, blue: 128/255)
-    static let secondarySurface = Color(red: 238/255, green: 240/255, blue: 243/255)
-    static let border = Color(red: 229/255, green: 229/255, blue: 224/255)
-    // User-requested optical adjustment for small text; keep control tints separate.
-    static let secondaryText = Color(red: 89/255, green: 97/255, blue: 113/255)
-    static let lime = Color(red: 198/255, green: 244/255, blue: 50/255)
-    static let red = Color(red: 220/255, green: 38/255, blue: 38/255)
-}
-
 struct OverviewView: View {
     @Environment(FinanceStore.self) private var store
     @Binding var selectedTab: AppTab
@@ -55,8 +37,8 @@ struct OverviewView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 24)
             }
-            .background(OverviewStyle.background)
-            .foregroundStyle(OverviewStyle.ink)
+            .background(Palette.background)
+            .foregroundStyle(Palette.ink)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
@@ -80,7 +62,7 @@ struct OverviewView: View {
                 NavigationStack {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(info.title).font(Typography.font(.title2, size: 22, weight: .semibold))
-                        Text(info.message).font(Typography.body).foregroundStyle(OverviewStyle.secondaryText)
+                        Text(info.message).font(Typography.body).foregroundStyle(Palette.secondaryText)
                         Spacer()
                     }
                     .padding(24)
@@ -102,7 +84,7 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .tint(OverviewStyle.ink)
+        .tint(Palette.ink)
         .accessibilityLabel("Hồ sơ của Quyet")
     }
 
@@ -114,14 +96,14 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .tint(OverviewStyle.ink)
+        .tint(Palette.ink)
         .accessibilityLabel("Thông báo")
     }
 
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)).capitalizedFirstLetter)
-                .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(Palette.secondaryText)
                 .designLineHeight(16, relativeTo: .caption)
             Text("\(greeting), Quyet")
                 .font(Typography.font(.title2, size: 24, weight: .semibold))
@@ -141,7 +123,7 @@ struct OverviewView: View {
     private var balanceCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Tổng tài sản").font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                Text("Tổng tài sản").font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(Palette.secondaryText)
                     .designLineHeight(16, relativeTo: .caption)
                 Text(store.netWorth.vnd)
                     .font(Typography.font(.largeTitle, size: 34, weight: .heavy))
@@ -151,21 +133,21 @@ struct OverviewView: View {
             HStack(spacing: 8) {
                 balanceStat("Số dư", value: store.totalAssets.vndCompact, icon: "solar-wallet-linear")
                 balanceStat("Cho vay", value: store.totalLent.vndCompact, icon: "solar-hand-money-linear")
-                balanceStat("Nợ", value: (-store.totalDebt).vndCompact, icon: "solar-card-linear", color: OverviewStyle.red)
+                balanceStat("Nợ", value: (-store.totalDebt).vndCompact, icon: "solar-card-linear", color: Palette.red)
             }
         }
         .overviewCard()
         .accessibilityElement(children: .contain)
     }
 
-    private func balanceStat(_ title: String, value: String, icon: String, color: Color = OverviewStyle.ink) -> some View {
+    private func balanceStat(_ title: String, value: String, icon: String, color: Color = Palette.ink) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             SolarIcon(icon, size: 16)
                 .accessibilityHidden(true)
                 .frame(width: 28, height: 28)
-                .background(OverviewStyle.card, in: Circle())
+                .background(Palette.card, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(Typography.font(.caption, size: 11, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                Text(title).font(Typography.font(.caption, size: 11, weight: .medium)).foregroundStyle(Palette.secondaryText)
                     .designLineHeight(16.5, relativeTo: .caption)
                 Text(value)
                     .font(Typography.font(.subheadline, size: 14, weight: .semibold))
@@ -176,7 +158,7 @@ struct OverviewView: View {
         .accessibilityElement(children: .combine)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .cardSurface(radius: CardCorners.inset, color: OverviewStyle.balanceTile)
+        .cardSurface(radius: CardCorners.inset, color: Palette.balanceTile)
     }
 
     private var promotions: some View {
@@ -184,9 +166,9 @@ struct OverviewView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 12) {
                     SolarIcon("solar-crown-bold", size: 20)
-                        .foregroundStyle(OverviewStyle.ink)
+                        .foregroundStyle(Palette.ink)
                         .frame(width: 40, height: 40)
-                        .background(OverviewStyle.lime, in: RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous))
+                        .background(Palette.lime, in: RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Nâng cấp Timi Pro")
                             .font(Typography.font(.callout, size: 16, weight: .semibold))
@@ -205,11 +187,11 @@ struct OverviewView: View {
                         .foregroundColor(Color(red: 17/255, green: 24/255, blue: 39/255))
                         .frame(maxWidth: .infinity, minHeight: 24)
                 }
-                .nativeGlassButton(tint: OverviewStyle.lime)
+                .nativeGlassButton(tint: Palette.lime)
                 .buttonBorderShape(.capsule)
                 .controlSize(.regular)
-                .tint(OverviewStyle.lime)
-                .foregroundStyle(OverviewStyle.ink)
+                .tint(Palette.lime)
+                .foregroundStyle(Palette.ink)
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -218,7 +200,7 @@ struct OverviewView: View {
                     .cardSurface(color: Color(red: 17/255, green: 24/255, blue: 39/255))
                     .overlay(alignment: .topTrailing) {
                         Circle()
-                            .fill(OverviewStyle.lime.opacity(0.25))
+                            .fill(Palette.lime.opacity(0.25))
                             .frame(width: 144, height: 144)
                             .blur(radius: 40)
                             .offset(x: 40, y: -40)
@@ -244,18 +226,18 @@ struct OverviewView: View {
                         .font(Typography.font(.callout, size: 16, weight: .semibold))
                     Text("Hoàn thành để nhận thêm lượt AI")
                         .font(Typography.font(.caption, size: 11))
-                        .foregroundStyle(OverviewStyle.secondaryText)
+                        .foregroundStyle(Palette.secondaryText)
                 }
                 Spacer()
                 Text("\(completed)/4")
                     .font(Typography.font(.caption, size: 11, weight: .semibold))
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(OverviewStyle.lime, in: Capsule())
+                    .background(Palette.lime, in: Capsule())
             }
             GeometryReader { geometry in
-                Capsule().fill(OverviewStyle.muted)
+                Capsule().fill(Palette.muted)
                     .overlay(alignment: .leading) {
-                        Capsule().fill(OverviewStyle.lime)
+                        Capsule().fill(Palette.lime)
                             .frame(width: geometry.size.width * Double(completed) / 4)
                     }
             }
@@ -276,22 +258,22 @@ struct OverviewView: View {
         HStack(spacing: 10) {
             ZStack {
                 if completed {
-                    Circle().fill(OverviewStyle.ink)
+                    Circle().fill(Palette.ink)
                     SolarIcon("solar-check-read-linear", size: 12).foregroundStyle(.white)
                 } else {
-                    Circle().strokeBorder(OverviewStyle.border, lineWidth: 2)
+                    Circle().strokeBorder(Palette.border, lineWidth: 2)
                 }
             }
             .frame(width: 20, height: 20)
             Text(title)
                 .font(Typography.font(.caption, size: 12, weight: completed ? .regular : .medium))
-                .foregroundStyle(completed ? OverviewStyle.secondaryText : OverviewStyle.ink)
+                .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
             Spacer(minLength: 4)
             Text("+5")
                 .font(Typography.font(.caption2, size: 10, weight: .semibold))
-                .foregroundStyle(completed ? OverviewStyle.secondaryText : OverviewStyle.ink)
+                .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
                 .padding(.horizontal, 8).padding(.vertical, 2)
-                .background(completed ? OverviewStyle.muted : OverviewStyle.lime.opacity(0.4), in: Capsule())
+                .background(completed ? Palette.muted : Palette.lime.opacity(0.4), in: Capsule())
         }
         .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
         .accessibilityElement(children: .ignore)
@@ -313,7 +295,7 @@ struct OverviewView: View {
                 Spacer(minLength: 4)
                 Text("Còn \(daysLeft) ngày")
                     .font(Typography.font(.caption, size: 11, weight: .medium))
-                    .foregroundStyle(OverviewStyle.secondaryText)
+                    .foregroundStyle(Palette.secondaryText)
             }
             HStack(spacing: 12) {
                 flowStat("Tiền vào", amount: store.total(.income), income: true)
@@ -333,10 +315,10 @@ struct OverviewView: View {
                     .font(Typography.font(.caption, size: 11, weight: .medium))
                     .frame(minHeight: 16.5)
                     GeometryReader { geometry in
-                        Capsule().fill(OverviewStyle.muted)
+                        Capsule().fill(Palette.muted)
                             .overlay(alignment: .leading) {
                                 Capsule()
-                                    .fill(ratio > 1 ? OverviewStyle.red : Color(red: 22/255, green: 163/255, blue: 74/255))
+                                    .fill(ratio > 1 ? Palette.red : Color(red: 22/255, green: 163/255, blue: 74/255))
                                     .frame(width: geometry.size.width * min(max(ratio, 0), 1))
                             }
                     }
@@ -347,7 +329,7 @@ struct OverviewView: View {
                         .monospacedDigit()
                         .frame(minHeight: 16.5)
                 }
-                .foregroundStyle(OverviewStyle.secondaryText)
+                .foregroundStyle(Palette.secondaryText)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.automatic)
@@ -360,16 +342,16 @@ struct OverviewView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(Typography.font(.caption, size: 11, weight: .medium))
-                .foregroundStyle(OverviewStyle.secondaryText)
+                .foregroundStyle(Palette.secondaryText)
                 .frame(minHeight: 16.5)
             Text("\(income ? "+" : "-")\(amount.vndCompact)")
                 .font(Typography.font(.callout, size: 16, weight: .bold)).monospacedDigit()
-                .foregroundStyle(income ? OverviewStyle.ink : OverviewStyle.red)
+                .foregroundStyle(income ? Palette.ink : Palette.red)
                 .lineLimit(1).minimumScaleFactor(0.65)
                 .frame(minHeight: 24)
         }
         .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-        .cardSurface(radius: CardCorners.flow, color: income ? OverviewStyle.incomeTile : OverviewStyle.muted)
+        .cardSurface(radius: CardCorners.flow, color: income ? Palette.incomeTile : Palette.muted)
     }
 
     private var attentionCard: some View {
@@ -384,17 +366,17 @@ struct OverviewView: View {
                     .font(Typography.font(.caption, size: 11, weight: .semibold))
                     .monospacedDigit()
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(OverviewStyle.muted, in: Capsule())
+                    .background(Palette.muted, in: Capsule())
             }
             if reminders.isEmpty {
                 Text("Chưa có lịch thanh toán sắp tới.")
                     .font(Typography.font(.caption, size: 11))
-                    .foregroundStyle(OverviewStyle.secondaryText)
+                    .foregroundStyle(Palette.secondaryText)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(reminders.enumerated()), id: \.element.id) { index, reminder in
                         if index > 0 {
-                            Rectangle().fill(OverviewStyle.border)
+                            Rectangle().fill(Palette.border)
                                 .frame(height: 1)
                                 .padding(.leading, 52)
                                 .padding(.vertical, 12)
@@ -411,7 +393,7 @@ struct OverviewView: View {
         HStack(spacing: 12) {
             SolarIcon(reminder.isIncome ? "solar-user-linear" : "solar-calendar-linear", size: 20)
                 .frame(width: 40, height: 40)
-                .background(reminder.isIncome ? OverviewStyle.secondarySurface : OverviewStyle.muted, in: Circle())
+                .background(reminder.isIncome ? Palette.secondarySurface : Palette.muted, in: Circle())
             VStack(alignment: .leading, spacing: 0) {
                 Text(reminder.title)
                     .font(Typography.font(.subheadline, size: 14, weight: .semibold))
@@ -419,14 +401,14 @@ struct OverviewView: View {
                     .frame(minHeight: 20)
                 Text(reminder.dueDescription)
                     .font(Typography.font(.caption, size: 11))
-                    .foregroundStyle(OverviewStyle.secondaryText)
+                    .foregroundStyle(Palette.secondaryText)
                     .frame(minHeight: 16.5)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text("\(reminder.isIncome ? "+" : "-")\(reminder.amount.vnd)")
                 .font(Typography.font(.subheadline, size: 14, weight: .bold))
                 .monospacedDigit()
-                .foregroundStyle(reminder.isIncome ? OverviewStyle.ink : OverviewStyle.red)
+                .foregroundStyle(reminder.isIncome ? Palette.ink : Palette.red)
                 .fixedSize(horizontal: true, vertical: false)
         }
         .accessibilityElement(children: .combine)
@@ -453,7 +435,7 @@ struct OverviewView: View {
                 ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
                     Text(title)
                         .font(Typography.font(.caption2, size: 10, weight: .medium))
-                        .foregroundStyle(OverviewStyle.secondaryText)
+                        .foregroundStyle(Palette.secondaryText)
                         .frame(maxWidth: .infinity, minHeight: 15)
                         .padding(.vertical, 4)
                         .accessibilityHidden(true)
@@ -502,12 +484,12 @@ struct OverviewView: View {
                     .font(Typography.font(.caption, size: 12, weight: .semibold))
                     .monospacedDigit()
                 SolarIcon("solar-alt-arrow-down-linear", size: 12)
-                    .foregroundStyle(OverviewStyle.secondaryText)
+                    .foregroundStyle(Palette.secondaryText)
             }
-            .foregroundStyle(OverviewStyle.ink)
+            .foregroundStyle(Palette.ink)
         }
         .menuIndicator(.hidden)
-        .nativeGlassButton(tint: OverviewStyle.muted)
+        .nativeGlassButton(tint: Palette.muted)
         .buttonBorderShape(.capsule)
         .controlSize(.small)
         .accessibilityLabel("Chọn tháng, tháng \(month) năm \(String(year))")
@@ -518,22 +500,22 @@ struct OverviewView: View {
         let today = calendar.isDateInToday(date)
         let total = income + expense
         // Three neutral activity levels from the mockup; today overrides the heat map.
-        let fill = today ? OverviewStyle.lime
-            : total >= 3_000_000 ? OverviewStyle.secondary.opacity(0.25)
-            : total >= 1_000_000 ? OverviewStyle.muted
-            : OverviewStyle.muted.opacity(0.4)
+        let fill = today ? Palette.lime
+            : total >= 3_000_000 ? Palette.secondary.opacity(0.25)
+            : total >= 1_000_000 ? Palette.muted
+            : Palette.muted.opacity(0.4)
         return Button { selectedDay = CalendarDay(date: date) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(calendar.component(.day, from: date))")
                     .font(Typography.font(.caption, size: 11, weight: today ? .bold : .medium))
-                    .foregroundStyle(today ? OverviewStyle.ink : OverviewStyle.secondaryText)
+                    .foregroundStyle(today ? Palette.ink : Palette.secondaryText)
                     .frame(minHeight: 16.5, alignment: .topLeading)
                 VStack(alignment: .leading, spacing: 0) {
                     if income > 0 {
-                        calendarAmount("+\(income.vndCompact)", color: OverviewStyle.ink)
+                        calendarAmount("+\(income.vndCompact)", color: Palette.ink)
                     }
                     if expense > 0 {
-                        calendarAmount("-\(expense.vndCompact)", color: OverviewStyle.red)
+                        calendarAmount("-\(expense.vndCompact)", color: Palette.red)
                     }
                 }
             }
@@ -568,7 +550,7 @@ struct OverviewView: View {
         return NavigationStack {
             List {
                 if items.isEmpty {
-                    Text("Chưa có giao dịch trong ngày này.").font(Typography.body).foregroundStyle(OverviewStyle.secondaryText)
+                    Text("Chưa có giao dịch trong ngày này.").font(Typography.body).foregroundStyle(Palette.secondaryText)
                 } else {
                     ForEach(items) { TransactionRow(transaction: $0) }
                 }
@@ -586,7 +568,7 @@ struct OverviewView: View {
                 Section("Hạn mức mỗi tháng (VND)") {
                     TextField("Ví dụ: 30000000", text: $budgetInput).keyboardType(.numberPad)
                     Text("Áp dụng cho mỗi tháng. Nhập 0 để bỏ hạn mức.")
-                        .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(OverviewStyle.secondaryText)
+                        .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(Palette.secondaryText)
                 }
                 Section {
                     Button("Áp dụng hạn mức") {
@@ -612,7 +594,7 @@ private extension View {
     func overviewCard() -> some View {
         self.padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(color: OverviewStyle.card, elevated: true)
+            .cardSurface(color: Palette.card, elevated: true)
     }
 }
 

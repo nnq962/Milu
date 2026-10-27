@@ -13,28 +13,71 @@ final class FinanceStore {
     var accounts: [Account]
     var loans: [LoanReceivable]
     var paymentReminders: [PaymentReminder]
+    var savingsGoals: [SavingsGoal]
     /// Luôn sắp xếp mới nhất lên đầu.
     var transactions: [FinanceTransaction]
 
-    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [LoanReceivable] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders) {
+    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [LoanReceivable] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
         self.accounts = accounts
         self.loans = loans
         self.paymentReminders = paymentReminders
+        self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
     }
 
     // MARK: - Tài khoản
 
     var netWorth: Double {
-        accounts.reduce(0) { $0 + $1.balance } + totalLent
+        accounts.reduce(0) { $0 + $1.balance } + totalLent + totalSaved
     }
 
     var totalLent: Double {
         loans.reduce(0) { $0 + $1.outstandingAmount }
     }
 
+    var totalSaved: Double {
+        savingsGoals.reduce(0) { $0 + $1.saved }
+    }
+
+    /// Số dư dương của các tài khoản cộng tiền trong hũ.
     var totalAssets: Double {
-        accounts.filter { $0.balance > 0 }.reduce(0) { $0 + $1.balance }
+        accounts.filter { $0.balance > 0 }.reduce(0) { $0 + $1.balance } + totalSaved
+    }
+
+    var paymentAccounts: [Account] {
+        accounts.filter { AccountType.paymentTypes.contains($0.type) }
+    }
+
+    /// "Tổng số dư" của màn Tài khoản: tài khoản thanh toán và hũ, không gồm thẻ tín dụng.
+    var paymentBalance: Double {
+        paymentAccounts.reduce(0) { $0 + $1.balance } + totalSaved
+    }
+
+    func accounts(of type: AccountType) -> [Account] {
+        accounts.filter { $0.type == type }
+    }
+
+    /// Ngày của giao dịch gần nhất thuộc tài khoản này.
+    func lastActivity(of account: Account) -> Date? {
+        transactions.first { $0.accountID == account.id }?.date
+    }
+
+    func add(_ account: Account) {
+        accounts.append(account)
+    }
+
+    // MARK: - Hũ tiết kiệm
+
+    func save(_ goal: SavingsGoal) {
+        if let index = savingsGoals.firstIndex(where: { $0.id == goal.id }) {
+            savingsGoals[index] = goal
+        } else {
+            savingsGoals.append(goal)
+        }
+    }
+
+    func delete(_ goal: SavingsGoal) {
+        savingsGoals.removeAll { $0.id == goal.id }
     }
 
     var totalDebt: Double {

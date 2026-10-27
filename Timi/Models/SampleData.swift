@@ -13,9 +13,8 @@ enum SampleData {
     static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, color: .red, detail: "•••• 1907")
     static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, color: .pink, detail: "0912 •••• 88")
     static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, color: .indigo, detail: "•••• 3360 · Hạn mức 50tr")
-    static let savings = Account(name: "Sổ tiết kiệm 12 tháng", type: .savings, balance: 120_000_000, color: .teal, detail: "Lãi suất 5,2%/năm")
 
-    static let accounts = [cash, vietcombank, techcombank, momo, creditCard, savings]
+    static let accounts = [cash, vietcombank, techcombank, momo, creditCard]
 
     /// Prototype fixtures for the design; not real payment schedules or notifications.
     static let monthlyBudget = 30_000_000.0
@@ -32,6 +31,13 @@ enum SampleData {
         LoanReceivable(borrower: "Hùng Lê", outstandingAmount: 35_000_000),
     ]
 
+    // Hũ tiết kiệm mẫu từ thiết kế Sleek (màn Tài khoản).
+    static let savingsGoals = [
+        SavingsGoal(name: "Hũ tiết kiệm", icon: .piggyBank, saved: 28_000_000, target: 40_000_000),
+        SavingsGoal(name: "Mua xe", icon: .car, saved: 15_000_000, target: 50_000_000),
+        SavingsGoal(name: "Du lịch Đà Nẵng", icon: .airplane, saved: 8_000_000, target: 20_000_000),
+    ]
+
     static let transactions: [FinanceTransaction] = [
         make("Cà phê Highlands", 55_000, .food, momo, daysAgo: 0, hour: 8),
         make("Cơm trưa văn phòng", 45_000, .food, cash, daysAgo: 0, hour: 12),
@@ -40,7 +46,7 @@ enum SampleData {
         make("Netflix", 260_000, .entertainment, creditCard, daysAgo: 2, hour: 21),
         make("Bún chả", 50_000, .food, cash, daysAgo: 2, hour: 12),
         make("Đổ xăng", 120_000, .transport, cash, daysAgo: 3, hour: 7),
-        make("Lãi tiết kiệm", 850_000, .investment, savings, daysAgo: 3, hour: 9),
+        make("Lãi tiết kiệm", 850_000, .investment, vietcombank, daysAgo: 3, hour: 9),
         make("Áo khoác Uniqlo", 980_000, .shopping, creditCard, daysAgo: 4, hour: 20),
         make("Tiền điện", 742_000, .bills, vietcombank, daysAgo: 5, hour: 10),
         make("Trà sữa", 45_000, .food, momo, daysAgo: 5, hour: 15),

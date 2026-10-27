@@ -19,7 +19,7 @@ struct AddTransactionView: View {
     @FocusState private var isAmountFocused: Bool
 
     private var amount: Double {
-        Double(amountText.filter(\.isASCIIDigit)) ?? 0
+        amountText.vndInputAmount
     }
 
     private var canSave: Bool {
@@ -90,9 +90,7 @@ struct AddTransactionView: View {
                 category = TransactionCategory.categories(for: newKind).first ?? category
             }
             .onChange(of: amountText) { _, newValue in
-                // Tự thêm dấu chấm phân cách hàng nghìn khi gõ: 1250000 → 1.250.000
-                let digits = String(newValue.filter(\.isASCIIDigit).prefix(12))
-                let formatted = digits.isEmpty ? "" : (Double(digits) ?? 0).formatted(.number.locale(.vietnam))
+                let formatted = newValue.groupedVNDInput
                 if formatted != newValue {
                     amountText = formatted
                 }
@@ -117,10 +115,6 @@ struct AddTransactionView: View {
         ))
         dismiss()
     }
-}
-
-private extension Character {
-    var isASCIIDigit: Bool { isASCII && isNumber }
 }
 
 #Preview {

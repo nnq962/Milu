@@ -8,9 +8,12 @@ import SwiftUI
 // MARK: - Tài khoản
 
 enum AccountType: String, CaseIterable, Identifiable {
-    case cash, bank, eWallet, credit, savings
+    case cash, bank, eWallet, credit
 
     var id: Self { self }
+
+    /// Nhóm hiện ở mục "Tài khoản thanh toán"; thẻ tín dụng thuộc phần vay nợ.
+    static let paymentTypes: [AccountType] = [.cash, .bank, .eWallet]
 
     var title: String {
         switch self {
@@ -18,19 +21,56 @@ enum AccountType: String, CaseIterable, Identifiable {
         case .bank: "Ngân hàng"
         case .eWallet: "Ví điện tử"
         case .credit: "Thẻ tín dụng"
-        case .savings: "Tiết kiệm"
         }
     }
 
     var icon: String {
         switch self {
-        case .cash: "solar-banknote-linear"
-        case .bank: "solar-buildings-3-linear"
-        case .eWallet: "solar-qr-code-linear"
+        case .cash: "solar-banknote-2-linear"
+        case .bank: "solar-buildings-2-linear"
+        case .eWallet: "solar-smartphone-linear"
         case .credit: "solar-card-linear"
-        case .savings: "solar-leaf-linear"
         }
     }
+
+    var defaultColor: Color {
+        switch self {
+        case .cash: .orange
+        case .bank: .green
+        case .eWallet: .pink
+        case .credit: .indigo
+        }
+    }
+}
+
+// MARK: - Hũ tiết kiệm
+
+enum GoalIcon: String, CaseIterable, Identifiable {
+    case piggyBank = "mdi-piggy-bank"
+    case car = "mdi-car-outline"
+    case airplane = "mdi-airplane"
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .piggyBank: "Tiết kiệm"
+        case .car: "Xe cộ"
+        case .airplane: "Du lịch"
+        }
+    }
+}
+
+/// Hũ tiết kiệm có mục tiêu; số đã để dành được tính vào tài sản.
+struct SavingsGoal: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var icon: GoalIcon
+    var saved: Double
+    var target: Double
+
+    var progress: Double { target > 0 ? min(saved / target, 1) : 0 }
+    var remaining: Double { max(target - saved, 0) }
 }
 
 struct Account: Identifiable, Hashable {

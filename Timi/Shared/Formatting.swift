@@ -34,6 +34,19 @@ extension Double {
     }
 }
 
+extension String {
+    /// Tự thêm dấu chấm phân cách hàng nghìn khi gõ: 1250000 → 1.250.000
+    var groupedVNDInput: String {
+        let digits = String(filter { $0.isASCII && $0.isNumber }.prefix(12))
+        return digits.isEmpty ? "" : (Double(digits) ?? 0).formatted(.number.locale(.vietnam))
+    }
+
+    /// "1.250.000" → 1250000
+    var vndInputAmount: Double {
+        Double(filter { $0.isASCII && $0.isNumber }) ?? 0
+    }
+}
+
 extension Date {
     /// "Hôm nay", "Hôm qua" hoặc "Thứ Năm, 16 tháng 10"
     var relativeDayTitle: String {

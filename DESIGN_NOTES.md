@@ -242,3 +242,35 @@ Nguồn đối chiếu: HTML trong `examples/tổng-quan---mẫu-1`, không 
 - Chuyển avatar/chuông vào ToolbarItem leading/trailing của navigation bar inline. Để iOS quản lý scroll-edge backdrop mặc định giống các NavigationStack khác; không đặt opacity, blur radius hoặc toolbar background riêng.
 - Giữ hai nút tròn 44pt bằng nativeCircleButton. Trên iOS 26, ẩn shared background của từng toolbar item để tránh lớp kính chồng và avatar chữ Q bị native toolbar kéo thành capsule. Nền scroll-edge của navigation bar vẫn do hệ thống quản lý.
 - Greeting và card tiếp tục cuộn; card vẫn không kính. Build thành công và kiểm tra hình tròn/hiệu ứng khi cuộn tại `/tmp/Timi-preview/overview-native-header.png`.
+
+## Màn Tài khoản theo Sleek — 2026-10-27
+
+- **Nguồn chuẩn:** HTML `examples/tài-khoản`. Bố cục: tiêu đề "Tài khoản" 24pt SemiBold và nút + tròn 44pt cùng hàng trên toolbar native (Liquid Glass), thẻ Tổng số dư, mục Tài khoản thanh toán và Mục tiêu tiết kiệm.
+- **Quyết định dữ liệu (người dùng chọn):** thêm model `SavingsGoal` và 3 hũ mẫu từ Sleek (Hũ tiết kiệm 28/40tr, Mua xe 15/50tr, Du lịch Đà Nẵng 8/20tr). Bỏ "Sổ tiết kiệm 12 tháng" và loại tài khoản Tiết kiệm; hũ thay thế. Thẻ tín dụng không hiện ở màn Tài khoản, để dành cho màn Vay nợ; vẫn tính vào Nợ ở Tổng quan.
+- **Số liệu:** Tổng số dư = tài khoản thanh toán (tiền mặt, ngân hàng, ví) + tiền trong hũ. Tổng tài sản/Số dư ở Tổng quan cũng cộng tiền trong hũ để Số dư + Cho vay − Nợ = Tổng tài sản. Mỗi dòng thanh toán là một tài khoản riêng (VD: Ví tiền mặt, Vietcombank, MoMo), xếp theo tiền mặt → ngân hàng → ví; "Cập nhật …" lấy từ giao dịch gần nhất của tài khoản đó.
+- **Tương tác:** dòng tài khoản → thẳng chi tiết tài khoản (màn chi tiết vẫn kiểu List cũ); không còn màn danh sách theo nhóm. Thẻ hũ → sheet sửa/xoá hũ. Nút + mở menu Thêm tài khoản (chỉ loại thanh toán) / Thêm hũ tiết kiệm.
+- **Thiết kế:** dòng dữ liệu icon tròn 44pt nền muted, divider lùi 72pt; thẻ hũ có viền #E5E5E0 + shadow, thanh tiến độ 10pt màu accent. Card dùng token bo góc 32pt, không kính. Tiền dùng `đ` thay cho `₫` của mẫu.
+- **Icon mới:** Solar banknote-2, buildings-2, smartphone, add-circle; icon hũ là Material Design Icons (piggy-bank, car-outline, airplane) theo mẫu — giấy phép Apache 2.0 tại `Timi/Resources/MDI-LICENSE.txt`.
+- **Màu dùng chung:** token màu chuyển từ `OverviewStyle` sang `Palette` (Shared/Palette.swift), giá trị không đổi.
+- **Kiểm tra:** Build Debug thành công; đã xem trên iPhone 17 Pro / iOS 26.3: bố cục, cuộn, mở nhóm Ngân hàng → Vietcombank, sửa hũ (28tr → 30tr, 75%), thêm tài khoản VPBank. Chưa kiểm tra iOS 17.6 và cỡ chữ trợ năng lớn.
+
+### Đơn giản hoá tài khoản thanh toán và font số tiền hũ — 2026-10-28
+
+- **Yêu cầu:** Hiện từng tài khoản (Tiền mặt, ngân hàng A, ví B) ngay ở màn Tài khoản, không cần vào màn nhóm trung gian. Đã bỏ `AccountGroupView`; chạm dòng mở thẳng chi tiết tài khoản.
+- **Design cập nhật:** số tiền trong thẻ hũ đổi từ 18pt ExtraBold sang `text-sm font-bold` = 14pt Bold, cách mũi tên 12pt (`gap-3`), giống số tiền ở dòng tài khoản.
+- Build thành công; đã xem trên iPhone 17 Pro / iOS 26.3: 4 dòng Ví tiền mặt / Vietcombank / Techcombank / MoMo, chạm Vietcombank mở chi tiết.
+
+### Tiêu đề ngang hàng nút + — 2026-10-28
+
+- **Phản hồi:** Tiêu đề "Tài khoản" phải nằm cùng hàng với nút +, như HTML (`flex justify-between` chứa h1 và nút).
+- Chuyển tiêu đề vào `ToolbarItem(.topBarLeading)`, ẩn shared background trên iOS 26 để chữ không bị bọc kính; nút + vẫn ở trailing. Giữ Manrope 24pt SemiBold.
+- Vì nằm trên navigation bar native, tiêu đề cố định khi cuộn và nội dung đi dưới lớp scroll-edge của iOS (giống avatar/chuông ở Tổng quan). Trong HTML tiêu đề cuộn cùng nội dung; đây là khác biệt có chủ đích theo quy tắc dùng toolbar native.
+- Build thành công; đã xem trên iPhone 17 Pro / iOS 26.3 ở đầu trang và khi cuộn.
+
+### Rà soát cuối màn Tài khoản — 2026-10-28
+
+- **Cách đối chiếu:** render HTML ở 402pt (bằng iPhone 17 Pro), đo bằng `getBoundingClientRect` và so với ảnh Simulator cùng chiều rộng.
+- **Đã sửa:** divider giữa các dòng vẽ đè (overlay) như `absolute` trong HTML, không cộng 1pt vào chiều cao — mỗi dòng 76pt. Thẻ hũ padding 21pt (p-5 + viền 1pt nằm trong hộp CSS). Thêm line-height theo HTML: dòng "Gồm … hũ" và chân thẻ hũ 16,5pt, tiêu đề mục 24pt. Khoảng cách tối thiểu chữ ↔ số tiền ở dòng tài khoản 12pt (`gap-3`), thay cho Spacer cũ (≥32pt).
+- **Kết quả đo:** thẻ Tổng số dư ~127pt (HTML 127), 4 dòng thanh toán ~304pt (76/dòng), thẻ hũ ~138,5pt (HTML 140,5; trong sai số đo ảnh ±2pt), khoảng cách thẻ hũ 12pt.
+- **Khác biệt có chủ đích (giữ nguyên):** `đ` liền số thay `₫`; chữ phụ #596171 (token đã duyệt) thay #6B7280; nút + là Liquid Glass native; tiêu đề cố định trên toolbar khi cuộn; thanh tab mặc định iOS và bộ 4 tab hiện tại; dữ liệu thật của app thay số mẫu.
+- **Trạng thái:** Màn Tài khoản hoàn tất theo design. Màn chi tiết tài khoản vẫn kiểu List cũ, ngoài phạm vi màn này.
