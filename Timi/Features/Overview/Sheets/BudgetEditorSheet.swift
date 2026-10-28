@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Sets the monthly spending limit; 0 removes it.
+/// Sets the monthly spending limit; an empty or 0 amount removes it.
 struct BudgetEditorSheet: View {
     @Binding var monthlyBudget: Double
 
@@ -10,33 +10,34 @@ struct BudgetEditorSheet: View {
     init(monthlyBudget: Binding<Double>) {
         _monthlyBudget = monthlyBudget
         let current = monthlyBudget.wrappedValue
-        _input = State(initialValue: current > 0 ? String(Int(current)) : "")
+        _input = State(initialValue: current > 0 ? String(Int(current)).groupedVNDInput : "")
     }
 
+    private var value: Double { input.vndInputAmount }
+    private var isValid: Bool { value.isFinite && value <= 1_000_000_000_000 }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Hạn mức mỗi tháng (VND)") {
-                    TextField("Ví dụ: 30000000", text: $input).keyboardType(.numberPad)
-                    Text("Áp dụng cho mỗi tháng. Nhập 0 để bỏ hạn mức.")
-                        .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(Palette.secondaryText)
-                }
-                Section {
-                    Button("Áp dụng hạn mức") {
-                        guard let value = Double(input), value.isFinite, value >= 0, value <= 1_000_000_000_000 else { return }
-                        monthlyBudget = value
-                        dismiss()
-                    }
-                    .disabled(Double(input).map { !$0.isFinite || $0 < 0 || $0 > 1_000_000_000_000 } ?? true)
-                }
+        SheetScaffold(title: "Hạn mức chi tiêu", canConfirm: isValid, onConfirm: save) {
+            VStack(spacing: Spacing.xs) {
+                Text("Mỗi tháng")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                TimiAmountField(text: $input, showsSuggestions: false, focusesOnAppear: true)
+                Text("Áp dụng cho mọi tháng. Để trống hoặc nhập 0 để bỏ hạn mức.")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, Spacing.s)
             }
-            .navigationTitle("Hạn mức chi tiêu").navigationBarTitleDisplayMode(.inline)
-            .toolbar(.visible, for: .navigationBar)
-            .keyboardDoneButton()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Huỷ") { dismiss() } }
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.l)
         }
-        .presentationDetents([.medium])
+        .timiSheetStyle([.medium])
+    }
+
+    private func save() {
+        guard isValid else { return }
+        monthlyBudget = value
+        dismiss()
     }
 }

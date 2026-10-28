@@ -12,7 +12,6 @@ struct LoanEditorView: View {
     @State private var outstandingText: String
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
-    @State private var isConfirmingDelete = false
 
     init(loan: Loan?) {
         original = loan
@@ -30,72 +29,67 @@ struct LoanEditorView: View {
     private var outstanding: Double { outstandingText.isEmpty ? principal : outstandingText.vndInputAmount }
     private var canSave: Bool { !trimmedName.isEmpty && principal > 0 && outstanding <= principal }
 
+    private var outstandingFooter: String {
+        outstanding > principal
+            ? "Số còn lại không được lớn hơn số tiền gốc."
+            : "Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào."
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("Loại khoản vay", selection: $direction) {
-                        ForEach(LoanDirection.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                }
+        SheetScaffold(title: original == nil ? "Thêm khoản vay" : "Sửa khoản vay",
+                      canConfirm: canSave, onConfirm: save) {
+            Picker("Loại khoản vay", selection: $direction) {
+                ForEach(LoanDirection.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .controlSize(.large)
 
-                Section {
-                    TextField(direction == .lent ? "Người vay (VD: Minh Trần)" : "Người cho vay (VD: Ngân hàng VCB)", text: $name)
-                    Toggle("Có hạn trả", isOn: $hasDueDate)
-                    if hasDueDate {
-                        DatePicker("Hạn trả", selection: $dueDate, displayedComponents: .date)
-                    }
-                }
+            VStack(spacing: Spacing.xs) {
+                Text("Số tiền gốc")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                TimiAmountField(text: $principalText, focusesOnAppear: original == nil)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.s)
 
-                Section("Số tiền gốc") {
-                    AmountField(text: $principalText)
+            FormGroup(footer: outstandingFooter) {
+                FormTextRow(title: direction == .lent ? "Người vay" : "Người cho vay", text: $name,
+                            prompt: direction == .lent ? "Minh Trần" : "Ngân hàng VCB")
+                FormDivider(hasIcon: false)
+                FormAmountRow(title: direction == .lent ? "Còn phải thu" : "Còn phải trả", text: $outstandingText)
+                FormDivider(hasIcon: false)
+                FormToggleRow(title: "Có hạn trả", isOn: $hasDueDate)
+                if hasDueDate {
+                    FormDivider(hasIcon: false)
+                    FormDateRow(title: "Hạn trả", date: $dueDate)
                 }
+            }
 
-                Section {
-                    AmountField(text: $outstandingText)
-                } header: {
-                    Text(direction == .lent ? "Còn phải thu" : "Còn phải trả")
-                } footer: {
-                    if outstanding > principal {
-                        Text("Số còn lại không được lớn hơn số tiền gốc.")
-                            .foregroundStyle(Palette.red)
-                    } else {
-                        Text("Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào.")
-                    }
-                }
-
-                if let original {
-                    Section {
-                        if !original.isSettled {
-                            Button("Đánh dấu đã tất toán") { outstandingText = "0" }
+            if let original {
+                FormGroup {
+                    if !original.isSettled {
+                        Button {
+                            outstandingText = "0"
+                        } label: {
+                            Text("Đánh dấu đã tất toán")
+                                .textRole(.body)
+                                .foregroundStyle(Palette.ink)
+                                .formRowFrame()
+                                .contentShape(Rectangle())
                         }
-                        Button("Xoá khoản vay", role: .destructive) { isConfirmingDelete = true }
+                        .buttonStyle(.plain)
+                        FormDivider(hasIcon: false)
+                    }
+                    FormDestructiveRow(title: "Xoá khoản vay", question: "Xoá khoản vay “\(original.name)”?",
+                                       message: "Khoản này sẽ không còn được tính vào cho vay hoặc nợ.") {
+                        store.delete(original)
+                        dismiss()
                     }
                 }
-            }
-            .navigationTitle(original == nil ? "Thêm khoản vay" : "Sửa khoản vay")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Huỷ") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu", action: save)
-                        .disabled(!canSave)
-                }
-            }
-            .confirmationDialog("Xoá khoản vay “\(trimmedName)”?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
-                Button("Xoá khoản vay", role: .destructive) {
-                    if let original { store.delete(original) }
-                    dismiss()
-                }
-            } message: {
-                Text("Khoản này sẽ không còn được tính vào cho vay hoặc nợ.")
             }
         }
+        .timiSheetStyle()
     }
 
     private func save() {

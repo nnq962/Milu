@@ -473,3 +473,15 @@ Người dùng chốt **16 làm cỡ nội dung chính**. Manrope rộng nên 16
 - Bỏ code không dùng: `Theme`, `CardSection`, `DailyTotal` / `dailyExpenses`.
 - `Legacy/LegacyComponents.swift` gom `IconBadge`, `TransactionRow`, `AmountField` của bản prototype; xoá file này khi các màn cũ đã đổi sang `ListRow`, `IconCircle`, `TimiAmountField`.
 - Giao diện không đổi; đã chạy lại 4 tab, lịch, sheet ngày và sheet hạn mức.
+
+### Áp design system vào các màn cũ — 2026-10-28
+
+- **Form chuyển sang `SheetScaffold`** (✕ trái, ✓ đen phải, không chân): Thêm/Sửa giao dịch, Thêm tài khoản, Thêm/Sửa hũ, Thêm/Sửa khoản vay, Hạn mức chi tiêu. Không còn `Form` mặc định của iOS trong app.
+  - Số tiền chính dùng `TimiAmountField` (mở bàn phím ngay khi thêm mới qua `focusesOnAppear`). Số phụ ("Đã để dành", "Còn phải thu") dùng dòng mới `FormAmountRow`.
+  - Danh mục, Tài khoản, Loại, Biểu tượng là `FormPickerRow`; sheet chọn có icon cạnh từng mục (`optionIcon`).
+  - Giao dịch có hai dòng Ngày và Giờ; khoản vay có công tắc "Có hạn trả" + dòng Hạn trả.
+  - Xoá (giao dịch, hũ, khoản vay) là `FormDestructiveRow` có hỏi lại. Sửa giao dịch giờ cũng xoá được ngay trong form.
+- **Danh sách giao dịch** ở Chi tiết tài khoản và sheet "giao dịch trong ngày" (Lịch thu chi) dùng `TransactionListRow` (bọc `ListRow`, icon trơn, số tiền +/− đỏ), thẻ trắng, `RowDivider`, `EmptyStateCard`. Chi tiết tài khoản: thẻ số dư với `MoneyText(.display)`.
+- **Xoá thư mục `DesignSystem/Legacy`** (`IconBadge`, `TransactionRow`, `AmountField`).
+- Đã xem trên iPhone 17 Pro / iOS 26.3: thêm giao dịch (nhập số, sheet Danh mục có icon, ✓ lưu, số liệu tháng cập nhật), Chi tiết Vietcombank, Sửa hũ.
+- Còn lại cho vòng sau: chữ tự đặt cỡ (Typography.font(...) size 11/12/14) ở thẻ Tổng quan, Vay nợ, Giao dịch, Trợ lý chưa đổi sang `TextRole`; xanh chanh ở các thẻ đó vẫn giữ.

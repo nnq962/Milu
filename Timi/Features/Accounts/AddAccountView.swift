@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Adds a payment account: cash, bank or e-wallet.
 struct AddAccountView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -12,35 +13,26 @@ struct AddAccountView: View {
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    Picker("Loại tài khoản", selection: $type) {
-                        ForEach(AccountType.paymentTypes) { type in
-                            Label(type.title, image: type.icon).tag(type)
-                        }
-                    }
-                    TextField("Tên tài khoản (VD: Vietcombank)", text: $name)
-                    TextField("Mô tả (VD: •••• 4821)", text: $detail)
-                }
-
-                Section("Số dư hiện tại") {
-                    AmountField(text: $balanceText)
-                }
+        SheetScaffold(title: "Thêm tài khoản", canConfirm: !trimmedName.isEmpty, onConfirm: save) {
+            VStack(spacing: Spacing.xs) {
+                Text("Số dư hiện tại")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                TimiAmountField(text: $balanceText)
             }
-            .navigationTitle("Thêm tài khoản")
-            .navigationBarTitleDisplayMode(.inline)
-            .keyboardDoneButton()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Huỷ") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu", action: save)
-                        .disabled(trimmedName.isEmpty)
-                }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.l)
+
+            FormGroup {
+                FormTextRow(title: "Tên tài khoản", text: $name, prompt: "Vietcombank")
+                FormDivider(hasIcon: false)
+                FormPickerRow(title: "Loại", selection: $type, options: AccountType.paymentTypes,
+                              optionIcon: { $0.icon }) { $0.title }
+                FormDivider(hasIcon: false)
+                FormTextRow(title: "Mô tả", text: $detail, prompt: "•••• 4821")
             }
         }
+        .timiSheetStyle()
     }
 
     private func save() {

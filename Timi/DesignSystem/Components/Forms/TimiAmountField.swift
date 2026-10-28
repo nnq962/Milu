@@ -1,11 +1,14 @@
 import SwiftUI
 
 /// The main amount of a form (web CurrencyInput hero): 40pt figure centred with its sign before and
-/// "đ" right after in the same colour and weight (user request 2026-10-28), shrinking as it grows; a clear button at the edge and suggestion chips (3 → 3.000đ, 30.000đ, 300.000đ).
+/// "đ" right after in the same colour and weight (user request 2026-10-28), shrinking as it grows;
+/// a clear button at the edge and suggestion chips (3 → 3.000đ, 30.000đ, 300.000đ).
 struct TimiAmountField: View {
     @Binding var text: String
     var kind: TransactionKind? = nil
     var showsSuggestions = true
+    /// Opens the keyboard as the form appears (new entries, where the amount comes first).
+    var focusesOnAppear = false
 
     @FocusState private var isFocused: Bool
     /// Digits the user typed; suggestions follow these, not the chip they picked.
@@ -92,6 +95,12 @@ struct TimiAmountField: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: suggestions)
+        .task {
+            guard focusesOnAppear else { return }
+            // Wait for the sheet to settle, or the keyboard fights its slide-in.
+            try? await Task.sleep(for: .milliseconds(450))
+            isFocused = true
+        }
         .onChange(of: text) { _, newValue in
             let formatted = newValue.groupedVNDInput
             if formatted != newValue {

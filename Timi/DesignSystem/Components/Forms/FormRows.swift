@@ -6,6 +6,8 @@ struct FormPickerRow<Value: Hashable>: View {
     var icon: String? = nil
     @Binding var selection: Value
     let options: [Value]
+    /// Icon beside each choice in the sheet (categories, accounts).
+    var optionIcon: ((Value) -> String)? = nil
     let label: (Value) -> String
 
     @State private var isPicking = false
@@ -18,7 +20,7 @@ struct FormPickerRow<Value: Hashable>: View {
         .accessibilityValue(label(selection))
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isPicking) {
-            ChoiceSheet(title: title, selection: $selection, options: options, label: label)
+            ChoiceSheet(title: title, selection: $selection, options: options, icon: optionIcon, label: label)
         }
     }
 }

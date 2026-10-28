@@ -10,7 +10,6 @@ struct GoalEditorView: View {
     @State private var icon: GoalIcon
     @State private var savedText: String
     @State private var targetText: String
-    @State private var isConfirmingDelete = false
 
     init(goal: SavingsGoal?) {
         original = goal
@@ -24,52 +23,37 @@ struct GoalEditorView: View {
     private var canSave: Bool { !trimmedName.isEmpty && targetText.vndInputAmount > 0 }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Tên hũ (VD: Du lịch Đà Nẵng)", text: $name)
-                    Picker("Biểu tượng", selection: $icon) {
-                        ForEach(GoalIcon.allCases) { icon in
-                            Label(icon.title, image: icon.rawValue).tag(icon)
-                        }
+        SheetScaffold(title: original == nil ? "Thêm hũ tiết kiệm" : "Sửa hũ tiết kiệm",
+                      canConfirm: canSave, onConfirm: save) {
+            VStack(spacing: Spacing.xs) {
+                Text("Số tiền mục tiêu")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                TimiAmountField(text: $targetText, focusesOnAppear: original == nil)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Spacing.l)
+
+            FormGroup {
+                FormTextRow(title: "Tên hũ", text: $name, prompt: "Du lịch Đà Nẵng")
+                FormDivider(hasIcon: false)
+                FormPickerRow(title: "Biểu tượng", selection: $icon, options: GoalIcon.allCases,
+                              optionIcon: { $0.rawValue }) { $0.title }
+                FormDivider(hasIcon: false)
+                FormAmountRow(title: "Đã để dành", text: $savedText)
+            }
+
+            if let original {
+                FormGroup {
+                    FormDestructiveRow(title: "Xoá hũ", question: "Xoá hũ “\(original.name)”?",
+                                       message: "Số tiền trong hũ sẽ không còn được tính vào tổng số dư.") {
+                        store.delete(original)
+                        dismiss()
                     }
                 }
-
-                Section("Số tiền mục tiêu") {
-                    AmountField(text: $targetText)
-                }
-
-                Section("Đã để dành") {
-                    AmountField(text: $savedText)
-                }
-
-                if original != nil {
-                    Section {
-                        Button("Xoá hũ", role: .destructive) { isConfirmingDelete = true }
-                    }
-                }
-            }
-            .navigationTitle(original == nil ? "Thêm hũ tiết kiệm" : "Sửa hũ tiết kiệm")
-            .navigationBarTitleDisplayMode(.inline)
-            .keyboardDoneButton()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Huỷ") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu", action: save)
-                        .disabled(!canSave)
-                }
-            }
-            .confirmationDialog("Xoá hũ “\(trimmedName)”?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
-                Button("Xoá hũ", role: .destructive) {
-                    if let original { store.delete(original) }
-                    dismiss()
-                }
-            } message: {
-                Text("Số tiền trong hũ sẽ không còn được tính vào tổng số dư.")
             }
         }
+        .timiSheetStyle()
     }
 
     private func save() {

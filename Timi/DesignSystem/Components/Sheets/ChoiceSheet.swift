@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// Picks one value in a short sheet: rows with a check on the current one; picking closes it.
+/// Picks one value in a short sheet: rows (with an icon when `icon` is given) and a check on the
+/// current one; picking closes it.
 struct ChoiceSheet<Value: Hashable>: View {
     let title: String
     @Binding var selection: Value
     let options: [Value]
+    var icon: ((Value) -> String)? = nil
     let label: (Value) -> String
 
     @Environment(\.dismiss) private var dismiss
@@ -18,7 +20,11 @@ struct ChoiceSheet<Value: Hashable>: View {
                         selection = option
                         dismiss()
                     } label: {
-                        HStack {
+                        HStack(spacing: RowMetrics.gap) {
+                            if let icon {
+                                SolarIcon(icon(option), size: RowMetrics.iconGlyph)
+                                    .frame(width: RowMetrics.iconColumn)
+                            }
                             Text(label(option)).textRole(.body)
                             Spacer()
                             if option == selection {
@@ -34,7 +40,7 @@ struct ChoiceSheet<Value: Hashable>: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(option == selection ? .isSelected : [])
-                    .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: false) } }
+                    .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: icon != nil) } }
                 }
             }
         }

@@ -1,10 +1,6 @@
-//
-//  AccountDetailView.swift
-//  Timi
-//
-
 import SwiftUI
 
+/// One payment account: its balance on top, then its transactions, newest first.
 struct AccountDetailView: View {
     @Environment(FinanceStore.self) private var store
     let accountID: Account.ID
@@ -12,33 +8,38 @@ struct AccountDetailView: View {
     var body: some View {
         if let account = store.account(id: accountID) {
             let transactions = store.accountTransactions(account)
-            List {
-                Section {
-                    VStack(spacing: 8) {
-                        IconBadge(name: account.type.icon, color: account.color, size: 60)
-                        Text(account.balance.vnd)
-                            .font(Typography.font(.largeTitle, size: 32, weight: .bold))
-                            .foregroundStyle(account.balance < 0 ? .red : .primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.section) {
+                    VStack(spacing: Spacing.s) {
+                        IconCircle(icon: account.type.icon)
+                        MoneyText(amount: account.balance, size: .display, tone: .negativeRed)
                         Text("\(account.type.title) · \(account.detail)")
-                            .font(Typography.subheadline)
-                            .foregroundStyle(.secondary)
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.secondaryText)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                }
+                    .sleekCard()
 
-                Section("Giao dịch") {
+                    SectionHeader(title: "Giao dịch")
                     if transactions.isEmpty {
-                        Text("Chưa có giao dịch nào.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(transactions) { transaction in
-                        TransactionRow(transaction: transaction, showsAccount: false)
+                        EmptyStateCard(icon: "solar-inbox-linear", title: "Chưa có giao dịch",
+                                       message: "Giao dịch ghi vào tài khoản này sẽ hiện ở đây.")
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(Array(transactions.enumerated()), id: \.element.id) { index, transaction in
+                                TransactionListRow(transaction: transaction, detail: .day)
+                                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                            }
+                        }
+                        .sleekCard(padding: 0)
                     }
                 }
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.l)
+                .padding(.bottom, Spacing.xxl)
             }
+            .background(Palette.background)
+            .foregroundStyle(Palette.ink)
             .navigationTitle(account.name)
             .navigationBarTitleDisplayMode(.inline)
         } else {
