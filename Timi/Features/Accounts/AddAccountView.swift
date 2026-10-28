@@ -21,7 +21,7 @@ struct AddAccountView: View {
     @State private var balanceText = ""
     @State private var isNegative = false
     @State private var openedAt = Date.now
-    @State private var excluded = false
+    @State private var isLocked = false
     @State private var isPickingInstitution = false
     /// Set by the first ✓ tap; from then on missing fields show as errors and clear as they are fixed.
     @State private var showsErrors = false
@@ -41,7 +41,7 @@ struct AddAccountView: View {
         _balanceText = State(initialValue: account.balance == 0 ? "" : String(Int(abs(account.balance))).groupedVNDInput)
         _isNegative = State(initialValue: account.balance < 0)
         _openedAt = State(initialValue: account.openedAt)
-        _excluded = State(initialValue: account.excluded)
+        _isLocked = State(initialValue: account.isLocked)
     }
 
     private var institution: Institution? { Institution.find(institutionID) }
@@ -108,8 +108,12 @@ struct AddAccountView: View {
                 FormDateRow(title: "Số dư tính từ", date: $openedAt)
                 FormDivider(hasIcon: false)
                 FormTimeRow(title: "Giờ", date: $openedAt)
-                FormDivider(hasIcon: false)
-                FormToggleRow(title: "Không tính vào báo cáo", isOn: $excluded)
+            }
+
+            // A locked account stays in the list but out of totals, and cannot be picked when
+            // recording money (user choice 2026-10-28, replacing "Không tính vào báo cáo").
+            FormGroup {
+                FormToggleRow(title: "Khoá tài khoản", isOn: $isLocked)
             }
 
             FormGroup {
@@ -183,7 +187,7 @@ struct AddAccountView: View {
             account.detail = trimmedNote
             account.institutionID = hasInstitutions ? institutionID : nil
             account.openedAt = openedAt
-            account.excluded = excluded
+            account.isLocked = isLocked
             store.update(account, balance: balance)
             dismiss()
             return
@@ -195,7 +199,7 @@ struct AddAccountView: View {
             detail: trimmedNote,
             institutionID: hasInstitutions ? institutionID : nil,
             openedAt: openedAt,
-            excluded: excluded
+            isLocked: isLocked
         ))
         dismiss()
     }

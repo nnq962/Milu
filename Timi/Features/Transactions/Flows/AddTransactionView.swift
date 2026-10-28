@@ -51,7 +51,8 @@ struct AddTransactionView: View {
                     FormDivider(hasIcon: false)
                     FormPickerRow(title: "Tài khoản",
                                   selection: Binding { accountID } set: { self.accountID = $0 },
-                                  options: store.accounts.map(\.id),
+                                  // Locked accounts are left out, except the one this transaction is on.
+                                  options: store.accounts.filter { !$0.isLocked || $0.id == editing?.accountID }.map(\.id),
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
                         store.account(id: $0)?.name ?? "—"
                     }
@@ -81,7 +82,7 @@ struct AddTransactionView: View {
             category = TransactionCategory.categories(for: newKind).first ?? category
         }
         .onAppear {
-            accountID = accountID ?? store.accounts.first?.id
+            accountID = accountID ?? store.usableAccounts.first?.id
         }
     }
 

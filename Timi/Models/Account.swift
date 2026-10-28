@@ -43,8 +43,9 @@ struct Account: Identifiable, Hashable {
     var institutionID: String? = nil
     /// When the user started tracking it (chosen in the form, now by default).
     var openedAt: Date = .now
-    /// Kept out of totals and reports (money set aside, someone else's cash…).
-    var excluded = false
+    /// "Khoá tài khoản": kept out of totals and reports, and not offered when recording money
+    /// (frozen funds, money set aside, someone else's cash…). Stored as `excluded`.
+    var isLocked = false
 
     var institution: Institution? { Institution.find(institutionID) }
 

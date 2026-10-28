@@ -35,7 +35,7 @@ struct GoalTransferSheet: View {
                 if let accountID {
                     FormPickerRow(title: isDeposit ? "Từ tài khoản" : "Về tài khoản",
                                   selection: Binding { accountID } set: { self.accountID = $0 },
-                                  options: store.paymentAccounts.map(\.id),
+                                  options: store.paymentAccounts.filter { !$0.isLocked }.map(\.id),
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
                         store.account(id: $0)?.name ?? "—"
                     }
@@ -52,7 +52,7 @@ struct GoalTransferSheet: View {
         }
         .timiSheetStyle()
         .onAppear {
-            accountID = accountID ?? store.paymentAccounts.first?.id
+            accountID = accountID ?? store.paymentAccounts.first { !$0.isLocked }?.id
         }
     }
 

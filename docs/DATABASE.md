@@ -41,7 +41,7 @@ Cột icon (`goalIcon`, `CategoryRecord.icon`, `avatarValue` khi là icon) lưu 
 | balance | Int64 | số dư hiện tại; thẻ tín dụng mang số âm |
 | creditLimit, paymentDueDate | Int64?, Date? | chỉ thẻ tín dụng |
 | goalTarget, goalIcon, goalDueDate | Int64?, String?, Date? | chỉ hũ (`type = savings`); `goalIcon` là tên icon ("hugeicons-piggy-bank") |
-| excluded | Bool | không tính vào tổng và báo cáo |
+| excluded | Bool | "Khoá tài khoản": không tính vào tổng và báo cáo, không chọn được khi ghi giao dịch hay nạp/rút hũ (app gọi là `isLocked`) |
 | archivedAt | Date? | đã lưu trữ |
 | sortOrder | Int | thứ tự hiển thị |
 | createdAt, updatedAt | Date | |

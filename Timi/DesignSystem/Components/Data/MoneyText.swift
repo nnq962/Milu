@@ -3,7 +3,8 @@ import SwiftUI
 /// Every amount on screen: tabular digits, "đ" attached, sign and colour by meaning.
 struct MoneyText: View {
     enum Size { case row, large, display }
-    enum Tone { case plain, signedIncome, signedExpense, negativeRed }
+    /// `muted`: grey, for money that does not count (a locked account).
+    enum Tone { case plain, signedIncome, signedExpense, negativeRed, muted }
 
     let amount: Double
     var size: Size = .row
@@ -15,7 +16,7 @@ struct MoneyText: View {
         switch tone {
         case .signedIncome: return "+" + value
         case .signedExpense: return "-" + value
-        case .plain, .negativeRed: return (amount < 0 ? "-" : "") + value
+        case .plain, .negativeRed, .muted: return (amount < 0 ? "-" : "") + value
         }
     }
 
@@ -24,6 +25,7 @@ struct MoneyText: View {
         case .signedExpense: Palette.red
         case .negativeRed: amount < 0 ? Palette.red : Palette.ink
         case .plain, .signedIncome: Palette.ink
+        case .muted: Palette.secondaryText
         }
     }
 

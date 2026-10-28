@@ -30,7 +30,7 @@ extension Account {
             paymentDueDate: record.paymentDueDate,
             institutionID: record.institutionID,
             openedAt: record.createdAt,
-            excluded: record.excluded
+            isLocked: record.excluded
         )
     }
 }
@@ -46,7 +46,7 @@ extension AccountRecord {
         paymentDueDate = account.paymentDueDate
         // V1 has no separate opened date: the row's createdAt holds the date the user picked.
         createdAt = account.openedAt
-        excluded = account.excluded
+        excluded = account.isLocked
         updatedAt = .now
     }
 }

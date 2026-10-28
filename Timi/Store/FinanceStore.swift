@@ -64,7 +64,7 @@ final class FinanceStore {
 
     /// Accounts that count towards totals and reports.
     var countedAccounts: [Account] {
-        accounts.filter { !$0.excluded }
+        accounts.filter { !$0.isLocked }
     }
 
     var netWorth: Double {
@@ -96,7 +96,17 @@ final class FinanceStore {
 
     /// "Tổng số dư" của màn Tài khoản: tài khoản thanh toán và hũ, không gồm thẻ tín dụng.
     var paymentBalance: Double {
-        paymentAccounts.filter { !$0.excluded }.reduce(0) { $0 + $1.balance } + totalSaved
+        paymentAccounts.filter { !$0.isLocked }.reduce(0) { $0 + $1.balance } + totalSaved
+    }
+
+    /// Payment accounts that are locked: kept out of `paymentBalance`.
+    var lockedPaymentAccounts: [Account] {
+        paymentAccounts.filter(\.isLocked)
+    }
+
+    /// Accounts money can be recorded on: every account but the locked ones.
+    var usableAccounts: [Account] {
+        accounts.filter { !$0.isLocked }
     }
 
     func accounts(of type: AccountType) -> [Account] {
@@ -153,6 +163,10 @@ final class FinanceStore {
         savingsGoals.removeAll { $0.id == goal.id }
         database?.deleteAccount(id: goal.id, transactionIDs: ids)
     }
+
+    /// Goals still being saved for, and those that reached their target.
+    var activeGoals: [SavingsGoal] { savingsGoals.filter { !$0.isCompleted } }
+    var completedGoals: [SavingsGoal] { savingsGoals.filter(\.isCompleted) }
 
     func goal(id: SavingsGoal.ID) -> SavingsGoal? {
         savingsGoals.first { $0.id == id }

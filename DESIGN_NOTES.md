@@ -887,3 +887,19 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Sheet biểu tượng cũng bỏ nền tròn xám: mọi ô chọn icon đứng riêng, chỉ icon đang chọn có vòng tròn đen (bỏ tham số `showsTile`).
 - TẠM: màn Tài khoản đang xếp 4 kiểu hiển thị hũ (A dòng gọn, B vòng tiến độ, C cuộn ngang, D lưới tối giản) cùng kiểu hiện tại để người dùng so trên máy (`GoalLayoutTrials.swift`). Chọn xong thì xoá file này và chỉ giữ một kiểu.
 - Chốt kiểu C (người dùng chọn 2026-10-28): hũ là các thẻ cuộn ngang (`GoalCard`), mỗi thẻ rộng 3/5 trang để thẻ sau hé ra; cuộn dừng đúng mép thẻ (`scrollTargetBehavior(.viewAligned)`), thẻ chạy ra quá lề trang khi cuộn. Trong thẻ: icon không nền, tên, số đã để dành đầy đủ (17 SemiBold), "Mục tiêu 40tr · 70%", thanh tiến độ. Đã xoá `GoalLayoutTrials.swift` và `GoalRow`.
+
+## Khoá tài khoản, thẻ Tổng số dư mới — 2026-10-28
+
+- "Không tính vào báo cáo" đổi thành "Khoá tài khoản" (người dùng chọn thay luôn, không giữ hai công tắc). Công tắc nằm trong một nhóm riêng của form tài khoản. Trong code: `Account.isLocked`, vẫn lưu ở cột `excluded`.
+- Tài khoản khoá: dòng phụ "Đã khoá" trong danh sách; màn chi tiết ghi "Đã khoá · không tính vào tổng số dư"; không có trong ô chọn tài khoản khi ghi giao dịch (trừ giao dịch đang sửa nằm ở tài khoản đó) và khi nạp/rút hũ.
+- Thẻ "Tổng số dư" ở Tài khoản: tổng lớn, dưới là hai phần "Tài khoản" và "Hũ tiết kiệm" cạnh nhau, ngăn bằng một vạch dọc; nếu có tài khoản khoá thêm dòng có icon ổ khoá "Không tính X đang khoá". Bỏ dòng "Gồm 3 tài khoản và 3 hũ". Thêm asset `hugeicons-square-lock-02`.
+
+## Dòng tài khoản khoá, hũ đã hoàn thành — 2026-10-28
+
+- Dòng tài khoản khoá (`ListRow(isLocked:)`): icon/logo xám và mờ 45%, tên và số tiền màu chữ phụ (`MoneyText.Tone.muted`), ổ khoá nhỏ trước số tiền, dòng phụ "Đã khoá".
+- Mục "Đã hoàn thành" ở cuối trang Tài khoản: hũ có số đã để dành ≥ mục tiêu (`SavingsGoal.isCompleted`) rời khỏi dãy thẻ cuộn ngang và hiện ở đây thành dòng (icon, tên, "Mục tiêu X", số tiền), chạm mở màn hũ. Mục chỉ hiện khi có hũ hoàn thành. Rút bớt tiền thì hũ quay lại dãy thẻ.
+- TẠM: đầu trang Tài khoản đang xếp 3 kiểu thẻ Tổng số dư (gọn với nhãn khoá, thanh tỉ lệ, tối giản) cùng kiểu hai cột hiện tại để người dùng so (`TotalCardTrials.swift`). Chọn xong thì xoá.
+- Chốt thẻ Tổng số dư kiểu 1: tổng, dòng "3 tài khoản · 3 hũ", nhãn bo tròn xám có ổ khoá "Không tính X đang khoá" khi có tài khoản khoá. Đã xoá `TotalCardTrials.swift`.
+- Hũ đã hoàn thành: thay mục liệt kê ở cuối trang bằng một dòng lối vào "Hũ đã hoàn thành" (icon huy hiệu, số hũ, mũi tên) mở màn riêng `CompletedGoalsView` gom tất cả hũ đã đủ mục tiêu. Dòng chỉ hiện khi có ít nhất một hũ hoàn thành. Thêm asset `hugeicons-checkmark-badge-01`.
+- Dòng tài khoản khoá đổi lại: bỏ làm xám/mờ icon và tên, bỏ ổ khoá cạnh số tiền. Giờ có huy hiệu ổ khoá nhỏ (`LockBadge`: vòng đen 15pt, viền trắng) gắn ở góc dưới phải icon/logo như huy hiệu app iOS; số tiền màu xám, dòng phụ "Đã khoá".
+- Màn "Hũ đã hoàn thành": dòng phụ bỏ "Mục tiêu X" (lặp với số tiền), thay bằng ngày hoàn thành "Hoàn thành 28/10" (ngày của lần nạp gần nhất); hũ chưa từng nạp ghi "Đã hoàn thành".

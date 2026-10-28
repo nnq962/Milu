@@ -22,6 +22,8 @@ struct SavingsGoal: Identifiable, Hashable {
 
     var progress: Double { target > 0 ? min(saved / target, 1) : 0 }
     var remaining: Double { max(target - saved, 0) }
+    /// Reached its target: it leaves the cards on Tài khoản for "Đã hoàn thành".
+    var isCompleted: Bool { target > 0 && saved >= target }
 
     /// Whole months left until `dueDate`, counting a part month as one; at least 1.
     static func monthsLeft(until dueDate: Date, from now: Date = .now) -> Int {

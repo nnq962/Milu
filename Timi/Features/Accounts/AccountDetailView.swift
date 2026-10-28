@@ -107,7 +107,8 @@ extension AccountDetailView {
 
     /// The line under the balance, the same for every kind of account: when tracking started.
     static func subtitle(for account: Account) -> String? {
-        "Từ ngày " + account.openedAt.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
+        let since = "Từ ngày " + account.openedAt.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
+        return account.isLocked ? "Đã khoá · không tính vào tổng số dư" : since
     }
 }
 

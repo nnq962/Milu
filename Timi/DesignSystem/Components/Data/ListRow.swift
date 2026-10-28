@@ -26,16 +26,24 @@ struct ListRow: View {
     var iconBackground: Color = Palette.muted
     var amountTone: MoneyText.Tone = .negativeRed
     var showsChevron = true
+    /// Money that does not count (a locked account): a lock badge on the icon's corner, like an
+    /// app badge on iOS, and the amount grey (user choice 2026-10-28).
+    var isLocked = false
 
     @Environment(\.formIconStyle) private var iconStyle
 
     var body: some View {
         HStack(spacing: RowMetrics.gap) {
             // Plain style (default) drops every tile, coloured ones too; amounts carry the meaning.
-            if iconStyle == .plain {
-                RowIcon(name: icon)
-            } else {
-                IconCircle(icon: icon, background: iconBackground)
+            Group {
+                if iconStyle == .plain {
+                    RowIcon(name: icon)
+                } else {
+                    IconCircle(icon: icon, background: iconBackground)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if isLocked { LockBadge().offset(x: 5, y: 5) }
             }
             if let trailingSubtitle {
                 VStack(spacing: RowMetrics.lineGap) {
@@ -71,7 +79,7 @@ struct ListRow: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                MoneyText(amount: amount, tone: amountTone)
+                MoneyText(amount: amount, tone: isLocked ? .muted : amountTone)
             }
             if showsChevron {
                 TimiIcon("hugeicons-arrow-right-01", size: 16)
@@ -83,5 +91,18 @@ struct ListRow: View {
         .frame(minHeight: RowMetrics.minHeight)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A small black lock on a white ring, pinned to the corner of a row's icon.
+struct LockBadge: View {
+    var body: some View {
+        TimiIcon("hugeicons-square-lock-02", size: 9)
+            .foregroundStyle(.white)
+            .frame(width: 15, height: 15)
+            .background(Palette.primary, in: Circle())
+            .padding(1.5)
+            .background(Palette.card, in: Circle())
+            .accessibilityHidden(true)
     }
 }
