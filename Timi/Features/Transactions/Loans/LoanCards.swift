@@ -13,7 +13,7 @@ struct LoanCard: View {
             amount: loan.principal.vndCompact,
             amountColor: borrowed ? Palette.red : Palette.ink,
             progress: loan.paidRatio,
-            progressColor: borrowed ? Palette.red : Palette.lime,
+            progressColor: borrowed ? Palette.red : Palette.primary,
             leading: loan.isSettled ? "Đã trả đủ" : loan.paidRatio > 0 ? "Đã trả \(loan.paidRatio.percentText)" : "Chưa trả",
             trailing: "Còn \(loan.outstanding.vndCompact)"
         )
@@ -60,18 +60,16 @@ struct DebtCardLayout<Avatar: View>: View {
                 avatar
                 VStack(alignment: .leading, spacing: 0) {
                     Text(title)
-                        .font(Typography.font(.subheadline, size: 14, weight: .semibold))
-                        .designLineHeight(20, relativeTo: .subheadline)
+                        .textRole(.body)
                         .lineLimit(1)
                     Text(subtitle)
-                        .font(Typography.font(.caption2, size: 11))
+                        .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
-                        .designLineHeight(16.5, relativeTo: .caption2)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(amount)
-                    .font(Typography.font(.subheadline, size: 14, weight: .bold))
+                    .textRole(.amount)
                     .foregroundStyle(amountColor)
                     .monospacedDigit()
             }
@@ -82,10 +80,9 @@ struct DebtCardLayout<Avatar: View>: View {
                 Spacer()
                 Text(trailing)
             }
-            .font(Typography.font(.caption2, size: 11, weight: .medium))
+            .textRole(.captionStrong)
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
-            .designLineHeight(16.5, relativeTo: .caption2)
             .padding(.top, 8)
         }
         .sleekCard(padding: 16)

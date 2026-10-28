@@ -50,7 +50,7 @@ struct AccountsView: View {
 
     private var heading: some View {
         Text("Tài khoản")
-            .font(Typography.font(.title2, size: 24, weight: .semibold))
+            .textRole(.pageTitle)
             .foregroundStyle(Palette.ink)
             .fixedSize()
             .accessibilityAddTraits(.isHeader)
@@ -73,17 +73,14 @@ struct AccountsView: View {
     private var totalCard: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Tổng số dư")
-                .font(Typography.font(.caption, size: 12, weight: .medium))
+                .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16, relativeTo: .caption)
             Text(store.paymentBalance.vnd)
-                .font(Typography.font(.largeTitle, size: 34, weight: .heavy))
-                .designLineHeight(42.5, relativeTo: .largeTitle)
+                .textRole(.display)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
             Text("Gồm \(store.paymentAccounts.count) tài khoản và \(store.savingsGoals.count) hũ")
-                .font(Typography.font(.caption2, size: 11))
+                .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16.5, relativeTo: .caption2)
                 .padding(.top, 4)
         }
         .accessibilityElement(children: .combine)
@@ -131,7 +128,7 @@ struct AccountsView: View {
 
     private func emptyCard(_ message: String) -> some View {
         Text(message)
-            .font(Typography.font(.footnote, size: 12))
+            .textRole(.caption)
             .foregroundStyle(Palette.secondaryText)
             .sleekCard()
     }
@@ -149,5 +146,5 @@ struct AccountsView: View {
     AccountsView()
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
-        .font(Typography.body)
+        .textRole(.body)
 }

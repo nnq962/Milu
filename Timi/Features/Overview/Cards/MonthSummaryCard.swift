@@ -16,11 +16,11 @@ struct MonthSummaryCard: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center) {
                 Text("Tháng \(month) tổng quan")
-                    .font(Typography.font(.callout, size: 16, weight: .semibold))
+                    .textRole(.title)
                     .frame(minHeight: 24)
                 Spacer(minLength: 4)
                 Text("Còn \(daysLeft) ngày")
-                    .font(Typography.font(.caption, size: 11, weight: .medium))
+                    .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
             }
             HStack(spacing: 12) {
@@ -35,20 +35,12 @@ struct MonthSummaryCard: View {
                         Text(monthlyBudget > 0 ? ratio.percentText : "Thiết lập")
                             .monospacedDigit()
                     }
-                    .font(Typography.font(.caption, size: 11, weight: .medium))
+                    .textRole(.captionStrong)
                     .frame(minHeight: 16.5)
-                    GeometryReader { geometry in
-                        Capsule().fill(Palette.muted)
-                            .overlay(alignment: .leading) {
-                                Capsule()
-                                    .fill(ProgressBar.budgetColor(ratio))
-                                    .frame(width: geometry.size.width * min(max(ratio, 0), 1))
-                            }
-                    }
-                    .frame(height: 8)
+                    ProgressBar(value: ratio, color: ProgressBar.budgetColor(ratio))
                     .accessibilityHidden(true)
                     Text(monthlyBudget > 0 ? "Đã dùng \(expense.vndCompact) / \(monthlyBudget.vndCompact)" : "Đặt hạn mức để theo dõi chi tiêu")
-                        .font(Typography.font(.caption, size: 11))
+                        .textRole(.caption)
                         .monospacedDigit()
                         .frame(minHeight: 16.5)
                 }
@@ -64,11 +56,11 @@ struct MonthSummaryCard: View {
     private func flowStat(_ title: String, amount: Double, income: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(Typography.font(.caption, size: 11, weight: .medium))
+                .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
                 .frame(minHeight: 16.5)
             Text("\(income ? "+" : "-")\(amount.vndCompact)")
-                .font(Typography.font(.callout, size: 16, weight: .bold)).monospacedDigit()
+                .textRole(.bodyStrong).monospacedDigit()
                 .foregroundStyle(income ? Palette.ink : Palette.red)
                 .lineLimit(1).minimumScaleFactor(0.65)
                 .frame(minHeight: 24)

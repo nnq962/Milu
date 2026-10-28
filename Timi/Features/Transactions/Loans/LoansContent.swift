@@ -65,19 +65,16 @@ struct LoansContent: View {
             + store.loans.filter { $0.direction == .borrowed && !$0.isSettled }.count
         return VStack(alignment: .leading, spacing: 4) {
             Text("Tổng cho vay trừ nợ")
-                .font(Typography.font(.caption, size: 12, weight: .medium))
+                .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16, relativeTo: .caption)
             Text(net.vnd)
-                .font(Typography.font(.largeTitle, size: 34, weight: .heavy))
-                .designLineHeight(42.5, relativeTo: .largeTitle)
+                .textRole(.display)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
             Text(net < 0 ? "Đang ở mức âm: bạn nợ nhiều hơn số đang cho vay"
                  : net > 0 ? "Đang ở mức dương: số đang cho vay nhiều hơn số bạn nợ"
                  : "Số đang cho vay bằng số bạn đang nợ")
-                .font(Typography.font(.caption2, size: 11))
+                .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16.5, relativeTo: .caption2)
             HStack(spacing: 12) {
                 summaryTile("Đang cho vay", amount: store.totalLent.vndCompact, detail: "\(lenders) người",
                             color: Palette.ink, background: Palette.incomeTile)
@@ -92,18 +89,15 @@ struct LoansContent: View {
     private func summaryTile(_ title: String, amount: String, detail: String, color: Color, background: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(Typography.font(.caption2, size: 11, weight: .medium))
+                .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16.5, relativeTo: .caption2)
             Text(amount)
-                .font(Typography.font(.callout, size: 16, weight: .bold))
+                .textRole(.bodyStrong)
                 .foregroundStyle(color)
-                .designLineHeight(24, relativeTo: .callout)
                 .monospacedDigit()
             Text(detail)
-                .font(Typography.font(.caption2, size: 11))
+                .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16.5, relativeTo: .caption2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -121,11 +115,7 @@ struct LoansContent: View {
         if !reminders.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 SectionHeader(title: "Cần chú ý") {
-                    Text("\(reminders.count) sắp đến hạn")
-                        .font(Typography.font(.caption2, size: 11, weight: .semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Palette.muted, in: Capsule())
+                    StatusBadge(text: "\(reminders.count) sắp đến hạn", tone: .warning)
                 }
                 ForEach(reminders) { reminder in
                     HStack(spacing: 12) {
@@ -135,26 +125,22 @@ struct LoansContent: View {
                         }
                         VStack(alignment: .leading, spacing: 0) {
                             Text(reminder.title)
-                                .font(Typography.font(.subheadline, size: 14, weight: .semibold))
-                                .designLineHeight(20, relativeTo: .subheadline)
+                                .textRole(.body)
                                 .lineLimit(1)
                             Text(reminder.detail)
-                                .font(Typography.font(.caption2, size: 11))
+                                .textRole(.caption)
                                 .foregroundStyle(Palette.secondaryText)
-                                .designLineHeight(16.5, relativeTo: .caption2)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         VStack(alignment: .trailing, spacing: 0) {
                             Text("\(reminder.isIncome ? "+" : "-")\(reminder.amount.vnd)")
-                                .font(Typography.font(.subheadline, size: 14, weight: .bold))
+                                .textRole(.amount)
                                 .foregroundStyle(reminder.isIncome ? Palette.ink : Palette.red)
-                                .designLineHeight(20, relativeTo: .subheadline)
                                 .monospacedDigit()
                             Text("Hạn \(reminder.dueDate.dayMonth)")
-                                .font(Typography.font(.caption2, size: 11))
+                                .textRole(.caption)
                                 .foregroundStyle(Palette.secondaryText)
-                                .designLineHeight(16.5, relativeTo: .caption2)
                         }
                     }
                     .padding(17)
@@ -221,7 +207,7 @@ struct LoansContent: View {
 
     private func remainingLabel(_ amount: Double) -> some View {
         Text("Còn \(amount.vndCompact)")
-            .font(Typography.font(.caption2, size: 11, weight: .semibold))
+            .textRole(.captionStrong)
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
     }

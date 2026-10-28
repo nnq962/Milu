@@ -12,7 +12,7 @@ struct MessageRow: View {
             HStack {
                 Spacer(minLength: 0)
                 Text(message.text)
-                    .font(Typography.font(.subheadline, size: 14))
+                    .textRole(.body)
                     .lineSpacing(5)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
@@ -32,7 +32,7 @@ struct MessageRow: View {
                         FlowLayout(spacing: 8) {
                             ForEach(MockAssistant.suggestions, id: \.self) { suggestion in
                                 Button(suggestion) { onSuggestion(suggestion) }
-                                    .font(Typography.font(.caption, size: 12, weight: .medium))
+                                    .textRole(.captionStrong)
                                     .foregroundStyle(Palette.ink)
                                     .nativeGlassButton()
                                     .buttonBorderShape(.capsule)
@@ -50,7 +50,7 @@ struct MessageRow: View {
     private var bubble: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(formattedText)
-                .font(Typography.font(.subheadline, size: 14))
+                .textRole(.body)
                 .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
             if let transaction = cardTransaction {
@@ -58,7 +58,7 @@ struct MessageRow: View {
             }
             if let status = cardStatus {
                 Text(status)
-                    .font(Typography.font(.caption, size: 12, weight: .medium))
+                    .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
             }
         }
@@ -110,7 +110,7 @@ struct MessageRow: View {
                 .foregroundStyle(.white)
                 .nativeGlassButton(prominent: true, tint: Palette.red)
             }
-            .font(Typography.font(.caption, size: 12, weight: .semibold))
+            .textRole(.captionStrong)
             .buttonBorderShape(.capsule)
         default:
             EmptyView()
@@ -125,7 +125,7 @@ struct MessageRow: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .font(Typography.font(.caption, size: 12, weight: .semibold))
+        .textRole(.captionStrong)
         .foregroundStyle(color)
         .nativeGlassButton()
         .buttonBorderShape(.capsule)
@@ -149,16 +149,16 @@ private struct TransactionCard: View {
                 .clipShape(Circle())
             VStack(alignment: .leading, spacing: 0) {
                 Text(transaction.title)
-                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
+                    .textRole(.body)
                     .lineLimit(1)
                 Text("\(transaction.category.title) · \(dayText)")
-                    .font(Typography.font(.caption2, size: 11))
+                    .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(transaction.signedAmountText)
-                .font(Typography.font(.subheadline, size: 14, weight: .bold))
+                .textRole(.amount)
                 .foregroundStyle(transaction.kind == .income ? Palette.ink : Palette.red)
                 .monospacedDigit()
                 .lineLimit(1)

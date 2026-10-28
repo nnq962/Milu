@@ -28,7 +28,7 @@ struct MonthMenu: View {
         } label: {
             HStack(spacing: 6) {
                 Text(isCurrentYear ? "Tháng \(number)" : "T\(number)/\(year.formatted(.number.grouping(.never)))")
-                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
+                    .textRole(.body)
                     .monospacedDigit()
                 SolarIcon("solar-alt-arrow-down-linear", size: 14)
             }

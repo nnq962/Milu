@@ -13,17 +13,17 @@ struct ProUpgradeCard: View {
                     .background(Palette.lime, in: RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Nâng cấp Timi Pro")
-                        .font(Typography.font(.callout, size: 16, weight: .semibold))
+                        .textRole(.title)
                         .foregroundStyle(.white)
                     Text("Nhận 300 lượt AI mỗi tháng, xuất báo cáo và đồng bộ trên mọi thiết bị.")
-                        .font(Typography.font(.caption, size: 12))
+                        .textRole(.caption)
                         .foregroundStyle(.white.opacity(0.85))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Button(action: onUpgrade) {
                 Text("Nâng cấp ngay")
-                    .font(Typography.font(.caption, size: 12, weight: .semibold))
+                    .textRole(.captionStrong)
                     .foregroundColor(Palette.ink)
                     .frame(maxWidth: .infinity, minHeight: 24)
             }

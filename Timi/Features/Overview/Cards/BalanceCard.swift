@@ -7,11 +7,9 @@ struct BalanceCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Tổng tài sản").font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(Palette.secondaryText)
-                    .designLineHeight(16, relativeTo: .caption)
+                Text("Tổng tài sản").textRole(.captionStrong).foregroundStyle(Palette.secondaryText)
                 Text(store.netWorth.vnd)
-                    .font(Typography.font(.largeTitle, size: 34, weight: .heavy))
-                    .designLineHeight(42.5, relativeTo: .largeTitle)
+                    .textRole(.display)
                     .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
             }
             HStack(spacing: 8) {
@@ -31,10 +29,9 @@ struct BalanceCard: View {
                 .frame(width: 28, height: 28)
                 .background(Palette.card, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(Typography.font(.caption, size: 11, weight: .medium)).foregroundStyle(Palette.secondaryText)
-                    .designLineHeight(16.5, relativeTo: .caption)
+                Text(title).textRole(.captionStrong).foregroundStyle(Palette.secondaryText)
                 Text(value)
-                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
+                    .textRole(.amount)
                     .foregroundStyle(color).monospacedDigit().lineLimit(1).minimumScaleFactor(0.65)
                     .frame(minHeight: 20)
             }

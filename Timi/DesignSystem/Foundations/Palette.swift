@@ -8,7 +8,8 @@ enum Palette {
     static let muted = Color(red: 241/255, green: 241/255, blue: 236/255)
     // CSS bg-muted/60 composited over the white card.
     static let balanceTile = Color(red: 246.6/255, green: 246.6/255, blue: 243.6/255)
-    static let incomeTile = Color(red: 237.9/255, green: 251.7/255, blue: 188.1/255)
+    /// Tile behind money coming in (Tiền vào, Đang cho vay): green 10% over white, not lime.
+    static let incomeTile = Color(red: 232/255, green: 246/255, blue: 237/255)
     static let ink = Color(red: 17/255, green: 24/255, blue: 39/255)
     /// Solid fills of primary actions (main button, selected chip, switch on): pure black, user request 2026-10-28.
     static let primary = Color.black

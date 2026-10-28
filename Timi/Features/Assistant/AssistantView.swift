@@ -84,10 +84,10 @@ struct AssistantView: View {
     private var heading: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Timi")
-                .font(Typography.font(.title2, size: 24, weight: .semibold))
+                .textRole(.pageTitle)
                 .accessibilityAddTraits(.isHeader)
             Text("Trợ lý tài chính · Bản thử nghiệm")
-                .font(Typography.font(.caption, size: 12))
+                .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
         }
         .foregroundStyle(Palette.ink)
@@ -127,7 +127,7 @@ struct AssistantView: View {
 
     private var dateChip: some View {
         Text(conversations[currentIndex].startedAt.transactionDayTitle)
-            .font(Typography.font(.caption2, size: 11, weight: .medium))
+            .textRole(.captionStrong)
             .foregroundStyle(Palette.secondaryText)
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
@@ -155,7 +155,7 @@ struct AssistantView: View {
             .accessibilityLabel(dictation.isRecording ? "Dừng nhập giọng nói" : "Nhập bằng giọng nói")
 
             TextField(dictation.isRecording ? "Đang nghe…" : "Hỏi Timi hoặc ghi giao dịch...", text: $draft, axis: .vertical)
-                .font(Typography.font(.subheadline, size: 14))
+                .textRole(.body)
                 .lineLimit(1...4)
                 .focused($isInputFocused)
                 .submitLabel(.send)
@@ -245,5 +245,5 @@ struct AssistantView: View {
     AssistantView()
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
-        .font(Typography.body)
+        .textRole(.body)
 }

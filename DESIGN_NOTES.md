@@ -485,3 +485,32 @@ Người dùng chốt **16 làm cỡ nội dung chính**. Manrope rộng nên 16
 - **Xoá thư mục `DesignSystem/Legacy`** (`IconBadge`, `TransactionRow`, `AmountField`).
 - Đã xem trên iPhone 17 Pro / iOS 26.3: thêm giao dịch (nhập số, sheet Danh mục có icon, ✓ lưu, số liệu tháng cập nhật), Chi tiết Vietcombank, Sửa hũ.
 - Còn lại cho vòng sau: chữ tự đặt cỡ (Typography.font(...) size 11/12/14) ở thẻ Tổng quan, Vay nợ, Giao dịch, Trợ lý chưa đổi sang `TextRole`; xanh chanh ở các thẻ đó vẫn giữ.
+
+### Các màn theo thang chữ và màu chung — 2026-10-28
+
+- **Chữ:** mọi cỡ đặt tay trong `Features/` (75 chỗ: 9–34pt) đổi sang `TextRole`, bỏ `designLineHeight` lẻ.
+
+| Cũ | Vai trò |
+|---|---|
+| 34 heavy | display |
+| 24 heavy | amountLarge |
+| 24 semibold | pageTitle |
+| 20–22 semibold | heading |
+| 16 semibold (tiêu đề thẻ) | title |
+| 16 bold (số trong ô) | bodyStrong |
+| 14 (tên dòng) | body |
+| 14 bold (số tiền dòng) | amount |
+| 12 / 11 regular | caption |
+| 12 / 11 medium–semibold | captionStrong |
+| 9–10 | footnote |
+
+  Số trong ô Số dư / Cho vay / Nợ dùng `amount`. Ngày trong Lịch thu chi dùng `captionStrong`.
+- **Xanh chanh chỉ còn ở:** thẻ Timi Pro, avatar trợ lý AI, ô hôm nay (lịch, biểu đồ).
+  - Đã bỏ khỏi: nút + ở Giao dịch (giờ đen, icon trắng), icon thu nhập trong danh sách, thanh "Làm quen" (đen) và badge 3/4, +5, thanh tiến độ cho vay (đen).
+  - `Palette.incomeTile` đổi từ chanh nhạt sang xanh lá 10% (ô Tiền vào, Đang cho vay).
+- **Component chung thay đồ tự vẽ:**
+  - Danh sách giao dịch ở tab Giao dịch dùng `TransactionListRow`; bỏ `FlowRow`.
+  - "Cần chú ý" ở Tổng quan dùng `ListRow` + `RowDivider`.
+  - Số "sắp đến hạn" là `StatusBadge` cảnh báo (đỏ nhạt).
+  - Thanh hạn mức và thanh "Làm quen" dùng `ProgressBar`.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: Tổng quan (toàn trang), Giao dịch (Thu chi, Vay nợ), Trợ lý.

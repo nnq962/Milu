@@ -82,7 +82,7 @@ struct TransactionsView: View {
 
     private var heading: some View {
         Text("Giao dịch")
-            .font(Typography.font(.title2, size: 24, weight: .semibold))
+            .textRole(.pageTitle)
             .foregroundStyle(Palette.ink)
             .fixedSize()
             .accessibilityAddTraits(.isHeader)
@@ -106,9 +106,9 @@ struct TransactionsView: View {
             }
         } label: {
             SolarIcon("material-symbols-add-rounded", size: 26)
-                .foregroundStyle(Palette.ink)
+                .foregroundStyle(.white)
         }
-        .nativeFloatingButton(diameter: 56, tint: Palette.lime)
+        .nativeFloatingButton(diameter: ControlHeight.floating, tint: Palette.primary)
         .padding(.trailing, 20)
         .padding(.bottom, 16)
         .accessibilityLabel(segment == .flows ? "Thêm giao dịch" : "Thêm khoản vay")
@@ -153,12 +153,11 @@ struct TransactionsView: View {
     private func flowTotal(_ title: String, amount: Double) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(Typography.font(.caption, size: 12, weight: .medium))
+                .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16, relativeTo: .caption)
             // Exact line height + minimumScaleFactor shrinks text unexpectedly on iOS; use min-height.
             Text(amount.vnd)
-                .font(Typography.font(.title2, size: 24, weight: .heavy))
+                .textRole(.amountLarge)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
                 .frame(minHeight: 32)
         }
@@ -172,11 +171,10 @@ struct TransactionsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Đã dùng \(ratio.percentText) hạn mức tổng")
-                    .font(Typography.font(.subheadline, size: 14, weight: .medium))
-                    .designLineHeight(20, relativeTo: .subheadline)
+                    .textRole(.body)
                 Spacer(minLength: 8)
                 Text(over ? "vượt \((spent - monthlyBudget).vndCompact)" : "còn \((monthlyBudget - spent).vndCompact)")
-                    .font(Typography.font(.caption, size: 12, weight: .semibold))
+                    .textRole(.captionStrong)
                     .foregroundStyle(over ? Palette.red : Palette.secondaryText)
                     .monospacedDigit()
             }
@@ -213,7 +211,7 @@ struct TransactionsView: View {
                     SectionHeader(title: group.day.transactionDayTitle) { DayTotals(items: group.items) }
                     VStack(spacing: 0) {
                         ForEach(Array(group.items.enumerated()), id: \.element.id) { index, transaction in
-                            FlowRow(transaction: transaction)
+                            TransactionListRow(transaction: transaction, detail: .time)
                                 .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                                 .contextMenu {
                                     Button("Xoá giao dịch", role: .destructive) { store.delete(transaction) }
@@ -242,5 +240,5 @@ struct TransactionsView: View {
     TransactionsView()
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
-        .font(Typography.body)
+        .textRole(.body)
 }

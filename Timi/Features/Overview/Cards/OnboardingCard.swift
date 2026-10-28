@@ -13,26 +13,16 @@ struct OnboardingCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Làm quen với Timi")
-                        .font(Typography.font(.callout, size: 16, weight: .semibold))
+                        .textRole(.title)
                     Text("Hoàn thành để nhận thêm lượt AI")
-                        .font(Typography.font(.caption, size: 11))
+                        .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
                 }
                 Spacer()
-                Text("\(completed)/4")
-                    .font(Typography.font(.caption, size: 11, weight: .semibold))
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(Palette.lime, in: Capsule())
+                StatusBadge(text: "\(completed)/4", showsDot: false)
             }
-            GeometryReader { geometry in
-                Capsule().fill(Palette.muted)
-                    .overlay(alignment: .leading) {
-                        Capsule().fill(Palette.lime)
-                            .frame(width: geometry.size.width * Double(completed) / 4)
-                    }
-            }
-            .frame(height: 8)
-            .padding(.top, 4)
+            ProgressBar(value: Double(completed) / 4)
+                .padding(.top, 4)
             VStack(spacing: 8) {
                 row("Thêm ví đầu tiên", completed: hasAccount)
                 row("Ghi một khoản thu chi", completed: hasTransaction)
@@ -56,14 +46,14 @@ struct OnboardingCard: View {
             }
             .frame(width: 20, height: 20)
             Text(title)
-                .font(Typography.font(.caption, size: 12, weight: completed ? .regular : .medium))
+                .textRole(completed ? .caption : .captionStrong)
                 .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
             Spacer(minLength: 4)
             Text("+5")
-                .font(Typography.font(.caption2, size: 10, weight: .semibold))
+                .textRole(.footnote)
                 .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
                 .padding(.horizontal, 8).padding(.vertical, 2)
-                .background(completed ? Palette.muted : Palette.lime.opacity(0.4), in: Capsule())
+                .background(completed ? Palette.fill1 : Palette.fill2, in: Capsule())
         }
         .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
         .accessibilityElement(children: .ignore)

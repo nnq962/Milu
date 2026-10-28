@@ -21,7 +21,7 @@ struct MoneyCalendarCard: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
                 Text("Lịch thu chi")
-                    .font(Typography.font(.callout, size: 16, weight: .semibold))
+                    .textRole(.title)
                     .frame(minHeight: 24)
                 Spacer(minLength: 4)
                 monthMenu
@@ -29,7 +29,7 @@ struct MoneyCalendarCard: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 4), count: 7), spacing: 4) {
                 ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
                     Text(title)
-                        .font(Typography.font(.caption2, size: 10, weight: .medium))
+                        .textRole(.footnote)
                         .foregroundStyle(Palette.secondaryText)
                         .frame(maxWidth: .infinity, minHeight: 15)
                         .padding(.vertical, 4)
@@ -76,7 +76,7 @@ struct MoneyCalendarCard: View {
             HStack(spacing: 6) {
                 SolarIcon("solar-calendar-linear", size: 14)
                 Text(isCurrentYear ? "Tháng \(month)" : "T\(month)/\(year.formatted(.number.grouping(.never)))")
-                    .font(Typography.font(.caption, size: 12, weight: .semibold))
+                    .textRole(.captionStrong)
                     .monospacedDigit()
                 SolarIcon("solar-alt-arrow-down-linear", size: 12)
                     .foregroundStyle(Palette.secondaryText)
@@ -102,7 +102,7 @@ struct MoneyCalendarCard: View {
         return Button { onSelectDay(date) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(calendar.component(.day, from: date))")
-                    .font(Typography.font(.caption, size: 11, weight: today ? .bold : .medium))
+                    .textRole(.captionStrong)
                     .foregroundStyle(today ? Palette.ink : Palette.secondaryText)
                     .frame(minHeight: 16.5, alignment: .topLeading)
                 VStack(alignment: .leading, spacing: 0) {
@@ -127,7 +127,7 @@ struct MoneyCalendarCard: View {
 
     private func amount(_ text: String, color: Color) -> some View {
         Text(text)
-            .font(Typography.font(.caption2, size: 9, weight: .semibold))
+            .textRole(.footnote)
             .monospacedDigit()
             .foregroundStyle(color)
             .lineLimit(1).minimumScaleFactor(0.7)

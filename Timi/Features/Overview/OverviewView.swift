@@ -61,8 +61,8 @@ struct OverviewView: View {
             .sheet(item: $information) { info in
                 NavigationStack {
                     VStack(alignment: .leading, spacing: 16) {
-                        Text(info.title).font(Typography.font(.title2, size: 22, weight: .semibold))
-                        Text(info.message).font(Typography.body).foregroundStyle(Palette.secondaryText)
+                        Text(info.title).textRole(.heading)
+                        Text(info.message).textRole(.body).foregroundStyle(Palette.secondaryText)
                         Spacer()
                     }
                     .padding(24)
@@ -82,7 +82,7 @@ struct OverviewView: View {
             isShowingDesignSystem = true
         } label: {
             Text("Q")
-                .font(Typography.font(.title3, size: 20, weight: .semibold))
+                .textRole(.heading)
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
@@ -106,11 +106,9 @@ struct OverviewView: View {
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)).capitalizedFirstLetter)
-                .font(Typography.font(.caption, size: 12, weight: .medium)).foregroundStyle(Palette.secondaryText)
-                .designLineHeight(16, relativeTo: .caption)
+                .textRole(.captionStrong).foregroundStyle(Palette.secondaryText)
             Text("\(greeting), Quyet")
-                .font(Typography.font(.title2, size: 24, weight: .semibold))
-                .designLineHeight(32, relativeTo: .title2)
+                .textRole(.pageTitle)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -137,5 +135,5 @@ extension View {
     OverviewView(selectedTab: .constant(.overview))
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
-        .font(Typography.body)
+        .textRole(.body)
 }

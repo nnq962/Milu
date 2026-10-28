@@ -17,39 +17,7 @@ struct DayTotals: View {
                 Text("-\(expense.vndCompact)").foregroundStyle(Palette.secondaryText)
             }
         }
-        .font(Typography.font(.caption2, size: 11, weight: .semibold))
+        .textRole(.captionStrong)
         .monospacedDigit()
-    }
-}
-
-/// Transaction row: lime icon circle for income, muted for expenses.
-struct FlowRow: View {
-    let transaction: FinanceTransaction
-
-    var body: some View {
-        let income = transaction.kind == .income
-        HStack(spacing: 12) {
-            IconCircle(icon: transaction.category.icon, background: income ? Palette.lime : Palette.muted)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(transaction.title)
-                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
-                    .designLineHeight(20, relativeTo: .subheadline)
-                    .lineLimit(1)
-                Text("\(transaction.category.title) · \(transaction.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam)))")
-                    .font(Typography.font(.caption2, size: 11))
-                    .foregroundStyle(Palette.secondaryText)
-                    .designLineHeight(16.5, relativeTo: .caption2)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Text(transaction.signedAmountText)
-                .font(Typography.font(.subheadline, size: 14, weight: .bold))
-                .foregroundStyle(income ? Palette.ink : Palette.red)
-                .monospacedDigit()
-                .lineLimit(1)
-        }
-        .padding(16)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 }
