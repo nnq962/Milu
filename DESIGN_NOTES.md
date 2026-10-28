@@ -466,3 +466,10 @@ Người dùng chốt **16 làm cỡ nội dung chính**. Manrope rộng nên 16
 - Mỗi sheet có ✕ (bỏ) và ✓ đen (lưu), cao vừa nội dung. Dòng Giờ dùng icon `solar-clock-circle-linear`.
 - Dòng chọn, Ngày, Giờ dùng chung một kiểu hiển thị (`FormValueLabel`: nhãn, giá trị xám, ›).
 - Đã xem trên iPhone 17 Pro / iOS 26.3: đổi giờ 13:47 → 15:47 rồi ✓ thì dòng Giờ cập nhật, dòng Ngày giữ "Hôm nay".
+
+### Dọn cấu trúc code — 2026-10-28
+
+- Thư mục mới: `App`, `Models`, `Store`, `Utilities`, `DesignSystem/{Foundations, Components/*, Interaction, Legacy}`, `Features/<tab>/…`. Mỗi file một thành phần chính (Overview tách thành 6 thẻ + 2 sheet; Thư viện UI mỗi phần một file).
+- Bỏ code không dùng: `Theme`, `CardSection`, `DailyTotal` / `dailyExpenses`.
+- `Legacy/LegacyComponents.swift` gom `IconBadge`, `TransactionRow`, `AmountField` của bản prototype; xoá file này khi các màn cũ đã đổi sang `ListRow`, `IconCircle`, `TimiAmountField`.
+- Giao diện không đổi; đã chạy lại 4 tab, lịch, sheet ngày và sheet hạn mức.

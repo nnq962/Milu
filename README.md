@@ -19,9 +19,18 @@ Deployment target hiện tại là iOS 17.6. Project không dùng thư viện b�
 
 ## Cấu trúc
 
-- `Timi/Models`: model, dữ liệu mẫu và store dùng chung.
-- `Timi/Features`: màn hình tổng quan, tài khoản, giao dịch và trợ lý.
-- `Timi/Shared`: component giao diện và hàm định dạng.
+Mỗi file chứa một thành phần chính; file mới trong `Timi/` được Xcode tự nhận (thư mục đồng bộ).
+
+- `Timi/App`: điểm vào app, thanh tab.
+- `Timi/Models`: kiểu dữ liệu (tài khoản, hũ, giao dịch, vay nợ, lịch thanh toán).
+- `Timi/Store`: `FinanceStore` (trạng thái dùng chung) và dữ liệu mẫu.
+- `Timi/Utilities`: định dạng tiền, ngày.
+- `Timi/DesignSystem`: hệ thống thiết kế.
+  - `Foundations`: màu, chữ (`TextRole`), khoảng cách, bo góc, icon.
+  - `Components`: nút, form, sheet, chip, danh sách, biểu đồ, thẻ.
+  - `Interaction`: bàn phím, rung.
+  - `Legacy`: component đời đầu, bỏ dần khi các màn chuyển sang design system.
+- `Timi/Features`: mỗi tab một thư mục (Overview, Accounts, Transactions, Assistant) và `UILibrary` (màn Thư viện UI, mở từ avatar). Màn lớn chia thư mục con: `Cards`, `Sheets`, `Views`, `Services`…
 
 ## Trạng thái
 

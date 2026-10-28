@@ -1,0 +1,51 @@
+import SwiftUI
+
+enum AccountType: String, CaseIterable, Identifiable {
+    case cash, bank, eWallet, credit
+
+    var id: Self { self }
+
+    /// Nhóm hiện ở mục "Tài khoản thanh toán"; thẻ tín dụng thuộc phần vay nợ.
+    static let paymentTypes: [AccountType] = [.cash, .bank, .eWallet]
+
+    var title: String {
+        switch self {
+        case .cash: "Tiền mặt"
+        case .bank: "Ngân hàng"
+        case .eWallet: "Ví điện tử"
+        case .credit: "Thẻ tín dụng"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .cash: "solar-banknote-2-linear"
+        case .bank: "solar-buildings-2-linear"
+        case .eWallet: "solar-smartphone-linear"
+        case .credit: "solar-card-linear"
+        }
+    }
+
+    var defaultColor: Color {
+        switch self {
+        case .cash: .orange
+        case .bank: .green
+        case .eWallet: .pink
+        case .credit: .indigo
+        }
+    }
+}
+
+struct Account: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var type: AccountType
+    /// Số dư hiện tại. Thẻ tín dụng mang số âm (đang nợ).
+    var balance: Double
+    var color: Color
+    /// Dòng mô tả phụ, VD: "•••• 4821".
+    var detail: String
+    /// Chỉ thẻ tín dụng: hạn mức và hạn thanh toán kỳ này, hiện ở mục Đi vay.
+    var creditLimit: Double? = nil
+    var paymentDueDate: Date? = nil
+}
