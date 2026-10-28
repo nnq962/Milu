@@ -14,7 +14,7 @@ struct DayTransactionsSheet: View {
             SheetHeader(title: date.relativeDayTitle.capitalizedFirstLetter)
             ScrollView {
                 if items.isEmpty {
-                    EmptyStateCard(icon: "solar-inbox-linear", title: "Chưa có giao dịch",
+                    EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
                                    message: "Ngày này chưa ghi khoản thu chi nào.")
                 } else {
                     VStack(spacing: 0) {

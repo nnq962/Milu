@@ -15,7 +15,8 @@ enum TextRole: CaseIterable, Identifiable {
     case pageTitle
     /// Headings of a screen's parts (catalogue sections). 20
     case heading
-    /// Card, section, sheet and dialog titles. 17 SemiBold
+    /// A main screen's section headings (`SectionHeader` `.section`), titles inside a card, a
+    /// sheet or a dialog. Sentence case. 17 SemiBold
     case title
     /// Everything read in a row: row titles, values, body text, typed text, button labels. 16
     case body
@@ -31,7 +32,8 @@ enum TextRole: CaseIterable, Identifiable {
     case captionStrong
     /// Chart axes and tiny meta. 11
     case footnote
-    /// Small capitals naming a group of rows. 12 Medium
+    /// Small capitals naming a group of rows in a sheet or form (`SectionHeader` `.group`).
+    /// 12 Medium
     case overline
     /// Text typed into a field: 16, same as the body it sits beside.
     case input
@@ -101,7 +103,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .amountLarge: "Số lớn trong thẻ"
         case .pageTitle: "Tên màn"
         case .heading: "Tiêu đề phần"
-        case .title: "Tiêu đề thẻ · nút"
+        case .title: "Tiêu đề phần · thẻ · sheet"
         case .body: "Nội dung · tên dòng"
         case .label: "Nhãn ô nhập"
         case .bodyStrong: "Nhấn mạnh"
@@ -109,7 +111,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .caption: "Phụ đề · chú thích"
         case .captionStrong: "Chip · badge"
         case .footnote: "Chữ rất nhỏ"
-        case .overline: "Nhãn nhóm"
+        case .overline: "Nhãn nhóm trong sheet"
         case .input: "Chữ trong ô"
         }
     }

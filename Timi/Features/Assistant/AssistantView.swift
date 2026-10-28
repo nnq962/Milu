@@ -99,7 +99,7 @@ struct AssistantView: View {
             Button {
                 startNewConversation()
             } label: {
-                Label("Cuộc trò chuyện mới", image: "solar-pen-new-square-linear")
+                Label("Cuộc trò chuyện mới", image: "hugeicons-pencil-edit-02")
             }
             .disabled(messages.count <= 1)
             let earlier = conversations.filter { $0.id != conversations[currentIndex].id && $0.messages.count > 1 }
@@ -116,7 +116,7 @@ struct AssistantView: View {
                 }
             }
         } label: {
-            SolarIcon("solar-clock-circle-linear", size: 20)
+            TimiIcon("hugeicons-clock-01", size: 20)
                 .frame(width: 28, height: 28)
         }
         .menuStyle(.button)
@@ -146,7 +146,7 @@ struct AssistantView: View {
             Button {
                 Task { await dictation.toggle() }
             } label: {
-                SolarIcon("solar-microphone-3-linear", size: 20)
+                TimiIcon("hugeicons-mic-01", size: 20)
                     .foregroundStyle(dictation.isRecording ? Palette.red : Palette.secondary)
                     .frame(width: 32, height: 40)
                     .contentShape(Rectangle())
@@ -164,7 +164,7 @@ struct AssistantView: View {
             Button {
                 send(draft)
             } label: {
-                SolarIcon("solar-arrow-up-linear", size: 18)
+                TimiIcon("hugeicons-arrow-up-02", size: 18)
                     .foregroundStyle(.white)
             }
             .nativeFloatingButton(diameter: 40, tint: Palette.primary)

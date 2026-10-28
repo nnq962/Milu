@@ -4,11 +4,17 @@ import SwiftUI
 /// wallets come from the catalogue (with their logo), which also fills in the name. A name (and,
 /// for a bank or wallet, which one) is required: tapping ✓ without it marks the row red and says
 /// what is missing. An empty balance means 0đ.
+/// Given an `account`, the same form edits it instead: a changed balance is recorded as an
+/// "Điều chỉnh số dư" transaction, and "Xoá tài khoản" sits at the end, as on the goal form.
 struct AddAccountView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
     let type: AccountType
+    private let original: Account?
+    /// Called after "Xoá tài khoản" closes the form; the presenter deletes the account (and, from
+    /// its detail screen, leaves it first).
+    private var onDelete: (() -> Void)?
     @State private var institutionID: String?
     @State private var name = ""
     @State private var note = ""
@@ -19,17 +25,31 @@ struct AddAccountView: View {
     @State private var isPickingInstitution = false
     /// Set by the first ✓ tap; from then on missing fields show as errors and clear as they are fixed.
     @State private var showsErrors = false
-    @State private var failedSaves = 0
 
     init(type: AccountType = .bank) {
         self.type = type
+        original = nil
+    }
+
+    init(account: Account, onDelete: @escaping () -> Void) {
+        type = account.type
+        original = account
+        self.onDelete = onDelete
+        _institutionID = State(initialValue: account.institutionID)
+        _name = State(initialValue: account.name)
+        _note = State(initialValue: account.detail)
+        _balanceText = State(initialValue: account.balance == 0 ? "" : String(Int(abs(account.balance))).groupedVNDInput)
+        _isNegative = State(initialValue: account.balance < 0)
+        _openedAt = State(initialValue: account.openedAt)
+        _excluded = State(initialValue: account.excluded)
     }
 
     private var institution: Institution? { Institution.find(institutionID) }
     private var hasInstitutions: Bool { !Institution.list(for: type).isEmpty }
 
     private var title: String {
-        switch type {
+        if original != nil { return "Sửa tài khoản" }
+        return switch type {
         case .cash: "Thêm tiền mặt"
         case .eWallet: "Thêm ví điện tử"
         default: "Thêm tài khoản ngân hàng"
@@ -67,13 +87,13 @@ struct AddAccountView: View {
                 Text("Số dư hiện tại")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
-                TimiAmountField(text: $balanceText, focusesOnAppear: true, isNegative: isNegative)
+                TimiAmountField(text: $balanceText, focusesOnAppear: original == nil, isNegative: isNegative)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.l)
         } content: {
-            // Every group is plain rows, no captions: the labels on the rows say it all.
-            FormGroup(error: error, shakes: failedSaves) {
+            // Labels say it all: no captions or footers (user prefers few words, 2026-10-28).
+            FormGroup(error: error) {
                 if hasInstitutions {
                     institutionRow
                     FormDivider(hasIcon: false)
@@ -85,7 +105,7 @@ struct AddAccountView: View {
             }
 
             FormGroup {
-                FormDateRow(title: "Ngày", date: $openedAt)
+                FormDateRow(title: "Số dư tính từ", date: $openedAt)
                 FormDivider(hasIcon: false)
                 FormTimeRow(title: "Giờ", date: $openedAt)
                 FormDivider(hasIcon: false)
@@ -94,6 +114,17 @@ struct AddAccountView: View {
 
             FormGroup {
                 FormNoteRow(text: $note, prompt: "Ghi chú")
+            }
+
+            if let original {
+                FormGroup {
+                    FormDestructiveRow(title: "Xoá tài khoản", question: "Xoá tài khoản “\(original.name)”?",
+                                       message: AccountsView.deleteMessage(
+                                           transactionCount: store.accountTransactions(original).count)) {
+                        dismiss()
+                        onDelete?()
+                    }
+                }
             }
         }
         .timiSheetStyle()
@@ -125,7 +156,7 @@ struct AddAccountView: View {
                         .textRole(.body)
                         .foregroundStyle(Palette.secondaryText)
                 }
-                SolarIcon("solar-alt-arrow-right-linear", size: 16)
+                TimiIcon("hugeicons-arrow-right-01", size: 16)
                     .foregroundStyle(Palette.secondary)
             }
             .formRowFrame()
@@ -137,20 +168,31 @@ struct AddAccountView: View {
 
     /// Turns on the error messages; true when nothing is missing.
     private func validate() -> Bool {
-        showsErrors = true
-        let isValid = !missesInstitution && !missesName
-        if !isValid { failedSaves += 1 }
-        return isValid
+        // One animation for the whole sheet: the red line fades in and the groups below slide
+        // down to make room, instead of jumping. The error haptic comes from SheetScaffold.
+        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        return !missesInstitution && !missesName
     }
 
     private func save() {
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let amount = balanceText.vndInputAmount
+        let balance = isNegative ? -amount : amount
+        if var account = original {
+            account.name = trimmedName
+            account.detail = trimmedNote
+            account.institutionID = hasInstitutions ? institutionID : nil
+            account.openedAt = openedAt
+            account.excluded = excluded
+            store.update(account, balance: balance)
+            dismiss()
+            return
+        }
         store.add(Account(
             name: trimmedName,
             type: type,
-            balance: isNegative ? -amount : amount,
-            detail: trimmedNote.isEmpty ? (institution?.name ?? type.title) : trimmedNote,
+            balance: balance,
+            detail: trimmedNote,
             institutionID: hasInstitutions ? institutionID : nil,
             openedAt: openedAt,
             excluded: excluded

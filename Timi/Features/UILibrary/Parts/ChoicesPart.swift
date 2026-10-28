@@ -18,18 +18,18 @@ struct ChoicesPart: View {
             }
             FormGroup(title: "Dòng trong form",
                       footer: "Loại tài khoản, Ngày và Giờ mở sheet chọn; Hạng mục mở màn khác.") {
-                FormPickerRow(title: "Loại tài khoản", icon: "solar-wallet-linear", selection: $accountType,
+                FormPickerRow(title: "Loại tài khoản", icon: "hugeicons-wallet-01", selection: $accountType,
                               options: ["Tiền mặt", "Ngân hàng", "Ví điện tử"]) { $0 }
                 FormDivider()
-                FormDateRow(title: "Ngày", icon: "solar-calendar-linear", date: $date)
+                FormDateRow(title: "Ngày", icon: "hugeicons-calendar-03", date: $date)
                 FormDivider()
-                FormTimeRow(title: "Giờ", icon: "solar-clock-circle-linear", date: $date)
+                FormTimeRow(title: "Giờ", icon: "hugeicons-clock-01", date: $date)
                 FormDivider()
-                FormToggleRow(title: "Nhắc hạn thanh toán", subtitle: "Trước 1 ngày", icon: "solar-bell-linear", isOn: $reminders)
+                FormToggleRow(title: "Nhắc hạn thanh toán", subtitle: "Trước 1 ngày", icon: "hugeicons-notification-01", isOn: $reminders)
                 FormDivider()
-                FormToggleRow(title: "Không tính vào báo cáo", icon: "solar-graph-up-linear", isOn: $excluded)
+                FormToggleRow(title: "Không tính vào báo cáo", icon: "hugeicons-chart-increase", isOn: $excluded)
                 FormDivider()
-                FormNavigationRow(title: "Hạng mục", icon: "solar-bag-3-linear", value: "Mua sắm") {}
+                FormNavigationRow(title: "Hạng mục", icon: "hugeicons-shopping-bag-01", value: "Mua sắm") {}
             }
         }
     }

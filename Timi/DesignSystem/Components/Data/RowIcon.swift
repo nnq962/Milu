@@ -5,7 +5,7 @@ import SwiftUI
 /// the edge: many logos are drawn edge to edge (Vietcombank), and would otherwise touch the border.
 struct InstitutionLogo: View {
     let image: String
-    var size: CGFloat = 28
+    var size: CGFloat = RowMetrics.iconColumn
 
     var body: some View {
         Image(image)
@@ -23,22 +23,25 @@ struct InstitutionLogo: View {
     }
 }
 
-/// The icon at the start of a row: a Solar glyph in ink, or, for names under `Institutions/`, the
-/// bank or wallet logo. The logo is 28 wide but keeps the 24pt icon column, so text and dividers
-/// line up with every other row.
+/// The icon of an account, category or goal, never on a tile: a glyph in ink, or, for names
+/// under `Institutions/`, the bank or wallet logo. Both fill the same square, `size` (24 in a row,
+/// the icon column), so a logo is never bigger than a plain icon: the logo tile takes the whole
+/// square and the glyph its usual 20/24 of it (Hugeicons glyphs carry their own inner margin).
 struct RowIcon: View {
     let name: String
-    var glyphSize: CGFloat = RowMetrics.iconGlyph
+    var size: CGFloat = RowMetrics.iconColumn
+    /// Colour of a glyph (logos keep their own).
+    var tint: Color = Palette.ink
 
     var body: some View {
         Group {
             if name.hasPrefix("Institutions/") {
-                InstitutionLogo(image: name)
+                InstitutionLogo(image: name, size: size)
             } else {
-                SolarIcon(name, size: glyphSize)
-                    .foregroundStyle(Palette.ink)
+                TimiIcon(name, size: size * RowMetrics.iconGlyph / RowMetrics.iconColumn)
+                    .foregroundStyle(tint)
             }
         }
-        .frame(width: RowMetrics.iconColumn)
+        .frame(width: size, height: size)
     }
 }

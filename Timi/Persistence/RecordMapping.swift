@@ -60,9 +60,10 @@ extension SavingsGoal {
         self.init(
             id: record.id,
             name: record.name,
-            icon: GoalIcon(rawValue: record.goalIcon ?? "") ?? .piggyBank,
+            icon: IconCatalog.migrated(record.goalIcon ?? SavingsGoal.defaultIcon),
             saved: Double(dong: record.balance),
-            target: Double(dong: record.goalTarget ?? 0)
+            target: Double(dong: record.goalTarget ?? 0),
+            dueDate: record.goalDueDate
         )
     }
 }
@@ -74,7 +75,8 @@ extension AccountRecord {
         institutionID = nil
         balance = Int64(dong: goal.saved)
         goalTarget = Int64(dong: goal.target)
-        goalIcon = goal.icon.rawValue
+        goalIcon = goal.icon
+        goalDueDate = goal.dueDate
         updatedAt = .now
     }
 }
@@ -115,6 +117,7 @@ extension TransactionRecord {
         fromAccountID = nil
         toAccountID = nil
         categoryID = transaction.category.rawValue
+        excluded = transaction.category.isAdjustment
         title = transaction.title
         note = transaction.note
         occurredAt = transaction.date
@@ -160,7 +163,7 @@ extension PaymentReminder {
             isIncome: record.isIncome,
             dueDate: record.dueDate,
             detail: record.detail,
-            avatar: record.avatarKind == "initials" ? .initials(record.avatarValue) : .icon(record.avatarValue)
+            avatar: record.avatarKind == "initials" ? .initials(record.avatarValue) : .icon(IconCatalog.migrated(record.avatarValue))
         )
     }
 }
@@ -180,6 +183,45 @@ extension ReminderRecord {
             avatarKind = "icon"
             avatarValue = name
         }
+        updatedAt = .now
+    }
+}
+
+// MARK: - Nạp/rút hũ
+
+extension GoalTransfer {
+    /// Nil unless the row is a transfer with a goal on one side and an account on the other.
+    init?(_ record: TransactionRecord, goalIDs: Set<UUID>) {
+        guard record.kind == "transfer", let from = record.fromAccountID, let to = record.toAccountID else { return nil }
+        let direction: Direction
+        switch (goalIDs.contains(from), goalIDs.contains(to)) {
+        case (false, true): direction = .deposit
+        case (true, false): direction = .withdrawal
+        default: return nil
+        }
+        self.init(id: record.id,
+                  goalID: direction == .deposit ? to : from,
+                  accountID: direction == .deposit ? from : to,
+                  direction: direction,
+                  amount: Double(dong: record.amount),
+                  date: record.occurredAt,
+                  note: record.note)
+    }
+}
+
+extension TransactionRecord {
+    func apply(_ transfer: GoalTransfer) {
+        kind = "transfer"
+        amount = Int64(dong: transfer.amount)
+        fee = 0
+        accountID = nil
+        categoryID = nil
+        fromAccountID = transfer.direction == .deposit ? transfer.accountID : transfer.goalID
+        toAccountID = transfer.direction == .deposit ? transfer.goalID : transfer.accountID
+        title = transfer.direction == .deposit ? "Nạp vào hũ" : "Rút từ hũ"
+        note = transfer.note
+        occurredAt = transfer.date
+        excluded = true
         updatedAt = .now
     }
 }

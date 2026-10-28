@@ -106,8 +106,8 @@ struct TimiAmountField: View {
             .contentShape(Rectangle())
             .onTapGesture { isFocused = true }
 
-            // The row stays in place even when empty, so each chip runs its own pop-in when it
-            // arrives; adding the whole row at once would only fade it in.
+            // The row stays in place even when empty; chips fade in and out with SwiftUI's
+            // default transition (user choice 2026-10-28, over a staggered pop-in).
             if showsSuggestions {
                 // Centred when the chips fit, otherwise a row that scrolls edge to edge.
                 ViewThatFits(in: .horizontal) {
@@ -163,7 +163,7 @@ struct TimiAmountField: View {
 
     private var chipStack: some View {
         HStack(spacing: Spacing.s) {
-            ForEach(Array(suggestions.enumerated()), id: \.element) { index, value in
+            ForEach(suggestions, id: \.self) { value in
                 let picked = value == amount
                 Button {
                     text = String(Int(value)).groupedVNDInput
@@ -177,15 +177,6 @@ struct TimiAmountField: View {
                 .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
                 .buttonBorderShape(.capsule)
                 .accessibilityLabel(value.vnd)
-                // Chips pop in one after another from left to right, rising a little; a new set
-                // (each digit typed) plays again, so the row follows the typing.
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.7)
-                        .combined(with: .opacity)
-                        .combined(with: .offset(y: 8))
-                        .animation(.spring(duration: 0.4, bounce: 0.35).delay(Double(index) * 0.045)),
-                    removal: .opacity.animation(.easeOut(duration: 0.12))
-                ))
             }
         }
     }

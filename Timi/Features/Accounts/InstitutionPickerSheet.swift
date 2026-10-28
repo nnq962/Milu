@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Picks a bank or e-wallet: Apple's search field under the bar, then every match with its logo,
+/// Picks a bank or e-wallet: Apple's search field (at the bottom on iOS 26), then every match with its logo,
 /// short name and full name; the current one is checked. Picking closes the sheet.
 struct InstitutionPickerSheet: View {
     let type: AccountType
@@ -16,8 +16,8 @@ struct InstitutionPickerSheet: View {
         NavigationStack {
             ScrollView {
                 if results.isEmpty {
-                    EmptyStateCard(icon: "solar-magnifer-linear", title: "Không tìm thấy",
-                                   message: "Thử tên viết tắt như “vcb”, “mb” hoặc tên đầy đủ.")
+                    EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
+                                   message: "Thử tên viết tắt, như vcb.")
                         .padding(.top, Spacing.s)
                 } else {
                     LazyVStack(spacing: 0) {
@@ -36,8 +36,10 @@ struct InstitutionPickerSheet: View {
             .foregroundStyle(Palette.ink)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: type == .eWallet ? "Tìm ví: MoMo, ZaloPay…" : "Tìm ngân hàng: vcb, mb, techcom…")
+            // Default placement: on iOS 26 the field sits at the bottom, by the thumb, in Liquid Glass
+            // (Apple's own apps); earlier iOS keeps it under the title.
+            .searchable(text: $query,
+                        prompt: type == .eWallet ? "Tìm ví" : "Tìm ngân hàng")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if #available(iOS 26.0, *) {

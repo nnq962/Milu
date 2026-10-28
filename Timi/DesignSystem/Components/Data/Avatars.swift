@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// 44pt circle holding a Solar/MDI icon.
+/// 44pt circle holding an icon.
 struct IconCircle: View {
     let icon: String
     var iconSize: CGFloat = 20
     var background: Color = Palette.muted
 
     var body: some View {
-        SolarIcon(icon, size: iconSize)
+        TimiIcon(icon, size: iconSize)
             .foregroundStyle(Palette.ink)
             .frame(width: 44, height: 44)
             .background(background, in: Circle())

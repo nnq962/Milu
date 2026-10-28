@@ -58,7 +58,7 @@ struct FormValueLabel: View {
                 .lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.3), value: value)
-            SolarIcon("solar-alt-arrow-right-linear", size: 16)
+            TimiIcon("hugeicons-arrow-right-01", size: 16)
                 .foregroundStyle(Palette.secondary)
         }
         .formRowFrame()
@@ -84,7 +84,7 @@ struct FormNavigationRow: View {
                         .foregroundStyle(Palette.secondaryText)
                         .lineLimit(1)
                 }
-                SolarIcon("solar-alt-arrow-right-linear", size: 16)
+                TimiIcon("hugeicons-arrow-right-01", size: 16)
                     .foregroundStyle(Palette.secondary)
             }
             .formRowFrame()
@@ -100,16 +100,23 @@ struct FormDestructiveRow: View {
     let title: String
     let question: String
     var message: String? = nil
+    /// A bin before the title, in the same red, so the row reads as "delete" at a glance.
+    var icon: String? = "hugeicons-delete-02"
     let action: () -> Void
 
     @State private var isConfirming = false
 
     var body: some View {
         Button(role: .destructive) { isConfirming = true } label: {
-            Text(title)
-                .textRole(.body)
-                .foregroundStyle(Palette.red)
-                .formRowFrame()
+            HStack(spacing: RowMetrics.gap) {
+                if let icon {
+                    RowIcon(name: icon, tint: Palette.red)
+                }
+                Text(title)
+                    .textRole(.body)
+            }
+            .foregroundStyle(Palette.red)
+            .formRowFrame()
         }
         .buttonStyle(.row)
         .confirmationDialog(question, isPresented: $isConfirming, titleVisibility: .visible) {

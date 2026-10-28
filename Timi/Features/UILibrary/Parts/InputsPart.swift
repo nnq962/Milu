@@ -20,9 +20,9 @@ struct InputsPart: View {
             }
             FormGroup(title: "Có icon · không khuyên dùng cho ô nhập",
                       footer: "Icon hợp với dòng chọn và dòng mở trang; ở ô nhập nó lặp lại điều nhãn đã nói.") {
-                FormTextRow(title: "Ngân hàng", text: $iosName, prompt: "Bắt buộc", icon: "solar-buildings-2-linear")
+                FormTextRow(title: "Ngân hàng", text: $iosName, prompt: "Bắt buộc", icon: "hugeicons-bank")
                 FormDivider()
-                FormTextRow(title: "Số thẻ", text: $iosNumber, prompt: "•••• 4821", icon: "solar-card-linear",
+                FormTextRow(title: "Số thẻ", text: $iosNumber, prompt: "•••• 4821", icon: "hugeicons-credit-card",
                             keyboard: .numberPad)
                 FormDivider(hasIcon: false)
                 FormNoteRow(text: $iosNote, prompt: "Ghi chú")

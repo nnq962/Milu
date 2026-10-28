@@ -26,7 +26,7 @@ struct ButtonsPart: View {
 
             SampleCard(label: "Có icon · tắt") {
                 VStack(spacing: Spacing.m) {
-                    TimiButton("Thêm giao dịch", icon: "solar-add-linear", role: .primary, fullWidth: true) {}
+                    TimiButton("Thêm giao dịch", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {}
                     TimiButton("Chưa bấm được", role: .primary, fullWidth: true) {}
                         .disabled(true)
                 }
@@ -35,18 +35,18 @@ struct ButtonsPart: View {
             SampleCard(label: "Nút tròn trên thanh · nút nổi") {
                 HStack(spacing: Spacing.l) {
                     Button {} label: {
-                        SolarIcon("solar-bell-linear", size: 20).frame(width: 28, height: 28)
+                        TimiIcon("hugeicons-notification-01", size: 20).frame(width: 28, height: 28)
                     }
                     .tint(Palette.ink)
                     .nativeCircleButton(diameter: 44)
                     Button {} label: {
-                        SolarIcon("solar-magnifer-linear", size: 20).frame(width: 28, height: 28)
+                        TimiIcon("hugeicons-search-01", size: 20).frame(width: 28, height: 28)
                     }
                     .tint(Palette.ink)
                     .nativeCircleButton(diameter: 44)
                     Spacer()
                     Button {} label: {
-                        SolarIcon("material-symbols-add-rounded", size: 26).foregroundStyle(.white)
+                        TimiIcon("hugeicons-add-01", size: 26).foregroundStyle(.white)
                     }
                     .nativeFloatingButton(diameter: ControlHeight.floating, tint: Palette.primary)
                 }

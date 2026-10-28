@@ -1,0 +1,82 @@
+import SwiftUI
+
+/// A form card of likely icons, two rows of six, the last place a "more" button that opens the
+/// full `IconPickerSheet` (Reminders-style, user choice 2026-10-28): most people pick here and never
+/// open the sheet. Icons stand alone, without a tile; only the chosen one sits on a black circle.
+/// An icon chosen in the sheet that is not among the suggestions takes the first place, so the
+/// choice always shows here.
+struct IconQuickPicker: View {
+    @Binding var selection: String
+    /// Eleven icons; the twelfth place is the "more" button.
+    let suggestions: [String]
+
+    @State private var isShowingAll = false
+
+    private static let count = 11
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 6)
+
+    private var shown: [String] {
+        let icons = Array(suggestions.prefix(Self.count))
+        return icons.contains(selection) ? icons : [selection] + icons.dropLast()
+    }
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: Spacing.s) {
+            ForEach(shown, id: \.self) { name in
+                IconChoice(name: name, isSelected: name == selection) {
+                    selection = name
+                    Haptics.selection()
+                }
+                .accessibilityLabel(IconCatalog.icon(named: name)?.title ?? "")
+            }
+            Button { isShowingAll = true } label: {
+                IconChoiceLabel(name: "hugeicons-more-horizontal", isSelected: false)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Xem tất cả biểu tượng")
+        }
+        .padding(Spacing.l)
+        .animation(.smooth(duration: 0.2), value: selection)
+        .sheet(isPresented: $isShowingAll) {
+            IconPickerSheet(selection: $selection)
+        }
+    }
+}
+
+/// One icon to choose, standing alone; a black circle behind it when chosen. Shared by the quick row
+/// and `IconPickerSheet`.
+struct IconChoice: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            IconChoiceLabel(name: name, isSelected: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+struct IconChoiceLabel: View {
+    let name: String
+    let isSelected: Bool
+    var size: CGFloat = RowMetrics.featureIcon
+
+    var body: some View {
+        TimiIcon(name, size: size / 2)
+            .foregroundStyle(isSelected ? .white : Palette.ink)
+            .frame(width: size, height: size)
+            .background(Circle().fill(isSelected ? Palette.primary : .clear))
+            .contentShape(Circle())
+    }
+}
+
+#Preview {
+    @Previewable @State var icon = "hugeicons-piggy-bank"
+    FormGroup(title: "Biểu tượng") {
+        IconQuickPicker(selection: $icon, suggestions: SavingsGoal.suggestedIcons)
+    }
+    .padding()
+}

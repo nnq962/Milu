@@ -711,3 +711,179 @@ Sheet hệ thống vẫn dùng bo góc của Apple. Đã xem trên iPhone 17 Pro
   - Cả ô ghi chú (không chỉ dòng đầu) nhận chạm.
 - Đã xem trên Simulator với bàn phím ảo: từ ô số tiền chuyển sang Ghi chú thì thẻ ghi chú lộ đủ, còn khoảng hở phía trên bàn phím.
 - **Bỏ lại theo góp ý:** gỡ `safeAreaPadding` vì không thấy hiệu quả rõ. Phần đẩy nội dung khi bàn phím hiện để iOS tự lo như mặc định. Vẫn giữ hai sửa kèm (lớp đóng bàn phím nằm sau nội dung, cả ô ghi chú nhận chạm).
+- **Chip về hiệu ứng mặc định** (góp ý 2026-10-28): bỏ kiểu nảy lần lượt. Chip xuất hiện và biến mất bằng transition mặc định của SwiftUI (mờ dần), trong cùng chuyển động `.smooth` làm các dòng bên dưới trượt theo. Bấm chọn chip vẫn là hiệu ứng nút kính của iOS.
+- **Báo lỗi bỏ lắc** (góp ý 2026-10-28): xoá `ShakeEffect` / `FormGroup(shakes:)`. Lưu thiếu thông tin thì chỉ rung lỗi, rồi câu đỏ hiện ra mượt dưới nhóm. `showsErrors` đổi trong `withAnimation(.smooth(duration: 0.3))`, nên các nhóm bên dưới trượt xuống nhường chỗ chứ không nhảy.
+- **Viết hoa chữ đầu:** đã thử `textInputAutocapitalization` rồi bỏ theo góp ý (không thấy tác dụng trên máy thật). Để bàn phím iOS xử lý theo cài đặt của người dùng.
+
+### Chú thích trong form — 2026-10-28
+
+- Đã thử thêm hai câu chú thích dưới nhóm rồi bỏ: người dùng thích ít chữ.
+- **Quy tắc:** nhãn dòng tự nói lên ý nghĩa, form không có chú thích hay tiêu đề nhóm.
+- Form thêm tài khoản chỉ đổi nhãn "Ngày" → **"Số dư tính từ"**; nhóm gồm "Số dư tính từ", "Giờ", "Không tính vào báo cáo" như trước.
+
+### Chữ gợi ý ngắn gọn — 2026-10-28
+
+- **Quy tắc:** placeholder của ô tìm kiếm và ô nhập chỉ là 1–3 từ nói việc cần làm, không kèm danh sách ví dụ. Ví dụ: "Tìm ngân hàng", "Tìm ví", "Tìm giao dịch", "Ghi chú", tên gợi ý như "Tiền mặt". Câu trong thẻ trống cũng giữ một câu ngắn.
+- Sheet chọn ngân hàng: "Tìm ngân hàng: vcb, mb, techcom…" → **"Tìm ngân hàng"**; "Tìm ví: MoMo, ZaloPay…" → **"Tìm ví"**. Thẻ không tìm thấy: "Thử tên viết tắt, như vcb."
+- **Ô tìm kiếm ở chân màn hình:** sheet chọn ngân hàng/ví dùng `.searchable` với vị trí mặc định thay cho `.navigationBarDrawer`. Trên iOS 26 ô tìm kiếm nằm dưới cùng, kiểu kính, gần ngón cái như app của Apple. Khi tìm, thanh tiêu đề thu lại và có nút ✕ cạnh ô. iOS cũ hơn vẫn để ô dưới tiêu đề. Đã xem trên Simulator.
+
+### Tài khoản — câu tóm tắt, icon, màn chi tiết — 2026-10-28
+
+- **Câu dưới Tổng số dư** (`AccountsView.summary`) chỉ nói những gì đang có:
+  - có cả hai: "Gồm 3 tài khoản và 2 hũ";
+  - chỉ có tài khoản: "Gồm 3 tài khoản";
+  - chỉ có hũ: "Gồm 2 hũ tiết kiệm";
+  - chưa có gì: "Chưa có tài khoản nào".
+
+  Không đếm tài khoản "không tính vào báo cáo".
+- **Icon và logo một chuẩn:**
+  - Không dùng icon có nền nữa: bỏ `IconCircle` ở màn chi tiết và thẻ tín dụng (Vay nợ), bỏ nền tròn của icon trong ô hũ.
+  - `RowIcon(name:size:)` vẽ cả glyph Solar lẫn logo ngân hàng/ví trong cùng một ô vuông `size`: logo phủ cả ô, glyph chiếm 20/24 ô (glyph Solar đã có lề sẵn). Logo không còn to hơn icon: trước đây logo 28 so với glyph 20 trong dòng, logo 56 so với icon 44 ở màn chi tiết.
+  - Cỡ dùng: dòng danh sách 24, ô hũ 28, đầu màn chi tiết và thẻ tín dụng 44. `InstitutionLogo` mặc định 24.
+- **Màn chi tiết tài khoản:**
+  - Dòng dưới số dư không còn lặp. Chỉ hiện tên đầy đủ của ngân hàng khi khác tên tài khoản, rồi ghi chú của người dùng; bỏ phần trùng tên hoặc trùng loại ("Tiền mặt · Tiền mặt"). Không có gì thì ẩn dòng.
+  - Form thêm tài khoản giờ lưu đúng ghi chú người dùng nhập, không tự điền loại/tên ngân hàng vào ô ghi chú.
+  - **Xoá tài khoản** chuyển từ menu "…" trên thanh tiêu đề xuống dòng đỏ ở cuối nội dung (`FormDestructiveRow`, có hỏi lại), như Danh bạ của iOS.
+- Đã xem trên Simulator: danh sách (logo và icon cùng cỡ, ô hũ không nền), chi tiết Vietcombank và Tiền mặt.
+- **Sửa lại dòng dưới số dư:** mọi loại tài khoản hiện cùng một thông tin, ngày bắt đầu theo dõi: "Từ ngày 28/10/2026" (`Account.openedAt`). Bỏ tên đầy đủ ngân hàng và ghi chú khỏi dòng này. Dữ liệu mẫu bỏ số tài khoản giả ("•••• 4821"…), vì app không thu số tài khoản (áp dụng sau khi Đặt lại dữ liệu mẫu).
+
+### Dòng giao dịch và dòng Xoá — 2026-10-28
+
+- **`FormDestructiveRow`** có icon thùng rác đỏ (`solar-trash-bin-minimalistic-linear`) trước chữ, mặc định cho mọi dòng xoá. `RowIcon(tint:)` để tô màu glyph.
+- **`ListRow(trailingSubtitle:)`:** số tiền thẳng hàng với tên, dòng phụ bên phải nằm dưới số tiền. Số tiền giữ đủ cỡ, tên co trước.
+  - Chi tiết tài khoản: trái là hạng mục, phải là ngày rút gọn "27/10".
+  - Tab Giao dịch (đã nhóm theo ngày): trái là hạng mục, phải là giờ "08:15".
+- **Nhãn nhóm in hoa 12pt (`overline`):** vẫn dùng ở tiêu đề nhóm trong Cài đặt (CHUNG, THÔNG BÁO, HỖ TRỢ, NHÀ PHÁT TRIỂN) và nhãn mẫu trong Thư viện UI. Form nhập không dùng, theo quy tắc "form không có tiêu đề nhóm".
+- Đã xem trên Simulator: chi tiết Vietcombank (số tiền ngang tên, 27/10 dưới số tiền, dòng Xoá có icon).
+
+### Một kiểu tiêu đề — 2026-10-28
+
+- **Chỉ còn một kiểu tiêu đề** cho mọi chỗ: phần trong màn, nhóm dòng trong form hay Cài đặt, thẻ, sheet, hộp thoại. Đó là `TextRole.title` (17 SemiBold, viết thường như câu), vẽ bằng `SectionHeader`. `FormGroup(title:)` dùng chính `SectionHeader`, nên "Chung", "Thông báo" trong Cài đặt giống hệt "Hũ tiết kiệm", "Giao dịch".
+- **Bỏ nhãn nhóm in hoa 12pt (`overline`)** khỏi `TextRole`. Nhãn mẫu trong Thư viện UI chuyển sang `captionStrong`.
+- **Sheet và form được có tiêu đề nhóm** khi nhóm cần tên. Thay quy tắc cũ "form không có tiêu đề nhóm". Vẫn giữ ít chữ: nhóm mà nhãn dòng đã đủ rõ thì không cần tiêu đề.
+- Đã xem trên Simulator: Cài đặt.
+- **Tiêu đề thụt vào theo nội dung thẻ** (giống app Claude): `SectionHeader` lùi 16pt (`RowMetrics.horizontal`), đúng chỗ nội dung trong thẻ bắt đầu. Dòng có icon thì tiêu đề thẳng với icon. Dòng không có icon (form, ô hũ) thì thẳng với chữ đầu dòng. Chú thích dưới thẻ cũng thẳng hàng theo. Đã xem trên Simulator: Cài đặt, Tài khoản.
+- **Tiêu đề nhẹ như app Claude:** `SectionHeader` dùng chữ cỡ nội dung (16, độ đậm thường) màu xám phụ, không còn 17 SemiBold màu mực. `TextRole.title` (17 SemiBold) giờ chỉ dành cho tiêu đề trong thẻ, sheet, hộp thoại.
+- **Một khoảng cách từ tiêu đề tới thẻ:** token mới `Spacing.headerGap` = 8, dùng ở mọi màn và trong `FormGroup`. Trước đây mỗi màn tự đặt: đa số 12, màn chi tiết tài khoản 20 (vì tiêu đề nằm chung stack với các phần khác), Cài đặt 8 + 4. Ở Vay nợ, các thẻ trong một phần vẫn cách nhau 12, chỉ khoảng dưới tiêu đề là 8.
+- Đã xem trên Simulator: Giao dịch, chi tiết Vietcombank, Cài đặt.
+- **Quay lại hai kiểu tiêu đề** (tiêu đề xám làm màn chính kém nổi bật): `SectionHeader(style:)`.
+  - `.section` (mặc định): tên phần trên màn chính (Tài khoản, Giao dịch, Vay nợ, chi tiết tài khoản), 17 SemiBold màu mực, để nổi giữa các thẻ trên nền trang.
+  - `.group`: tên nhóm dòng trong sheet hoặc form (Cài đặt, form nhập), cỡ nội dung 16, màu xám, như app Claude. Trong sheet, tiêu đề sheet đã là chữ đậm nên nhóm chỉ cần nhẹ. `FormGroup(title:)` tự dùng kiểu này.
+  - Cách chọn: tiêu đề đứng trên nền màn chính thì dùng `.section`; tiêu đề trong sheet thì dùng `.group`. Cả hai cùng lùi 16pt và cùng cách thẻ `Spacing.headerGap` (8).
+- **Tiêu đề nhẹ dùng lại nhãn in hoa:** `SectionHeader` `.group` vẽ bằng `TextRole.overline` (12 Medium, in hoa, giãn chữ 0.6, màu xám), không dùng chữ thường 16 nữa. `overline` được khôi phục trong `TextRole`, cũng dùng lại cho nhãn mẫu trong Thư viện UI. Vậy app có đúng hai kiểu tiêu đề: `.section` (17 SemiBold, màn chính) và `.group` (in hoa 12, trong sheet/form). Đã xem trên Simulator: Cài đặt.
+
+### Sheet hũ tiết kiệm — thời hạn — 2026-10-28
+
+- Nhãn trên số tiền lớn: "Mục tiêu" (trước là "Số tiền mục tiêu").
+- **Thời hạn:** nhóm mới gồm công tắc "Thời hạn". Bật lên thì hiện dòng "Đến ngày" (mặc định 6 tháng sau, lịch chỉ cho chọn từ ngày mai, `FormDateRow(earliest:)`), như cách Lời nhắc của iOS bật ngày.
+- **Gợi ý mỗi tháng** ở chú thích dưới nhóm: "Cần để dành 5.834.000đ mỗi tháng trong 6 tháng." Tính bằng (mục tiêu − đã để dành) ÷ số tháng còn lại (tháng lẻ tính là một tháng, ít nhất 1), làm tròn lên 1.000đ (`SavingsGoal.monthlySaving`). Đủ tiền rồi thì ghi "Đã đủ mục tiêu." Số tự cập nhật khi đổi số tiền hoặc ngày.
+- Lưu vào cột `goalDueDate` đã có sẵn trong schema V1, không cần phiên bản mới. Dữ liệu mẫu: "Mua xe" hạn 14 tháng, "Du lịch Đà Nẵng" 6 tháng (áp dụng sau khi Đặt lại dữ liệu mẫu).
+- Đã xem trên Simulator: sửa hũ "Mua xe", bật thời hạn.
+
+### Biểu tượng hũ — 2026-10-28
+
+- **20 biểu tượng** cho các mục tiêu hay gặp (`GoalIcon`): Tiết kiệm, Quỹ dự phòng, Nhà, Xe hơi, Xe máy, Du lịch, Học tập, Cưới hỏi, Gia đình, Thú cưng, Điện thoại, Máy tính, Máy ảnh, Giải trí, Nội thất, Sức khoẻ, Thể thao, Mua sắm, Quà tặng, Khác.
+  - Tất cả là icon nét (Solar linear, lấy từ Iconify như các icon khác). Riêng con heo dùng `mdi-piggy-bank-outline`, vì Solar không có heo đất.
+  - "Du lịch" dùng vali: máy bay của Solar là máy bay giấy, dễ hiểu nhầm là "gửi".
+  - Ba biểu tượng cũ giữ nguyên mã đã lưu trong database (`mdi-piggy-bank`, `mdi-car-outline`, `mdi-airplane`). Chỉ hình vẽ đổi sang bản nét (`GoalIcon.image`), nên hũ cũ không mất icon.
+- **Chọn biểu tượng:** dòng "Biểu tượng" hiện hình icon kèm tên. Bấm vào mở sheet vừa nội dung (`GoalIconPickerSheet`) gồm lưới 5 × 4 icon tròn, không có chữ, giống Lời nhắc của iOS. Icon đang chọn tô đen, icon trắng. Bấm một icon là chọn và đóng sheet.
+- Đã xem trên Simulator: mở lưới từ hũ "Mua xe", chọn vali, dòng đổi thành "Du lịch".
+
+## Chuyển sang Hugeicons — 2026-10-28
+
+Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời sống (cơm, heo đất, em bé, ngân hàng, tàu, xu…).
+
+- **Đã so sánh 6 bộ** cùng 12 icon tài chính: Solar, Lucide, Phosphor, Tabler, Hugeicons, MingCute. Người dùng chọn **Hugeicons bản miễn phí (Stroke Rounded)**:
+  - hơn 4.000 icon, rất nhiều icon tài chính;
+  - nét 1.5 bo tròn, gần với Solar;
+  - giấy phép MIT, dùng được trong app thương mại.
+  - Đổi lại, bản miễn phí chỉ có một kiểu nét, không có bản tô đặc.
+- **Icon trong code:**
+  - Asset tên `hugeicons-<mã>`, tải từ Iconify, đổi `currentColor` thành đen để vẽ dạng template. `SolarIcon` đổi tên thành `TimiIcon`.
+  - Đã bỏ toàn bộ asset `solar-*`, `mdi-*`, `material-symbols-*` và file giấy phép của chúng.
+  - Đổi tương ứng một số icon: ăn uống dùng dao dĩa, giải trí dùng cuộn phim, đầu tư dùng biểu đồ đi lên, lương dùng túi tiền, cho vay dùng tay cầm xu, trợ lý AI dùng `ai-magic`, cảnh báo hạn mức dùng chấm than tròn.
+- **Thanh tab:** không còn bản tô đặc khi chọn. Tab giữ icon nét, nền kính của iOS 26 đánh dấu tab đang chọn.
+- **Kho icon chung `IconCatalog`:**
+  - 133 icon, 10 nhóm: Tài chính, Ăn uống, Đi lại, Nhà cửa, Mua sắm, Sức khoẻ, Giải trí, Học tập, Gia đình, Khác.
+  - Mỗi icon có tên tiếng Việt và từ khoá. Tìm kiếm không phân biệt dấu, ví dụ "xe" ra xe máy, xe buýt, ô tô (từ khoá "xe hơi").
+  - Hũ dùng kho này. Hạng mục sau này dùng chung kho.
+  - Thêm icon: bỏ SVG vào Assets và thêm một dòng trong `IconCatalog`.
+- **`IconPickerSheet`** thay cho lưới 20 icon:
+  - sheet cao, các nhóm có tiêu đề in hoa nhẹ, lưới 5 cột;
+  - ô tìm kiếm ở chân màn hình, gợi ý "Tìm icon";
+  - icon đang chọn tô đen, bấm là chọn và đóng.
+- **Dữ liệu cũ:** `SavingsGoal.icon` giờ là chuỗi tên icon. `IconCatalog.migrated` đổi tên Solar/MDI cũ của hũ và icon lời nhắc sang Hugeicons khi đọc database.
+- **Giấy phép:** Cài đặt → Hỗ trợ → **Giấy phép mã nguồn mở** hiện giấy phép MIT của Hugeicons và OFL của phông Manrope (`LicensesView`, đọc từ Resources). Dòng xuống hàng cứng của file được nối lại cho dễ đọc.
+- Đã xem trên Simulator: Tổng quan, Tài khoản, sheet chọn icon (cuộn nhóm, tìm "xe"), Cài đặt, màn Giấy phép.
+
+### Bỏ tìm kiếm icon, một cỡ icon đứng riêng — 2026-10-28
+
+- **Sheet chọn icon không có ô tìm kiếm**: chỉ còn các nhóm, để người dùng tự xem và chọn. Đã bỏ `IconCatalog.search` và từ khoá phụ. Mỗi icon chỉ còn tên tiếng Việt, dùng cho VoiceOver và dòng "Biểu tượng".
+- **Trạng thái trống** (`EmptyStateCard`): icon màu mực như mọi icon khác, không còn màu xám nhạt. Vẽ bằng `RowIcon` giống logo.
+- **Một cỡ cho icon và logo đứng riêng**: `RowMetrics.featureIcon` = 44, dùng cho logo hoặc icon ở đầu màn chi tiết tài khoản, thẻ tín dụng (Vay nợ) và trạng thái trống. Trước đây icon trạng thái trống là 32 nên trông nhỏ hơn logo ngân hàng 44.
+- Đã xem trên Simulator: trạng thái trống "Chưa có giao dịch chuyển khoản", sheet chọn icon.
+
+## Màu nhấn xám iOS, thẻ hũ gọn hơn — 2026-10-28
+
+- Dòng list khi nhấn: đổi từ lime 18% sang `systemGray4` (#D1D1D6, tối #3A3A3C), màu chuẩn của ô bảng iOS như trong Cài đặt.
+- Dòng "Biểu tượng" trong sheet hũ chỉ hiện icon và mũi tên, không kèm tên (tên vẫn đọc cho VoiceOver).
+- Thẻ hũ tiết kiệm: icon, tên chữ thường 16 (`body`, màu mực), thanh tiến độ, dòng cuối "đã để dành/mục tiêu" (`amount`, phần mục tiêu màu xám, tự co tối đa 60% khi số dài). Bỏ số lớn và dòng phần trăm.
+
+## Chọn nhanh biểu tượng, số tiền hũ rút gọn — 2026-10-28
+
+- Thẻ hũ: dòng cuối rút gọn "15tr/50tr" (`vndCompact`), cỡ 16 không co chữ.
+- Sheet hũ: bỏ dòng "Biểu tượng >", thay bằng nhóm "BIỂU TƯỢNG" có một hàng `IconQuickPicker`: 5 icon gợi ý (`SavingsGoal.suggestedIcons`: heo đất, xe, nhà, vali, mũ tốt nghiệp) và nút "…" mở `IconPickerSheet` đầy đủ, kiểu Lời nhắc của iOS. Icon chọn trong sheet mà không nằm trong gợi ý sẽ thế vào chỗ đầu hàng, nên lựa chọn luôn hiện ra.
+- Ô icon tròn (`IconChoiceLabel`) dùng chung cho hàng chọn nhanh (44pt) và sheet (52pt). Thêm asset `hugeicons-more-horizontal`.
+
+## Sửa tài khoản và hũ — 2026-10-28
+
+- Màu nhấn dòng list: quay lại lime 18% (#F3FCD6); đã thử xám iOS nhưng không hợp.
+- Lối vào sửa, theo kiểu Danh bạ iOS:
+  - Màn chi tiết tài khoản có nút "Sửa" ở góc trên phải, mở lại form tài khoản (tiêu đề "Sửa tài khoản", điền sẵn mọi trường, không tự bật bàn phím).
+  - "Xoá tài khoản" chuyển từ màn chi tiết vào cuối form sửa, giống form hũ.
+  - Nhấn giữ một dòng tài khoản hoặc một thẻ hũ: menu "Sửa" / "Xoá". Chạm vào thẻ hũ vẫn mở form sửa như trước.
+- Sửa số dư không ghi đè: phần chênh lệch thành giao dịch "Điều chỉnh số dư" (icon bút chì, dòng phụ "Không tính vào báo cáo"), không tính vào tổng thu chi, lịch tiền, biểu đồ và trợ lý. Hai hạng mục này không hiện trong ô chọn hạng mục.
+
+## Màn hũ tiết kiệm, nạp/rút, nút sửa dạng icon — 2026-10-28
+
+- Nút sửa ở thanh trên (màn tài khoản, màn hũ) là icon bút chì (`EditToolbarButton`), iOS 26 đặt trong vòng kính như nút quay lại.
+- Chạm thẻ hũ giờ mở **màn hũ** chứ không mở form sửa:
+  - thẻ đầu có icon, số đã để dành, "trên mục tiêu", thanh tiến độ, phần trăm và số còn thiếu (kèm số cần để dành mỗi tháng nếu có hạn);
+  - hai nút "Nạp tiền" (chính) và "Rút tiền" (phụ, tắt khi hũ trống);
+  - mục "Lịch sử" liệt kê các lần nạp/rút.
+- Nạp/rút như chuyển khoản: chọn tài khoản nguồn hoặc đích, tài khoản giảm đúng bằng số hũ tăng (và ngược lại), tổng tài sản không đổi, không tính vào thu chi. Rút quá số trong hũ thì báo "Hũ chỉ còn X." Màn tài khoản cũng hiện dòng "Nạp vào Mua xe" / "Rút từ Mua xe".
+- Form sửa hũ bỏ dòng "Đã để dành" (chỉ còn khi tạo hũ mới), để mọi thay đổi số tiền đều đi qua nạp/rút.
+- Menu nhấn giữ: phần nổi lên giữ góc bo 22pt của thẻ (`contentShape(.contextMenuPreview, …)`) thay vì góc nhỏ mặc định của hệ thống.
+
+## Menu nhấn giữ mượt như iOS — 2026-10-28
+
+- Dòng list (`RowButtonStyle`) có nền trắng riêng dưới lớp lime khi nhấn. Trước đó nền trong suốt nên khi nhấn giữ, hệ thống chỉ nhấc icon và chữ lên, kèm viền xám; giờ cả dòng nổi lên thành một khối trắng bo 22pt.
+- Thẻ hũ dùng `MenuCardButtonStyle`: không có hiệu ứng nhấn riêng (trước là mờ 60% + thu nhỏ 0,98 với spring). Hiệu ứng riêng chạy chồng lên hiệu ứng thu-rồi-nổi của hệ thống nên thẻ bị nổi, thu, rồi nổi lại; giờ chỉ còn hiệu ứng của iOS. Các thẻ khác không có menu (khoản vay, ngày trên lịch) vẫn giữ `.card`.
+- Còn một khung hình mờ lúc iOS đổi dòng đang nổi sang bản xem trước cạnh menu. App Danh bạ của Apple trên iOS 26 cũng vậy (đã quay video so sánh trên Simulator). Đã thử bỏ mờ dần khi thả và dùng bản xem trước tự vẽ (`preview:`), cả hai không đỡ hơn. Quyết định giữ menu của Apple, không tự làm hiệu ứng riêng như Claude app (người dùng chọn 2026-10-28).
+- Bóng thẻ hũ hiện trễ khi menu đóng: iOS ẩn thẻ gốc (cả bóng) lúc menu mở và chỉ hiện lại khi bản nổi đã đáp xuống. Giờ bóng được vẽ riêng (`CardShadow`, chỉ phần bên ngoài thẻ) phía sau, nằm ngoài `.contextMenu`, nên luôn có sẵn; `GoalTile` không tự vẽ bóng nữa. Đã đo lại bằng video: bóng xuất hiện cùng lúc thẻ đáp.
+
+## Màn hũ gọn chữ hơn — 2026-10-28
+
+- Thẻ đầu màn hũ chỉ còn: icon, số đã để dành, "/ mục tiêu", thanh tiến độ, và nếu có thời hạn thì một dòng "Cần X/tháng". Bỏ dòng phần trăm và "còn …".
+- Hai nút đổi chỗ và gọn chữ: "Rút" (phụ) bên trái, "Nạp" (chính) bên phải.
+- Form hũ bỏ hẳn "Đã để dành", cả khi tạo mới: hũ bắt đầu từ 0đ, tiền vào qua "Nạp".
+- Ghi chú "•••• 4821"… khi sửa tài khoản mẫu là dữ liệu mẫu cũ còn trong database của máy; dữ liệu mẫu hiện tại không còn ghi chú. Cài đặt → Nhà phát triển → Đặt lại dữ liệu mẫu sẽ xoá.
+
+## Thẻ đầu màn hũ theo kiểu "Tổng số dư" — 2026-10-28
+
+- Bỏ bố cục giữa và dòng "/ 50.000.000đ". Thẻ giờ canh trái như thẻ "Tổng số dư": nhãn "Đã để dành" và số lớn bên trái, icon hũ bên phải; dưới là thanh tiến độ, một dòng "34%" (trái) và "Mục tiêu 50.000.000đ" (phải); có thời hạn thì thêm "Cần X/tháng".
+- Nút ghi đủ "Rút tiền" / "Nạp tiền" (Rút trái, Nạp phải).
+- Lịch sử: tiêu đề là việc đã làm ("Nạp tiền" / "Rút tiền"), dòng phụ là nguồn ("Từ Ví tiền mặt" / "Về Vietcombank"). Ở màn tài khoản: "Nạp vào hũ" / "Rút từ hũ", dòng phụ là tên hũ.
+
+## Bỏ menu nhấn giữ, thẻ hũ có vòng tiến độ — 2026-10-28
+
+- Bỏ menu nhấn giữ Sửa/Xoá trên dòng tài khoản và thẻ hũ: sửa và xoá ở màn chi tiết (nút bút chì). Gỡ luôn `CardShadow`, `MenuCardButtonStyle` và nền trắng riêng của `RowButtonStyle` (chỉ cần cho menu). Thẻ hũ dùng lại `.card`. Dòng giao dịch ở màn Giao dịch vẫn còn nhấn giữ để xoá (có từ trước).
+- Thẻ đầu màn hũ: dòng dưới thanh tiến độ luôn một dòng: "92% · 167k/tháng" (trái) và "Mục tiêu 6tr" (phải), số rút gọn để không xuống dòng trên máy hẹp.
+- Nạp/rút có thêm dòng "Giờ".
+- Thẻ hũ ở Tài khoản: icon nằm trong vòng tiến độ (`ProgressRing`, 44pt, nét 4pt, cùng màu với `ProgressBar`), dưới là tên và "17tr/50tr". Bỏ thanh ngang để thẻ thấp và gọn hơn.
+- Thẻ hũ làm lại theo mẫu người dùng gửi (thay vòng tiến độ, bỏ `ProgressRing`): icon trên nền tròn (`IconCircle`) cạnh tên và "Mục tiêu 40tr", dưới là số đã để dành đầy đủ (16 SemiBold, tự đổi sang "28tr" nếu không vừa) với phần trăm bên phải, cuối cùng là thanh tiến độ.
+- Bỏ lưới 2 cột: thẻ nửa màn hình cứ bị cắt tên và số. Hũ giờ là các dòng trong một thẻ như "Tài khoản thanh toán" (`GoalRow`): icon không nền ở cột icon, tên và số đã để dành đầy đủ, thanh tiến độ, rồi "Mục tiêu 40.000.000đ" và phần trăm. Không còn chữ nào bị cắt.
+- Hàng chọn nhanh biểu tượng: 2 hàng x 6 (11 gợi ý + nút "…"), icon không nền, chỉ icon đang chọn có vòng tròn đen. Gợi ý thêm: quỹ dự phòng, xe máy, laptop, điện thoại, cưới, em bé. Sheet đầy đủ vẫn giữ nền tròn xám.
+- Sheet biểu tượng cũng bỏ nền tròn xám: mọi ô chọn icon đứng riêng, chỉ icon đang chọn có vòng tròn đen (bỏ tham số `showsTile`).
+- TẠM: màn Tài khoản đang xếp 4 kiểu hiển thị hũ (A dòng gọn, B vòng tiến độ, C cuộn ngang, D lưới tối giản) cùng kiểu hiện tại để người dùng so trên máy (`GoalLayoutTrials.swift`). Chọn xong thì xoá file này và chỉ giữ một kiểu.
+- Chốt kiểu C (người dùng chọn 2026-10-28): hũ là các thẻ cuộn ngang (`GoalCard`), mỗi thẻ rộng 3/5 trang để thẻ sau hé ra; cuộn dừng đúng mép thẻ (`scrollTargetBehavior(.viewAligned)`), thẻ chạy ra quá lề trang khi cuộn. Trong thẻ: icon không nền, tên, số đã để dành đầy đủ (17 SemiBold), "Mục tiêu 40tr · 70%", thanh tiến độ. Đã xoá `GoalLayoutTrials.swift` và `GoalRow`.

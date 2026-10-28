@@ -38,7 +38,7 @@ struct OptionSheet: View {
                                 }
                             }
                             Spacer()
-                            SolarIcon("solar-alt-arrow-right-linear", size: 16)
+                            TimiIcon("hugeicons-arrow-right-01", size: 16)
                                 .foregroundStyle(Palette.secondary)
                         }
                         .padding(.horizontal, RowMetrics.horizontal)

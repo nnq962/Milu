@@ -21,6 +21,8 @@ final class FinanceStore {
     var savingsGoals: [SavingsGoal]
     /// Luôn sắp xếp mới nhất lên đầu.
     var transactions: [FinanceTransaction]
+    /// Nạp/rút hũ, mới nhất lên đầu.
+    var goalTransfers: [GoalTransfer]
 
     init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
         self.accounts = accounts
@@ -28,6 +30,7 @@ final class FinanceStore {
         self.paymentReminders = paymentReminders
         self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
+        self.goalTransfers = []
         self.database = nil
     }
 
@@ -39,6 +42,7 @@ final class FinanceStore {
         accounts = snapshot.accounts
         savingsGoals = snapshot.savingsGoals
         transactions = snapshot.transactions
+        goalTransfers = snapshot.goalTransfers
         loans = snapshot.loans
         paymentReminders = snapshot.paymentReminders
     }
@@ -51,6 +55,7 @@ final class FinanceStore {
         accounts = snapshot.accounts
         savingsGoals = snapshot.savingsGoals
         transactions = snapshot.transactions
+        goalTransfers = snapshot.goalTransfers
         loans = snapshot.loans
         paymentReminders = snapshot.paymentReminders
     }
@@ -103,10 +108,29 @@ final class FinanceStore {
         database?.save(account)
     }
 
-    /// Removes the account and every transaction recorded on it.
+    /// Saves the edited details and, when `balance` differs from the current one, records the
+    /// difference as an "Điều chỉnh số dư" transaction (kept out of reports), so the history
+    /// still adds up to the balance.
+    func update(_ account: Account, balance: Double) {
+        guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+        var edited = account
+        edited.balance = accounts[index].balance
+        accounts[index] = edited
+        database?.save(edited)
+        let delta = balance - edited.balance
+        guard abs(delta) >= 1 else { return }
+        add(FinanceTransaction(title: TransactionCategory.adjustmentIn.title, amount: abs(delta),
+                               category: delta > 0 ? .adjustmentIn : .adjustmentOut,
+                               accountID: account.id, date: .now))
+    }
+
+    /// Removes the account, every transaction recorded on it and its goal transfers (the goals
+    /// keep what they hold).
     func delete(_ account: Account) {
         let ids = transactions.filter { $0.accountID == account.id }.map(\.id)
+            + goalTransfers.filter { $0.accountID == account.id }.map(\.id)
         transactions.removeAll { $0.accountID == account.id }
+        goalTransfers.removeAll { $0.accountID == account.id }
         accounts.removeAll { $0.id == account.id }
         database?.deleteAccount(id: account.id, transactionIDs: ids)
     }
@@ -122,9 +146,35 @@ final class FinanceStore {
         database?.save(goal)
     }
 
+    /// Removes the goal and its transfers; what it held is not given back to the accounts.
     func delete(_ goal: SavingsGoal) {
+        let ids = goalTransfers.filter { $0.goalID == goal.id }.map(\.id)
+        goalTransfers.removeAll { $0.goalID == goal.id }
         savingsGoals.removeAll { $0.id == goal.id }
-        database?.deleteAccount(id: goal.id)
+        database?.deleteAccount(id: goal.id, transactionIDs: ids)
+    }
+
+    func goal(id: SavingsGoal.ID) -> SavingsGoal? {
+        savingsGoals.first { $0.id == id }
+    }
+
+    /// Moves money between an account and a goal: one goes down by what the other goes up.
+    func add(_ transfer: GoalTransfer) {
+        guard let goalIndex = savingsGoals.firstIndex(where: { $0.id == transfer.goalID }) else { return }
+        goalTransfers.append(transfer)
+        goalTransfers.sort { $0.date > $1.date }
+        savingsGoals[goalIndex].saved += transfer.goalDelta
+        database?.save(savingsGoals[goalIndex])
+        adjustBalance(of: transfer.accountID, by: -transfer.goalDelta)
+        database?.save(transfer)
+    }
+
+    func transfers(of goal: SavingsGoal) -> [GoalTransfer] {
+        goalTransfers.filter { $0.goalID == goal.id }
+    }
+
+    func transfers(of account: Account) -> [GoalTransfer] {
+        goalTransfers.filter { $0.accountID == account.id }
     }
 
     /// Dư nợ thẻ/tài khoản âm cộng các khoản đi vay.
@@ -201,14 +251,14 @@ final class FinanceStore {
     }
 
     func total(_ kind: TransactionKind, inMonthOf date: Date = .now) -> Double {
-        monthlyTransactions(for: date)
+        monthlyTransactions(for: date).reportable
             .filter { $0.kind == kind }
             .reduce(0) { $0 + $1.amount }
     }
 
     /// Chi tiêu trong tháng gộp theo danh mục, lớn nhất lên đầu.
     func expensesByCategory(inMonthOf date: Date = .now) -> [CategoryTotal] {
-        let expenses = monthlyTransactions(for: date).filter { $0.kind == .expense }
+        let expenses = monthlyTransactions(for: date).reportable.filter { $0.kind == .expense }
         return Dictionary(grouping: expenses, by: \.category)
             .map { category, items in
                 CategoryTotal(category: category, amount: items.reduce(0) { $0 + $1.amount })

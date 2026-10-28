@@ -33,6 +33,7 @@ final class FinanceDatabase {
         var accounts: [Account]
         var savingsGoals: [SavingsGoal]
         var transactions: [FinanceTransaction]
+        var goalTransfers: [GoalTransfer]
         var loans: [Loan]
         var paymentReminders: [PaymentReminder]
     }
@@ -42,11 +43,13 @@ final class FinanceDatabase {
             predicate: #Predicate { $0.archivedAt == nil },
             sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]))
         let goalType = SavingsGoal.accountType
+        let goalIDs = Set(accountRows.filter { $0.type == goalType }.map(\.id))
+        let transactionRows = fetch(FetchDescriptor<TransactionRecord>(sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]))
         return Snapshot(
             accounts: accountRows.filter { $0.type != goalType }.map(Account.init),
             savingsGoals: accountRows.filter { $0.type == goalType }.map(SavingsGoal.init),
-            transactions: fetch(FetchDescriptor<TransactionRecord>(sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]))
-                .compactMap(FinanceTransaction.init),
+            transactions: transactionRows.compactMap(FinanceTransaction.init),
+            goalTransfers: transactionRows.compactMap { GoalTransfer($0, goalIDs: goalIDs) },
             loans: fetch(FetchDescriptor<LoanRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Loan.init),
             paymentReminders: fetch(FetchDescriptor<ReminderRecord>(sortBy: [SortDescriptor(\.dueDate)])).map(PaymentReminder.init)
         )
@@ -81,6 +84,11 @@ final class FinanceDatabase {
 
     func save(_ transaction: FinanceTransaction) {
         record(TransactionRecord.self, id: transaction.id) { TransactionRecord(id: $0) }.apply(transaction)
+        commit()
+    }
+
+    func save(_ transfer: GoalTransfer) {
+        record(TransactionRecord.self, id: transfer.id) { TransactionRecord(id: $0) }.apply(transfer)
         commit()
     }
 

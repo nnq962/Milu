@@ -20,7 +20,7 @@ struct AttentionCard: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(reminders.enumerated()), id: \.element.id) { index, reminder in
-                        ListRow(icon: reminder.isIncome ? "solar-user-linear" : "solar-calendar-linear",
+                        ListRow(icon: reminder.isIncome ? "hugeicons-user" : "hugeicons-calendar-03",
                                 title: reminder.title,
                                 subtitle: reminder.dueDescription,
                                 amount: reminder.amount,

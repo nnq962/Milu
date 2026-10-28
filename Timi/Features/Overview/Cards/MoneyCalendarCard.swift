@@ -41,8 +41,8 @@ struct MoneyCalendarCard: View {
                     } else {
                         let date = calendar.date(byAdding: .day, value: index - offset, to: start)!
                         let items = transactionsByDay[calendar.startOfDay(for: date)] ?? []
-                        let income = items.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
-                        let expense = items.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
+                        let income = items.reportable.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
+                        let expense = items.reportable.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
                         day(date, income: income, expense: expense)
                     }
                 }
@@ -74,11 +74,11 @@ struct MoneyCalendarCard: View {
             }
         } label: {
             HStack(spacing: 6) {
-                SolarIcon("solar-calendar-linear", size: 14)
+                TimiIcon("hugeicons-calendar-03", size: 14)
                 Text(isCurrentYear ? "Tháng \(month)" : "T\(month)/\(year.formatted(.number.grouping(.never)))")
                     .textRole(.captionStrong)
                     .monospacedDigit()
-                SolarIcon("solar-alt-arrow-down-linear", size: 12)
+                TimiIcon("hugeicons-arrow-down-01", size: 12)
                     .foregroundStyle(Palette.secondaryText)
             }
             .foregroundStyle(Palette.ink)

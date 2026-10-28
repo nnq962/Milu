@@ -30,7 +30,7 @@ struct MonthMenu: View {
                 Text(isCurrentYear ? "Tháng \(number)" : "T\(number)/\(year.formatted(.number.grouping(.never)))")
                     .textRole(.body)
                     .monospacedDigit()
-                SolarIcon("solar-alt-arrow-down-linear", size: 14)
+                TimiIcon("hugeicons-arrow-down-01", size: 14)
             }
             .foregroundStyle(Palette.ink)
         }

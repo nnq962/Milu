@@ -15,6 +15,8 @@ enum Spacing {
     static let page: CGFloat = 20
     /// Between the parts of a screen.
     static let section: CGFloat = 20
+    /// From a section heading to the card under it, on every screen and in forms.
+    static let headerGap: CGFloat = 8
     /// Inside a regular card.
     static let card: CGFloat = 20
 
@@ -37,6 +39,9 @@ enum RowMetrics {
     static let iconColumn: CGFloat = 24
     /// Title to subtitle.
     static let lineGap: CGFloat = 2
+    /// An icon or logo standing alone, the same everywhere: a screen's header (account, credit card)
+    /// and an empty state.
+    static let featureIcon: CGFloat = 44
     /// Where a divider starts when rows have icons: margin + icon column + gap.
     static let dividerInset: CGFloat = horizontal + iconColumn + gap
 }

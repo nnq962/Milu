@@ -19,6 +19,9 @@ struct ListRow: View {
     let title: String
     /// Second line; leave it out for a one-line row (52pt, like a form row).
     var subtitle: String? = nil
+    /// A short line under the amount (a date "28/10", a time "08:15"): the amount then lines up
+    /// with the title, and this with the subtitle.
+    var trailingSubtitle: String? = nil
     let amount: Double
     var iconBackground: Color = Palette.muted
     var amountTone: MoneyText.Tone = .negativeRed
@@ -34,21 +37,44 @@ struct ListRow: View {
             } else {
                 IconCircle(icon: icon, background: iconBackground)
             }
-            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                Text(title)
-                    .textRole(.body)
-                    .lineLimit(1)
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
-                        .lineLimit(1)
+            if let trailingSubtitle {
+                VStack(spacing: RowMetrics.lineGap) {
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                        Text(title)
+                            .textRole(.body)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        // Full size: the title gives way first.
+                        MoneyText(amount: amount, tone: amountTone)
+                            .fixedSize()
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                        Text(subtitle ?? "")
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(trailingSubtitle)
+                            .monospacedDigit()
+                    }
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
                 }
+            } else {
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    Text(title)
+                        .textRole(.body)
+                        .lineLimit(1)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.secondaryText)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                MoneyText(amount: amount, tone: amountTone)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            MoneyText(amount: amount, tone: amountTone)
             if showsChevron {
-                SolarIcon("solar-alt-arrow-right-linear", size: 16)
+                TimiIcon("hugeicons-arrow-right-01", size: 16)
                     .foregroundStyle(Palette.secondary)
             }
         }

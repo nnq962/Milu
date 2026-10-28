@@ -74,7 +74,7 @@ enum TimiSchemaV1: VersionedSchema {
         /// "expense" | "income"
         var kind: String
         var name: String
-        /// Solar icon name.
+        /// Icon asset name ("hugeicons-car-01"); older rows may hold a Solar name (`IconCatalog.migrated` maps it).
         var icon: String
         var isBuiltIn: Bool
         var sortOrder: Int
@@ -172,7 +172,7 @@ enum TimiSchemaV1: VersionedSchema {
         var isIncome: Bool
         var dueDate: Date
         var detail: String
-        /// "icon" (value = Solar name) | "initials" (value = the letters)
+        /// "icon" (value = icon asset name) | "initials" (value = the letters)
         var avatarKind: String
         var avatarValue: String
         /// What it is about, when known.
@@ -189,7 +189,7 @@ enum TimiSchemaV1: VersionedSchema {
             self.dueDate = dueDate
             self.detail = ""
             self.avatarKind = "icon"
-            self.avatarValue = "solar-calendar-linear"
+            self.avatarValue = "hugeicons-calendar-03"
             self.createdAt = .now
             self.updatedAt = .now
         }

@@ -9,9 +9,9 @@ struct EmptyStateCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Plain glyph, no tile: same rule as list rows (user choice 2026-10-28).
-            SolarIcon(icon, size: 32)
-                .foregroundStyle(Palette.secondary)
+            // Plain glyph in ink, no tile, drawn like the logo atop an account so the two match in
+            // size (user choice 2026-10-28).
+            RowIcon(name: icon, size: RowMetrics.featureIcon)
             Text(title)
                 .textRole(.title)
                 .padding(.top, Spacing.m)

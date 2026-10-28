@@ -204,7 +204,7 @@ struct MockAssistant {
     }
 
     private func biggestExpense() -> String {
-        let expenses = store.monthlyTransactions().filter { $0.kind == .expense }
+        let expenses = store.monthlyTransactions().reportable.filter { $0.kind == .expense }
         guard let biggest = expenses.max(by: { $0.amount < $1.amount }) else {
             return "Tháng này bạn chưa có khoản chi nào."
         }
@@ -216,7 +216,7 @@ struct MockAssistant {
     private func incomeSummary() -> String {
         let income = store.total(.income)
         guard income > 0 else { return "Tháng này bạn chưa ghi nhận khoản thu nào." }
-        let lines = store.monthlyTransactions()
+        let lines = store.monthlyTransactions().reportable
             .filter { $0.kind == .income }
             .map { "• \($0.title): \($0.amount.vnd)" }
             .joined(separator: "\n")

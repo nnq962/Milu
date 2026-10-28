@@ -55,3 +55,16 @@ extension View {
         }
     }
 }
+
+/// The edit button of a detail screen's toolbar: a pencil, which iOS 26 sets in a glass circle
+/// like the back button (user choice 2026-10-28, over the word "Sửa").
+struct EditToolbarButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            TimiIcon("hugeicons-pencil-edit-01", size: 22)
+        }
+        .accessibilityLabel("Sửa")
+    }
+}

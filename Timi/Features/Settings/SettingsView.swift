@@ -39,16 +39,16 @@ struct SettingsView: View {
                     profile
 
                     FormGroup(title: "Chung") {
-                        FormNavigationRow(title: "Giao diện", icon: "solar-pallete-2-linear", value: "Sáng") {
+                        FormNavigationRow(title: "Giao diện", icon: "hugeicons-paint-board", value: "Sáng") {
                             note = Note(title: "Giao diện", message: "Timi đang dùng giao diện sáng. Chế độ tối sẽ có khi các màn đã chuyển hết sang hệ thống thiết kế.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Hạng mục", icon: "solar-tag-linear",
-                                          value: "\(TransactionCategory.allCases.count)") {
+                        FormNavigationRow(title: "Hạng mục", icon: "hugeicons-tag-01",
+                                          value: "\(TransactionCategory.pickable.count)") {
                             note = Note(title: "Hạng mục", message: "Sắp có: thêm, đổi tên và sắp xếp hạng mục thu chi của riêng bạn.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Hạn mức chi tiêu", icon: "solar-graph-up-linear",
+                        FormNavigationRow(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
                                           value: monthlyBudget > 0 ? monthlyBudget.vndCompact : "Chưa đặt") {
                             isEditingBudget = true
                         }
@@ -57,34 +57,41 @@ struct SettingsView: View {
                     FormGroup(title: "Thông báo",
                               footer: "Thông báo chưa được gửi trong bản thử nghiệm; lựa chọn của bạn được lưu sẵn.") {
                         FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "21:00 mỗi ngày",
-                                      icon: "solar-bell-linear", isOn: $dailyReminder)
+                                      icon: "hugeicons-notification-01", isOn: $dailyReminder)
                         FormDivider()
                         FormToggleRow(title: "Cảnh báo hạn mức", subtitle: "Khi dùng 80% và 100%",
-                                      icon: "solar-bell-bing-linear", isOn: $budgetAlerts)
+                                      icon: "hugeicons-alert-circle", isOn: $budgetAlerts)
                         FormDivider()
-                        FormToggleRow(title: "Tin từ Timi", icon: "solar-star-linear", isOn: $news)
+                        FormToggleRow(title: "Tin từ Timi", icon: "hugeicons-star", isOn: $news)
                     }
 
                     FormGroup(title: "Hỗ trợ") {
-                        FormNavigationRow(title: "Câu hỏi thường gặp", icon: "solar-question-circle-linear") {
+                        FormNavigationRow(title: "Câu hỏi thường gặp", icon: "hugeicons-help-circle") {
                             note = Note(title: "Câu hỏi thường gặp", message: "Sắp có trong app. Hiện bạn có thể xem trên bản web của Timi.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Góp ý với Timi", icon: "solar-chat-round-line-linear") {
+                        FormNavigationRow(title: "Góp ý với Timi", icon: "hugeicons-bubble-chat") {
                             mail(subject: "Góp ý cho Timi iOS")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Email hỗ trợ", subtitle: Self.supportEmail, icon: "solar-letter-linear") {
+                        FormNavigationRow(title: "Email hỗ trợ", subtitle: Self.supportEmail, icon: "hugeicons-mail-01") {
                             mail(subject: "Hỗ trợ Timi iOS")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "solar-document-text-linear") {
+                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02") {
                             note = Note(title: "Điều khoản sử dụng", message: "Sắp có trong app.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "solar-shield-check-linear") {
+                        FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check") {
                             note = Note(title: "Chính sách quyền riêng tư", message: "Dữ liệu trong bản thử nghiệm chỉ nằm trên máy và được đặt lại khi mở lại app. Chính sách đầy đủ sắp có.")
                         }
+                        FormDivider()
+                        NavigationLink {
+                            LicensesView()
+                        } label: {
+                            NavigationRowLabel(title: "Giấy phép mã nguồn mở", icon: "hugeicons-license")
+                        }
+                        .buttonStyle(.row)
                     }
 
                     FormGroup(title: "Nhà phát triển",
@@ -93,11 +100,11 @@ struct SettingsView: View {
                             DesignSystemView()
                         } label: {
                             NavigationRowLabel(title: "Thư viện UI", subtitle: "Hệ thống thiết kế, chạm thử được",
-                                               icon: "solar-widget-4-linear")
+                                               icon: "hugeicons-dashboard-square-01")
                         }
                         .buttonStyle(.row)
                         FormDivider()
-                        FormNavigationRow(title: "Lịch sử phiên bản", icon: "solar-history-linear", value: version) {
+                        FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
                             note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
                         }
                         FormDivider(hasIcon: false)
@@ -186,7 +193,7 @@ private struct NavigationRowLabel: View {
         HStack(spacing: Spacing.s) {
             FormRowLabel(title: title, subtitle: subtitle, icon: icon)
             Spacer(minLength: Spacing.s)
-            SolarIcon("solar-alt-arrow-right-linear", size: 16)
+            TimiIcon("hugeicons-arrow-right-01", size: 16)
                 .foregroundStyle(Palette.secondary)
         }
         .formRowFrame()

@@ -94,8 +94,8 @@ struct MessageRow: View {
         switch message.card {
         case .recorded(let snapshot, removed: false) where store.transaction(id: snapshot.id) != nil:
             HStack(spacing: 8) {
-                cardButton("Sửa", icon: "solar-pen-linear", color: Palette.ink) { onAction(.edit, message) }
-                cardButton("Xoá", icon: "solar-trash-bin-minimalistic-linear", color: Palette.red) { onAction(.remove, message) }
+                cardButton("Sửa", icon: "hugeicons-pencil-edit-01", color: Palette.ink) { onAction(.edit, message) }
+                cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.red) { onAction(.remove, message) }
             }
         case .confirmDelete(let snapshot, .pending) where store.transaction(id: snapshot.id) != nil:
             HStack(spacing: 8) {
@@ -120,7 +120,7 @@ struct MessageRow: View {
     private func cardButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                SolarIcon(icon, size: 14)
+                TimiIcon(icon, size: 14)
                 Text(title)
             }
             .frame(maxWidth: .infinity)

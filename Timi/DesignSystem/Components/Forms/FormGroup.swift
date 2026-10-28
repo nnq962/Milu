@@ -1,27 +1,24 @@
 import SwiftUI
 
-/// Rows on a white card, with an optional caption above and note below (web FormSection / SettingsGroup).
+/// Rows on a white card, with an optional heading above (the app's one heading style, as on
+/// "Hũ tiết kiệm") and note below. Forms and sheets may use the heading too.
 /// Put `FormDivider()` between rows. `error` replaces the note with a red message saying what to
 /// fix; mark the row it is about with `isInvalid`.
 struct FormGroup<Content: View>: View {
     var title: String? = nil
     var footer: String? = nil
     var error: String? = nil
-    /// Raise by one on each failed save: the card shakes so the eye finds what to fix.
-    var shakes = 0
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             if let title {
-                Text(title)
-                    .textRole(.overline)
-                    .foregroundStyle(Palette.secondaryText)
-                    .padding(.horizontal, RowMetrics.horizontal)
+                // The light group heading: inside a sheet the sheet title is the strong one.
+                SectionHeader(title: title, style: .group)
+                    .padding(.bottom, Spacing.headerGap - Spacing.s)
             }
             VStack(spacing: 0) { content }
                 .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
-                .shake(shakes)
             if let error {
                 Label {
                     Text(error)
@@ -108,7 +105,7 @@ struct FormIconTile: View {
 
     var body: some View {
         let plain = style == .plain && background == nil
-        SolarIcon(icon, size: plain ? FormMetrics.plainGlyph : FormMetrics.iconGlyph)
+        TimiIcon(icon, size: plain ? FormMetrics.plainGlyph : FormMetrics.iconGlyph)
             .foregroundStyle(Palette.ink)
             .frame(width: plain ? FormMetrics.plainColumn : FormMetrics.icon,
                    height: plain ? FormMetrics.plainGlyph : FormMetrics.icon)

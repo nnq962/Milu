@@ -113,10 +113,11 @@ struct LoansContent: View {
             .filter { matchesSearch($0.title) || matchesSearch($0.detail) }
             .sorted { $0.dueDate < $1.dueDate }
         if !reminders.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 SectionHeader(title: "Cần chú ý") {
                     StatusBadge(text: "\(reminders.count) sắp đến hạn", tone: .warning)
                 }
+                .padding(.bottom, Spacing.headerGap - Spacing.m)
                 ForEach(reminders) { reminder in
                     HStack(spacing: 12) {
                         switch reminder.avatar {
@@ -159,10 +160,11 @@ struct LoansContent: View {
     // MARK: - Cho vay / Đi vay / Đã tất toán
 
     private var lentSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             SectionHeader(title: "Cho vay") { remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }) }
+                .padding(.bottom, Spacing.headerGap - Spacing.m)
             if lentLoans.isEmpty {
-                EmptyStateCard(icon: "solar-hand-money-linear", title: "Chưa có khoản cho vay",
+                EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có khoản cho vay",
                                message: "Nhấn + để ghi lại số tiền bạn cho người khác vay.")
             }
             ForEach(lentLoans) { loan in
@@ -174,10 +176,11 @@ struct LoansContent: View {
 
     private var borrowedSection: some View {
         let total = cardDebts.reduce(0) { $0 - $1.balance } + borrowedLoans.reduce(0) { $0 + $1.outstanding }
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             SectionHeader(title: "Đi vay") { remainingLabel(total) }
+                .padding(.bottom, Spacing.headerGap - Spacing.m)
             if cardDebts.isEmpty && borrowedLoans.isEmpty {
-                EmptyStateCard(icon: "solar-card-linear", title: "Chưa có khoản đi vay",
+                EmptyStateCard(icon: "hugeicons-credit-card", title: "Chưa có khoản đi vay",
                                message: "Dư nợ thẻ tín dụng và các khoản bạn vay sẽ hiện ở đây.")
             }
             ForEach(cardDebts) { card in
@@ -192,10 +195,11 @@ struct LoansContent: View {
     }
 
     private var settledSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             SectionHeader(title: "Đã tất toán")
+                .padding(.bottom, Spacing.headerGap - Spacing.m)
             if settledLoans.isEmpty {
-                EmptyStateCard(icon: "solar-check-read-linear", title: "Chưa có khoản nào tất toán",
+                EmptyStateCard(icon: "hugeicons-checkmark-circle-02", title: "Chưa có khoản nào tất toán",
                                message: "Khoản vay đã thu hoặc trả đủ sẽ được lưu ở đây.")
             }
             ForEach(settledLoans) { loan in

@@ -4,14 +4,14 @@ struct ListsPart: View {
     var body: some View {
         PartSection(part: .lists) {
             VStack(spacing: 0) {
-                ListRow(icon: "solar-banknote-2-linear", title: "Ví tiền mặt", subtitle: "Cập nhật hôm nay", amount: 2_350_000)
+                ListRow(icon: "hugeicons-money-02", title: "Ví tiền mặt", subtitle: "Cập nhật hôm nay", amount: 2_350_000)
                 ListRow(icon: "Institutions/vietcombank", title: "Vietcombank", subtitle: "Logo ngân hàng giữ cột icon 24pt",
                         amount: 45_800_000)
                     .overlay(alignment: .top) { RowDivider() }
-                ListRow(icon: "solar-cup-hot-linear", title: "Cà phê buổi sáng", subtitle: "Ăn uống · 08:30",
+                ListRow(icon: "hugeicons-restaurant-01", title: "Cà phê buổi sáng", subtitle: "Ăn uống · 08:30",
                         amount: 45_000, amountTone: .signedExpense)
                     .overlay(alignment: .top) { RowDivider() }
-                ListRow(icon: "solar-wallet-money-linear", title: "Lương tháng 10", subtitle: "Thu nhập · 09:00",
+                ListRow(icon: "hugeicons-money-bag-02", title: "Lương tháng 10", subtitle: "Thu nhập · 09:00",
                         amount: 25_000_000, amountTone: .signedIncome)
                     .overlay(alignment: .top) { RowDivider() }
             }
@@ -48,7 +48,7 @@ struct ListsPart: View {
                 HStack(spacing: Spacing.m) {
                     InitialsAvatar(name: "Minh")
                     InitialsAvatar(name: "Hùng")
-                    IconCircle(icon: "solar-card-linear")
+                    IconCircle(icon: "hugeicons-credit-card")
                     AssistantAvatar()
                 }
             }

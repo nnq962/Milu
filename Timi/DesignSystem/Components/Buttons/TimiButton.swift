@@ -119,14 +119,14 @@ extension TimiButton where Label == TimiButtonTitle {
     }
 }
 
-/// Optional Solar icon (18pt, as on the web) before the title.
+/// Optional icon (18pt, as on the web) before the title.
 struct TimiButtonTitle: View {
     let title: String
     let icon: String?
 
     var body: some View {
         HStack(spacing: 6) {
-            if let icon { SolarIcon(icon, size: 18) }
+            if let icon { TimiIcon(icon, size: 18) }
             Text(title)
         }
     }

@@ -7,7 +7,7 @@ struct ProUpgradeCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
-                SolarIcon("solar-crown-bold", size: 20)
+                TimiIcon("hugeicons-crown", size: 20)
                     .foregroundStyle(Palette.ink)
                     .frame(width: 40, height: 40)
                     .background(Palette.lime, in: RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous))

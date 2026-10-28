@@ -13,9 +13,9 @@ struct BalanceCard: View {
                     .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
             }
             HStack(spacing: 8) {
-                stat("Số dư", value: store.totalAssets.vndCompact, icon: "solar-wallet-linear")
-                stat("Cho vay", value: store.totalLent.vndCompact, icon: "solar-hand-money-linear")
-                stat("Nợ", value: (-store.totalDebt).vndCompact, icon: "solar-card-linear", color: Palette.red)
+                stat("Số dư", value: store.totalAssets.vndCompact, icon: "hugeicons-wallet-01")
+                stat("Cho vay", value: store.totalLent.vndCompact, icon: "hugeicons-hand-coins")
+                stat("Nợ", value: (-store.totalDebt).vndCompact, icon: "hugeicons-credit-card", color: Palette.red)
             }
         }
         .overviewCard()
@@ -24,7 +24,7 @@ struct BalanceCard: View {
 
     private func stat(_ title: String, value: String, icon: String, color: Color = Palette.ink) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            SolarIcon(icon, size: 16)
+            TimiIcon(icon, size: 16)
                 .accessibilityHidden(true)
                 .frame(width: 28, height: 28)
                 .background(Palette.card, in: Circle())

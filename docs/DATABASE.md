@@ -22,6 +22,10 @@ Code nằm ở `Timi/Persistence/`:
 6. **Không xoá cứng tài khoản đang có lịch sử**: dùng `archivedAt`. Màn hình hiện chỉ đọc tài khoản chưa lưu trữ.
 7. **Đổi schema = thêm phiên bản mới** (`TimiSchemaV2` + một bước trong `TimiMigrationPlan`), không sửa V1. Nếu sửa V1, máy đã cài app sẽ không mở được dữ liệu cũ.
 
+## Icon
+
+Cột icon (`goalIcon`, `CategoryRecord.icon`, `avatarValue` khi là icon) lưu **tên icon trong `IconCatalog`**: "hugeicons-" + mã của bộ Hugeicons, ví dụ "hugeicons-car-01". Bản web vẽ cùng icon bằng `hugeicons:car-01` (Iconify hoặc gói `@hugeicons/core-free-icons`). Máy đã cài bản cũ có thể còn tên Solar/MDI ("mdi-piggy-bank", "solar-calendar-linear"); `IconCatalog.migrated` đổi sang tên mới khi đọc. Bản web khi đồng bộ cần cùng bảng đổi tên này.
+
 ## Các bảng (V1)
 
 ### `AccountRecord` — tài khoản và hũ tiết kiệm
@@ -36,7 +40,7 @@ Code nằm ở `Timi/Persistence/`:
 | openingBalance | Int64 | số dư lúc thêm tài khoản |
 | balance | Int64 | số dư hiện tại; thẻ tín dụng mang số âm |
 | creditLimit, paymentDueDate | Int64?, Date? | chỉ thẻ tín dụng |
-| goalTarget, goalIcon, goalDueDate | Int64?, String?, Date? | chỉ hũ (`type = savings`) |
+| goalTarget, goalIcon, goalDueDate | Int64?, String?, Date? | chỉ hũ (`type = savings`); `goalIcon` là tên icon ("hugeicons-piggy-bank") |
 | excluded | Bool | không tính vào tổng và báo cáo |
 | archivedAt | Date? | đã lưu trữ |
 | sortOrder | Int | thứ tự hiển thị |
@@ -48,13 +52,15 @@ Hũ tiết kiệm là một loại tài khoản, giống bản web. Như vậy s
 
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
-| id | String | 12 hạng mục có sẵn dùng tên cố định (`food`, `salary`…); hạng mục người dùng tạo dùng UUID dạng chuỗi |
+| id | String | hạng mục có sẵn dùng tên cố định (`food`, `salary`…); hạng mục người dùng tạo dùng UUID dạng chuỗi |
 | kind | String | `expense` · `income` |
-| name, icon | String | tên hiển thị, icon Solar |
+| name, icon | String | tên hiển thị; icon là tên trong `IconCatalog` ("hugeicons-car-01") |
 | isBuiltIn | Bool | |
 | sortOrder, archivedAt, createdAt, updatedAt | | |
 
 Hiện app vẫn đọc hạng mục từ code (`TransactionCategory`). Bảng này đã được tạo và nạp sẵn để làm màn "Hạng mục" trong Cài đặt.
+
+Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), tên "Điều chỉnh số dư", không cho người dùng chọn. Máy cài trước khi có hai hạng mục này sẽ không có dòng tương ứng trong bảng; giao dịch vẫn đọc được vì `categoryID` chỉ là chuỗi.
 
 ### `TransactionRecord` — giao dịch
 
@@ -78,7 +84,11 @@ Quy tắc theo loại (sẽ thành `CHECK` trong Postgres):
 - **chi/thu:** có `accountID` và `categoryID`, không có from/to, `fee = 0`.
 - **chuyển khoản:** có `fromAccountID ≠ toAccountID`, không có `accountID`/`categoryID`.
 
-Màn hình hiện chỉ hiện chi/thu. Chuyển khoản đã có chỗ trong schema, sẽ làm giao diện sau.
+- **điều chỉnh số dư:** chi/thu với `categoryID` là `adjustmentIn`/`adjustmentOut` và `excluded = true`. App tạo khi người dùng sửa số dư trong form "Sửa tài khoản": phần chênh lệch thành một giao dịch, để lịch sử luôn cộng lại đúng bằng số dư. Không tính vào tổng thu chi, biểu đồ, lịch tiền và trợ lý.
+
+- **nạp/rút hũ:** chuyển khoản giữa một tài khoản thanh toán và một hũ (hũ cũng là một `AccountRecord`). Nạp: `fromAccountID` = tài khoản, `toAccountID` = hũ; rút thì ngược lại. `excluded = true`, `title` là "Nạp vào hũ" / "Rút từ hũ". App đọc thành `GoalTransfer`; hiện ở màn hũ và màn tài khoản, không tính vào thu chi. Xoá hũ hay xoá tài khoản thì xoá luôn các dòng này.
+
+Màn hình hiện chỉ hiện chi/thu và nạp/rút hũ. Chuyển khoản giữa hai tài khoản đã có chỗ trong schema, sẽ làm giao diện sau.
 
 ### `LoanRecord` — vay nợ
 
@@ -96,7 +106,7 @@ Màn hình hiện chỉ hiện chi/thu. Chuyển khoản đã có chỗ trong sc
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
 | id, title, amount, isIncome, dueDate, detail | | chưa phải tiền đã chuyển, không ảnh hưởng số dư |
-| avatarKind, avatarValue | String | `icon` + tên Solar, hoặc `initials` + chữ cái |
+| avatarKind, avatarValue | String | `icon` + tên icon ("hugeicons-…"), hoặc `initials` + chữ cái |
 | loanID, accountID | UUID? | liên quan tới khoản vay / thẻ nào |
 
 ## So với bản web (Postgres) — việc web cần đổi khi theo chuẩn này

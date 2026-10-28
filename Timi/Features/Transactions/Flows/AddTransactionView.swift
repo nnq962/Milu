@@ -52,7 +52,7 @@ struct AddTransactionView: View {
                     FormPickerRow(title: "Tài khoản",
                                   selection: Binding { accountID } set: { self.accountID = $0 },
                                   options: store.accounts.map(\.id),
-                                  optionIcon: { store.account(id: $0)?.iconName ?? "solar-wallet-linear" }) {
+                                  optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
                         store.account(id: $0)?.name ?? "—"
                     }
                 }

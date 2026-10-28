@@ -90,7 +90,7 @@ struct TransactionsView: View {
 
     private var searchButton: some View {
         Button { isSearching = true } label: {
-            SolarIcon("solar-magnifer-linear", size: 20)
+            TimiIcon("hugeicons-search-01", size: 20)
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
@@ -105,7 +105,7 @@ struct TransactionsView: View {
             case .loans: isAddingLoan = true
             }
         } label: {
-            SolarIcon("material-symbols-add-rounded", size: 26)
+            TimiIcon("hugeicons-add-01", size: 26)
                 .foregroundStyle(.white)
         }
         .nativeFloatingButton(diameter: ControlHeight.floating, tint: Palette.primary)
@@ -121,8 +121,8 @@ struct TransactionsView: View {
     }
 
     private var summaryCard: some View {
-        let expenses = monthTransactions.filter { $0.kind == .expense }
-        let incomes = monthTransactions.filter { $0.kind == .income }
+        let expenses = monthTransactions.reportable.filter { $0.kind == .expense }
+        let incomes = monthTransactions.reportable.filter { $0.kind == .income }
         let spent = expenses.reduce(0) { $0 + $1.amount }
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -203,11 +203,11 @@ struct TransactionsView: View {
     private var flowList: some View {
         let groups = transactionsByDay
         if groups.isEmpty {
-            EmptyStateCard(icon: filter == .transfer ? "solar-transfer-horizontal-linear" : "solar-inbox-linear",
+            EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
                            title: emptyTitle, message: emptyMessage)
         } else {
             ForEach(groups, id: \.day) { group in
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.headerGap) {
                     SectionHeader(title: group.day.transactionDayTitle) { DayTotals(items: group.items) }
                     VStack(spacing: 0) {
                         ForEach(Array(group.items.enumerated()), id: \.element.id) { index, transaction in

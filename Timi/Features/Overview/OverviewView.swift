@@ -94,7 +94,7 @@ struct OverviewView: View {
         Button {
             information = Information(title: "Thông báo", message: "Bạn chưa có thông báo mới. Nhắc hạn thanh toán sẽ xuất hiện ở đây khi tính năng được bổ sung.")
         } label: {
-            SolarIcon("solar-bell-linear", size: 20)
+            TimiIcon("hugeicons-notification-01", size: 20)
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)

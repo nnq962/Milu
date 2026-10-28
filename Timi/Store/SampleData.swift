@@ -8,11 +8,11 @@ import SwiftUI
 /// Dữ liệu mẫu để thử giao diện. Ngày giao dịch tính lùi từ hôm nay
 /// nên lúc nào mở app cũng có số liệu cho tuần và tháng hiện tại.
 enum SampleData {
-    static let cash = Account(name: "Ví tiền mặt", type: .cash, balance: 2_350_000, detail: "Chi tiêu hằng ngày")
-    static let vietcombank = Account(name: "Vietcombank", type: .bank, balance: 45_800_000, detail: "•••• 4821", institutionID: "vietcombank")
-    static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, detail: "•••• 1907", institutionID: "techcombank")
-    static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, detail: "0912 •••• 88", institutionID: "momo")
-    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, detail: "•••• 3360 · Hạn mức 50tr",
+    static let cash = Account(name: "Ví tiền mặt", type: .cash, balance: 2_350_000)
+    static let vietcombank = Account(name: "Vietcombank", type: .bank, balance: 45_800_000, institutionID: "vietcombank")
+    static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, institutionID: "techcombank")
+    static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, institutionID: "momo")
+    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000,
                                     creditLimit: 50_000_000, paymentDueDate: daysFromNow(4), institutionID: "vpbank")
 
     static let accounts = [cash, vietcombank, techcombank, momo, creditCard]
@@ -21,7 +21,7 @@ enum SampleData {
     static let monthlyBudget = 30_000_000.0
     static let paymentReminders = [
         PaymentReminder(title: "Trả nợ thẻ tín dụng", amount: abs(creditCard.balance), isIncome: false,
-                        dueDate: daysFromNow(4), detail: "Đi vay · \(creditCard.name)", avatar: .icon("solar-card-linear")),
+                        dueDate: daysFromNow(4), detail: "Đi vay · \(creditCard.name)", avatar: .icon("hugeicons-credit-card")),
         PaymentReminder(title: "Minh thanh toán khoản vay", amount: 5_000_000, isIncome: true,
                         dueDate: daysFromNow(8), detail: "Cho vay · Minh Trần", avatar: .initials("M")),
     ]
@@ -38,9 +38,11 @@ enum SampleData {
 
     // Hũ tiết kiệm mẫu từ thiết kế Sleek (màn Tài khoản).
     static let savingsGoals = [
-        SavingsGoal(name: "Hũ tiết kiệm", icon: .piggyBank, saved: 28_000_000, target: 40_000_000),
-        SavingsGoal(name: "Mua xe", icon: .car, saved: 15_000_000, target: 50_000_000),
-        SavingsGoal(name: "Du lịch Đà Nẵng", icon: .airplane, saved: 8_000_000, target: 20_000_000),
+        SavingsGoal(name: "Hũ tiết kiệm", icon: "hugeicons-piggy-bank", saved: 28_000_000, target: 40_000_000),
+        SavingsGoal(name: "Mua xe", icon: "hugeicons-car-01", saved: 15_000_000, target: 50_000_000,
+                    dueDate: Calendar.current.date(byAdding: .month, value: 14, to: .now)),
+        SavingsGoal(name: "Du lịch Đà Nẵng", icon: "hugeicons-luggage-01", saved: 8_000_000, target: 20_000_000,
+                    dueDate: Calendar.current.date(byAdding: .month, value: 6, to: .now)),
     ]
 
     static let transactions: [FinanceTransaction] = [

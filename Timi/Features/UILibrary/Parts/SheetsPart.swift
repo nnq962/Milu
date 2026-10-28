@@ -33,10 +33,10 @@ struct SheetsPart: View {
         }
         .sheet(isPresented: $isShowingOptions) {
             OptionSheet(title: "Thêm mới", options: [
-                SheetOption(icon: "solar-banknote-2-linear", title: "Tiền mặt"),
-                SheetOption(icon: "solar-buildings-2-linear", title: "Ngân hàng"),
-                SheetOption(icon: "solar-smartphone-linear", title: "Ví điện tử"),
-                SheetOption(icon: "mdi-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu", accent: true),
+                SheetOption(icon: "hugeicons-money-02", title: "Tiền mặt"),
+                SheetOption(icon: "hugeicons-bank", title: "Ngân hàng"),
+                SheetOption(icon: "hugeicons-smart-phone-01", title: "Ví điện tử"),
+                SheetOption(icon: "hugeicons-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu", accent: true),
             ]) { picked = $0.title }
         }
     }

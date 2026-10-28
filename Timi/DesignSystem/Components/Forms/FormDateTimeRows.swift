@@ -7,6 +7,8 @@ struct FormDateRow: View {
     let title: String
     var icon: String? = nil
     @Binding var date: Date
+    /// The earliest day the calendar lets the user pick (a deadline starts tomorrow).
+    var earliest: Date? = nil
 
     @State private var isPicking = false
 
@@ -24,7 +26,7 @@ struct FormDateRow: View {
         .buttonStyle(.row)
         .accessibilityValue(valueText)
         .sheet(isPresented: $isPicking) {
-            DateTimeSheet(title: title, date: $date, component: .date)
+            DateTimeSheet(title: title, date: $date, component: .date, earliest: earliest)
         }
     }
 }
@@ -59,14 +61,16 @@ private struct DateTimeSheet: View {
     let title: String
     @Binding var date: Date
     let component: DatePickerComponents
+    var earliest: Date? = nil
 
     @State private var draft: Date
     @Environment(\.dismiss) private var dismiss
 
-    init(title: String, date: Binding<Date>, component: DatePickerComponents) {
+    init(title: String, date: Binding<Date>, component: DatePickerComponents, earliest: Date? = nil) {
         self.title = title
         _date = date
         self.component = component
+        self.earliest = earliest
         _draft = State(initialValue: date.wrappedValue)
     }
 
@@ -79,7 +83,8 @@ private struct DateTimeSheet: View {
             }
             Group {
                 if component == .date {
-                    DatePicker(title, selection: $draft, displayedComponents: .date)
+                    DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...,
+                               displayedComponents: .date)
                         .datePickerStyle(.graphical)
                 } else {
                     DatePicker(title, selection: $draft, displayedComponents: .hourAndMinute)

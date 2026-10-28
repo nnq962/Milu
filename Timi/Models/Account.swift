@@ -19,10 +19,10 @@ enum AccountType: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .cash: "solar-banknote-2-linear"
-        case .bank: "solar-buildings-2-linear"
-        case .eWallet: "solar-smartphone-linear"
-        case .credit: "solar-card-linear"
+        case .cash: "hugeicons-money-02"
+        case .bank: "hugeicons-bank"
+        case .eWallet: "hugeicons-smart-phone-01"
+        case .credit: "hugeicons-credit-card"
         }
     }
 }
@@ -34,8 +34,8 @@ struct Account: Identifiable, Hashable {
     var type: AccountType
     /// Số dư hiện tại. Thẻ tín dụng mang số âm (đang nợ).
     var balance: Double
-    /// Dòng mô tả phụ, VD: "•••• 4821".
-    var detail: String
+    /// Ghi chú người dùng nhập khi thêm tài khoản (có thể trống).
+    var detail: String = ""
     /// Chỉ thẻ tín dụng: hạn mức và hạn thanh toán kỳ này, hiện ở mục Đi vay.
     var creditLimit: Double? = nil
     var paymentDueDate: Date? = nil

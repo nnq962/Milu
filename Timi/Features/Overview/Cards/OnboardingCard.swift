@@ -39,7 +39,7 @@ struct OnboardingCard: View {
             ZStack {
                 if completed {
                     Circle().fill(Palette.ink)
-                    SolarIcon("solar-check-read-linear", size: 12).foregroundStyle(.white)
+                    TimiIcon("hugeicons-checkmark-circle-02", size: 12).foregroundStyle(.white)
                 } else {
                     Circle().strokeBorder(Palette.border, lineWidth: 2)
                 }

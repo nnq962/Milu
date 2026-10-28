@@ -1,6 +1,0 @@
-Material Design Icons by Pictogrammers
-Licensed under the Apache License, Version 2.0.
-License: https://www.apache.org/licenses/LICENSE-2.0
-Source: https://github.com/iconify/icon-sets/blob/master/json/mdi.json
-Icons used: piggy-bank, car-outline, airplane (savings goal icons from the Sleek design).
-Changes: SVG color normalized to black for iOS template rendering; packaged as vector image assets.

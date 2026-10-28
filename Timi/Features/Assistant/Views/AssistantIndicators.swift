@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AssistantAvatar: View {
     var body: some View {
-        SolarIcon("solar-stars-minimalistic-bold", size: 14)
+        TimiIcon("hugeicons-ai-magic", size: 14)
             .foregroundStyle(Palette.ink)
             .frame(width: 32, height: 32)
             .background(Palette.lime, in: Circle())
@@ -16,7 +16,7 @@ struct TypingIndicator: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             AssistantAvatar()
-            SolarIcon("solar-menu-dots-linear", size: 20)
+            TimiIcon("hugeicons-more-horizontal", size: 20)
                 .foregroundStyle(Palette.secondary)
                 .phaseAnimator([false, true]) { content, dimmed in
                     content.opacity(reduceMotion ? 1 : (dimmed ? 0.35 : 1))

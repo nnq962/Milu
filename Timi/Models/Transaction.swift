@@ -18,12 +18,15 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
     case food, transport, shopping, bills, entertainment, health, education, otherExpense
     // Thu nhập
     case salary, bonus, investment, otherIncome
+    /// "Điều chỉnh số dư": the difference when the user corrects an account's balance. Never
+    /// offered in the pickers and kept out of totals and reports.
+    case adjustmentIn, adjustmentOut
 
     var id: Self { self }
 
     var kind: TransactionKind {
         switch self {
-        case .salary, .bonus, .investment, .otherIncome: .income
+        case .salary, .bonus, .investment, .otherIncome, .adjustmentIn: .income
         default: .expense
         }
     }
@@ -42,23 +45,25 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .bonus: "Thưởng"
         case .investment: "Đầu tư"
         case .otherIncome: "Thu khác"
+        case .adjustmentIn, .adjustmentOut: "Điều chỉnh số dư"
         }
     }
 
     var icon: String {
         switch self {
-        case .food: "solar-cup-hot-linear"
-        case .transport: "solar-car-linear"
-        case .shopping: "solar-bag-3-linear"
-        case .bills: "solar-bolt-linear"
-        case .entertainment: "solar-clapperboard-play-linear"
-        case .health: "solar-medical-kit-linear"
-        case .education: "solar-book-linear"
-        case .otherExpense: "solar-menu-dots-linear"
-        case .salary: "solar-wallet-money-linear"
-        case .bonus: "solar-gift-linear"
-        case .investment: "solar-graph-up-linear"
-        case .otherIncome: "solar-add-linear"
+        case .food: "hugeicons-restaurant-01"
+        case .transport: "hugeicons-car-01"
+        case .shopping: "hugeicons-shopping-bag-01"
+        case .bills: "hugeicons-flash"
+        case .entertainment: "hugeicons-film-02"
+        case .health: "hugeicons-first-aid-kit"
+        case .education: "hugeicons-book-02"
+        case .otherExpense: "hugeicons-more-horizontal"
+        case .salary: "hugeicons-money-bag-02"
+        case .bonus: "hugeicons-gift"
+        case .investment: "hugeicons-chart-increase"
+        case .otherIncome: "hugeicons-add-01"
+        case .adjustmentIn, .adjustmentOut: "hugeicons-pencil-edit-01"
         }
     }
 
@@ -71,15 +76,20 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .entertainment: .cyan
         case .health: .indigo
         case .education: .brown
-        case .otherExpense, .otherIncome: .gray
+        case .otherExpense, .otherIncome, .adjustmentIn, .adjustmentOut: .gray
         case .salary: .green
         case .bonus: .mint
         case .investment: .teal
         }
     }
 
+    var isAdjustment: Bool { self == .adjustmentIn || self == .adjustmentOut }
+
+    /// The categories a user can pick, without the balance adjustments.
+    static var pickable: [TransactionCategory] { allCases.filter { !$0.isAdjustment } }
+
     static func categories(for kind: TransactionKind) -> [TransactionCategory] {
-        allCases.filter { $0.kind == kind }
+        pickable.filter { $0.kind == kind }
     }
 }
 
@@ -98,6 +108,11 @@ struct FinanceTransaction: Identifiable, Hashable {
 
     /// Số tiền có dấu: thu là dương, chi là âm.
     var signedAmount: Double { kind == .income ? amount : -amount }
+}
+
+extension Sequence<FinanceTransaction> {
+    /// Without balance adjustments: what totals, charts and the assistant count.
+    var reportable: [FinanceTransaction] { filter { !$0.category.isAdjustment } }
 }
 
 extension FinanceTransaction {

@@ -36,6 +36,6 @@ enum Palette {
     /// Pressed grey, a switch turned off.
     static let fill3 = ink.opacity(0.10)
     /// A list row under the finger: lime at 18% on white (#F3FCD6). The accent only flashes here, so
-    /// it stays rare (user choice 2026-10-28, over grey).
+    /// it stays rare (user choice 2026-10-28, tried iOS grey and went back).
     static let rowPressed = lime.opacity(0.18)
 }
