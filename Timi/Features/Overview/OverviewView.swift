@@ -6,7 +6,7 @@ struct OverviewView: View {
     @AppStorage("overview.monthlyBudget") private var monthlyBudget = SampleData.monthlyBudget
     @State private var isEditingBudget = false
     @State private var information: Information?
-    @State private var isShowingDesignSystem = false
+    @State private var isShowingSettings = false
     @State private var selectedDay: CalendarDay?
 
     private struct Information: Identifiable {
@@ -71,15 +71,14 @@ struct OverviewView: View {
                 .presentationDetents([.medium])
             }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
-            .navigationDestination(isPresented: $isShowingDesignSystem) { DesignSystemView() }
+            .sheet(isPresented: $isShowingSettings) { SettingsView() }
         }
     }
 
     // Native navigation-bar items: iOS owns their glass and the scroll-edge backdrop.
     private var profileButton: some View {
-        // The design system lives behind the avatar until there is a profile screen.
         Button {
-            isShowingDesignSystem = true
+            isShowingSettings = true
         } label: {
             Text("Q")
                 .textRole(.heading)
@@ -88,7 +87,7 @@ struct OverviewView: View {
         .buttonBorderShape(.circle)
         .tint(Palette.ink)
         .accessibilityLabel("Hồ sơ của Quyet")
-        .accessibilityHint("Mở thư viện UI")
+        .accessibilityHint("Mở cài đặt")
     }
 
     private var notificationButton: some View {

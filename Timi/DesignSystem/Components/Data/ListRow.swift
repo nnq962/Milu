@@ -29,9 +29,7 @@ struct ListRow: View {
         HStack(spacing: RowMetrics.gap) {
             // Plain style (default) drops every tile, coloured ones too; amounts carry the meaning.
             if iconStyle == .plain {
-                SolarIcon(icon, size: RowMetrics.iconGlyph)
-                    .foregroundStyle(Palette.ink)
-                    .frame(width: RowMetrics.iconColumn)
+                RowIcon(name: icon)
             } else {
                 IconCircle(icon: icon, background: iconBackground)
             }

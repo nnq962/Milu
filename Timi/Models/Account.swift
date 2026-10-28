@@ -48,4 +48,11 @@ struct Account: Identifiable, Hashable {
     /// Chỉ thẻ tín dụng: hạn mức và hạn thanh toán kỳ này, hiện ở mục Đi vay.
     var creditLimit: Double? = nil
     var paymentDueDate: Date? = nil
+    /// The bank or e-wallet it belongs to (`Institution.id`); nil for cash or when not picked.
+    var institutionID: String? = nil
+
+    var institution: Institution? { Institution.find(institutionID) }
+
+    /// The bank's logo when one was picked, otherwise the account type's icon (see `RowIcon`).
+    var iconName: String { institution?.logoImage ?? type.icon }
 }

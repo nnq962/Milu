@@ -22,8 +22,7 @@ struct ChoiceSheet<Value: Hashable>: View {
                     } label: {
                         HStack(spacing: RowMetrics.gap) {
                             if let icon {
-                                SolarIcon(icon(option), size: RowMetrics.iconGlyph)
-                                    .frame(width: RowMetrics.iconColumn)
+                                RowIcon(name: icon(option))
                             }
                             Text(label(option)).textRole(.body)
                             Spacer()
@@ -38,7 +37,7 @@ struct ChoiceSheet<Value: Hashable>: View {
                         .frame(minHeight: RowMetrics.minHeight)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.row)
                     .accessibilityAddTraits(option == selection ? .isSelected : [])
                     .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: icon != nil) } }
                 }

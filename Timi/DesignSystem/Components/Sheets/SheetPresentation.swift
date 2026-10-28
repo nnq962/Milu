@@ -20,7 +20,8 @@ private struct FittedSheet: ViewModifier {
     func body(content: Content) -> some View {
         content
             .fixedSize(horizontal: false, vertical: true)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+            // Ignore the zero height reported before layout; a 0pt detent is not a valid sheet size.
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { if $0 > 1 { height = $0 } }
             .frame(maxHeight: .infinity, alignment: .top)
             .presentationDetents([.height(height)])
             .presentationBackground(Palette.background)

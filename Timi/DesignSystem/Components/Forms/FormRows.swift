@@ -16,7 +16,7 @@ struct FormPickerRow<Value: Hashable>: View {
         Button { isPicking = true } label: {
             FormValueLabel(title: title, icon: icon, value: label(selection))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.row)
         .accessibilityValue(label(selection))
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isPicking) {
@@ -86,7 +86,7 @@ struct FormNavigationRow: View {
             }
             .formRowFrame()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.row)
     }
 }
 
@@ -108,7 +108,7 @@ struct FormDestructiveRow: View {
                 .foregroundStyle(Palette.red)
                 .formRowFrame()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.row)
         .confirmationDialog(question, isPresented: $isConfirming, titleVisibility: .visible) {
             Button(title, role: .destructive) {
                 Haptics.warning()

@@ -16,6 +16,9 @@ struct ProgressBar: View {
         }
     }
 
+    /// 0…1; a value that is not a number (0 ÷ 0) draws an empty bar instead of an invalid frame.
+    private var fraction: Double { value.isFinite ? min(max(value, 0), 1) : 0 }
+
     var body: some View {
         Capsule()
             .fill(Palette.muted)
@@ -24,7 +27,7 @@ struct ProgressBar: View {
                 GeometryReader { proxy in
                     Capsule()
                         .fill(color)
-                        .frame(width: proxy.size.width * min(max(value, 0), 1))
+                        .frame(width: proxy.size.width * fraction)
                 }
             }
             .clipShape(Capsule())

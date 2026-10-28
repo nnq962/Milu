@@ -167,7 +167,7 @@ struct LoansContent: View {
             }
             ForEach(lentLoans) { loan in
                 Button { onEdit(loan) } label: { LoanCard(loan: loan) }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.card)
             }
         }
     }
@@ -182,11 +182,11 @@ struct LoansContent: View {
             }
             ForEach(cardDebts) { card in
                 NavigationLink(value: card.id) { CreditCardDebtCard(card: card) }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.card)
             }
             ForEach(borrowedLoans) { loan in
                 Button { onEdit(loan) } label: { LoanCard(loan: loan) }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.card)
             }
         }
     }
@@ -200,7 +200,7 @@ struct LoansContent: View {
             }
             ForEach(settledLoans) { loan in
                 Button { onEdit(loan) } label: { LoanCard(loan: loan) }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.card)
             }
         }
     }

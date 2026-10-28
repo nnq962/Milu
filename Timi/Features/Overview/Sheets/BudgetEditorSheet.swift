@@ -31,6 +31,8 @@ struct BudgetEditorSheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.l)
+        } content: {
+            EmptyView()
         }
         .timiSheetStyle([.medium])
     }

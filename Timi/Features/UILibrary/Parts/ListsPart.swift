@@ -5,6 +5,9 @@ struct ListsPart: View {
         PartSection(part: .lists) {
             VStack(spacing: 0) {
                 ListRow(icon: "solar-banknote-2-linear", title: "Ví tiền mặt", subtitle: "Cập nhật hôm nay", amount: 2_350_000)
+                ListRow(icon: "Institutions/vietcombank", title: "Vietcombank", subtitle: "Logo ngân hàng giữ cột icon 24pt",
+                        amount: 45_800_000)
+                    .overlay(alignment: .top) { RowDivider() }
                 ListRow(icon: "solar-cup-hot-linear", title: "Cà phê buổi sáng", subtitle: "Ăn uống · 08:30",
                         amount: 45_000, amountTone: .signedExpense)
                     .overlay(alignment: .top) { RowDivider() }
@@ -23,6 +26,21 @@ struct ListsPart: View {
                         MoneyText(amount: 60_000, tone: .signedExpense)
                         MoneyText(amount: -6_430_000, tone: .negativeRed, compact: true)
                     }
+                }
+            }
+
+            SampleCard(label: "Logo ngân hàng & ví · \(Institution.banks.count) + \(Institution.eWallets.count)") {
+                VStack(alignment: .leading, spacing: Spacing.m) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: 8),
+                              spacing: Spacing.s) {
+                        ForEach(Institution.all) { institution in
+                            InstitutionLogo(image: institution.logoImage, size: 32)
+                                .accessibilityLabel(institution.shortName)
+                        }
+                    }
+                    Text("Màu gốc của thương hiệu, trên nền trắng có viền mảnh. Chọn khi Thêm tài khoản (Ngân hàng / Ví điện tử).")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
                 }
             }
 

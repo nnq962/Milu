@@ -67,10 +67,19 @@ struct TimiAmountField: View {
             .onTapGesture { isFocused = true }
             .overlay(alignment: .trailing) {
                 if !text.isEmpty {
-                    ClearFieldButton {
+                    // iOS's own glass circle button, as beside a sheet's title; keeps the keyboard up.
+                    Button {
                         text = ""
                         typedBase = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.secondaryText)
+                            .frame(width: 20, height: 20)
                     }
+                    .nativeCircleButton(diameter: 32)
+                    .accessibilityLabel("Xoá số tiền")
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
 

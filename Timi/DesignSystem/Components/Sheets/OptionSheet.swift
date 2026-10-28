@@ -46,7 +46,7 @@ struct OptionSheet: View {
                         .frame(minHeight: RowMetrics.minHeight)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.row)
                     .overlay(alignment: .top) { if index > 0 { FormDivider() } }
                 }
             }

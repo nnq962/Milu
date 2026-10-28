@@ -40,7 +40,7 @@ struct AddTransactionView: View {
 
             TimiAmountField(text: $amountText, kind: kind, focusesOnAppear: editing == nil)
                 .padding(.vertical, Spacing.s)
-
+        } content: {
             FormGroup {
                 FormTextRow(title: "Tên", text: $title, prompt: category.title)
                 FormDivider(hasIcon: false)
@@ -52,7 +52,7 @@ struct AddTransactionView: View {
                     FormPickerRow(title: "Tài khoản",
                                   selection: Binding { accountID } set: { self.accountID = $0 },
                                   options: store.accounts.map(\.id),
-                                  optionIcon: { store.account(id: $0)?.type.icon ?? "solar-wallet-linear" }) {
+                                  optionIcon: { store.account(id: $0)?.iconName ?? "solar-wallet-linear" }) {
                         store.account(id: $0)?.name ?? "—"
                     }
                 }

@@ -10,7 +10,7 @@ struct FoundationPart: View {
         ("border", "#E5E5E0", Palette.border),
         ("input", "#F3F3EF", Palette.input),
         ("lime", "#C6F432", Palette.lime),
-        ("incomeTile", "#EEFCBC", Palette.incomeTile),
+        ("incomeTile", "#E8F6ED", Palette.incomeTile),
         ("red", "#DC2626", Palette.red),
         ("green", "#16A34A", Palette.green),
         ("secondarySurface", "#EEF0F3", Palette.secondarySurface),

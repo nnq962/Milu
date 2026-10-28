@@ -514,3 +514,57 @@ Người dùng chốt **16 làm cỡ nội dung chính**. Manrope rộng nên 16
   - Số "sắp đến hạn" là `StatusBadge` cảnh báo (đỏ nhạt).
   - Thanh hạn mức và thanh "Làm quen" dùng `ProgressBar`.
 - Đã xem trên iPhone 17 Pro / iOS 26.3: Tổng quan (toàn trang), Giao dịch (Thu chi, Vay nợ), Trợ lý.
+
+### Logo ngân hàng & ví — 2026-10-28
+
+- **Nguồn:** bộ logo và danh sách của dự án web (`finance-tracker-v2/web/public/institutions`, `web/lib/institutions.ts`): 63 ngân hàng + 19 ví.
+  - Đặt trong `Assets.xcassets/Institutions/` (ảnh tên `Institutions/<logo>`).
+  - SVG giữ dạng vector. 3 file WebP (Bắc Á, Bảo Việt, PG Bank) đổi sang PNG 144×144.
+- **Dữ liệu:** `Models/Institution.swift`, sinh từ file TS.
+  - Gồm tên đầy đủ, tên ngắn, từ khoá.
+  - `search` xếp hạng như bản web: viết tắt khớp đúng → tên ngắn bắt đầu bằng → từng từ → tên đầy đủ → chứa trong chữ. Không phân biệt dấu và hoa thường ("quan doi" → MB Bank).
+  - `Account.institutionID` (+ `institution`, `iconName`). Dữ liệu mẫu: Vietcombank, Techcombank, MoMo, thẻ VPBank.
+- **Hiển thị:**
+  - `InstitutionLogo`: màu gốc, ô bo góc nền trắng, viền mảnh. Logo lùi vào 14% so với viền để không chạm cạnh (nhiều logo vẽ sát mép như Vietcombank).
+  - `RowIcon` tự chọn logo hoặc icon Solar. Logo 28pt nhưng vẫn giữ cột icon 24pt, nên chữ và đường kẻ thẳng hàng với các dòng khác.
+  - Dùng ở: danh sách Tài khoản, Chi tiết tài khoản (logo 56), thẻ tín dụng ở Vay nợ (44), sheet chọn tài khoản khi thêm giao dịch.
+- **Chọn ngân hàng:** form Thêm tài khoản có dòng "Ngân hàng" / "Ví" (ẩn với Tiền mặt).
+  - Dòng này mở `InstitutionPickerSheet`: ô tìm kiếm của iOS, danh sách logo + tên ngắn + tên đầy đủ, ✓ ở mục đang chọn.
+  - Chọn xong thì tên tài khoản tự điền, trừ khi người dùng đã tự gõ tên. Đổi loại thì bỏ lựa chọn không hợp.
+- Thư viện UI → Danh sách & Thẻ: thêm dòng Vietcombank mẫu và lưới toàn bộ logo.
+- Lưu ý: logo là thương hiệu của từng ngân hàng/ví. Trước khi phát hành cần xem lại nguồn bộ logo và quy định thương hiệu.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: danh sách Tài khoản có logo, sheet chọn ngân hàng, tìm "quan doi", chọn MB Bank → tên tự điền → lưu → hiện trong danh sách.
+
+### Sửa lỗi khi chạy máy thật — 2026-10-28
+
+- **Hiệu ứng khi bấm:** `ButtonStyle` mới trong `PressStyles.swift`.
+  - `.row`: hàng xám nhạt `fill3` khi đè ngón, nhả ra thì mờ dần, như ô trong danh sách iOS. Dùng cho dòng tài khoản, dòng chọn, Ngày/Giờ, Hạng mục, Xoá, sheet chọn, chọn ngân hàng.
+  - `.card`: cả thẻ mờ 60% và thu nhỏ 2%. Dùng cho thẻ khoản vay, hũ, ô lịch.
+  - `cardSurface` giờ cắt nội dung theo góc bo, để nền xám của hàng không tràn khỏi thẻ.
+- **Ô số tiền không còn cuộn đi xa:**
+  - `SheetScaffold` có thêm phần `header` (segmented + số tiền lớn), ghim dưới thanh tiêu đề và nằm ngoài vùng cuộn.
+  - Trước đó, khi focus ô số tiền, iOS cuộn vùng chứa ô về phía bàn phím nên số bị đẩy lên rất xa.
+  - Dùng ở: Thêm/Sửa giao dịch, tài khoản, hũ, khoản vay, hạn mức.
+- **Nút xoá số tiền:** nút kính tròn của iOS (`nativeCircleButton`, 32pt, ✕), thay cho icon ✕ xám cũ.
+- **Mở Thư viện UI mượt hơn:** các phần dùng `LazyVStack`, chỉ dựng khi cuộn tới. Trước đây dựng cả 9 phần cùng lúc (82 logo, biểu đồ) ngay lúc trượt vào.
+- **Log khi gõ form:**
+  - Các dòng `TUIKeyplane… width == -1.5`, `RTIInputSystemClient…`, `containerToPush is nil` là log nội bộ của bàn phím iOS. Thường gặp trên máy thật/iOS 26, không làm hỏng app, và không sửa được từ code app.
+  - Dòng "Invalid frame dimension" có thể từ app, nên đã chặn hai nguồn:
+    - `ProgressBar` bỏ qua giá trị NaN hoặc vô cực;
+    - sheet vừa nội dung bỏ qua chiều cao 0 trước khi bố cục xong.
+- Sửa kèm: mã màu `incomeTile` trong Thư viện UI (#E8F6ED).
+- Đã xem trên Simulator: số tiền đứng yên khi gõ, nút xoá kính, mở Thư viện UI. Hiệu ứng bấm và độ mượt khi trượt cần xem lại trên máy thật.
+
+### Màn Cài đặt — 2026-10-28
+
+- **Avatar mở Cài đặt** (`Features/Settings/SettingsView.swift`) dạng sheet cao toàn màn, như trang tài khoản trong app của Apple. ✕ ở trên trái. Thư viện UI giờ là một dòng trong Cài đặt, mở bằng cách đẩy trang (push) trong sheet và có nút quay lại.
+- **Bố cục theo trang cài đặt bản web:**
+  - Hồ sơ: avatar 80, tên, "Dữ liệu mẫu · lưu trên máy", badge gói.
+  - **Chung:** Giao diện (Sáng), Hạng mục (12), Hạn mức chi tiêu. Hạn mức mở `BudgetEditorSheet`, dùng chung giá trị với Tổng quan.
+  - **Thông báo:** Nhắc ghi chi tiêu, Cảnh báo hạn mức, Tin từ Timi. Lựa chọn lưu bằng `@AppStorage`; chưa gửi thông báo thật, có ghi chú dưới nhóm.
+  - **Hỗ trợ:** Câu hỏi thường gặp, Góp ý, Email hỗ trợ (mở Mail tới support@timi.nnqlab.dev), Điều khoản, Quyền riêng tư.
+  - **Nhà phát triển:** Thư viện UI, Lịch sử phiên bản.
+  - Cuối trang: số phiên bản.
+- Mục chưa làm (Giao diện, Hạng mục, FAQ, Điều khoản…) mở một sheet ngắn giải thích "Sắp có", không để chạm vào mà không có gì.
+- Icon Solar mới lấy từ Iconify: pallete-2, tag, bell-bing, star, question-circle, chat-round-line, letter, document-text, shield-check, widget-4, history, info-circle, logout-2.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: mở Cài đặt từ avatar, cuộn hết trang, mở Thư viện UI.

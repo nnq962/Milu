@@ -21,7 +21,7 @@ struct FormDateRow: View {
         Button { isPicking = true } label: {
             FormValueLabel(title: title, icon: icon, value: valueText)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.row)
         .accessibilityValue(valueText)
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: .date)
@@ -46,7 +46,7 @@ struct FormTimeRow: View {
         Button { isPicking = true } label: {
             FormValueLabel(title: title, icon: icon, value: valueText)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.row)
         .accessibilityValue(valueText)
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: .hourAndMinute)

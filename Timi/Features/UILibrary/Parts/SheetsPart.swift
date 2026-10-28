@@ -62,9 +62,8 @@ struct SampleFormSheet: View {
 
     var body: some View {
         SheetScaffold(title: isEditing ? "Sửa tài khoản" : "Thêm tài khoản",
-                      canConfirm: !name.trimmingCharacters(in: .whitespaces).isEmpty) {
-            dismiss()
-        } content: {
+                      canConfirm: !name.trimmingCharacters(in: .whitespaces).isEmpty,
+                      onConfirm: { dismiss() }) {
             VStack(spacing: Spacing.xs) {
                 Text("Số dư hiện tại")
                     .textRole(.caption)
@@ -73,7 +72,7 @@ struct SampleFormSheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.l)
-
+        } content: {
             FormGroup {
                 FormTextRow(title: "Tên tài khoản", text: $name, prompt: "Bắt buộc")
                 FormDivider(hasIcon: false)

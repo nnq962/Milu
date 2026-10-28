@@ -98,12 +98,12 @@ struct AccountsView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         NavigationLink(value: account.id) {
-                            ListRow(icon: account.type.icon,
+                            ListRow(icon: account.iconName,
                                     title: account.name,
                                     subtitle: updatedText(store.lastActivity(of: account)),
                                     amount: account.balance)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.row)
                         // Sleek draws the hairline absolutely, so it adds no row height.
                         .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                     }
@@ -121,7 +121,7 @@ struct AccountsView: View {
             }
             ForEach(store.savingsGoals) { goal in
                 Button { editingGoal = goal } label: { GoalCard(goal: goal) }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.card)
             }
         }
     }

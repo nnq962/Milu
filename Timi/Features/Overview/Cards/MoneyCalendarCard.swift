@@ -120,7 +120,7 @@ struct MoneyCalendarCard: View {
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
         }
         // Calendar cells are flat data tiles in the design; only the month control uses glass.
-        .buttonStyle(.plain)
+        .buttonStyle(.card)
         .accessibilityLabel("\(today ? "Hôm nay, " : "")\(date.formatted(.dateTime.weekday(.wide).day().month().year().locale(.vietnam))), thu \(income.vnd), chi \(expense.vnd)")
         .accessibilityHint("Xem giao dịch trong ngày")
     }

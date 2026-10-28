@@ -33,7 +33,7 @@ struct GoalEditorView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.l)
-
+        } content: {
             FormGroup {
                 FormTextRow(title: "Tên hũ", text: $name, prompt: "Du lịch Đà Nẵng")
                 FormDivider(hasIcon: false)

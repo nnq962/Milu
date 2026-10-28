@@ -30,7 +30,13 @@ struct CreditCardDebtCard: View {
         let limit = card.creditLimit ?? 0
         let used = limit > 0 ? debt / limit : 0
         DebtCardLayout(
-            avatar: { IconCircle(icon: card.type.icon) },
+            avatar: {
+                if let institution = card.institution {
+                    InstitutionLogo(image: institution.logoImage, size: 44)
+                } else {
+                    IconCircle(icon: card.type.icon)
+                }
+            },
             title: card.name,
             subtitle: card.paymentDueDate?.dueDescription ?? card.detail,
             amount: debt.vndCompact,

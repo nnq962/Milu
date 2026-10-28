@@ -11,7 +11,11 @@ struct AccountDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
                     VStack(spacing: Spacing.s) {
-                        IconCircle(icon: account.type.icon)
+                        if let institution = account.institution {
+                            InstitutionLogo(image: institution.logoImage, size: 56)
+                        } else {
+                            IconCircle(icon: account.type.icon)
+                        }
                         MoneyText(amount: account.balance, size: .display, tone: .negativeRed)
                         Text("\(account.type.title) · \(account.detail)")
                             .textRole(.caption)
