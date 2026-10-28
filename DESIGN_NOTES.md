@@ -303,3 +303,166 @@ Nguồn đối chiếu: HTML trong `examples/tổng-quan---mẫu-1`, không 
 - **Đã kiểm tra trên iPhone 17 Pro / iOS 26.3:** bố cục đầu trang/lời chào/gợi ý/ô nhập; "Ghi giúp mình: ăn trưa 60.000 hôm nay" → thẻ Ăn trưa · Ăn uống · Hôm nay · -60.000đ vào Ví tiền mặt; "Xoá khoản tiền điện" → thẻ xác nhận Tiền điện 742.000đ (23/10), bấm Xoá khoản này → đã xoá; menu lịch sử + cuộc trò chuyện mới.
 - **Chưa kiểm tra:** nhập giọng nói (Simulator cần cấp quyền micro trên hộp thoại hệ thống, nên thử trên iPhone thật), nút Sửa trên thẻ chat, iOS 17.6, cỡ chữ lớn.
 - **Khác biệt có chủ đích:** `đ` thay `₫`; thanh tab mặc định iOS với 4 tab hiện tại (design đặt tab "Timi"); nút/gợi ý là control native.
+
+## Design system — 2026-10-28 (chờ người dùng duyệt)
+
+- **Nguồn tham khảo:** design system của bản web (`finance-tracker-v2/docs/design`, route `/design`): thang chữ, khoảng cách bội 4, chiều cao điều khiển, quy tắc form/sheet/nút. Màu giữ bộ Sleek đã duyệt cho iOS (không lấy bộ xám của web). Thứ iOS có sẵn (nút Liquid Glass, segmented, switch, menu, date picker, sheet) giữ native; chỉ chuẩn hoá màu, cỡ chữ, chiều cao và khung xung quanh.
+- **Truy cập:** chạm avatar "Q" ở Tổng quan → màn **Thư viện UI** (`Features/DesignSystem/DesignSystemView.swift`), 9 nhóm với mẫu chạm thử, hàng chip mục lục cố định dưới thanh điều hướng.
+- **Token** (`Shared/DesignSystem/DesignTokens.swift`):
+  - `TextRole` + `.textRole(_:)`: display 34 ExtraBold · hero 40 Bold · amountLarge 24 ExtraBold · pageTitle 24 SemiBold · title 16 SemiBold · body 14 · label 14 Medium · bodyStrong 14 SemiBold · amount 14 Bold · caption 12 · captionStrong 12 Medium · footnote 11 · overline 11 Medium in hoa giãn chữ · input 16 (để iOS không phóng to). Kèm line-height theo design và chữ số đều cho số tiền.
+  - `Spacing`: 2/4/8/12/16/20/24/32; lề màn 20, giữa các phần 20, đệm thẻ 20.
+  - `ControlHeight`: nút 36/44/56, ô nhập 44, dòng 52, nút nổi 56.
+  - `Palette` thêm `fill1/2/3` (mực 4/6/10%, như systemFill và `--fill-*` của web). `CardCorners` thêm `field` 14, `sheet` 32.
+- **Nút** (`TimiButton`): vai trò Chính (mực) / Phụ / Nổi bật (chanh) / Xoá (đỏ nhạt, cạnh Lưu) / Xoá vĩnh viễn (đỏ đặc); cỡ 36/44/56; icon Solar 18. Là Liquid Glass native. Glass tự đệm 7pt trên dưới, nên nhãn đặt cao = token − 14 để cả nút đúng 36/44/56 (đo trên iOS 26.3: nhãn 14pt cho nút 34pt). Nút tắt để iOS tự làm xám, không thêm độ mờ riêng.
+- **Form thay cho `Form` mặc định** (`TimiForms.swift`, theo yêu cầu "form mặc định nhìn chán"):
+  - `TimiTextField`: nhãn trên, ô 44 bo 14 nền mực 4%; khi nhập nền trắng + viền mực 2pt; lỗi viền đỏ + chữ đỏ dưới ô; chú thích xám; nút xoá khi có chữ.
+  - `TimiAmountField`: số tiền 40 Bold ở giữa (co 40 → 30 → 22 khi dài), dấu +/− và "đ" mờ; nút xoá ở mép phải; chip gợi ý theo số đã gõ (3 → 3.000đ, 30.000đ, 300.000đ), chọn chip thì hàng đứng yên và chip được tô.
+  - `FormGroup` (thẻ trắng bo 28, tiêu đề nhóm in hoa, chú thích dưới) với các dòng `FormPickerRow` (menu native), `FormDateRow` (date picker native), `FormToggleRow` (switch native màu mực), `FormNavigationRow`, `FormDestructiveRow`; `FormDivider` lùi theo icon 36.
+- **Sheet** (`TimiSheets.swift`): `.timiSheetStyle(detents)` = nền trang, thanh kéo, bo 32 trên sheet native. `SheetScaffold`: ✕ (role close của iOS 26) trái, tiêu đề giữa, nội dung cuộn, chân ghim (`SheetSaveFooter`: Xoá 120 + Lưu giãn hết). `OptionSheet`: sheet ngắn "Thêm mới", chọn xong tự đóng.
+- **Phản hồi & dữ liệu** (`TimiFeedback.swift`): `StatusBadge` (viên 24 có chấm; trung tính / đã thu / Pro / thông tin / cảnh báo), `MoneyText` (mọi số tiền: dấu, màu theo ý nghĩa, cỡ dòng/lớn/dẫn đầu), `ListRow` (dòng dữ liệu dùng chung; màn Tài khoản đã chuyển sang, giao diện không đổi).
+- **Sửa kèm:** hàng chip cuộn ngang tắt dải scroll-edge của iOS 26 (dải sáng sau chip khi cuộn).
+- **Chưa làm (chờ duyệt rồi mới áp):** chưa chuyển AddTransaction/AddAccount/GoalEditor/LoanEditor và các màn sang token/thành phần mới; chip mục lục chưa tự đổi theo vị trí cuộn (chỉ đổi khi chạm). Đã xem trên iPhone 17 Pro / iOS 26.3: Nền tảng, Nút, Lựa chọn, Ô nhập (đang nhập, lỗi, gợi ý số tiền), sheet ngắn và sheet form.
+
+### Góp ý vòng 1 cho design system — 2026-10-28
+
+- **Nút chính đen hoàn toàn:** thêm token `Palette.primary = #000000` cho mặt đặc của hành động chính: nút Chính, chip đang chọn, chip gợi ý số tiền đang chọn, nút gửi chat, công tắc bật. `Palette.ink` (#111827) vẫn là màu chữ và icon.
+- **Form gọn hơn** (người dùng thấy control Apple trong form quá to):
+  - Dòng form cao 48 (trước 52), chữ tiêu đề 14 Regular (trước SemiBold), icon 16 trong ô vuông bo 8 cỡ 28 (trước vòng tròn 36); vạch kẻ lùi theo ô 28.
+  - Công tắc: bỏ switch hệ thống (63×28 trên iOS 26) thay bằng `TimiSwitchStyle` 40×24, rãnh đen khi bật / mực 10% khi tắt, núm trắng có bóng nhẹ, lò xo 0,3s, rung nhẹ khi đổi; giữ vai trò toggle cho VoiceOver.
+  - Ngày: thay ô DatePicker compact của Apple (chữ to, "ngày 28 thg 10, 2026") bằng viên 32pt nền mực 6% ghi "Hôm nay" / "Hôm qua" / "25/10/2026" chữ 14; chạm mở lịch graphical của Apple trong popover, ngày chọn tô đen.
+  - Sheet ngắn dùng cùng ô icon 28 và chữ 14.
+- **Đóng bàn phím khi chạm ra ngoài:** `.dismissesKeyboardOnTap()` (chạm vào chỗ trống thì resign first responder, kéo nội dung thì bàn phím trượt xuống). Áp cho `SheetScaffold` (mọi sheet form) và màn Thư viện UI. Ô nhập, nút, menu bên trong vẫn nhận chạm như cũ.
+- **Thanh tiến độ một cỡ:** `ProgressBar` cố định 8pt (`ProgressBar.height`), bỏ tham số height; hũ tiết kiệm từ 10 → 8pt. Các thanh tự vẽ ở Tổng quan vốn đã 8pt.
+- Đã kiểm tra trên iPhone 17 Pro / iOS 26.3: nút đen, dòng form mới, công tắc, chọn ngày 25/10 qua popover, gõ vào ô rồi chạm ra ngoài thì ô thoát nhập.
+
+### Góp ý vòng 2 cho design system — 2026-10-28
+
+- **Chữ dày như web:** Manrope vẽ mảnh, nên giống web (`font-normal` 500, `medium` 600, `semibold` 700, `bold` 800) mọi độ đậm trên iOS giờ hiển thị nặng hơn một bậc: Regular → Medium, Medium → SemiBold, SemiBold → Bold, Bold/Heavy → ExtraBold. Đổi tập trung ở `Typography.instance(for:)`, áp cho toàn app (cả thanh tab, segmented, tiêu đề thanh điều hướng). Code vẫn ghi độ đậm theo ý nghĩa; chỉ hàm này biết phép dịch. Thay thế ghi chú cũ "giữ các weight đúng HTML, không tăng đậm cảm tính" trong mục Rà soát font Tổng quan.
+- **"đ" ở số tiền lớn:** `TimiAmountField` viết "đ" liền sau số (khoảng cách 0), cùng màu, cỡ, độ đậm với số (bỏ độ mờ 40%). Khi ô trống, "đ" xám theo chữ gợi ý "0".
+- **Dòng form theo `SettingsRow` của web:** ô icon `IconTile sm` 36×36 bo 10 nền mực 4% (`fill1`), icon 18; khoảng cách icon → chữ 14; đệm dọc 14, ngang 16 → dòng một hàng cao 64. Tiêu đề dòng 14 vai trò `label` (Medium, hiển thị SemiBold), mô tả 12. Sheet ngắn dùng cùng kích thước.
+- **Công tắc:** bỏ công tắc tự vẽ 40×24; dùng lại `Toggle` của Apple, rãnh đen khi bật. Trên iOS 26 núm công tắc thành Liquid Glass khi chạm/kéo (đã thấy trên Simulator).
+- Đã kiểm tra trên iPhone 17 Pro / iOS 26.3: chữ toàn app đậm hơn (Tổng quan, Thư viện UI), dòng form 64 với ô icon 36, công tắc Liquid Glass khi kéo, "-60.000đ" liền và cùng màu đỏ.
+
+### Góp ý vòng 3 cho design system — 2026-10-28
+
+- **Nền icon trong form = nền icon trong list:** ô icon của dòng form và sheet ngắn dùng `Palette.muted` (#F1F1EC) như vòng tròn icon ở `ListRow`, thay `fill1` (mực 4%) nhạt hơn. Ô chanh của Hũ tiết kiệm giữ nguyên.
+- **Kiểu không nền icon (để so sánh):** `.formIconStyle(.plain)` bỏ nền sau icon trong mọi dòng form và `ListRow` bên trong; icon 20 (form) / 22 (list) đứng riêng như Cài đặt iOS, vạch kẻ lùi theo cột icon hẹp hơn. Thư viện UI đặt hai kiểu cạnh nhau ở mục Lựa chọn và Danh sách. **Chờ người dùng chọn một kiểu làm mặc định.**
+- **Ô nhập kiểu iOS (`FormTextRow`, `FormNoteRow`):** các ô chung một thẻ trắng như Danh bạ / Cài đặt iOS: nhãn bên trái, giá trị gõ bên phải canh phải, chữ gợi ý xám ("Bắt buộc", "Không bắt buộc"), nút xoá khi đang nhập; có thể kèm ô icon; ghi chú nhiều dòng chiếm cả dòng. Là phương án thay/đi cùng `TimiTextField` (nhãn trên, ô riêng). **Chờ người dùng chọn.**
+- **Sheet ngắn tràn mép (`.timiBottomSheet`):** iOS 26 cho sheet native chiều cao thấp nổi lơ lửng cách hai mép, nên sheet ngắn giờ tự dựng: trượt từ đáy, rộng hết màn, chạm đáy (nền kéo xuống dưới thanh home), bo 32 hai góc trên, thanh kéo, nền tối 30%. Chạm ra ngoài hoặc kéo xuống để đóng; chọn một dòng thì trượt xuống rồi mới gọi hành động. Cao vừa nội dung. Giảm chuyển động: hiện ra 150ms không nảy. Sheet form (✕, Lưu ở chân) vẫn là sheet native toàn chiều cao.
+- Đã kiểm tra trên iPhone 17 Pro / iOS 26.3: hai kiểu icon ở form và list, card ô nhập kiểu iOS, sheet ngắn mở / kéo xuống đóng / mở lại / chọn "Ngân hàng".
+
+### Góp ý vòng 4 cho design system — 2026-10-28 (người dùng đã chọn)
+
+- **Cỡ chữ theo chuẩn iOS** (tham chiếu ảnh Cài đặt của app Claude iOS, chữ cân với công tắc native): thang `TextRole` chuyển sang mặc định Dynamic Type của iOS — nội dung / tiêu đề dòng / nhãn / số tiền dòng / tiêu đề nhóm / chữ trong ô **17** (line 22), chú thích / nhãn nhỏ / nhãn nhóm in hoa **13** (line 18), chữ phụ **12** (line 16). Giữ: số dẫn đầu 34, số đang nhập 40, số lớn trong thẻ 24, tên màn 24. Text style đi theo (body / footnote / caption) nên vẫn co giãn với cỡ chữ hệ thống. Chữ tiêu đề dòng form dùng độ đậm thường như iOS (hiển thị Medium vì Manrope lệch một bậc).
+- **Dòng form/list:** cao ~52 (đệm dọc 12) như dòng Cài đặt iOS với chữ 17.
+- **Không nền icon là mặc định** cho mọi dòng form, sheet ngắn và `ListRow` (kể cả icon chanh của khoản thu, ô chanh của Hũ tiết kiệm trong sheet ngắn); icon Solar 22 trong cột 24, vạch kẻ lùi theo cột đó. Thẻ hũ ở màn Tài khoản cũng bỏ vòng tròn nền. `.formIconStyle(.tile)` vẫn còn nếu cần ô nền ở chỗ riêng.
+- **Ô nhập kiểu iOS là mặc định** (`FormTextRow`): nhãn trái, giá trị phải, chung một thẻ; **không kèm icon** — icon chỉ dùng cho dòng chọn / mở trang, ở ô nhập nó lặp lại điều nhãn đã nói, và trong một nhóm thì hoặc mọi dòng có icon hoặc không dòng nào có (để chữ thẳng hàng). `TimiTextField` (nhãn trên ô) giữ làm phương án khác cho form chỉ có một hai ô.
+- Thư viện UI bỏ các mẫu so sánh, chỉ còn kiểu đã chọn; sheet form mẫu "Thêm tài khoản" dùng ô nhập iOS, không icon.
+- Đã kiểm tra trên iPhone 17 Pro / iOS 26.3: Thư viện UI (dòng form 17pt với công tắc, ô nhập iOS, danh sách), sheet form, màn Tài khoản (danh sách và thẻ hũ không nền icon).
+
+### Rà soát đồng bộ chữ, chiều cao hàng và khoảng cách — 2026-10-28
+
+**Lỗi tìm thấy:** ~10 chỗ gõ cứng cỡ chữ ngoài thang (tiêu đề mục 16, trạng thái trống 14/12, chip 12, nút 14/16, avatar chữ 16, tiêu đề catalog 28/20, thẻ hũ 16/14/11); hàng danh sách đệm 16 + icon cao 44 (~76) trong khi hàng form ~44–57 tuỳ thứ bên phải; `minHeight` của hàng form đặt trước padding nên không có tác dụng; phụ đề danh sách 12 còn form 13; khoảng icon → chữ 12 (list) và 14 (form) nên vạch kẻ lệch nhau; tên và số tiền danh sách hiển thị Bold/ExtraBold.
+
+**Thang chữ duy nhất (`TextRole`, mọi thành phần dùng nó):**
+
+| Vai trò | Cỡ / dòng | Độ đậm (hiển thị) | Dùng cho |
+|---|---|---|---|
+| display | 34 | ExtraBold | Số dẫn đầu màn |
+| hero | 40 | Bold (ExtraBold) | Số tiền đang nhập |
+| amountLarge | 24 | ExtraBold | Số lớn trong thẻ |
+| pageTitle | 24 / 32 | SemiBold (Bold) | Tên màn |
+| heading | 20 / 26 | SemiBold (Bold) | Tiêu đề phần |
+| title | 17 / 22 | SemiBold (Bold) | Tiêu đề thẻ, nhóm, sheet, trạng thái trống; nhãn nút |
+| body | 17 / 22 | Regular (Medium) | Tên dòng, giá trị, nội dung, ô nhập |
+| amount | 17 / 22 | Medium (SemiBold) | Số tiền cuối dòng |
+| label | 17 / 22 | Medium (SemiBold) | Nhãn ô nhập kiểu nhãn-trên |
+| caption | 13 / 18 | Regular (Medium) | Phụ đề dòng, chú thích, lỗi, mô tả phần |
+| captionStrong | 13 / 18 | Medium (SemiBold) | Chip, badge |
+| overline | 13 / 18 | Medium, in hoa | Nhãn nhóm dòng |
+| footnote | 12 / 16 | Regular | Trục biểu đồ, chữ rất nhỏ |
+
+Nút: 17 SemiBold ở cỡ 44/56, 15 ở cỡ 36. Chỉ còn hai chỗ đặt cỡ trực tiếp có lý do: cỡ chữ nút theo cỡ nút, ô số tiền lớn co 40 → 30 → 22.
+
+**Một bộ số đo hàng (`RowMetrics`) cho form, danh sách, sheet ngắn, thẻ hũ:** lề 16, đệm dọc ≥ 10, icon 22 trong cột 24, icon → chữ 14, tên → phụ đề 2, vạch kẻ lùi 54. Hàng một dòng **đúng 52** dù bên phải là chữ, viên ngày (30) hay công tắc (31); hàng có phụ đề **~62**. Đo trên Simulator: 52 / 52 / 63 / 52 / 52 (form), 62 (list).
+
+**Danh sách nhẹ hơn:** tên dòng `body` (không đậm), số tiền `amount` (17 Medium), phụ đề `caption` 13 — cùng kiểu chữ với hàng form.
+
+**Khoảng cách (bội 4):** lề màn 20; giữa các phần 32; tiêu đề phần → mô tả 4, → mẫu đầu 16; các thẻ trong phần cách 16; đệm thẻ 20, nhãn thẻ → nội dung 12; nhãn nhóm → thẻ 8, thẻ → chú thích 8 (cả hai lùi 16 thẳng chữ trong dòng); tiêu đề mục trên màn lùi 4 như màn Tài khoản đã duyệt; nội dung sheet form cách nhau 24; sheet ngắn: tiêu đề → nhóm 16.
+
+### Thang chữ theo bản web — 2026-10-28 (thay bảng 17pt ở mục trên)
+
+- **Người dùng thấy 17pt quá to so với thẩm mỹ** → `TextRole` dùng đúng cỡ của design system web (docs/design "Nền tảng"): nội dung / tên dòng / số tiền dòng / nhãn **14** (line 20), tiêu đề thẻ · nhóm · sheet **16** (24), chú thích / phụ đề / chip / badge / nhãn nhóm in hoa **12** (16), chữ rất nhỏ **11**, chữ trong ô nhập riêng **16**, tiêu đề phần **20**, tên màn **24**; số tiền lớn giữ 34 / 40 / 24. Độ đậm giữ như bảng trước (Manrope vẫn hiển thị nặng hơn một bậc như web).
+- **Nút:** 14 SemiBold ở cỡ 36 và 44, 16 ở cỡ 56 (web `text-sm`, nút L).
+- **Hàng:** giữ `RowMetrics` — hàng một dòng đúng 52 (để vừa công tắc native 31pt), hàng có phụ đề ~58–59; icon dòng 20 trong cột 24 (trước 22). Đo trên Simulator: 52 / 59.
+- Mọi thành phần đã đi qua `TextRole`, nên lần đổi này chỉ sửa một chỗ (`DesignTokens.swift`).
+
+### Thử chữ 16 cho form, ô nhập, danh sách, thẻ — 2026-10-28 (đang thử, chờ người dùng chốt)
+
+- Theo yêu cầu thử: `body` / `label` / `amount` / `input` **16** (line 22), tiêu đề thẻ · nhóm · sheet **17** (24) để vẫn hơn nội dung một bậc, phụ đề / chú thích / chip / badge **13** (18), nhãn nhóm in hoa **12**, chữ rất nhỏ 11. Nút 16 (cỡ 44 và 56), 14 ở cỡ 36.
+- Hàng giữ 52 (một dòng) / ~62 (có phụ đề); không đổi `RowMetrics`.
+- Phương án trước (bản web: nội dung 14, tiêu đề 16, phụ đề 12) chỉ cần đổi lại bốn dòng `size` trong `DesignTokens.swift`.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: Thư viện UI (dòng form với công tắc, nút, trạng thái trống) và màn Tài khoản (danh sách, thẻ hũ).
+
+## Thang chữ đã chốt — nội dung 16 (2026-10-28, thay các thử nghiệm 17 / 14 ở trên)
+
+Người dùng chốt **16 làm cỡ nội dung chính**. Manrope rộng nên 16 gần với Body 17 của SF Pro; mốc phổ biến của app tài chính (15–16). Các bậc cách nhau 1–4pt để thứ bậc rõ: 34 · 24 · 20 · 17 · 16 · 13 · 12 · 11.
+
+| Vai trò | Cỡ / dòng | Độ đậm (hiển thị) | Dùng cho |
+|---|---|---|---|
+| hero | 40 | Bold (ExtraBold) | Số tiền đang nhập |
+| display | 34 | ExtraBold | Số dẫn đầu màn |
+| amountLarge | 24 | ExtraBold | Số lớn trong thẻ |
+| pageTitle | 24 / 32 | SemiBold (Bold) | Tên màn |
+| heading | 20 / 26 | SemiBold (Bold) | Tiêu đề phần |
+| title | 17 / 24 | SemiBold (Bold) | Tiêu đề thẻ, nhóm, sheet, trạng thái trống |
+| **body** | **16 / 22** | Regular (Medium) | Tên dòng, giá trị, nội dung, chữ gõ trong ô, nút |
+| amount | 16 / 22 | Medium (SemiBold) | Số tiền cuối dòng |
+| label | 16 / 22 | Medium (SemiBold) | Nhãn ô kiểu nhãn-trên |
+| caption | 13 / 18 | Regular (Medium) | Phụ đề dòng, chú thích, lỗi |
+| captionStrong | 13 / 18 | Medium (SemiBold) | Chip, badge |
+| overline | 12 / 16 | Medium, in hoa | Nhãn nhóm dòng |
+| footnote | 11 / 14 | Regular | Trục biểu đồ, chữ rất nhỏ |
+
+- Nút: 16 ở cỡ 44 và 56, 14 ở cỡ 36. Ô số tiền lớn co 40 → 30 → 22 khi số dài.
+- Mọi vai trò co giãn theo Kích thước chữ của iPhone (Dynamic Type); cỡ trong bảng là mức mặc định. Hàng giữ tối thiểu 52 (một dòng) / ~62 (có phụ đề) và cao thêm khi chữ to.
+- Chưa áp: các màn cũ (Tổng quan, Giao dịch, Trợ lý, form cũ) vẫn dùng cỡ tự đặt; sẽ chuyển sang `TextRole` khi áp design system vào từng màn.
+
+### Góp ý vòng 5 — 2026-10-28
+
+- **Xanh chanh chỉ là điểm nhấn:** chỉ dùng cho Pro / AI (nút "Nổi bật", badge Pro, avatar Timi) và ngày hôm nay. Bỏ khỏi: màu mặc định của `ProgressBar` (giờ đen `Palette.primary`), nút nổi + (đen, icon trắng), badge "Đã thu" (xanh lá 12% thay nền chanh nhạt), mẫu thang khoảng cách, icon quà trong mẫu avatar. Các màn cũ còn chanh (Tổng quan: thẻ Pro, Làm quen, ô Tiền vào, lịch; Giao dịch: nút +, ô thu nhập, cột hôm nay; Vay nợ: thanh cho vay) — rà khi áp design system vào từng màn.
+- **Nút không bấm được:** mọi vai trò khi tắt thành viên xám `fill2` (không glass nổi) với chữ xám nhạt (`secondary` 70%) — trước đó nút đen tắt chỉ mờ đi nên vẫn trông như bấm được.
+- **Bỏ ô nhập "nhãn trên ô"** (`TimiTextField`, `FieldContainer`, `fieldSurface`): ô nhập chỉ còn kiểu iOS (`FormTextRow`, `FormNoteRow`, `TimiAmountField`).
+- **Thanh hạn mức đổi màu theo mức** (`ProgressBar.budgetColor`): xanh lá dưới 80%, cam `Palette.warning` #F59E0B từ 80%, đỏ khi chạm/vượt 100%. Áp cho thanh hạn mức ở Tổng quan và Giao dịch. Thanh tiến độ khác (hũ, khoản vay) mặc định đen.
+- Sửa kèm: badge không bị cắt chữ ("Sắp đến hạn").
+- Đã xem trên iPhone 17 Pro / iOS 26.3: nút tắt, nút nổi đen, badge, ba mức hạn mức.
+
+### Góp ý vòng 6 — 2026-10-28
+
+- **Chọn trong form mở sheet:** `FormPickerRow` hiện giá trị + ›, chạm mở `ChoiceSheet` (danh sách có dấu ✓ ở mục đang chọn, chọn xong tự đóng). `FormDateRow` chạm pill mở sheet có lịch tháng trong thẻ trắng. Hai sheet này cao vừa nội dung (`timiFittedSheet`).
+- **Danh sách & thẻ có ›:** `ListRow` mặc định hiện › (`showsChevron`), các dòng trong `OptionSheet` cũng có ›.
+- **Sheet chuẩn iOS:** bỏ sheet tự vẽ tràn đáy (`timiBottomSheet`, `BottomSheetPanel`). Mọi sheet dùng `.sheet` của hệ thống: bo góc, lề nổi (iOS 26), thanh kéo, vuốt đóng đều của Apple. Timi chỉ đổi màu nền (`Palette.background`) và nội dung. Đầu sheet (`SheetHeader` / `SheetScaffold`): ✕ tròn bên trái, tiêu đề giữa; sheet form có chân Xoá + Lưu.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: sheet ngắn, sheet form, sheet chọn Loại (chọn xong giá trị đổi), sheet ngày, › trong danh sách.
+
+### Góp ý vòng 7 — 2026-10-28
+
+- **Sheet form theo chuẩn iOS (như Lịch, Danh bạ):** ✕ trên trái để huỷ, ✓ trên phải để lưu, cả hai là nút của thanh hệ thống (`Button(role: .close)` / `Button(role: .confirm)`). ✓ màu đen, xám khi chưa đủ thông tin (`SheetScaffold(canConfirm:onConfirm:)`). Bỏ chân sheet và `SheetSaveFooter` (thay chân Xoá + Lưu của vòng 6). Khi sửa mục đã có, `FormDestructiveRow` đỏ nằm trong một nhóm riêng ở cuối form; khi thêm mới thì không có dòng Xoá.
+- **Dòng ngày bỏ viên:** `FormDateRow` giống dòng chọn: giá trị xám + ›, ví dụ "Hôm nay, 13:28" hoặc "30/10/2026, 15:28".
+- **Chọn giờ:** `components: [.date, .hourAndMinute]` mở sheet có lịch tháng và bánh xe giờ trong cùng một thẻ trắng. Sheet sửa trên bản nháp: ✓ (đen, góc phải) mới lưu, ✕ bỏ thay đổi. `SheetHeader` có thêm `onConfirm` cho nút ✓.
+- Thư viện UI có thêm mẫu "Sheet form · Sửa tài khoản" để xem dòng Xoá.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: sheet Thêm (✓ xám khi chưa có tên), sheet Sửa (dòng Xoá đỏ), sheet ngày giờ (chọn 30/10 và 15:28 rồi ✓ thì dòng cập nhật đúng).
+
+### Vòng 8 — dùng đồ có sẵn của Apple — 2026-10-28
+
+- **Biểu đồ chi theo ngày dùng Swift Charts** (`DailySpendingChart` trong `TimiCharts.swift`, dùng chung cho màn Giao dịch và Thư viện UI). Giữ dáng cũ: cột bo tròn, hôm nay màu chanh, ngày chưa tới nhạt. Nhấn giữ rồi kéo trên cột để xem "Ngày 7/10 · 6.000.000đ" dưới biểu đồ; cột được chọn đen, các cột khác mờ đi. Lựa chọn còn sau khi nhấc tay, nhấn lại đúng cột đó thì bỏ. Trong trang cuộn, Charts cần nhấn giữ chứ không nhận chạm nhanh (giống app Sức khoẻ). VoiceOver đọc được từng ngày.
+- **Nút "Xong" trên bàn phím** (`keyboardDoneButton()`): bàn phím số không có phím Return nên luôn có nút Xong. Đã gắn sẵn trong `dismissesKeyboardOnTap()` (sheet form, Thư viện UI) và ở các form cũ (Thêm giao dịch, Thêm tài khoản, Hũ, Hạn mức). Chỉ gắn một lần cho cả màn, không gắn cho từng ô, nếu không iOS sẽ hiện nhiều nút.
+- **Xoá luôn hỏi lại:** `FormDestructiveRow(title:question:message:)` mở bảng xác nhận của iOS (iOS 26 hiện dạng bảng nổi trỏ vào dòng Xoá), nút đỏ lặp lại tên hành động.
+- **Rung nhẹ:** `.sensoryFeedback(.selection)` khi đổi chip lọc, chọn chip gợi ý số tiền, đổi giá trị dòng chọn, kéo qua từng cột biểu đồ. `Haptics.success()` khi bấm ✓ lưu (sheet form, sheet ngày). `Haptics.warning()` khi xoá. `Haptics.selection()` khi chọn trong sheet "Thêm mới". Công tắc đã có rung sẵn của iOS.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: biểu đồ (nhấn giữ cột ngày 7), nút Xong đóng bàn phím, bảng xác nhận xoá. Rung chưa thử được vì Simulator không phát rung, cần thử trên máy thật.
+
+### Góp ý vòng 9 — 2026-10-28
+
+- **Tách Ngày và Giờ thành hai dòng riêng:** `FormDateRow` ("Hôm nay", "Hôm qua", 30/10/2026) mở sheet lịch tháng. `FormTimeRow` ("15:47") mở sheet bánh xe giờ. Cả hai gắn chung một `Date`: đổi ngày giữ nguyên giờ, đổi giờ giữ nguyên ngày. Bỏ tham số `components` và sheet gộp lịch + giờ của vòng 7.
+- Mỗi sheet có ✕ (bỏ) và ✓ đen (lưu), cao vừa nội dung. Dòng Giờ dùng icon `solar-clock-circle-linear`.
+- Dòng chọn, Ngày, Giờ dùng chung một kiểu hiển thị (`FormValueLabel`: nhãn, giá trị xám, ›).
+- Đã xem trên iPhone 17 Pro / iOS 26.3: đổi giờ 13:47 → 15:47 rồi ✓ thì dòng Giờ cập nhật, dòng Ngày giữ "Hôm nay".

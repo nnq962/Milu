@@ -207,7 +207,7 @@ struct AssistantView: View {
                 SolarIcon("solar-arrow-up-linear", size: 18)
                     .foregroundStyle(.white)
             }
-            .nativeFloatingButton(diameter: 40, tint: Palette.ink)
+            .nativeFloatingButton(diameter: 40, tint: Palette.primary)
             .disabled(!canSend)
             .accessibilityLabel("Gửi tin nhắn")
         }

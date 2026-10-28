@@ -256,9 +256,9 @@
 				DEVELOPMENT_TEAM = BFD7HJ6N92;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Timi dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Timi chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -295,9 +295,9 @@
 				DEVELOPMENT_TEAM = BFD7HJ6N92;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Timi dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Timi chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

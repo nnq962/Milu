@@ -106,7 +106,7 @@ struct AccountsView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         NavigationLink(value: account.id) {
-                            DataRow(icon: account.type.icon,
+                            ListRow(icon: account.type.icon,
                                     title: account.name,
                                     subtitle: updatedText(store.lastActivity(of: account)),
                                     amount: account.balance)
@@ -150,44 +150,6 @@ struct AccountsView: View {
     }
 }
 
-/// Sleek list row: 44pt muted circle icon, title/subtitle, bold amount and chevron.
-private struct DataRow: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let amount: Double
-
-    var body: some View {
-        HStack(spacing: 12) {
-            SolarIcon(icon, size: 20)
-                .frame(width: 44, height: 44)
-                .background(Palette.muted, in: Circle())
-            VStack(alignment: .leading, spacing: 0) {
-                Text(title)
-                    .font(Typography.font(.subheadline, size: 14, weight: .semibold))
-                    .designLineHeight(20, relativeTo: .subheadline)
-                    .lineLimit(1)
-                Text(subtitle)
-                    .font(Typography.font(.caption2, size: 11))
-                    .foregroundStyle(Palette.secondaryText)
-                    .designLineHeight(16.5, relativeTo: .caption2)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Text(amount.vnd)
-                .font(Typography.font(.subheadline, size: 14, weight: .bold))
-                .foregroundStyle(amount < 0 ? Palette.red : Palette.ink)
-                .monospacedDigit()
-                .lineLimit(1)
-            SolarIcon("solar-alt-arrow-right-linear", size: 16)
-                .foregroundStyle(Palette.secondary)
-        }
-        .padding(16)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private struct GoalCard: View {
     let goal: SavingsGoal
 
@@ -195,19 +157,17 @@ private struct GoalCard: View {
         VStack(alignment: .leading, spacing: 0) {
             // justify-between: icon + text on the left, amount + chevron on the right.
             HStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    SolarIcon(goal.icon.rawValue, size: 22)
-                        .frame(width: 44, height: 44)
-                        .background(Palette.muted, in: Circle())
-                    VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: RowMetrics.gap) {
+                    // Same icon column and type as list rows (design system defaults).
+                    SolarIcon(goal.icon.rawValue, size: RowMetrics.iconGlyph)
+                        .frame(width: RowMetrics.iconColumn)
+                    VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                         Text(goal.name)
-                            .font(Typography.font(.headline, size: 16, weight: .semibold))
-                            .designLineHeight(24, relativeTo: .headline)
+                            .textRole(.body)
                             .lineLimit(1)
                         Text("Mục tiêu \(goal.target.vnd)")
-                            .font(Typography.font(.caption2, size: 11))
+                            .textRole(.caption)
                             .foregroundStyle(Palette.secondaryText)
-                            .designLineHeight(16.5, relativeTo: .caption2)
                             .lineLimit(1)
                     }
                 }
@@ -215,27 +175,22 @@ private struct GoalCard: View {
                 .layoutPriority(1)
                 Spacer(minLength: 8)
                 HStack(spacing: 12) {
-                    Text(goal.saved.vnd)
-                        .font(Typography.font(.subheadline, size: 14, weight: .bold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                    MoneyText(amount: goal.saved)
                     SolarIcon("solar-alt-arrow-right-linear", size: 16)
                         .foregroundStyle(Palette.secondary)
                 }
             }
             ProgressBar(value: goal.progress)
-                .padding(.top, 20)
+                .padding(.top, Spacing.l)
             HStack {
                 Text("Đã đạt \(goal.progress.percentText)")
                 Spacer()
                 Text(goal.remaining > 0 ? "Còn \(goal.remaining.vnd)" : "Đã đủ mục tiêu")
             }
-            .font(Typography.font(.caption2, size: 11, weight: .medium))
+            .textRole(.caption)
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
-            .designLineHeight(16.5, relativeTo: .caption2)
-            .padding(.top, 8)
+            .padding(.top, Spacing.s)
         }
         // p-5 plus the 1pt border, which CSS adds inside the card's box.
         .padding(21)

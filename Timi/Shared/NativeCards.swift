@@ -9,8 +9,12 @@ enum CardCorners {
     static let inset: CGFloat = 28
     /// Short income/expense tiles: fitted to the supplied @2x reference silhouette.
     static let flow: CGFloat = 18
+    /// Text fields and inline pickers, 44pt tall (web: 12px on a 44px field).
+    static let field: CGFloat = 14
     static let icon: CGFloat = 12
     static let calendarDay: CGFloat = 8
+    /// Top corners of a sheet (web: 28–32px).
+    static let sheet: CGFloat = 32
 }
 
 extension View {

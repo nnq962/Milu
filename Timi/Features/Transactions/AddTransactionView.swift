@@ -90,6 +90,7 @@ struct AddTransactionView: View {
             }
             .navigationTitle(editing == nil ? "Thêm giao dịch" : "Sửa giao dịch")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDoneButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Huỷ") { dismiss() }

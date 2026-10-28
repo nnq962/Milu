@@ -35,6 +35,7 @@ struct AddAccountView: View {
             }
             .navigationTitle("Thêm tài khoản")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDoneButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Huỷ") { dismiss() }
@@ -112,6 +113,7 @@ struct GoalEditorView: View {
             }
             .navigationTitle(original == nil ? "Thêm hũ tiết kiệm" : "Sửa hũ tiết kiệm")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDoneButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Huỷ") { dismiss() }

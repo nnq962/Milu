@@ -167,7 +167,8 @@ struct TransactionsView: View {
                     .padding(.leading, 16)
             }
             .padding(.top, 20)
-            DailySpendingChart(month: displayedMonth, transactions: expenses)
+            DailySpendingChart(month: displayedMonth, totals: Dictionary(grouping: expenses) { Calendar.current.component(.day, from: $0.date) }
+                .mapValues { $0.reduce(0) { $0 + $1.amount } })
                 .padding(.top, 20)
             if monthlyBudget > 0 {
                 budgetRow(spent: spent)
@@ -210,7 +211,7 @@ struct TransactionsView: View {
                     .monospacedDigit()
             }
             // Same colors as the Overview limit bar: green within budget, red when over.
-            ProgressBar(value: ratio, color: over ? Palette.red : Palette.green, height: 8)
+            ProgressBar(value: ratio, color: ProgressBar.budgetColor(ratio))
         }
         .accessibilityElement(children: .combine)
     }
@@ -331,49 +332,6 @@ private struct MonthMenu: View {
         let calendar = Calendar.current
         let start = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? month
         month = calendar.date(byAdding: .month, value: delta, to: start) ?? start
-    }
-}
-
-/// One bar per day of the month, scaled to the biggest spending day.
-private struct DailySpendingChart: View {
-    let month: Date
-    let transactions: [FinanceTransaction]
-
-    var body: some View {
-        let calendar = Calendar.current
-        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? month
-        let dayCount = calendar.range(of: .day, in: .month, for: start)?.count ?? 30
-        let totals = Dictionary(grouping: transactions) { calendar.component(.day, from: $0.date) }
-            .mapValues { $0.reduce(0) { $0 + $1.amount } }
-        let peak = totals.values.max() ?? 0
-        let today = calendar.startOfDay(for: .now)
-        let monthNumber = calendar.component(.month, from: start)
-
-        VStack(spacing: 8) {
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(1...dayCount, id: \.self) { day in
-                    let date = calendar.date(byAdding: .day, value: day - 1, to: start) ?? start
-                    let isFuture = date > today
-                    let ratio = isFuture || peak == 0 ? 0.06 : max(totals[day, default: 0] / peak, 0.04)
-                    Capsule()
-                        .fill(calendar.isDate(date, inSameDayAs: today) ? Palette.lime
-                              : isFuture ? Palette.muted : Palette.secondary.opacity(0.3))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 64 * ratio)
-                }
-            }
-            .frame(height: 64, alignment: .bottom)
-            HStack {
-                Text("1/\(monthNumber)")
-                Spacer()
-                Text("\(dayCount)/\(monthNumber)")
-            }
-            .font(Typography.font(.caption2, size: 11))
-            .foregroundStyle(Palette.secondaryText)
-            .monospacedDigit()
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Biểu đồ chi tiêu theo ngày trong tháng \(monthNumber)")
     }
 }
 

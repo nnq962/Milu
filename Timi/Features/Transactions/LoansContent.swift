@@ -307,7 +307,7 @@ private struct DebtCardLayout<Avatar: View>: View {
                     .foregroundStyle(amountColor)
                     .monospacedDigit()
             }
-            ProgressBar(value: progress, color: progressColor, height: 8)
+            ProgressBar(value: progress, color: progressColor)
                 .padding(.top, 16)
             HStack {
                 Text(leading)

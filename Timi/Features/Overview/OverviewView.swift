@@ -7,6 +7,7 @@ struct OverviewView: View {
     @State private var isEditingBudget = false
     @State private var budgetInput = ""
     @State private var information: Information?
+    @State private var isShowingDesignSystem = false
     @State private var displayedMonth = Date.now
     @State private var selectedDay: CalendarDay?
     @ScaledMetric(relativeTo: .caption2) private var calendarDayHeight = 52
@@ -71,13 +72,15 @@ struct OverviewView: View {
                 .presentationDetents([.medium])
             }
             .sheet(item: $selectedDay) { day in dayDetails(day.date) }
+            .navigationDestination(isPresented: $isShowingDesignSystem) { DesignSystemView() }
         }
     }
 
     // Native navigation-bar items: iOS owns their glass and the scroll-edge backdrop.
     private var profileButton: some View {
+        // The design system lives behind the avatar until there is a profile screen.
         Button {
-            information = Information(title: "Hồ sơ", message: "Quyet\nTài khoản mẫu của Timi.")
+            isShowingDesignSystem = true
         } label: {
             Text("Q")
                 .font(Typography.font(.title3, size: 20, weight: .semibold))
@@ -86,6 +89,7 @@ struct OverviewView: View {
         .buttonBorderShape(.circle)
         .tint(Palette.ink)
         .accessibilityLabel("Hồ sơ của Quyet")
+        .accessibilityHint("Mở thư viện UI")
     }
 
     private var notificationButton: some View {
@@ -318,7 +322,7 @@ struct OverviewView: View {
                         Capsule().fill(Palette.muted)
                             .overlay(alignment: .leading) {
                                 Capsule()
-                                    .fill(ratio > 1 ? Palette.red : Color(red: 22/255, green: 163/255, blue: 74/255))
+                                    .fill(ProgressBar.budgetColor(ratio))
                                     .frame(width: geometry.size.width * min(max(ratio, 0), 1))
                             }
                     }
@@ -581,6 +585,7 @@ struct OverviewView: View {
             }
             .navigationTitle("Hạn mức chi tiêu").navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
+            .keyboardDoneButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Huỷ") { isEditingBudget = false } }
 

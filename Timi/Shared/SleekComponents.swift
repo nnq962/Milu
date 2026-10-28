@@ -3,23 +3,35 @@ import SwiftUI
 /// Hairline starting after a 44pt icon: 16 padding + 44 + 12 gap.
 /// Use as a top overlay so it adds no row height, like Sleek's absolute divider.
 struct RowDivider: View {
+    @Environment(\.formIconStyle) private var iconStyle
+
     var body: some View {
         Palette.border
             .frame(height: 1)
-            .padding(.leading, 72)
+            .padding(.leading, iconStyle == .plain ? RowMetrics.dividerInset : 72)
     }
 }
 
-/// Rounded track with a filled portion; Sleek uses 8pt or 10pt heights.
+/// Rounded track with a filled portion; every progress bar in the app is 8pt tall.
 struct ProgressBar: View {
+    static let height: CGFloat = 8
+
     let value: Double
-    var color: Color = Palette.lime
-    var height: CGFloat = 10
+    var color: Color = Palette.primary
+
+    /// Spending against a limit: green below 80%, amber from 80%, red once it is used up.
+    static func budgetColor(_ ratio: Double) -> Color {
+        switch ratio {
+        case ..<0.8: Palette.green
+        case ..<1: Palette.warning
+        default: Palette.red
+        }
+    }
 
     var body: some View {
         Capsule()
             .fill(Palette.muted)
-            .frame(height: height)
+            .frame(height: Self.height)
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
                     Capsule()
@@ -51,7 +63,7 @@ struct InitialsAvatar: View {
 
     var body: some View {
         Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-            .font(Typography.font(.callout, size: 16, weight: .semibold))
+            .textRole(.title)
             .foregroundStyle(Palette.ink)
             .frame(width: 44, height: 44)
             .background(Palette.muted, in: Circle())
@@ -67,9 +79,8 @@ struct SectionHeader<Trailing: View>: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(Typography.font(.headline, size: 16, weight: .semibold))
-                .designLineHeight(24, relativeTo: .headline)
-            Spacer(minLength: 8)
+                .textRole(.title)
+            Spacer(minLength: Spacing.s)
             trailing
         }
         .padding(.horizontal, 4)
@@ -99,9 +110,11 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
                     .padding(.horizontal, 20)
             }
             .scrollIndicators(.hidden)
+            .modifier(NoScrollEdgeEffect())
             // Bleed to the screen edges like Sleek's -mx-5 px-5.
             .padding(.horizontal, -20)
         }
+        .sensoryFeedback(.selection, trigger: selection)
     }
 
     /// Group the glass chips so iOS renders them as one glass layer.
@@ -120,16 +133,27 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
                     let selected = option == selection
                     Button { selection = option } label: {
                         Text(title(option))
-                            .font(Typography.font(.caption, size: 12, weight: selected ? .semibold : .medium))
+                            .textRole(.captionStrong)
                             .foregroundStyle(selected ? Color.white : Palette.ink)
                     }
-                    .nativeGlassButton(prominent: selected, tint: selected ? Palette.ink : nil)
+                    .nativeGlassButton(prominent: selected, tint: selected ? Palette.primary : nil)
                     .buttonBorderShape(.capsule)
                     .controlSize(.regular)
                     .tint(Palette.ink)
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
+    }
+}
+
+/// iOS 26 draws a soft edge band behind a horizontal scroll view's content; a chip row needs none.
+private struct NoScrollEdgeEffect: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectHidden(true, for: .all)
+        } else {
+            content
+        }
     }
 }
 
@@ -146,13 +170,13 @@ struct EmptyStateCard: View {
                 .frame(width: 56, height: 56)
                 .background(Palette.muted, in: Circle())
             Text(title)
-                .font(Typography.font(.subheadline, size: 14, weight: .semibold))
-                .padding(.top, 12)
+                .textRole(.title)
+                .padding(.top, Spacing.m)
             Text(message)
-                .font(Typography.font(.caption, size: 12))
+                .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
                 .multilineTextAlignment(.center)
-                .padding(.top, 4)
+                .padding(.top, Spacing.xs)
         }
         .frame(maxWidth: .infinity)
         .sleekCard(padding: 24, radius: CardCorners.extraLarge)

@@ -38,18 +38,22 @@ enum Typography {
 
     static func font(_ style: Font.TextStyle, size: CGFloat, weight: Font.Weight = .regular) -> Font {
         _ = registered
-        // Select the font's named instance rather than asking SwiftUI to synthesize a weight.
-        let name: String
+        return .custom(instance(for: weight), size: size, relativeTo: style)
+    }
+
+    /// Manrope draws thin, so every weight renders one step heavier, as on the web design system
+    /// (`font-normal` 500, `medium` 600, `semibold` 700, `bold` 800). Code keeps naming the intended
+    /// weight; only this mapping knows about the shift. User request 2026-10-28.
+    /// Selects the font's named instance rather than asking SwiftUI to synthesize a weight.
+    static func instance(for weight: Font.Weight) -> String {
         switch weight {
-        case .ultraLight, .thin: name = "Manrope-ExtraLight"
-        case .light: name = "Manrope-Light"
-        case .medium: name = "Manrope-Medium"
-        case .semibold: name = "Manrope-SemiBold"
-        case .bold: name = "Manrope-Bold"
-        case .heavy, .black: name = "Manrope-ExtraBold"
-        default: name = "Manrope-Regular"
+        case .ultraLight, .thin: "Manrope-Light"
+        case .light: "Manrope-Regular"
+        case .medium: "Manrope-SemiBold"
+        case .semibold: "Manrope-Bold"
+        case .bold, .heavy, .black: "Manrope-ExtraBold"
+        default: "Manrope-Medium"
         }
-        return .custom(name, size: size, relativeTo: style)
     }
 
     static var body: Font { font(.body, size: 17) }
@@ -65,7 +69,7 @@ enum Typography {
 
     static func configureNativeAppearance() {
         _ = registered
-        guard let regular = UIFont(name: "Manrope-Regular", size: 10) else {
+        guard let regular = UIFont(name: instance(for: .regular), size: 10) else {
             assertionFailure("Manrope registration failed")
             return
         }
@@ -82,13 +86,13 @@ enum Typography {
 
         // Sleek segmented control: selected SemiBold ink, others Medium muted; iOS owns the shape.
         let segmented = UISegmentedControl.appearance()
-        if let medium = UIFont(name: "Manrope-Medium", size: 14), let semibold = UIFont(name: "Manrope-SemiBold", size: 14) {
+        if let medium = UIFont(name: instance(for: .medium), size: 14), let semibold = UIFont(name: instance(for: .semibold), size: 14) {
             segmented.setTitleTextAttributes([.font: medium, .foregroundColor: UIColor(red: 89/255, green: 97/255, blue: 113/255, alpha: 1)], for: .normal)
             segmented.setTitleTextAttributes([.font: semibold, .foregroundColor: UIColor(red: 17/255, green: 24/255, blue: 39/255, alpha: 1)], for: .selected)
         }
 
         let navigation = UINavigationBar.appearance()
-        navigation.titleTextAttributes = [.font: UIFont(name: "Manrope-SemiBold", size: 17) ?? regular.withSize(17)]
-        navigation.largeTitleTextAttributes = [.font: UIFont(name: "Manrope-Bold", size: 34) ?? regular.withSize(34)]
+        navigation.titleTextAttributes = [.font: UIFont(name: instance(for: .semibold), size: 17) ?? regular.withSize(17)]
+        navigation.largeTitleTextAttributes = [.font: UIFont(name: instance(for: .bold), size: 34) ?? regular.withSize(34)]
     }
 }
