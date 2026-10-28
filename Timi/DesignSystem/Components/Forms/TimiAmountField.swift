@@ -2,13 +2,15 @@ import SwiftUI
 
 /// The main amount of a form (web CurrencyInput hero): 40pt figure centred with its sign before and
 /// "đ" right after in the same colour and weight (user request 2026-10-28), shrinking as it grows;
-/// a clear button at the edge and suggestion chips (3 → 3.000đ, 30.000đ, 300.000đ).
+/// suggestion chips (3 → 3k … 30tr).
 struct TimiAmountField: View {
     @Binding var text: String
     var kind: TransactionKind? = nil
     var showsSuggestions = true
     /// Opens the keyboard as the form appears (new entries, where the amount comes first).
     var focusesOnAppear = false
+    /// Shows the figure as owed: a "−" before it and red (an overdrawn account, cash owed).
+    var isNegative = false
 
     @FocusState private var isFocused: Bool
     /// Digits the user typed; suggestions follow these, not the chip they picked.
@@ -26,34 +28,70 @@ struct TimiAmountField: View {
         }
     }
 
+    /// "−" for an amount owed or spent, "+" for income; none until there is a figure (or for a
+    /// plain balance).
+    private var sign: String? {
+        if isNegative { return "−" }
+        guard let kind, amount > 0 else { return nil }
+        return kind == .income ? "+" : "−"
+    }
+
     private var color: Color {
+        if isNegative { return Palette.red }
         switch kind {
-        case .income: Palette.ink
-        case .expense: Palette.red
-        case nil: Palette.ink
+        case .income: return Palette.ink
+        case .expense: return Palette.red
+        case nil: return Palette.ink
         }
     }
 
+    /// The largest amount the field takes (12 digits, as `groupedVNDInput`).
+    private static let maxAmount: Double = 999_999_999_999
+
+    /// What the typed digits most likely mean, from thousands up to billions: 5 → 5k, 50k, 500k,
+    /// 5tr, 50tr; 25 → 25k … 250tr; 2500 → 2,5tr … 25tỷ. Five chips at most.
     private var suggestions: [Double] {
-        guard let base = typedBase, base > 0, base < 1_000 else { return [] }
-        return [1_000, 10_000, 100_000].map { base * $0 }
+        guard let base = typedBase, base > 0 else { return [] }
+        let multipliers: [Double] = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9]
+        return Array(multipliers.map { base * $0 }.filter { $0 <= Self.maxAmount }.prefix(5))
+    }
+
+    /// "25k", "2,5tr", "1,2tỷ": the short form Vietnamese apps use, so five chips fit one row
+    /// without scrolling (a scrolling row of glass chips draws a dark band on iOS 26).
+    private static func chipLabel(_ value: Double) -> String {
+        value.vndCompact
     }
 
     var body: some View {
-        VStack(spacing: Spacing.m) {
+        VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
-                if let kind, amount > 0 {
-                    Text(kind == .income ? "+" : "−")
+                if let sign {
+                    // Same view while the sign flips, so "+" and "−" roll into each other.
+                    Text(sign)
+                        .contentTransition(.numericText())
+                        .transition(.scale(scale: 0.5).combined(with: .opacity))
                 }
-                // An invisible copy of the figure sizes the field, so it hugs the digits and stays centred.
-                Text(text.isEmpty ? "0" : text)
-                    .opacity(0)
+                // The figure the user sees, changing at once (no rolling digits: too busy when a
+                // chip is picked, user request 2026-10-28). The TextField over it draws no text
+                // of its own, only the caret, so the two always line up. Empty, the field is a
+                // 2pt sliver: its caret blinks right before the grey "0", so tapping shows at
+                // once where typing goes.
+                Text(text.isEmpty ? " " : text)
+                    .opacity(text.isEmpty ? 0 : 1)
+                    .frame(width: text.isEmpty ? 2 : nil)
                     .overlay {
-                        TextField("0", text: $text)
+                        TextField("", text: $text)
                             .keyboardType(.numberPad)
-                            .multilineTextAlignment(.center)
+                            .multilineTextAlignment(text.isEmpty ? .leading : .center)
+                            .foregroundStyle(.clear)
+                            .tint(Palette.ink)
                             .focused($isFocused)
                     }
+                if text.isEmpty {
+                    Text("0")
+                        .foregroundStyle(Color(.placeholderText))
+                        .accessibilityHidden(true)
+                }
                 // Greys out with the "0" placeholder until there is a figure.
                 Text("đ")
                     .foregroundStyle(text.isEmpty ? Color(.placeholderText) : color)
@@ -62,48 +100,31 @@ struct TimiAmountField: View {
             .monospacedDigit()
             .foregroundStyle(color)
             .animation(.easeOut(duration: 0.15), value: heroSize)
+            .animation(.snappy(duration: 0.25), value: sign)
+            .animation(.easeInOut(duration: 0.25), value: color)
             .frame(maxWidth: .infinity, minHeight: 56)
             .contentShape(Rectangle())
             .onTapGesture { isFocused = true }
-            .overlay(alignment: .trailing) {
-                if !text.isEmpty {
-                    // iOS's own glass circle button, as beside a sheet's title; keeps the keyboard up.
-                    Button {
-                        text = ""
-                        typedBase = nil
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.secondaryText)
-                            .frame(width: 20, height: 20)
-                    }
-                    .nativeCircleButton(diameter: 32)
-                    .accessibilityLabel("Xoá số tiền")
-                    .transition(.scale.combined(with: .opacity))
-                }
-            }
 
-            if showsSuggestions && !suggestions.isEmpty {
-                HStack(spacing: Spacing.s) {
-                    ForEach(suggestions, id: \.self) { value in
-                        let picked = value == amount
-                        Button {
-                            text = String(Int(value)).groupedVNDInput
-                            picks += 1
-                        } label: {
-                            Text(value.vnd)
-                                .textRole(.captionStrong)
-                                .foregroundStyle(picked ? .white : Palette.ink)
-                        }
-                        .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
-                        .buttonBorderShape(.capsule)
+            // The row stays in place even when empty, so each chip runs its own pop-in when it
+            // arrives; adding the whole row at once would only fade it in.
+            if showsSuggestions {
+                // Centred when the chips fit, otherwise a row that scrolls edge to edge.
+                ViewThatFits(in: .horizontal) {
+                    suggestionChips
+                    ScrollView(.horizontal) {
+                        suggestionChips
+                            .padding(.horizontal, Spacing.page)
                     }
+                    .scrollIndicators(.hidden)
+                    // iOS 26 draws a darker band behind glass chips at a scroll view's edges.
+                    .modifier(NoScrollEdgeEffect())
+                    .padding(.horizontal, -Spacing.page)
                 }
-                .transition(.opacity)
+                .padding(.top, suggestions.isEmpty ? 0 : Spacing.m)
                 .sensoryFeedback(.selection, trigger: picks)
             }
         }
-        .animation(.easeOut(duration: 0.15), value: suggestions)
         .task {
             guard focusesOnAppear else { return }
             // Wait for the sheet to settle, or the keyboard fights its slide-in.
@@ -118,7 +139,53 @@ struct TimiAmountField: View {
             }
             // A chip's value keeps the row where it is; typing resets the base.
             if !suggestions.contains(newValue.vndInputAmount) {
-                typedBase = newValue.isEmpty ? nil : newValue.vndInputAmount
+                let base: Double? = newValue.isEmpty ? nil : newValue.vndInputAmount
+                guard base != typedBase else { return }
+                // One transaction for the whole sheet: the chip row opens or closes and the rows
+                // below glide with it, instead of jumping while only the chips animate.
+                withAnimation(.smooth(duration: 0.35)) {
+                    typedBase = base
+                }
+            }
+        }
+    }
+
+    /// One glass layer for all chips, as `ChipRow`: separate glass chips in a scroll view each
+    /// sample the page and draw a darker band behind the row on iOS 26.
+    @ViewBuilder
+    private var suggestionChips: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer { chipStack }
+        } else {
+            chipStack
+        }
+    }
+
+    private var chipStack: some View {
+        HStack(spacing: Spacing.s) {
+            ForEach(Array(suggestions.enumerated()), id: \.element) { index, value in
+                let picked = value == amount
+                Button {
+                    text = String(Int(value)).groupedVNDInput
+                    picks += 1
+                } label: {
+                    Text(Self.chipLabel(value))
+                        .textRole(.captionStrong)
+                        .foregroundStyle(picked ? .white : Palette.ink)
+                        .fixedSize()
+                }
+                .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
+                .buttonBorderShape(.capsule)
+                .accessibilityLabel(value.vnd)
+                // Chips pop in one after another from left to right, rising a little; a new set
+                // (each digit typed) plays again, so the row follows the typing.
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.7)
+                        .combined(with: .opacity)
+                        .combined(with: .offset(y: 8))
+                        .animation(.spring(duration: 0.4, bounce: 0.35).delay(Double(index) * 0.045)),
+                    removal: .opacity.animation(.easeOut(duration: 0.12))
+                ))
             }
         }
     }

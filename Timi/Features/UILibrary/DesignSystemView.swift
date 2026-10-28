@@ -32,7 +32,7 @@ struct DesignSystemView: View {
             case .lists: "Dòng dữ liệu trên thẻ trắng, icon không nền, › khi chạm được."
             case .progress: "Thanh một cỡ 8pt, hạn mức đổi màu theo mức; biểu đồ dùng Swift Charts."
             case .sheets: "Sheet chuẩn iOS (vị trí nút, bo góc, kéo đóng); Timi chỉ đổi màu và nội dung."
-            case .empty: "Khi chưa có dữ liệu: icon, một câu, một việc nên làm."
+            case .empty: "Khi chưa có dữ liệu: icon trơn, tiêu đề, một câu; thêm mới đi qua nút + của trang."
             }
         }
     }
@@ -52,6 +52,7 @@ struct DesignSystemView: View {
                 }
                 .padding(.horizontal, Spacing.page)
                 .padding(.bottom, Spacing.xxxl)
+                .keyboardDismissArea()
             }
             .dismissesKeyboardOnTap()
             // The chip index stays under the bar; as a safe-area inset, scrolling to a part stops below it.

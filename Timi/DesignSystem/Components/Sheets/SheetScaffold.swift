@@ -4,12 +4,14 @@ import SwiftUI
 /// title centred and ✓ on the right to save; scrolling content. No footer: deleting an existing item
 /// is a red `FormDestructiveRow` at the end of the content.
 ///
-/// `header` holds what the form is about (the big amount, the kind switch). It sits pinned under the
-/// bar, outside the scroll view: focusing a field there must not scroll the form (iOS scrolls a
-/// focused field's scroll view towards the keyboard, which threw the amount far up the sheet).
+/// `header` holds what the form is about (the big amount, the kind switch), first in the scroll
+/// view so it scrolls with the rows (user choice 2026-10-28, over pinning it under the bar).
 struct SheetScaffold<Header: View, Content: View>: View {
     let title: String
     var canConfirm = true
+    /// Checked when ✓ is tapped: false keeps the sheet open and buzzes an error, so the form can
+    /// show what is missing. Prefer this to `canConfirm` when the user should learn why.
+    var validate: (() -> Bool)? = nil
     var onConfirm: (() -> Void)? = nil
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
@@ -20,23 +22,19 @@ struct SheetScaffold<Header: View, Content: View>: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xxl) {
+                    if Header.self != EmptyView.self {
+                        VStack(spacing: Spacing.l) { header }
+                            .frame(maxWidth: .infinity)
+                    }
                     content
                 }
                 .padding(.horizontal, Spacing.page)
-                .padding(.top, Header.self == EmptyView.self ? Spacing.s : Spacing.m)
+                .padding(.top, Spacing.s)
                 .padding(.bottom, Spacing.xxl)
+                .frame(maxWidth: .infinity)
+                .keyboardDismissArea()
             }
             .dismissesKeyboardOnTap()
-            .safeAreaInset(edge: .top, spacing: 0) {
-                if Header.self != EmptyView.self {
-                    VStack(spacing: Spacing.l) { header }
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, Spacing.page)
-                        .padding(.top, Spacing.s)
-                        .padding(.bottom, Spacing.s)
-                        .background(Palette.background)
-                }
-            }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
             .navigationTitle(title)
@@ -64,6 +62,10 @@ struct SheetScaffold<Header: View, Content: View>: View {
     @ViewBuilder
     private func confirmButton(_ confirm: @escaping () -> Void) -> some View {
         let action = {
+            if let validate, !validate() {
+                Haptics.error()
+                return
+            }
             Haptics.success()
             confirm()
         }
@@ -82,8 +84,9 @@ struct SheetScaffold<Header: View, Content: View>: View {
 }
 
 extension SheetScaffold where Header == EmptyView {
-    init(title: String, canConfirm: Bool = true, onConfirm: (() -> Void)? = nil,
+    init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
          @ViewBuilder content: () -> Content) {
-        self.init(title: title, canConfirm: canConfirm, onConfirm: onConfirm, header: { EmptyView() }, content: content)
+        self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
+                  header: { EmptyView() }, content: content)
     }
 }

@@ -5,6 +5,8 @@ struct EmptyPart: View {
         PartSection(part: .empty) {
             EmptyStateCard(icon: "solar-inbox-linear", title: "Chưa có giao dịch",
                            message: "Thêm giao dịch đầu tiên để bắt đầu theo dõi.")
+            EmptyStateCard(icon: "mdi-piggy-bank", title: "Chưa có hũ nào",
+                           message: "Để dành cho chuyến đi, chiếc xe hay quỹ dự phòng, mỗi mục tiêu một hũ.")
         }
     }
 }

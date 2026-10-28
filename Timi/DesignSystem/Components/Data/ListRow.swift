@@ -17,7 +17,8 @@ struct RowDivider: View {
 struct ListRow: View {
     let icon: String
     let title: String
-    let subtitle: String
+    /// Second line; leave it out for a one-line row (52pt, like a form row).
+    var subtitle: String? = nil
     let amount: Double
     var iconBackground: Color = Palette.muted
     var amountTone: MoneyText.Tone = .negativeRed
@@ -37,10 +38,12 @@ struct ListRow: View {
                 Text(title)
                     .textRole(.body)
                     .lineLimit(1)
-                Text(subtitle)
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                    .lineLimit(1)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             MoneyText(amount: amount, tone: amountTone)

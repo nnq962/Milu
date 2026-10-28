@@ -39,6 +39,6 @@ struct BalanceCard: View {
         .accessibilityElement(children: .combine)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .cardSurface(radius: CardCorners.inset, color: Palette.balanceTile)
+        .cardSurface(radius: CardCorners.flow, color: Palette.balanceTile)
     }
 }

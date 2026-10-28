@@ -51,10 +51,13 @@ struct FormValueLabel: View {
         HStack(spacing: Spacing.s) {
             FormRowLabel(title: title, icon: icon)
             Spacer(minLength: Spacing.s)
+            // A new date, time or choice rolls in, so the change is easy to notice.
             Text(value)
                 .textRole(.body)
                 .foregroundStyle(Palette.secondaryText)
                 .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.snappy(duration: 0.3), value: value)
             SolarIcon("solar-alt-arrow-right-linear", size: 16)
                 .foregroundStyle(Palette.secondary)
         }

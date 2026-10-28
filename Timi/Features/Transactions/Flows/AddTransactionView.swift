@@ -62,8 +62,8 @@ struct AddTransactionView: View {
                 FormTimeRow(title: "Giờ", date: $date)
             }
 
-            FormGroup(title: "Ghi chú") {
-                FormNoteRow(text: $note, prompt: "Thêm ghi chú")
+            FormGroup {
+                FormNoteRow(text: $note, prompt: "Ghi chú")
             }
 
             if let editing {

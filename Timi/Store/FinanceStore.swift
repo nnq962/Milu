@@ -8,8 +8,13 @@ import Observation
 
 /// Nguồn dữ liệu chung của app. Các màn hình đọc store qua `@Environment`
 /// và tự vẽ lại khi dữ liệu thay đổi nhờ `@Observable`.
+///
+/// With a `FinanceDatabase` (the app), every change is also written to SwiftData at once and the
+/// arrays are loaded from it at launch. Without one (previews), it lives in memory on sample data.
 @Observable
 final class FinanceStore {
+    @ObservationIgnored private let database: FinanceDatabase?
+
     var accounts: [Account]
     var loans: [Loan]
     var paymentReminders: [PaymentReminder]
@@ -23,12 +28,42 @@ final class FinanceStore {
         self.paymentReminders = paymentReminders
         self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
+        self.database = nil
+    }
+
+    /// The app's store: opens the saved data, seeding the sample data on the very first launch.
+    init(database: FinanceDatabase) {
+        self.database = database
+        if database.isEmpty { database.seed() }
+        let snapshot = database.load()
+        accounts = snapshot.accounts
+        savingsGoals = snapshot.savingsGoals
+        transactions = snapshot.transactions
+        loans = snapshot.loans
+        paymentReminders = snapshot.paymentReminders
+    }
+
+    /// Throws away every change and starts again from the sample data.
+    func resetToSampleData() {
+        guard let database else { return }
+        database.resetToSampleData()
+        let snapshot = database.load()
+        accounts = snapshot.accounts
+        savingsGoals = snapshot.savingsGoals
+        transactions = snapshot.transactions
+        loans = snapshot.loans
+        paymentReminders = snapshot.paymentReminders
     }
 
     // MARK: - Tài khoản
 
+    /// Accounts that count towards totals and reports.
+    var countedAccounts: [Account] {
+        accounts.filter { !$0.excluded }
+    }
+
     var netWorth: Double {
-        accounts.reduce(0) { $0 + $1.balance } + totalLent - totalBorrowed + totalSaved
+        countedAccounts.reduce(0) { $0 + $1.balance } + totalLent - totalBorrowed + totalSaved
     }
 
     /// Số còn phải thu từ các khoản cho vay chưa tất toán.
@@ -47,7 +82,7 @@ final class FinanceStore {
 
     /// Số dư dương của các tài khoản cộng tiền trong hũ.
     var totalAssets: Double {
-        accounts.filter { $0.balance > 0 }.reduce(0) { $0 + $1.balance } + totalSaved
+        countedAccounts.filter { $0.balance > 0 }.reduce(0) { $0 + $1.balance } + totalSaved
     }
 
     var paymentAccounts: [Account] {
@@ -56,20 +91,24 @@ final class FinanceStore {
 
     /// "Tổng số dư" của màn Tài khoản: tài khoản thanh toán và hũ, không gồm thẻ tín dụng.
     var paymentBalance: Double {
-        paymentAccounts.reduce(0) { $0 + $1.balance } + totalSaved
+        paymentAccounts.filter { !$0.excluded }.reduce(0) { $0 + $1.balance } + totalSaved
     }
 
     func accounts(of type: AccountType) -> [Account] {
         accounts.filter { $0.type == type }
     }
 
-    /// Ngày của giao dịch gần nhất thuộc tài khoản này.
-    func lastActivity(of account: Account) -> Date? {
-        transactions.first { $0.accountID == account.id }?.date
-    }
-
     func add(_ account: Account) {
         accounts.append(account)
+        database?.save(account)
+    }
+
+    /// Removes the account and every transaction recorded on it.
+    func delete(_ account: Account) {
+        let ids = transactions.filter { $0.accountID == account.id }.map(\.id)
+        transactions.removeAll { $0.accountID == account.id }
+        accounts.removeAll { $0.id == account.id }
+        database?.deleteAccount(id: account.id, transactionIDs: ids)
     }
 
     // MARK: - Hũ tiết kiệm
@@ -80,15 +119,17 @@ final class FinanceStore {
         } else {
             savingsGoals.append(goal)
         }
+        database?.save(goal)
     }
 
     func delete(_ goal: SavingsGoal) {
         savingsGoals.removeAll { $0.id == goal.id }
+        database?.deleteAccount(id: goal.id)
     }
 
     /// Dư nợ thẻ/tài khoản âm cộng các khoản đi vay.
     var totalDebt: Double {
-        accounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance } + totalBorrowed
+        countedAccounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance } + totalBorrowed
     }
 
     // MARK: - Vay nợ
@@ -99,10 +140,12 @@ final class FinanceStore {
         } else {
             loans.append(loan)
         }
+        database?.save(loan)
     }
 
     func delete(_ loan: Loan) {
         loans.removeAll { $0.id == loan.id }
+        database?.deleteLoan(id: loan.id)
     }
 
     func account(id: Account.ID) -> Account? {
@@ -119,6 +162,7 @@ final class FinanceStore {
         transactions.append(transaction)
         transactions.sort { $0.date > $1.date }
         adjustBalance(of: transaction.accountID, by: transaction.signedAmount)
+        database?.save(transaction)
     }
 
     /// Thay một giao dịch đã có và cập nhật lại số dư của tài khoản cũ lẫn mới.
@@ -129,6 +173,7 @@ final class FinanceStore {
         transactions[index] = transaction
         transactions.sort { $0.date > $1.date }
         adjustBalance(of: transaction.accountID, by: transaction.signedAmount)
+        database?.save(transaction)
     }
 
     func transaction(id: FinanceTransaction.ID) -> FinanceTransaction? {
@@ -140,11 +185,13 @@ final class FinanceStore {
         guard transactions.contains(where: { $0.id == transaction.id }) else { return }
         transactions.removeAll { $0.id == transaction.id }
         adjustBalance(of: transaction.accountID, by: -transaction.signedAmount)
+        database?.deleteTransaction(id: transaction.id)
     }
 
     private func adjustBalance(of accountID: Account.ID, by delta: Double) {
         guard let index = accounts.firstIndex(where: { $0.id == accountID }) else { return }
         accounts[index].balance += delta
+        database?.save(accounts[index])
     }
 
     // MARK: - Thống kê

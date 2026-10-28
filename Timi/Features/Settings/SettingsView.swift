@@ -6,6 +6,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(FinanceStore.self) private var store
 
     @AppStorage("overview.monthlyBudget") private var monthlyBudget = SampleData.monthlyBudget
     @AppStorage("settings.dailyReminder") private var dailyReminder = true
@@ -86,7 +87,8 @@ struct SettingsView: View {
                         }
                     }
 
-                    FormGroup(title: "Nhà phát triển") {
+                    FormGroup(title: "Nhà phát triển",
+                              footer: "Dữ liệu lưu trên máy bằng SwiftData. Đặt lại sẽ xoá mọi thay đổi và nạp lại dữ liệu mẫu.") {
                         NavigationLink {
                             DesignSystemView()
                         } label: {
@@ -96,7 +98,12 @@ struct SettingsView: View {
                         .buttonStyle(.row)
                         FormDivider()
                         FormNavigationRow(title: "Lịch sử phiên bản", icon: "solar-history-linear", value: version) {
-                            note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts.")
+                            note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
+                        }
+                        FormDivider(hasIcon: false)
+                        FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
+                                           message: "Mọi tài khoản, giao dịch, hũ và khoản vay bạn đã thêm hoặc sửa sẽ bị xoá.") {
+                            store.resetToSampleData()
                         }
                     }
 

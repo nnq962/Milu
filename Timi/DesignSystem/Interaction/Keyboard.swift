@@ -1,32 +1,23 @@
 import SwiftUI
 
 extension View {
-    /// Closes the keyboard when the user taps outside a field or drags the content.
-    /// Fields, buttons and pickers inside keep their own taps; only empty space reaches this one.
+    /// Closes the keyboard when the content is dragged, the way modern apps do; no "Xong" bar
+    /// above the keyboard (removed at the user's request 2026-10-28). Put it on the scroll view and
+    /// `keyboardDismissArea()` on its content, so a tap on empty space closes it too.
     func dismissesKeyboardOnTap() -> some View {
-        self
-            .keyboardDoneButton()
-            .scrollDismissesKeyboard(.interactively)
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
+        scrollDismissesKeyboard(.interactively)
     }
-}
 
-extension View {
-    /// "Xong" above the keyboard, as in Apple's own apps: the number pad has no Return key, so this
-    /// is the one obvious way to close it. Put it once on the screen or sheet, not on each field,
-    /// or iOS stacks one button per field.
-    func keyboardDoneButton() -> some View {
-        toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Xong") {
+    /// A tap target behind the content: a tap on empty space (between cards, around the amount)
+    /// closes the keyboard. Being behind, it never takes a tap meant for a field, switch or row:
+    /// a gesture over the whole form did, and closed the keyboard a field had just opened.
+    func keyboardDismissArea() -> some View {
+        background {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 }
-                .fontWeight(.semibold)
-                .tint(Palette.primary)
-            }
         }
     }
 }

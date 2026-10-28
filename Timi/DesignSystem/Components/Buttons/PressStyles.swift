@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// A tappable row: the row turns light grey while pressed and fades back on release, like a cell
-/// in an iOS list. The card around the rows clips the grey to its corners (see `cardSurface`).
+/// A tappable row: the row takes a pale lime wash while pressed and fades back on release, like a
+/// cell in an iOS list. The card around the rows clips it to its corners (see `cardSurface`).
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(configuration.isPressed ? Palette.fill3 : .clear)
+            .background(configuration.isPressed ? Palette.rowPressed : .clear)
             // Instant on press, a short fade on release.
             .animation(configuration.isPressed ? nil : .easeOut(duration: 0.3), value: configuration.isPressed)
     }

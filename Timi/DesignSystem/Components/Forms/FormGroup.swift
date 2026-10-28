@@ -1,10 +1,14 @@
 import SwiftUI
 
 /// Rows on a white card, with an optional caption above and note below (web FormSection / SettingsGroup).
-/// Put `FormDivider()` between rows.
+/// Put `FormDivider()` between rows. `error` replaces the note with a red message saying what to
+/// fix; mark the row it is about with `isInvalid`.
 struct FormGroup<Content: View>: View {
     var title: String? = nil
     var footer: String? = nil
+    var error: String? = nil
+    /// Raise by one on each failed save: the card shakes so the eye finds what to fix.
+    var shakes = 0
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -17,13 +21,26 @@ struct FormGroup<Content: View>: View {
             }
             VStack(spacing: 0) { content }
                 .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
-            if let footer {
+                .shake(shakes)
+            if let error {
+                Label {
+                    Text(error)
+                } icon: {
+                    Image(systemName: "exclamationmark.circle.fill")
+                }
+                .textRole(.caption)
+                .foregroundStyle(Palette.red)
+                .padding(.horizontal, RowMetrics.horizontal)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+                .accessibilityAddTraits(.isStaticText)
+            } else if let footer {
                 Text(footer)
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
                     .padding(.horizontal, RowMetrics.horizontal)
             }
         }
+        .animation(.easeOut(duration: 0.2), value: error)
     }
 }
 
@@ -59,6 +76,8 @@ struct FormRowLabel: View {
     let title: String
     var subtitle: String? = nil
     var icon: String? = nil
+    /// Red title: this row has a problem (the group's `error` says what).
+    var isInvalid = false
 
     var body: some View {
         HStack(spacing: FormMetrics.gap) {
@@ -68,7 +87,7 @@ struct FormRowLabel: View {
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(title)
                     .textRole(.body)
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(isInvalid ? Palette.red : Palette.ink)
                 if let subtitle {
                     Text(subtitle)
                         .textRole(.caption)

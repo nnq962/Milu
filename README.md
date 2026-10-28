@@ -24,6 +24,7 @@ Mỗi file chứa một thành phần chính; file mới trong `Timi/` được 
 - `Timi/App`: điểm vào app, thanh tab.
 - `Timi/Models`: kiểu dữ liệu (tài khoản, hũ, giao dịch, vay nợ, lịch thanh toán).
 - `Timi/Store`: `FinanceStore` (trạng thái dùng chung) và dữ liệu mẫu.
+- `Timi/Persistence`: database SwiftData trên máy (schema, chuyển đổi, đọc/ghi). Xem [docs/DATABASE.md](docs/DATABASE.md).
 - `Timi/Utilities`: định dạng tiền, ngày.
 - `Timi/DesignSystem`: hệ thống thiết kế.
   - `Foundations`: màu, chữ (`TextRole`), khoảng cách, bo góc, icon.
@@ -34,4 +35,4 @@ Mỗi file chứa một thành phần chính; file mới trong `Timi/` được 
 
 ## Trạng thái
 
-Project hiện là bản prototype với dữ liệu mẫu. Dữ liệu chỉ lưu trong bộ nhớ và sẽ được đặt lại khi khởi động lại ứng dụng. Chưa tích hợp backend hoặc dịch vụ AI thật.
+Project hiện là bản prototype. Dữ liệu lưu trên máy bằng SwiftData; lần mở đầu tiên nạp dữ liệu mẫu, đặt lại được trong Cài đặt → Nhà phát triển. Chưa tích hợp backend hoặc dịch vụ AI thật.

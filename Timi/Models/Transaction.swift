@@ -84,7 +84,8 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
 }
 
 struct FinanceTransaction: Identifiable, Hashable {
-    let id = UUID()
+    /// Stable across launches: the same id is stored in the database.
+    var id = UUID()
     var title: String
     /// Luôn là số dương; chiều tiền (thu hay chi) suy ra từ danh mục.
     var amount: Double

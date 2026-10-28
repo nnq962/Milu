@@ -3,7 +3,10 @@ import SwiftUI
 /// One payment account: its balance on top, then its transactions, newest first.
 struct AccountDetailView: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
     let accountID: Account.ID
+
+    @State private var isConfirmingDelete = false
 
     var body: some View {
         if let account = store.account(id: accountID) {
@@ -46,6 +49,28 @@ struct AccountDetailView: View {
             .foregroundStyle(Palette.ink)
             .navigationTitle(account.name)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button(role: .destructive) { isConfirmingDelete = true } label: {
+                            Label("Xoá tài khoản", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .accessibilityLabel("Tuỳ chọn tài khoản")
+                }
+            }
+            .confirmationDialog("Xoá tài khoản “\(account.name)”?", isPresented: $isConfirmingDelete,
+                                titleVisibility: .visible) {
+                Button("Xoá tài khoản", role: .destructive) {
+                    Haptics.warning()
+                    dismiss()
+                    store.delete(account)
+                }
+            } message: {
+                Text(AccountsView.deleteMessage(transactionCount: transactions.count))
+            }
         } else {
             ContentUnavailableView("Không tìm thấy tài khoản", image: "solar-danger-triangle-linear")
         }

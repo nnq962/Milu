@@ -7,12 +7,13 @@ struct FormTextRow: View {
     var prompt = ""
     var icon: String? = nil
     var keyboard: UIKeyboardType = .default
+    var isInvalid = false
 
     @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: Spacing.m) {
-            FormRowLabel(title: title, icon: icon)
+            FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
                 .fixedSize()
             TextField(prompt, text: $text)
                 .textRole(.body)
@@ -20,9 +21,6 @@ struct FormTextRow: View {
                 .multilineTextAlignment(.trailing)
                 .keyboardType(keyboard)
                 .focused($isFocused)
-            if isFocused && !text.isEmpty {
-                ClearFieldButton { text = "" }
-            }
         }
         .formRowFrame()
         .onTapGesture { isFocused = true }
@@ -52,9 +50,6 @@ struct FormAmountRow: View {
             }
             .textRole(.amount)
             .foregroundStyle(Palette.ink)
-            if isFocused && !text.isEmpty {
-                ClearFieldButton { text = "" }
-            }
         }
         .formRowFrame()
         .onTapGesture { isFocused = true }
@@ -70,12 +65,19 @@ struct FormNoteRow: View {
     @Binding var text: String
     var prompt = "Ghi chú"
 
+    @FocusState private var isFocused: Bool
+
     var body: some View {
         TextField(prompt, text: $text, axis: .vertical)
             .textRole(.body)
             .foregroundStyle(Palette.ink)
             .lineLimit(3...6)
+            .focused($isFocused)
             .padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, RowMetrics.vertical)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            // The whole box takes the tap, not only the first line.
+            .contentShape(Rectangle())
+            .onTapGesture { isFocused = true }
     }
 }

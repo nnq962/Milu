@@ -15,7 +15,8 @@ enum LoanDirection: String, CaseIterable, Identifiable {
 
 /// Khoản cho vay hoặc đi vay với người khác. Cho vay cộng vào tài sản ròng, đi vay tính vào nợ.
 struct Loan: Identifiable, Hashable {
-    let id = UUID()
+    /// Stable across launches: the same id is stored in the database.
+    var id = UUID()
     /// Người vay hoặc người cho mình vay.
     var name: String
     var direction: LoanDirection

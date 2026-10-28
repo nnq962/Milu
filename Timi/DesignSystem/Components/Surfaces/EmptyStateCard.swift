@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Empty list placeholder from the Sleek component sheet.
+/// Empty list placeholder from the Sleek component sheet: an icon, a title and one line saying what
+/// will appear here. No button: adding goes through the page's own + (user choice 2026-10-28).
 struct EmptyStateCard: View {
     let icon: String
     let title: String
@@ -8,10 +9,9 @@ struct EmptyStateCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SolarIcon(icon, size: 26)
+            // Plain glyph, no tile: same rule as list rows (user choice 2026-10-28).
+            SolarIcon(icon, size: 32)
                 .foregroundStyle(Palette.secondary)
-                .frame(width: 56, height: 56)
-                .background(Palette.muted, in: Circle())
             Text(title)
                 .textRole(.title)
                 .padding(.top, Spacing.m)

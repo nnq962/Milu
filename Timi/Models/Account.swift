@@ -25,24 +25,15 @@ enum AccountType: String, CaseIterable, Identifiable {
         case .credit: "solar-card-linear"
         }
     }
-
-    var defaultColor: Color {
-        switch self {
-        case .cash: .orange
-        case .bank: .green
-        case .eWallet: .pink
-        case .credit: .indigo
-        }
-    }
 }
 
 struct Account: Identifiable, Hashable {
-    let id = UUID()
+    /// Stable across launches: the same id is stored in the database.
+    var id = UUID()
     var name: String
     var type: AccountType
     /// Số dư hiện tại. Thẻ tín dụng mang số âm (đang nợ).
     var balance: Double
-    var color: Color
     /// Dòng mô tả phụ, VD: "•••• 4821".
     var detail: String
     /// Chỉ thẻ tín dụng: hạn mức và hạn thanh toán kỳ này, hiện ở mục Đi vay.
@@ -50,6 +41,10 @@ struct Account: Identifiable, Hashable {
     var paymentDueDate: Date? = nil
     /// The bank or e-wallet it belongs to (`Institution.id`); nil for cash or when not picked.
     var institutionID: String? = nil
+    /// When the user started tracking it (chosen in the form, now by default).
+    var openedAt: Date = .now
+    /// Kept out of totals and reports (money set aside, someone else's cash…).
+    var excluded = false
 
     var institution: Institution? { Institution.find(institutionID) }
 

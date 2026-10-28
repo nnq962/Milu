@@ -7,7 +7,8 @@ struct PaymentReminder: Identifiable {
         case icon(String)
     }
 
-    let id = UUID()
+    /// Stable across launches: the same id is stored in the database.
+    var id = UUID()
     var title: String
     var amount: Double
     var isIncome: Bool

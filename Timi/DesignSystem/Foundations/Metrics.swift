@@ -51,19 +51,21 @@ enum ControlHeight {
     static let floating: CGFloat = 56
 }
 
-/// Optical mapping of Sleek's CSS squircle tokens to Apple's continuous curves.
-/// Values are native points, not the CSS radius multiplied by 2.5.
+/// Corner radii, closer to Apple's own apps than the web's (user request 2026-10-28): cards 22,
+/// like a widget; smaller things round less, so every corner looks in proportion.
 enum CardCorners {
-    static let large: CGFloat = 32
-    /// Sleek rounded-3xl (32px CSS × 2.5 squircle); same optical ratio as `large` for rounded-2xl.
-    static let extraLarge: CGFloat = 40
-    static let inset: CGFloat = 28
-    /// Short income/expense tiles: fitted to the supplied @2x reference silhouette.
-    static let flow: CGFloat = 18
-    /// Text fields and inline pickers, 44pt tall (web: 12px on a 44px field).
-    static let field: CGFloat = 14
-    static let icon: CGFloat = 12
+    /// Cards and lists on a page, savings goal tiles, overview cards.
+    static let large: CGFloat = 22
+    /// The page's lead card (Tổng số dư, the month summary on Giao dịch).
+    static let extraLarge: CGFloat = 26
+    /// A form group or the card in a short sheet.
+    static let inset: CGFloat = 22
+    /// Tiles inside a card (Số dư / Cho vay / Nợ, Tiền vào / Tiền ra), chat cards.
+    static let flow: CGFloat = 16
+    /// Text fields and inline pickers, 44pt tall.
+    static let field: CGFloat = 12
+    static let icon: CGFloat = 10
     static let calendarDay: CGFloat = 8
-    /// Top corners of a sheet (web: 28–32px).
+    /// Top corners of a custom sheet; system sheets keep Apple's own.
     static let sheet: CGFloat = 32
 }

@@ -8,11 +8,11 @@ import SwiftUI
 /// Dữ liệu mẫu để thử giao diện. Ngày giao dịch tính lùi từ hôm nay
 /// nên lúc nào mở app cũng có số liệu cho tuần và tháng hiện tại.
 enum SampleData {
-    static let cash = Account(name: "Ví tiền mặt", type: .cash, balance: 2_350_000, color: .orange, detail: "Chi tiêu hằng ngày")
-    static let vietcombank = Account(name: "Vietcombank", type: .bank, balance: 45_800_000, color: .green, detail: "•••• 4821", institutionID: "vietcombank")
-    static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, color: .red, detail: "•••• 1907", institutionID: "techcombank")
-    static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, color: .pink, detail: "0912 •••• 88", institutionID: "momo")
-    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, color: .indigo, detail: "•••• 3360 · Hạn mức 50tr",
+    static let cash = Account(name: "Ví tiền mặt", type: .cash, balance: 2_350_000, detail: "Chi tiêu hằng ngày")
+    static let vietcombank = Account(name: "Vietcombank", type: .bank, balance: 45_800_000, detail: "•••• 4821", institutionID: "vietcombank")
+    static let techcombank = Account(name: "Techcombank", type: .bank, balance: 18_250_000, detail: "•••• 1907", institutionID: "techcombank")
+    static let momo = Account(name: "MoMo", type: .eWallet, balance: 1_120_000, detail: "0912 •••• 88", institutionID: "momo")
+    static let creditCard = Account(name: "Thẻ VPBank Visa", type: .credit, balance: -6_430_000, detail: "•••• 3360 · Hạn mức 50tr",
                                     creditLimit: 50_000_000, paymentDueDate: daysFromNow(4), institutionID: "vpbank")
 
     static let accounts = [cash, vietcombank, techcombank, momo, creditCard]

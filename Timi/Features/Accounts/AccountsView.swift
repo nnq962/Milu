@@ -2,9 +2,28 @@ import SwiftUI
 
 struct AccountsView: View {
     @Environment(FinanceStore.self) private var store
-    @State private var isAddingAccount = false
-    @State private var isAddingGoal = false
+    @State private var isChoosingNew = false
+    /// Picked in the "Thêm mới" sheet; its form opens once that sheet has gone.
+    @State private var pendingNew: NewItem?
+    @State private var newItem: NewItem?
     @State private var editingGoal: SavingsGoal?
+    @State private var deletingAccount: Account?
+
+    /// What the + button can add.
+    enum NewItem: String, Identifiable, CaseIterable {
+        case cash, bank, eWallet, goal
+
+        var id: Self { self }
+
+        var option: SheetOption {
+            switch self {
+            case .cash: SheetOption(icon: "solar-banknote-2-linear", title: "Tiền mặt", subtitle: "Ví, két, tiền để ở nhà")
+            case .bank: SheetOption(icon: "solar-buildings-2-linear", title: "Tài khoản ngân hàng", subtitle: "Vietcombank, Techcombank, MB…")
+            case .eWallet: SheetOption(icon: "solar-smartphone-linear", title: "Ví điện tử", subtitle: "MoMo, ZaloPay, ShopeePay…")
+            case .goal: SheetOption(icon: "mdi-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu")
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -42,9 +61,33 @@ struct AccountsView: View {
             .navigationDestination(for: Account.ID.self) { accountID in
                 AccountDetailView(accountID: accountID)
             }
-            .sheet(isPresented: $isAddingAccount) { AddAccountView() }
-            .sheet(isPresented: $isAddingGoal) { GoalEditorView(goal: nil) }
+            .sheet(isPresented: $isChoosingNew, onDismiss: {
+                newItem = pendingNew
+                pendingNew = nil
+            }) {
+                OptionSheet(title: "Thêm mới", options: NewItem.allCases.map(\.option)) { option in
+                    pendingNew = NewItem.allCases.first { $0.option.title == option.title }
+                }
+            }
+            .sheet(item: $newItem) { item in
+                switch item {
+                case .cash: AddAccountView(type: .cash)
+                case .bank: AddAccountView(type: .bank)
+                case .eWallet: AddAccountView(type: .eWallet)
+                case .goal: GoalEditorView(goal: nil)
+                }
+            }
             .sheet(item: $editingGoal) { goal in GoalEditorView(goal: goal) }
+            .confirmationDialog("Xoá tài khoản “\(deletingAccount?.name ?? "")”?",
+                                isPresented: Binding { deletingAccount != nil } set: { if !$0 { deletingAccount = nil } },
+                                titleVisibility: .visible, presenting: deletingAccount) { account in
+                Button("Xoá tài khoản", role: .destructive) {
+                    Haptics.warning()
+                    store.delete(account)
+                }
+            } message: { account in
+                Text(Self.deleteMessage(transactionCount: store.accountTransactions(account).count))
+            }
         }
     }
 
@@ -57,14 +100,10 @@ struct AccountsView: View {
     }
 
     private var addMenu: some View {
-        Menu {
-            Button { isAddingAccount = true } label: { Label("Thêm tài khoản", image: "solar-wallet-linear") }
-            Button { isAddingGoal = true } label: { Label("Thêm hũ tiết kiệm", image: "mdi-piggy-bank") }
-        } label: {
+        Button { isChoosingNew = true } label: {
             SolarIcon("solar-add-circle-linear", size: 20)
                 .frame(width: 28, height: 28)
         }
-        .menuStyle(.button)
         .buttonBorderShape(.circle)
         .tint(Palette.ink)
         .accessibilityLabel("Thêm tài khoản hoặc hũ")
@@ -78,13 +117,13 @@ struct AccountsView: View {
             Text(store.paymentBalance.vnd)
                 .textRole(.display)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
-            Text("Gồm \(store.paymentAccounts.count) tài khoản và \(store.savingsGoals.count) hũ")
+            Text("Gồm \(store.paymentAccounts.filter { !$0.excluded }.count) tài khoản và \(store.savingsGoals.count) hũ")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
                 .padding(.top, 4)
         }
         .accessibilityElement(children: .combine)
-        .sleekCard()
+        .sleekCard(radius: CardCorners.extraLarge)
     }
 
     private var paymentSection: some View {
@@ -93,17 +132,22 @@ struct AccountsView: View {
         return VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Tài khoản thanh toán")
             if accounts.isEmpty {
-                emptyCard("Chưa có tài khoản thanh toán.")
+                EmptyStateCard(icon: "solar-wallet-linear", title: "Chưa có tài khoản",
+                               message: "Thêm tiền mặt, tài khoản ngân hàng hoặc ví để theo dõi số dư.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         NavigationLink(value: account.id) {
-                            ListRow(icon: account.iconName,
-                                    title: account.name,
-                                    subtitle: updatedText(store.lastActivity(of: account)),
+                            ListRow(icon: account.iconName, title: account.name,
+                                    subtitle: account.excluded ? "Không tính vào báo cáo" : nil,
                                     amount: account.balance)
                         }
                         .buttonStyle(.row)
+                        .contextMenu {
+                            Button(role: .destructive) { deletingAccount = account } label: {
+                                Label("Xoá tài khoản", systemImage: "trash")
+                            }
+                        }
                         // Sleek draws the hairline absolutely, so it adds no row height.
                         .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                     }
@@ -115,30 +159,34 @@ struct AccountsView: View {
 
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Mục tiêu tiết kiệm")
+            SectionHeader(title: "Hũ tiết kiệm")
             if store.savingsGoals.isEmpty {
-                emptyCard("Chưa có hũ tiết kiệm. Nhấn + để tạo hũ đầu tiên.")
-            }
-            ForEach(store.savingsGoals) { goal in
-                Button { editingGoal = goal } label: { GoalCard(goal: goal) }
-                    .buttonStyle(.card)
+                EmptyStateCard(icon: "mdi-piggy-bank", title: "Chưa có hũ nào",
+                               message: "Để dành cho chuyến đi, chiếc xe hay quỹ dự phòng, mỗi mục tiêu một hũ.")
+            } else {
+                goalGrid
             }
         }
     }
 
-    private func emptyCard(_ message: String) -> some View {
-        Text(message)
-            .textRole(.caption)
-            .foregroundStyle(Palette.secondaryText)
-            .sleekCard()
+    private var goalGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.m), GridItem(.flexible(), spacing: Spacing.m)],
+                  spacing: Spacing.m) {
+            ForEach(store.savingsGoals) { goal in
+                Button { editingGoal = goal } label: { GoalTile(goal: goal) }
+                    .buttonStyle(.card)
+            }
+        }
     }
+}
 
-    private func updatedText(_ date: Date?) -> String {
-        guard let date else { return "Chưa có giao dịch" }
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Cập nhật hôm nay" }
-        if calendar.isDateInYesterday(date) { return "Cập nhật hôm qua" }
-        return "Cập nhật \(calendar.component(.day, from: date))/\(calendar.component(.month, from: date))"
+
+extension AccountsView {
+    /// What deleting an account also removes, said before it happens.
+    static func deleteMessage(transactionCount: Int) -> String {
+        transactionCount > 0
+            ? "\(transactionCount) giao dịch của tài khoản này cũng bị xoá. Không thể hoàn tác."
+            : "Không thể hoàn tác."
     }
 }
 

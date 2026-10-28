@@ -22,6 +22,7 @@ struct ContentView: View {
                 .tag(AppTab.assistant)
         }
         .tint(.primary)
+        .background { InstantTabSwitch().frame(width: 0, height: 0) }
     }
 }
 

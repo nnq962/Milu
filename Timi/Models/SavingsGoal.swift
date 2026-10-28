@@ -18,7 +18,8 @@ enum GoalIcon: String, CaseIterable, Identifiable {
 
 /// Hũ tiết kiệm có mục tiêu; số đã để dành được tính vào tài sản.
 struct SavingsGoal: Identifiable, Hashable {
-    let id = UUID()
+    /// Stable across launches: the same id is stored in the database.
+    var id = UUID()
     var name: String
     var icon: GoalIcon
     var saved: Double

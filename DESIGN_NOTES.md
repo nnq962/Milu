@@ -568,3 +568,146 @@ Người dùng chốt **16 làm cỡ nội dung chính**. Manrope rộng nên 16
 - Mục chưa làm (Giao diện, Hạng mục, FAQ, Điều khoản…) mở một sheet ngắn giải thích "Sắp có", không để chạm vào mà không có gì.
 - Icon Solar mới lấy từ Iconify: pallete-2, tag, bell-bing, star, question-circle, chat-round-line, letter, document-text, shield-check, widget-4, history, info-circle, logout-2.
 - Đã xem trên iPhone 17 Pro / iOS 26.3: mở Cài đặt từ avatar, cuộn hết trang, mở Thư viện UI.
+
+### Trang Tài khoản — vòng 1 — 2026-10-28
+
+- **Chuyển tab không còn mờ:**
+  - Nguyên nhân: iOS 26 cross-fade giữa hai tab khoảng 0,3 giây, nên trang cũ và trang mới chồng lên nhau (quay video Simulator thấy rõ "Chào buổi chiều" đè lên "Tài khoản"). Nhìn như cả trang, nhất là phần trên cùng, mờ rồi mới rõ.
+  - Cách sửa: `App/InstantTabSwitch.swift` cho bộ điều khiển tab một animator kết thúc ngay, nên chuyển tab tức thì như iOS 18 trở về trước và các app ngân hàng. Các lời gọi khác vẫn chuyển cho delegate của SwiftUI, nên tab được chọn và trạng thái vẫn đúng.
+- **Mục tiêu tiết kiệm dùng đúng thẻ của design system:**
+  - Trước đây mỗi hũ là một thẻ riêng vừa có viền vừa có bóng, lề 21pt, icon lệch với danh sách tài khoản phía trên.
+  - Giờ cả ba hũ nằm chung một thẻ trắng (`cardSurface`, có bóng, không viền), cách nhau bằng `RowDivider`, giống "Tài khoản thanh toán".
+  - Mỗi hũ là `GoalRow`: cùng cột icon, cỡ chữ và số tiền với `ListRow`. Thanh tiến độ và dòng "Đã đạt / Còn" bắt đầu thẳng dưới tên hũ.
+  - Bấm vào hàng thì hàng xám nhạt (`.row`), thay cho kiểu thu nhỏ cả thẻ.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: quay video chuyển Tổng quan → Tài khoản (không còn khung chồng), danh sách hũ.
+
+### Trang Tài khoản — vòng 2 — 2026-10-28
+
+- **Hũ tiết kiệm dạng lưới 2 cột** (`GoalTile`), chọn sau khi so với kiểu "thẻ gọn có vòng tiến độ" (đã bỏ).
+  - Mỗi ô: icon trên nền tròn `fill1`, tên hũ, số đã để dành cỡ `amountLarge` dạng gọn (28tr), thanh tiến độ, dòng "70% · còn 12tr".
+  - Ô cuối "+ Thêm hũ" viền đứt nét (`AddGoalTile`).
+  - Bấm vào ô thì cả thẻ mờ đi (`.card`).
+- **Nút + mở sheet "Thêm mới"** (`OptionSheet`) với 4 loại: Tiền mặt, Tài khoản ngân hàng, Ví điện tử, Hũ tiết kiệm, mỗi loại có một dòng gợi ý.
+  - Chọn xong, sheet đóng rồi form đúng loại mới mở, để hai sheet không chồng nhau.
+  - `AddAccountView(type:)` đặt sẵn loại, tiêu đề theo loại ("Thêm ví điện tử"…), gợi ý tên theo loại.
+- Bỏ `GoalRow` (danh sách hũ chung một thẻ) và nút đổi kiểu hiển thị.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: lưới hũ, sheet Thêm mới, form Thêm ví điện tử.
+- Bỏ ô "+ Thêm hũ" trong lưới: thêm hũ đi qua nút + → Thêm mới → Hũ tiết kiệm.
+- Dòng tài khoản thanh toán chỉ còn một dòng (logo/icon, tên, số dư, ›), không còn "Cập nhật hôm nay…". `ListRow.subtitle` giờ là tuỳ chọn; bỏ hàm `FinanceStore.lastActivity` không còn dùng.
+
+### Bo góc gần app Apple — 2026-10-28
+
+Bản trước quy đổi từ Sleek web nên bo quá tròn trên iPhone. Đổi `CardCorners`:
+
+| Token | Cũ | Mới | Dùng cho |
+|---|---|---|---|
+| large | 32 | 22 | thẻ, danh sách, ô hũ, thẻ Tổng quan (≈ widget iOS) |
+| extraLarge | 40 | 26 | thẻ dẫn đầu trang: Tổng số dư (Tài khoản), Thu chi (Giao dịch), trạng thái trống |
+| inset | 28 | 22 | nhóm form, thẻ trong sheet ngắn |
+| flow | 18 | 16 | ô nhỏ trong thẻ: Số dư / Cho vay / Nợ (trước dùng inset 28), Tiền vào / ra, thẻ trong chat |
+| field | 14 | 12 | ô nhập |
+| icon | 12 | 10 | icon vuông (vương miện Pro) |
+| calendarDay | 8 | 8 | giữ nguyên |
+
+Sheet hệ thống vẫn dùng bo góc của Apple. Đã xem trên iPhone 17 Pro / iOS 26.3: Tổng quan, Tài khoản.
+
+### Màu khi bấm hàng — 2026-10-28
+
+- Hàng danh sách khi đè ngón dùng `Palette.rowPressed` = chanh 18% trên trắng (#F3FCD6), thay cho xám `fill3`. Nhả ra thì mờ dần như cũ.
+- Áp cho mọi hàng dùng `.buttonStyle(.row)`: danh sách tài khoản, dòng chọn trong form, Ngày/Giờ, sheet chọn, chọn ngân hàng, Cài đặt.
+- Chanh chỉ hiện thoáng qua lúc bấm nên vẫn là điểm nhấn. Thẻ (hũ, khoản vay, ô lịch) vẫn mờ và thu nhỏ khi bấm, không tô màu.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: đè giữ dòng Vietcombank.
+
+### Trang Tài khoản — vòng 3 — 2026-10-28
+
+- Tiêu đề phần "Mục tiêu tiết kiệm" → **"Hũ tiết kiệm"**.
+- **Trạng thái trống có nút hành động:** `EmptyStateCard` có thêm `actionTitle` + `action`, hiện nút đen nhỏ (`TimiButton` primary, cỡ 36) dưới câu mô tả.
+  - Hũ trống: icon heo, "Chưa có hũ nào", "Để dành cho chuyến đi, chiếc xe hay quỹ dự phòng, mỗi mục tiêu một hũ.", nút "Tạo hũ đầu tiên".
+  - Tài khoản trống: "Chưa có tài khoản", nút "Thêm tài khoản" mở sheet Thêm mới.
+  - Thay cho dòng chữ xám trong thẻ trắng trước đây; bỏ `emptyCard`.
+- **Xoá tài khoản** ở hai chỗ:
+  - nhấn giữ một dòng trong danh sách → menu "Xoá tài khoản";
+  - màn Chi tiết tài khoản → nút "…" trên phải → "Xoá tài khoản".
+
+  Cả hai đều hỏi lại bằng bảng xác nhận của iOS, ghi rõ số giao dịch sẽ bị xoá theo ("4 giao dịch của tài khoản này cũng bị xoá. Không thể hoàn tác."), rung cảnh báo khi xoá.
+- `FinanceStore.delete(_ account:)` xoá tài khoản và mọi giao dịch của nó, rồi ghi xuống SwiftData (`deleteAccount(id:transactionIDs:)`).
+- Đã xem trên iPhone 17 Pro / iOS 26.3: xoá Techcombank từ màn chi tiết (tổng số dư 118,52tr → 100,27tr, còn 3 tài khoản), trạng thái trống hũ trong Thư viện UI.
+- Sửa lại theo góp ý: thẻ trống **không có nút** (thêm mới đi qua nút + của trang), icon **trơn không nền** 32pt màu `secondary`, cùng quy tắc với icon trong danh sách. Bỏ tham số `actionTitle`/`action` của `EmptyStateCard`. Áp cho mọi thẻ trống trong app.
+
+### Form Thêm tài khoản — 2026-10-28
+
+- **Ô số tiền lớn (`TimiAmountField`):** khi trống, ô nhập chỉ rộng 2pt và đứng ngay trước chữ "0" xám, nên chạm vào là thấy con trỏ nhấp nháy. Trước đây "0" là placeholder của TextField nên con trỏ bị che cho tới khi gõ. Thêm `isNegative`: hiện "−" và chữ đỏ.
+- **Thêm tiền mặt / ngân hàng / ví** (`AddAccountView`):
+  - Bỏ dòng "Loại", vì loại đã chọn ở sheet Thêm mới.
+  - Không trường nào bắt buộc, ✓ luôn bấm được: để trống số dư thì lưu 0đ, để trống tên thì lấy tên gợi ý ("Tiền mặt", tên ngân hàng/ví đã chọn, "Ngân hàng", "Ví điện tử").
+  - Công tắc **Số dư âm** ("Đang nợ tiền mặt" / "Tài khoản đang thấu chi"): lưu số dư âm, số hiện đỏ có dấu "−".
+  - Dòng **Ngày** + **Giờ**, mặc định là lúc mở form. Lưu vào `Account.openedAt` (cột `createdAt` của V1, chưa cần đổi schema).
+  - Công tắc **Không tính vào báo cáo** kèm chú thích. Lưu vào `Account.excluded` (cột `excluded` có sẵn).
+  - **Mô tả → Ghi chú:** ô ghi chú nhiều dòng ở cuối form.
+  - Ô số tiền mở bàn phím ngay khi vào form.
+- **Không tính vào báo cáo:**
+  - `FinanceStore.countedAccounts` bỏ các tài khoản này khỏi Tổng số dư, Tổng tài sản và Nợ; dòng "Gồm N tài khoản" cũng không đếm chúng.
+  - Trong danh sách, tài khoản loại này có dòng phụ "Không tính vào báo cáo".
+- **Sửa lỗi:** chạm ra ngoài để đóng bàn phím dùng `simultaneousGesture`, để công tắc trong form vẫn nhận được lần chạm.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: con trỏ hiện ngay, thêm "Tiền mặt" −300.000đ không tính báo cáo → hiện đỏ trong danh sách, tổng số dư không đổi.
+
+### Form Thêm tài khoản — vòng 2: đồng bộ và báo lỗi — 2026-10-28
+
+- **Đồng bộ:** mọi nhóm trong form chỉ gồm các dòng có nhãn bên trái, không còn tiêu đề nhóm ("GHI CHÚ") hay chú thích dưới nhóm.
+  - Nhóm 1: Ngân hàng/Ví, Tên tài khoản, Số dư âm.
+  - Nhóm 2: Ngày, Giờ, Không tính vào báo cáo.
+  - Nhóm 3: ô Ghi chú (placeholder "Ghi chú").
+  - Bỏ dòng phụ dưới "Số dư âm".
+- **Bắt buộc:** tên tài khoản; với ngân hàng/ví thì phải chọn ngân hàng/ví. Gợi ý tên: "Tiền mặt", tên ngân hàng/ví đã chọn, nếu chưa chọn thì "Vietcombank" / "MoMo".
+- **Báo lỗi:**
+  - Nút ✓ luôn bấm được. Bấm khi còn thiếu thì sheet không đóng, máy rung kiểu lỗi (`Haptics.error`), nhãn dòng thiếu chuyển đỏ, và dưới nhóm hiện câu đỏ có icon "Chọn ngân hàng và nhập tên tài khoản.".
+  - Sửa đến đâu lỗi tắt đến đó.
+- **Design system:**
+  - `SheetScaffold(validate:)` kiểm tra trước khi lưu; trả `false` thì giữ sheet và rung lỗi.
+  - `FormGroup(error:)` hiện câu lỗi đỏ thay cho chú thích.
+  - `FormRowLabel(isInvalid:)` và `FormTextRow(isInvalid:)` tô đỏ nhãn.
+- Đã xem trên iPhone 17 Pro / iOS 26.3: bấm ✓ khi trống → hai dòng đỏ + câu lỗi; chọn Techcombank → tên tự điền, lỗi biến mất.
+
+### Bàn phím và ô nhập — 2026-10-28
+
+- **Bỏ thanh "Xong" trên bàn phím** (xoá `keyboardDoneButton`). Như các app hiện đại, bàn phím đóng khi chạm ra ngoài ô nhập hoặc kéo nội dung.
+- **Bỏ nút xoá nhanh** ở mọi ô: nút kính ✕ của ô số tiền lớn và ✕ xám của `FormTextRow` / `FormAmountRow`; xoá file `ClearFieldButton.swift`. Xoá số bằng phím ⌫ của bàn phím.
+- **Phần đầu form cuộn cùng nội dung:** `SheetScaffold` đặt `header` (segmented + số tiền lớn) làm phần tử đầu trong ScrollView, không còn ghim dưới thanh tiêu đề. Đã thử với bàn phím ảo trên Simulator: chạm và gõ số tiền thì số đứng yên, không bị đẩy đi xa như trước.
+- Form Thêm/Sửa giao dịch: bỏ tiêu đề nhóm "GHI CHÚ", ô ghi chú dùng placeholder "Ghi chú", giống form tài khoản.
+
+### Chip gợi ý số tiền — 2026-10-28
+
+- Trước đây chỉ gợi ý khi gõ dưới 1.000 và chỉ nhân 1.000 / 10.000 / 100.000, nên tối đa chừng chục triệu.
+- Giờ lấy số đã gõ nhân 10³ … 10⁹, bỏ những mức vượt 999 tỷ (giới hạn 12 chữ số của ô), giữ tối đa 5 chip:
+  - gõ 5 → 5k, 50k, 500k, 5tr, 50tr;
+  - gõ 25 → 25k … 250tr;
+  - gõ 2500 → 2,5tr … 25tỷ.
+- Nhãn chip dạng gọn quen thuộc (`vndCompact`: 25k, 2,5tr, 1,2tỷ) để 5 chip vừa một hàng, căn giữa. VoiceOver vẫn đọc số đầy đủ.
+- Hàng chip không cuộn ngang: hàng chip kính trong ScrollView bị iOS 26 vẽ một dải màu đậm phía sau. Nếu lỡ không vừa thì mới cuộn, có `NoScrollEdgeEffect` + `GlassEffectContainer`.
+- Đã xem trên Simulator: gõ 25, chọn 250tr → −250.000.000đ, chip được chọn chuyển đen.
+- **Hiệu ứng chip:** mỗi chip xuất hiện nối nhau từ trái sang phải. Chip phóng từ 70% lên, rõ dần, trồi lên 8pt, kiểu lò xo 0,4 giây (độ nảy 0,35), chip sau trễ 45ms so với chip trước. Gõ thêm số thì bộ chip mới chạy lại hiệu ứng; chip cũ mờ đi nhanh (0,12 giây).
+  - Hàng chip luôn có mặt trong giao diện (rỗng khi chưa gõ), để từng chip chạy được hiệu ứng riêng. Nếu thêm cả hàng một lúc thì chỉ thấy hàng mờ dần hiện ra.
+  - Đã xem trên Simulator bằng cách quay video rồi tách từng khung hình.
+
+### Hiệu ứng form — 2026-10-28
+
+1. **Số tiền lăn số:** số hiển thị là một `Text` có `.contentTransition(.numericText())`. TextField phủ lên trên không vẽ chữ (`.clear`), chỉ hiện con trỏ, nên chữ và con trỏ luôn khớp. Chọn chip, gõ hay xoá số thì từng chữ số lăn sang giá trị mới (snappy 0,3 giây).
+2. **Lưu thiếu thông tin thì lắc:** `ShakeEffect` + `.shake(_:)` trong `Interaction/Shake.swift` lắc ba nhịp qua lại 8pt trong 0,4 giây, như khi nhập sai mật mã iPhone. `FormGroup(shakes:)` lắc cả thẻ mỗi lần số đếm tăng. Form Thêm tài khoản tăng số đếm mỗi lần bấm ✓ còn thiếu, cùng lúc nhãn đỏ, câu lỗi trượt xuống và rung lỗi.
+3. **Đổi Chi tiêu/Thu nhập:** dấu "−"/"+" là cùng một `Text` nên lăn sang nhau. Màu số chuyển dần đỏ ↔ đen trong 0,25 giây. Dấu xuất hiện hoặc biến mất kèm thu phóng và mờ.
+4. **Ngày/Giờ/lựa chọn đổi giá trị:** `FormValueLabel` dùng `.numericText()`, nên "Hôm nay" → "30/10/2026", "16:51" → "15:30", hay danh mục mới đều lăn vào. Áp cho mọi dòng chọn: Danh mục, Tài khoản, Ngày, Giờ…
+- Đã xem bằng video Simulator: 45 → bấm chip 4,5tr thì lăn thành 4.500.000; đổi sang Thu nhập thì "−" đỏ thành "+" đen; bấm ✓ khi trống thì thẻ lắc và nhãn đỏ.
+- **Sửa lại theo góp ý:**
+  - Bỏ hiệu ứng lăn số của ô số tiền, vì quá rối khi chọn chip. Số đổi ngay, chip được chọn chuyển đen theo hiệu ứng mặc định của nút kính iOS. Dấu "−"/"+" và màu khi đổi Chi tiêu/Thu nhập vẫn chuyển mượt.
+  - Hàng chip mở/đóng mượt: đổi `typedBase` trong `withAnimation(.smooth(duration: 0.35))`, nên cả sheet chạy chung một chuyển động. Các dòng bên dưới trượt xuống/lên cùng hàng chip, thay vì nhảy bật trong khi chỉ chip có hiệu ứng. Bỏ `.animation(value: suggestions)` cũ.
+  - Đã xem bằng video Simulator: gõ 3 thì hàng "Tên" trượt xuống dần trong ~0,35 giây; bấm 30k thì số đổi ngay.
+
+### Bàn phím đẩy nội dung — 2026-10-28
+
+- Trước: chạm ô Ghi chú thì iOS chỉ cuộn đủ cho ô nhập vừa lộ ra, nên mép dưới thẻ ghi chú dính sát bàn phím.
+- Giờ: `SheetScaffold` có `.safeAreaPadding(.bottom, Spacing.xxl)`. iOS cuộn ô đang nhập lên trên vùng an toàn, nên luôn chừa 24pt giữa thẻ và bàn phím. Áp cho mọi form.
+- Đã thử cách tự cuộn bằng `ScrollViewReader.scrollTo` tới mép bàn phím: lệnh chạy và tính đúng vị trí, nhưng iOS tự cuộn ngay sau đó và ghi đè. Đã bỏ cách này.
+- Sửa kèm:
+  - Chạm ra ngoài để đóng bàn phím giờ dùng một lớp nằm sau nội dung (`keyboardDismissArea()`). Cử chỉ phủ cả form trước đây làm bàn phím vừa mở đã đóng ngay khi chạm vào một ô.
+  - Cả ô ghi chú (không chỉ dòng đầu) nhận chạm.
+- Đã xem trên Simulator với bàn phím ảo: từ ô số tiền chuyển sang Ghi chú thì thẻ ghi chú lộ đủ, còn khoảng hở phía trên bàn phím.
+- **Bỏ lại theo góp ý:** gỡ `safeAreaPadding` vì không thấy hiệu quả rõ. Phần đẩy nội dung khi bàn phím hiện để iOS tự lo như mặc định. Vẫn giữ hai sửa kèm (lớp đóng bàn phím nằm sau nội dung, cả ô ghi chú nhận chạm).
