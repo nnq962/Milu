@@ -8,7 +8,7 @@ struct RowDivider: View {
     var body: some View {
         Palette.border
             .frame(height: 1)
-            .padding(.leading, iconStyle == .plain ? RowMetrics.dividerInset : 72)
+            .padding(.leading, iconStyle == .plain ? RowMetrics.dividerInset : RowMetrics.circleDividerInset)
     }
 }
 
@@ -53,7 +53,7 @@ struct ListRow: View {
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         // Full size: the title gives way first.
-                        MoneyText(amount: amount, tone: amountTone)
+                        MoneyText(amount: amount, tone: isLocked ? .muted : amountTone)
                             .fixedSize()
                     }
                     HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
@@ -96,12 +96,16 @@ struct ListRow: View {
 
 /// A small black lock on a white ring, pinned to the corner of a row's icon.
 struct LockBadge: View {
+    static let size: CGFloat = 15
+    static let glyph: CGFloat = 9
+    static let ring: CGFloat = 1.5
+
     var body: some View {
-        TimiIcon("hugeicons-square-lock-02", size: 9)
+        TimiIcon("hugeicons-square-lock-02", size: Self.glyph)
             .foregroundStyle(.white)
-            .frame(width: 15, height: 15)
+            .frame(width: Self.size, height: Self.size)
             .background(Palette.primary, in: Circle())
-            .padding(1.5)
+            .padding(Self.ring)
             .background(Palette.card, in: Circle())
             .accessibilityHidden(true)
     }

@@ -17,6 +17,8 @@ struct SheetScaffold<Header: View, Content: View>: View {
     @ViewBuilder var content: Content
 
     @Environment(\.dismiss) private var dismiss
+    /// Set by the first ✓: a second tap while the sheet slides away saves nothing twice.
+    @State private var hasConfirmed = false
 
     var body: some View {
         NavigationStack {
@@ -48,24 +50,18 @@ struct SheetScaffold<Header: View, Content: View>: View {
         }
     }
 
-    @ViewBuilder
-    private var closeButton: some View {
-        if #available(iOS 26.0, *) {
-            Button(role: .close) { dismiss() }
-        } else {
-            Button { dismiss() } label: { Image(systemName: "xmark") }
-                .accessibilityLabel("Đóng")
-        }
-    }
+    private var closeButton: some View { SheetCloseButton() }
 
     /// iOS 26 draws ✓ on a filled glass circle in the tint (black); it greys itself out when disabled.
     @ViewBuilder
     private func confirmButton(_ confirm: @escaping () -> Void) -> some View {
         let action = {
+            guard !hasConfirmed else { return }
             if let validate, !validate() {
                 Haptics.error()
                 return
             }
+            hasConfirmed = true
             Haptics.success()
             confirm()
         }

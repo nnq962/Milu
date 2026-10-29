@@ -42,6 +42,13 @@ enum RowMetrics {
     /// An icon or logo standing alone, the same everywhere: a screen's header (account, credit card)
     /// and an empty state.
     static let featureIcon: CGFloat = 44
+    /// A choice in the full icon sheet (the form's quick row uses `featureIcon`).
+    static let iconChoice: CGFloat = 52
+    /// A glyph in a toolbar's glass circle (+ on Tài khoản, the edit pencil), and the frame it sits in.
+    static let toolbarGlyph: CGFloat = 22
+    static let toolbarGlyphFrame: CGFloat = 28
+    /// Where a divider starts when rows have a 44pt round icon (`IconCircle`): margin + circle + gap.
+    static let circleDividerInset: CGFloat = horizontal + featureIcon + Spacing.m
     /// Where a divider starts when rows have icons: margin + icon column + gap.
     static let dividerInset: CGFloat = horizontal + iconColumn + gap
 }

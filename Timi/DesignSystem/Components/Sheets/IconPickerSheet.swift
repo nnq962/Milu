@@ -30,14 +30,7 @@ struct IconPickerSheet: View {
             .navigationTitle("Biểu tượng")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if #available(iOS 26.0, *) {
-                        Button(role: .close) { dismiss() }
-                    } else {
-                        Button { dismiss() } label: { Image(systemName: "xmark") }
-                            .accessibilityLabel("Đóng")
-                    }
-                }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
         }
         .timiSheetStyle()
@@ -59,7 +52,7 @@ struct IconPickerSheet: View {
             Haptics.selection()
             dismiss()
         } label: {
-            IconChoiceLabel(name: icon.name, isSelected: icon.name == selection, size: 52)
+            IconChoiceLabel(name: icon.name, isSelected: icon.name == selection, size: RowMetrics.iconChoice)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(icon.title)

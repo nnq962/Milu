@@ -58,7 +58,7 @@ struct TransactionsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1) }
+                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) { heading }
                         .sharedBackgroundVisibility(.hidden)
@@ -121,8 +121,8 @@ struct TransactionsView: View {
     }
 
     private var summaryCard: some View {
-        let expenses = monthTransactions.reportable.filter { $0.kind == .expense }
-        let incomes = monthTransactions.reportable.filter { $0.kind == .income }
+        let expenses = monthTransactions.reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .expense }
+        let incomes = monthTransactions.reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .income }
         let spent = expenses.reduce(0) { $0 + $1.amount }
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -214,7 +214,12 @@ struct TransactionsView: View {
                             TransactionListRow(transaction: transaction, detail: .time)
                                 .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                                 .contextMenu {
-                                    Button("Xoá giao dịch", role: .destructive) { store.delete(transaction) }
+                                    if store.isEditable(transaction) {
+                                        Button("Xoá giao dịch", role: .destructive) { store.delete(transaction) }
+                                    } else if let reason = store.readOnlyReason(transaction) {
+                                        // Frozen history (closed goal, archived account, deleted goal).
+                                        Text(reason)
+                                    }
                                 }
                         }
                     }

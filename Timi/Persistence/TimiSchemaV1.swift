@@ -195,16 +195,3 @@ enum TimiSchemaV1: VersionedSchema {
         }
     }
 }
-
-/// How to move an old database to the current schema. Empty while there is only V1.
-enum TimiMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [TimiSchemaV1.self] }
-    static var stages: [MigrationStage] { [] }
-}
-
-// The rest of the app names the current version's models without the namespace.
-typealias AccountRecord = TimiSchemaV1.AccountRecord
-typealias CategoryRecord = TimiSchemaV1.CategoryRecord
-typealias TransactionRecord = TimiSchemaV1.TransactionRecord
-typealias LoanRecord = TimiSchemaV1.LoanRecord
-typealias ReminderRecord = TimiSchemaV1.ReminderRecord

@@ -41,8 +41,8 @@ struct MoneyCalendarCard: View {
                     } else {
                         let date = calendar.date(byAdding: .day, value: index - offset, to: start)!
                         let items = transactionsByDay[calendar.startOfDay(for: date)] ?? []
-                        let income = items.reportable.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
-                        let expense = items.reportable.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
+                        let income = items.reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
+                        let expense = items.reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
                         day(date, income: income, expense: expense)
                     }
                 }

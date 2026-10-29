@@ -1,38 +1,60 @@
 import SwiftUI
 
-/// One savings goal: how far along it is, "Rút tiền" / "Nạp tiền", then every deposit and
-/// withdrawal, newest first. The pencil in the toolbar opens the goal form (name, target, icon,
-/// deadline, delete), as "Sửa" does on an account.
+/// One savings goal, in one of three states (lifecycle, user request 2026-10-29):
+/// - saving: how far along, "Rút tiền" / "Nạp tiền";
+/// - reached the target: "Dùng tiền" (spend it, then close), "Rút hết" (take it out, then close)
+///   or "Mục tiêu mới" (aim higher in the goal form); reaching it says so once, with a haptic;
+/// - closed: how it ended, no actions; it lives on "Hũ đã hoàn thành".
+/// Under it, the history: deposits, withdrawals and what was spent, newest first. The pencil opens
+/// the goal form (name, target, icon, deadline, delete).
 struct GoalDetailView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let goalID: SavingsGoal.ID
 
     @State private var isEditing = false
+    /// The form opened from "Mục tiêu mới": the target gets the keyboard.
+    @State private var editsTarget = false
     /// Set by "Xoá hũ" in the form; the goal goes once that form has closed.
     @State private var deletesOnDismiss = false
-    @State private var transferring: GoalTransfer.Direction?
+    /// The account that gets the goal's money back when it is deleted.
+    @State private var returnAccount: Account.ID?
+    @State private var sheet: Sheet?
+    /// Whether the goal had reached its target when a sheet opened, to tell when it just did.
+    @State private var wasReached = false
+    @State private var isCelebrating = false
+    /// A history row tapped to change or delete it (not on a closed goal).
+    @State private var editingItem: AccountDetailView.Activity?
+
+    enum Sheet: Identifiable {
+        case deposit, withdraw, withdrawAll, spend
+        var id: Self { self }
+    }
 
     var body: some View {
         if let goal = store.goal(id: goalID) {
-            let transfers = store.transfers(of: goal)
+            let activity = AccountDetailView.activity(transactions: store.goalTransactions(goal),
+                                                      transfers: store.transfers(of: goal))
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
                     summary(goal)
 
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Lịch sử")
-                        if transfers.isEmpty {
+                        if activity.isEmpty {
+                            // A goal can start with money but no deposit yet (older data, sample data).
                             EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa nạp lần nào",
-                                           message: "Tiền nạp vào hoặc rút ra khỏi hũ sẽ hiện ở đây.")
+                                           message: goal.saved > 0
+                                               ? "\(goal.saved.vnd) là số có sẵn khi tạo hũ. Các lần nạp, rút sau này sẽ hiện ở đây."
+                                               : "Tiền nạp vào hoặc rút ra khỏi hũ sẽ hiện ở đây.")
                         } else {
                             VStack(spacing: 0) {
-                                ForEach(Array(transfers.enumerated()), id: \.element.id) { index, transfer in
-                                    GoalTransferRow(transfer: transfer, side: .goal)
+                                ForEach(Array(activity.enumerated()), id: \.element.id) { index, item in
+                                    ActivityRow(item: item, side: .goal, isEditable: !goal.isClosed) { editingItem = $0 }
                                         .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                                 }
                             }
-                            .sleekCard(padding: 0)
+                            .listCard()
                         }
                     }
                 }
@@ -46,74 +68,135 @@ struct GoalDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    EditToolbarButton { isEditing = true }
+                    EditToolbarButton {
+                        editsTarget = false
+                        isEditing = true
+                    }
                 }
             }
             .sheet(isPresented: $isEditing, onDismiss: {
                 guard deletesOnDismiss else { return }
                 dismiss()
-                store.delete(goal)
+                store.delete(goal, returningTo: returnAccount)
             }) {
-                GoalEditorView(goal: goal) { deletesOnDismiss = true }
+                GoalEditorView(goal: goal, focusesTarget: editsTarget) { account in
+                    returnAccount = account
+                    deletesOnDismiss = true
+                }
             }
-            .sheet(item: $transferring) { direction in
-                GoalTransferSheet(goal: goal, direction: direction)
+            .sheet(item: $sheet, onDismiss: {
+                // Just reached the target with that deposit: say so once.
+                if !wasReached, store.goal(id: goalID).map({ $0.isReached && !$0.isClosed }) == true {
+                    // ✓ already buzzed; the alert says it.
+                    isCelebrating = true
+                }
+            }) { sheet in
+                switch sheet {
+                case .deposit: GoalTransferSheet(goal: goal, direction: .deposit)
+                case .withdraw: GoalTransferSheet(goal: goal, direction: .withdrawal)
+                case .withdrawAll: GoalTransferSheet(goal: goal, direction: .withdrawal, closesGoal: true)
+                case .spend: GoalSpendSheet(goal: goal)
+                }
+            }
+            .sheet(item: $editingItem) { item in
+                ActivityEditor(item: item)
+            }
+            .alert("Đã đủ mục tiêu", isPresented: $isCelebrating) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Hũ “\(goal.name)” đã đủ \(goal.target.vnd). Giờ bạn có thể dùng tiền, rút về tài khoản hoặc đặt mục tiêu mới.")
             }
         } else {
-            ContentUnavailableView("Không tìm thấy hũ", image: "hugeicons-alert-02")
+            EmptyStateCard(icon: "hugeicons-alert-02", title: "Không tìm thấy hũ",
+                           message: "Hũ này có thể đã bị xoá.")
+                .padding(Spacing.page)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .background(Palette.background)
         }
     }
 
-    /// Laid out like "Tổng số dư" on Tài khoản: label and amount on the left, the goal's icon on the
-    /// right, then the bar with how far along on one side and the target on the other.
-    private func summary(_ goal: SavingsGoal) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: Spacing.m) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Đã để dành")
-                        .textRole(.captionStrong)
-                        .foregroundStyle(Palette.secondaryText)
-                    Text(goal.saved.vnd)
-                        .textRole(.display)
-                        .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
-                }
-                Spacer(minLength: 0)
-                RowIcon(name: goal.icon, size: RowMetrics.featureIcon)
-            }
-            .accessibilityElement(children: .combine)
+    private func open(_ next: Sheet, for goal: SavingsGoal) {
+        wasReached = goal.isReached
+        sheet = next
+    }
 
-            ProgressBar(value: goal.progress)
-                .padding(.top, Spacing.l)
-            // One line under the bar, never two: how far along (and, with a deadline, the monthly
-            // amount) on the left, the target on the right.
-            HStack(spacing: Spacing.s) {
-                (Text(goal.progress.percentText).foregroundStyle(Palette.ink)
+    /// A `SummaryCard` like "Tổng số dư": label and amount on the left, the goal's icon on the right,
+    /// then the bar, the progress line and the actions (or how it ended, once closed).
+    private func summary(_ goal: SavingsGoal) -> some View {
+        SummaryCard(label: goal.isClosed ? "Mục tiêu" : "Đã để dành",
+                    amount: goal.isClosed ? goal.target : goal.saved, icon: goal.icon, tone: .plain) {
+            if goal.isClosed {
+                closedLine(goal)
+                    .padding(.top, Spacing.m)
+            } else {
+                ProgressBar(value: goal.progress)
+                    .padding(.top, Spacing.l)
+                progressLine(goal)
+                    .padding(.top, Spacing.s)
+                actions(goal)
+                    .padding(.top, Spacing.xl)
+            }
+        }
+    }
+
+    /// One line under the bar, never two: how far along (and, with a deadline, the monthly
+    /// amount) on the left, the target on the right; "Đã đủ mục tiêu" once reached.
+    private func progressLine(_ goal: SavingsGoal) -> some View {
+        HStack(spacing: Spacing.s) {
+            if goal.isReached {
+                StatusBadge(text: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
+            } else {
+                (Text(goal.progressText).foregroundStyle(Palette.ink)
                     + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
                     .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
-                Spacer(minLength: Spacing.s)
-                Text("Mục tiêu \(goal.target.vndCompact)")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .monospacedDigit()
-            .padding(.top, Spacing.s)
+            Spacer(minLength: Spacing.s)
+            Text("Mục tiêu \(goal.target.vndCompact)")
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .monospacedDigit()
+    }
 
+    /// "Đã dùng: Mua xe · 29/10/2026".
+    private func closedLine(_ goal: SavingsGoal) -> some View {
+        StatusBadge(text: [goal.closingNote, goal.closedAt.map(TransactionListRow.dayMonth)].compactMap { $0 }
+                        .filter { !$0.isEmpty }.joined(separator: " · "),
+                    icon: "hugeicons-checkmark-badge-01")
+    }
+
+    @ViewBuilder
+    private func actions(_ goal: SavingsGoal) -> some View {
+        if goal.isReached {
+            VStack(spacing: Spacing.m) {
+                TimiButton("Dùng tiền", icon: "hugeicons-shopping-bag-01", role: .primary, fullWidth: true) {
+                    open(.spend, for: goal)
+                }
+                HStack(spacing: Spacing.m) {
+                    TimiButton("Rút hết", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
+                        open(.withdrawAll, for: goal)
+                    }
+                    TimiButton("Mục tiêu mới", icon: "hugeicons-target-02", role: .secondary, fullWidth: true) {
+                        editsTarget = true
+                        isEditing = true
+                    }
+                }
+            }
+        } else {
             // Money out on the left, in on the right (user choice 2026-10-28).
             HStack(spacing: Spacing.m) {
                 TimiButton("Rút tiền", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
-                    transferring = .withdrawal
+                    open(.withdraw, for: goal)
                 }
                 .disabled(goal.saved <= 0)
                 TimiButton("Nạp tiền", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {
-                    transferring = .deposit
+                    open(.deposit, for: goal)
                 }
             }
-            .padding(.top, Spacing.xl)
         }
-        .sleekCard(radius: CardCorners.extraLarge)
     }
 
     /// "167k/tháng" when the goal has a deadline and is not reached yet.

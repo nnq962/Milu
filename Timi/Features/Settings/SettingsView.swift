@@ -43,10 +43,14 @@ struct SettingsView: View {
                             note = Note(title: "Giao diện", message: "Timi đang dùng giao diện sáng. Chế độ tối sẽ có khi các màn đã chuyển hết sang hệ thống thiết kế.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Hạng mục", icon: "hugeicons-tag-01",
-                                          value: "\(TransactionCategory.pickable.count)") {
-                            note = Note(title: "Hạng mục", message: "Sắp có: thêm, đổi tên và sắp xếp hạng mục thu chi của riêng bạn.")
+                        NavigationLink {
+                            CategoriesView()
+                        } label: {
+                            NavigationRowLabel(title: "Hạng mục", icon: "hugeicons-tag-01",
+                                               value: "\(store.visibleItemCount)",
+                                               spokenValue: "\(store.visibleItemCount) hạng mục")
                         }
+                        .buttonStyle(.row)
                         FormDivider()
                         FormNavigationRow(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
                                           value: monthlyBudget > 0 ? monthlyBudget.vndCompact : "Chưa đặt") {
@@ -109,7 +113,7 @@ struct SettingsView: View {
                         }
                         FormDivider(hasIcon: false)
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
-                                           message: "Mọi tài khoản, giao dịch, hũ và khoản vay bạn đã thêm hoặc sửa sẽ bị xoá.") {
+                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay và hạng mục bạn đã thêm hoặc sửa sẽ bị xoá.") {
                             store.resetToSampleData()
                         }
                     }
@@ -183,23 +187,6 @@ struct SettingsView: View {
     }
 }
 
-/// The inside of a navigation row, for a `NavigationLink` that pushes instead of running an action.
-private struct NavigationRowLabel: View {
-    let title: String
-    var subtitle: String? = nil
-    var icon: String? = nil
-
-    var body: some View {
-        HStack(spacing: Spacing.s) {
-            FormRowLabel(title: title, subtitle: subtitle, icon: icon)
-            Spacer(minLength: Spacing.s)
-            TimiIcon("hugeicons-arrow-right-01", size: 16)
-                .foregroundStyle(Palette.secondary)
-        }
-        .formRowFrame()
-        .contentShape(Rectangle())
-    }
-}
 
 #Preview {
     SettingsView()

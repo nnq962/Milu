@@ -8,6 +8,8 @@ struct FormTextRow: View {
     var icon: String? = nil
     var keyboard: UIKeyboardType = .default
     var isInvalid = false
+    /// Longer text is cut to this many characters as it is typed.
+    var maxLength: Int? = nil
 
     @FocusState private var isFocused: Bool
 
@@ -21,6 +23,9 @@ struct FormTextRow: View {
                 .multilineTextAlignment(.trailing)
                 .keyboardType(keyboard)
                 .focused($isFocused)
+                .onChange(of: text) { _, new in
+                    if let maxLength, new.count > maxLength { text = String(new.prefix(maxLength)) }
+                }
         }
         .formRowFrame()
         .onTapGesture { isFocused = true }

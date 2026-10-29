@@ -23,7 +23,7 @@ struct FormGroup<Content: View>: View {
                 Label {
                     Text(error)
                 } icon: {
-                    Image(systemName: "exclamationmark.circle.fill")
+                    TimiIcon("hugeicons-alert-circle", size: 16)
                 }
                 .textRole(.caption)
                 .foregroundStyle(Palette.red)
@@ -31,13 +31,27 @@ struct FormGroup<Content: View>: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
                 .accessibilityAddTraits(.isStaticText)
             } else if let footer {
-                Text(footer)
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                    .padding(.horizontal, RowMetrics.horizontal)
+                FormFooter(text: footer)
             }
         }
         .animation(.easeOut(duration: 0.2), value: error)
+        // VoiceOver reads the error as it appears: otherwise nothing says why ✓ went grey.
+        .onChange(of: error) { _, new in
+            if let new { AccessibilityNotification.Announcement(new).post() }
+        }
+    }
+}
+
+/// The grey note under a card (`FormGroup`'s footer); for a list card, put it right under the card
+/// in a `VStack(spacing: Spacing.s)`.
+struct FormFooter: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .textRole(.caption)
+            .foregroundStyle(Palette.secondaryText)
+            .padding(.horizontal, RowMetrics.horizontal)
     }
 }
 

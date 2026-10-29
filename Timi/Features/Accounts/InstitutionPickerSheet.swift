@@ -26,7 +26,7 @@ struct InstitutionPickerSheet: View {
                                 .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                         }
                     }
-                    .sleekCard(padding: 0)
+                    .listCard()
                 }
             }
             .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
@@ -41,14 +41,7 @@ struct InstitutionPickerSheet: View {
             .searchable(text: $query,
                         prompt: type == .eWallet ? "Tìm ví" : "Tìm ngân hàng")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if #available(iOS 26.0, *) {
-                        Button(role: .close) { dismiss() }
-                    } else {
-                        Button { dismiss() } label: { Image(systemName: "xmark") }
-                            .accessibilityLabel("Đóng")
-                    }
-                }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
         }
         .timiSheetStyle()
@@ -61,28 +54,8 @@ struct InstitutionPickerSheet: View {
             Haptics.selection()
             dismiss()
         } label: {
-            HStack(spacing: RowMetrics.gap) {
-                RowIcon(name: institution.logoImage)
-                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                    Text(institution.shortName)
-                        .textRole(.body)
-                        .lineLimit(1)
-                    Text(institution.name)
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if selected {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Palette.primary)
-                }
-            }
-            .padding(.horizontal, RowMetrics.horizontal)
-            .padding(.vertical, RowMetrics.vertical)
-            .frame(minHeight: RowMetrics.minHeight)
-            .contentShape(Rectangle())
+            PickerRowLabel(icon: institution.logoImage, title: institution.shortName,
+                           subtitle: institution.name, isSelected: selected)
         }
         .buttonStyle(.row)
         .accessibilityAddTraits(selected ? .isSelected : [])

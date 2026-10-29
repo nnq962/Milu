@@ -14,7 +14,11 @@ struct AddAccountView: View {
     private let original: Account?
     /// Called after "Xoá tài khoản" closes the form; the presenter deletes the account (and, from
     /// its detail screen, leaves it first).
-    private var onDelete: (() -> Void)?
+    private var onLeave: ((Leave) -> Void)?
+
+    /// How an edited account goes away once the form has closed: archived when it has history,
+    /// deleted when it has none (user choice 2026-10-29).
+    enum Leave { case archive, delete }
     @State private var institutionID: String?
     @State private var name = ""
     @State private var note = ""
@@ -31,10 +35,10 @@ struct AddAccountView: View {
         original = nil
     }
 
-    init(account: Account, onDelete: @escaping () -> Void) {
+    init(account: Account, onLeave: @escaping (Leave) -> Void) {
         type = account.type
         original = account
-        self.onDelete = onDelete
+        self.onLeave = onLeave
         _institutionID = State(initialValue: account.institutionID)
         _name = State(initialValue: account.name)
         _note = State(initialValue: account.detail)
@@ -83,17 +87,15 @@ struct AddAccountView: View {
 
     var body: some View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
-            VStack(spacing: Spacing.xs) {
-                Text("Số dư hiện tại")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                TimiAmountField(text: $balanceText, focusesOnAppear: original == nil, isNegative: isNegative)
+            SheetAmountHeader(caption: "Số dư hiện tại") {
+                // An archived account's history is frozen, its balance too, until it is restored.
+                TimiAmountField(text: $balanceText, showsSuggestions: original?.isArchived != true,
+                                focusesOnAppear: original == nil, isNegative: isNegative)
+                    .disabled(original?.isArchived == true)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.l)
         } content: {
             // Labels say it all: no captions or footers (user prefers few words, 2026-10-28).
-            FormGroup(error: error) {
+            FormGroup(title: "Thông tin", error: error) {
                 if hasInstitutions {
                     institutionRow
                     FormDivider(hasIcon: false)
@@ -102,9 +104,10 @@ struct AddAccountView: View {
                             isInvalid: showsErrors && missesName)
                 FormDivider(hasIcon: false)
                 FormToggleRow(title: "Số dư âm", isOn: $isNegative)
+                    .disabled(original?.isArchived == true)
             }
 
-            FormGroup {
+            FormGroup(title: "Thời gian") {
                 FormDateRow(title: "Số dư tính từ", date: $openedAt)
                 FormDivider(hasIcon: false)
                 FormTimeRow(title: "Giờ", date: $openedAt)
@@ -112,23 +115,17 @@ struct AddAccountView: View {
 
             // A locked account stays in the list but out of totals, and cannot be picked when
             // recording money (user choice 2026-10-28, replacing "Không tính vào báo cáo").
-            FormGroup {
+            FormGroup(title: "Tuỳ chọn") {
                 FormToggleRow(title: "Khoá tài khoản", isOn: $isLocked)
+                    .disabled(original?.isArchived == true)
             }
 
-            FormGroup {
-                FormNoteRow(text: $note, prompt: "Ghi chú")
+            FormGroup(title: "Ghi chú") {
+                FormNoteRow(text: $note, prompt: "Thêm ghi chú")
             }
 
             if let original {
-                FormGroup {
-                    FormDestructiveRow(title: "Xoá tài khoản", question: "Xoá tài khoản “\(original.name)”?",
-                                       message: AccountsView.deleteMessage(
-                                           transactionCount: store.accountTransactions(original).count)) {
-                        dismiss()
-                        onDelete?()
-                    }
-                }
+                leaveGroup(original)
             }
         }
         .timiSheetStyle()
@@ -144,27 +141,49 @@ struct AddAccountView: View {
         }
     }
 
+    /// The last group of the edit form: "Khôi phục" for an archived account, "Lưu trữ" for one with
+    /// history, "Xoá" for one without.
+    @ViewBuilder
+    private func leaveGroup(_ account: Account) -> some View {
+        if account.isArchived {
+            FormGroup {
+                FormActionRow(title: "Khôi phục tài khoản", icon: "hugeicons-archive-02") {
+                    applyEdits()
+                    store.unarchive(account)
+                    Haptics.success()
+                    dismiss()
+                }
+            }
+        } else if store.hasHistory(account) {
+            // Has history, so it is archived rather than deleted (undoable, so not red).
+            FormGroup {
+                FormActionRow(
+                    title: "Lưu trữ tài khoản", icon: "hugeicons-archive-02",
+                    question: "Lưu trữ “\(account.name)”?",
+                    message: "Tài khoản ẩn khỏi danh sách và tổng số dư, lịch sử vẫn giữ. Khôi phục được trong “Tài khoản đã lưu trữ”."
+                ) {
+                    applyEdits()
+                    dismiss()
+                    onLeave?(.archive)
+                }
+            }
+        } else {
+            FormGroup {
+                FormDestructiveRow(title: "Xoá tài khoản", question: "Xoá tài khoản “\(account.name)”?",
+                                   message: "Không thể hoàn tác.") {
+                    dismiss()
+                    onLeave?(.delete)
+                }
+            }
+        }
+    }
+
     private var institutionRow: some View {
         Button { isPickingInstitution = true } label: {
-            HStack(spacing: Spacing.s) {
-                FormRowLabel(title: type == .eWallet ? "Ví" : "Ngân hàng", isInvalid: showsErrors && missesInstitution)
-                Spacer(minLength: Spacing.s)
-                if let institution {
-                    InstitutionLogo(image: institution.logoImage, size: 24)
-                    Text(institution.shortName)
-                        .textRole(.body)
-                        .foregroundStyle(Palette.secondaryText)
-                        .lineLimit(1)
-                } else {
-                    Text("Chọn")
-                        .textRole(.body)
-                        .foregroundStyle(Palette.secondaryText)
-                }
-                TimiIcon("hugeicons-arrow-right-01", size: 16)
-                    .foregroundStyle(Palette.secondary)
-            }
-            .formRowFrame()
-            .contentShape(Rectangle())
+            FormValueLabel(title: type == .eWallet ? "Ví" : "Ngân hàng", icon: nil,
+                           value: institution?.shortName ?? "Chọn",
+                           valueIcon: institution?.logoImage,
+                           isInvalid: showsErrors && missesInstitution)
         }
         .buttonStyle(.row)
         .accessibilityValue(institution?.shortName ?? "Chưa chọn")
@@ -178,17 +197,26 @@ struct AddAccountView: View {
         return !missesInstitution && !missesName
     }
 
+    /// Saves the edits of an existing account (also before "Lưu trữ" / "Khôi phục", so nothing typed
+    /// is lost), when what is required is filled in. Starts from the stored account.
+    private func applyEdits() {
+        guard let original, !missesName, !missesInstitution,
+              var account = store.account(id: original.id) else { return }
+        let amount = balanceText.vndInputAmount
+        account.name = trimmedName
+        account.detail = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        account.institutionID = hasInstitutions ? institutionID : nil
+        account.openedAt = openedAt
+        account.isLocked = isLocked
+        store.update(account, balance: isNegative ? -amount : amount)
+    }
+
     private func save() {
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let amount = balanceText.vndInputAmount
         let balance = isNegative ? -amount : amount
-        if var account = original {
-            account.name = trimmedName
-            account.detail = trimmedNote
-            account.institutionID = hasInstitutions ? institutionID : nil
-            account.openedAt = openedAt
-            account.isLocked = isLocked
-            store.update(account, balance: balance)
+        if original != nil {
+            applyEdits()
             dismiss()
             return
         }

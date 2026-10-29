@@ -903,3 +903,144 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Hũ đã hoàn thành: thay mục liệt kê ở cuối trang bằng một dòng lối vào "Hũ đã hoàn thành" (icon huy hiệu, số hũ, mũi tên) mở màn riêng `CompletedGoalsView` gom tất cả hũ đã đủ mục tiêu. Dòng chỉ hiện khi có ít nhất một hũ hoàn thành. Thêm asset `hugeicons-checkmark-badge-01`.
 - Dòng tài khoản khoá đổi lại: bỏ làm xám/mờ icon và tên, bỏ ổ khoá cạnh số tiền. Giờ có huy hiệu ổ khoá nhỏ (`LockBadge`: vòng đen 15pt, viền trắng) gắn ở góc dưới phải icon/logo như huy hiệu app iOS; số tiền màu xám, dòng phụ "Đã khoá".
 - Màn "Hũ đã hoàn thành": dòng phụ bỏ "Mục tiêu X" (lặp với số tiền), thay bằng ngày hoàn thành "Hoàn thành 28/10" (ngày của lần nạp gần nhất); hũ chưa từng nạp ghi "Đã hoàn thành".
+
+## Hộp xoá giữa màn hình, sửa màn hũ hoàn thành trống — 2026-10-29
+
+- `FormDestructiveRow` dùng alert giữa màn hình của iOS (nút "Huỷ" và nút xoá đỏ) thay cho hộp nổi lên từ nút xoá. Áp dụng cho mọi nút xoá trong form (tài khoản, hũ, giao dịch, khoản vay).
+- Màn "Hũ đã hoàn thành" khi danh sách trống (vd rút tiền làm hũ cuối cùng không còn đủ, rồi quay lại) bị vỡ chữ thành một cột dọc vì `ContentUnavailableView` nằm trong overlay của một ScrollView rỗng. Giờ khi trống thì hiện thẳng trạng thái trống full màn hình.
+
+## Vòng đời hũ tiết kiệm, gợi ý số tiền khi nạp — 2026-10-29
+
+- Ba trạng thái của hũ (`SavingsGoal.isReached`, `isClosed`):
+  - Đang để dành: Rút tiền / Nạp tiền như cũ.
+  - Đã đủ mục tiêu: dòng dưới thanh tiến độ ghi "Đã đủ mục tiêu"; nút chính "Dùng tiền", hai nút phụ "Rút hết" và "Mục tiêu mới" (mở form hũ để tăng mục tiêu). Lần nạp làm hũ vừa đủ hiện alert "Đã đủ mục tiêu" kèm rung thành công. Hũ đủ tiền vẫn nằm trong dãy thẻ (ghi "Đã đủ · mục tiêu 40tr") và vẫn tính vào tổng.
+  - Đã đóng: thẻ đầu ghi "Mục tiêu 40.000.000đ" và "Đã dùng: … · ngày", không còn nút; hũ rời dãy thẻ và tổng số dư, nằm ở "Hũ đã hoàn thành" (mới đóng lên trước, dòng phụ "Đã dùng: … · 29/10").
+- "Dùng tiền" (`GoalSpendSheet`): số tiền mặc định là toàn bộ hũ, "Dùng vào", danh mục chi, ngày, giờ. Ghi thành khoản chi từ hũ (tính vào báo cáo); chi ít hơn thì hiện "Phần còn lại về [tài khoản]" và số còn lại được rút về. Lưu xong thì hũ đóng.
+- "Rút hết" dùng sheet rút với số tiền điền sẵn bằng cả hũ; rút hết thì hũ đóng với ghi chú "Đã rút về …".
+- Lịch sử màn hũ gồm cả khoản chi từ hũ.
+- Gợi ý khi nạp (`TimiAmountField(presets:)`): trước khi gõ, hiện chip "Mỗi tháng 167k" (hũ có thời hạn) và "Còn thiếu 1tr"; bấm là điền ngay. Gõ số thì thay bằng gợi ý thường.
+
+## VIỆC ĐỂ SAU — "Dùng tiền" mở sheet tạo giao dịch
+
+- Ý người dùng (2026-10-29): bấm "Dùng tiền" trên hũ đã đủ mục tiêu thì mở **sheet tạo giao dịch** (`AddTransactionView`), điền sẵn từ hũ: loại chi tiêu, số tiền = cả hũ, tài khoản = hũ, tên = tên hũ. Lưu xong thì xử lý phần còn lại (nếu có) và đóng hũ như `FinanceStore.spend(from:…)`.
+- Chưa làm vì sheet tạo giao dịch còn đang làm dở. Tạm thời dùng `GoalSpendSheet` (có ghi TODO trong file). Khi xong sheet giao dịch: thêm chế độ "từ hũ" cho nó, bỏ `GoalSpendSheet`.
+
+## Tiêu đề nhóm viết hoa trong form — 2026-10-29
+
+- Form bớt trống: mỗi nhóm có tiêu đề nhóm nhỏ viết hoa (`FormGroup(title:)`, kiểu `.group`).
+  - Thêm/sửa tài khoản: THÔNG TIN · THỜI GIAN · TUỲ CHỌN · GHI CHÚ.
+  - Hũ: THÔNG TIN · BIỂU TƯỢNG · KẾ HOẠCH.
+  - Giao dịch: CHI TIẾT · GHI CHÚ. Nạp/rút hũ: CHI TIẾT · GHI CHÚ. Dùng tiền: CHI TIẾT · PHẦN CÒN LẠI. Khoản vay: THÔNG TIN.
+  - Nhóm nút xoá không có tiêu đề. Ô ghi chú đổi chữ gợi ý thành "Thêm ghi chú" để không lặp với tiêu đề.
+
+## Sửa 2 lỗi nghiệp vụ từ đợt rà soát — 2026-10-29
+
+- Tài khoản khoá: giao dịch của nó không còn tính vào báo cáo (Đã chi/Đã thu, tổng ngày, lịch tiền, chi theo hạng mục, trợ lý); mở khoá là tính lại. Trong danh sách vẫn hiện, dòng phụ "[hạng mục] · Không tính". `reportable(excluding:)` + `FinanceStore.lockedAccountIDs` / `isReportable(_:)`.
+- Xoá hũ còn tiền (người dùng chọn hỏi tài khoản nhận): hộp xoá ghi "Hũ còn X. Chọn tài khoản nhận lại tiền…" và có một nút "Chuyển về [tài khoản]" cho mỗi tài khoản không khoá; tiền rút về đó rồi hũ mới bị xoá, tổng tài sản không đổi. Không có tài khoản nào thì chỉ báo và có nút OK, không xoá. Hũ trống thì xác nhận như cũ. Các dòng nạp/rút cũ được giữ, hiện "Hũ đã xoá". `FormDestructiveRow` có thêm `choices` và `canConfirm`.
+
+## Sửa 3 lỗi nghiệp vụ mức trung bình — 2026-10-29
+
+- Chạm vào dòng lịch sử ở màn tài khoản và màn hũ để sửa (`ActivityRow` + `ActivityEditor`):
+  - giao dịch chi/thu mở form sửa giao dịch (`AddTransactionView(editing:)`);
+  - lần nạp/rút mở `GoalTransferSheet(editing:)` ("Sửa lần nạp/rút"), đổi số tiền, tài khoản, ngày, giờ, ghi chú, có "Xoá lần nạp/rút"; cả hai số dư được tính lại. Không cho sửa thành rút quá số trong hũ, hay nạp ít/xoá lần nạp khi tiền của nó đã bị rút ra (hũ sẽ âm).
+  - Dòng nạp/rút của hũ đã xoá hoặc đã đóng thì không chạm được.
+- Xoá tài khoản (người dùng chọn): xoá luôn các lần nạp/rút của nó và trừ lại khỏi hũ đang mở (không xuống dưới 0đ); hộp xoá báo trước "Hũ “Mua xe” giảm 2.000.000đ…". Hũ đã đóng giữ nguyên.
+- Hũ đã đóng: lịch sử chỉ xem; form hũ có "Mở lại hũ" (`FinanceStore.reopen`) đưa hũ về dãy thẻ để sửa được lại.
+- Sửa giao dịch "Điều chỉnh số dư" giữ nguyên hạng mục điều chỉnh (thêm vào đầu ô chọn), không còn bị đổi sang hạng mục khác.
+
+## Đưa trang Tài khoản về design system — 2026-10-29
+
+- Thành phần mới dùng chung:
+  - `SummaryCard` (Surfaces): thẻ đầu căn trái, nhãn nhỏ, số lớn bằng `MoneyText(.display)`, icon/logo bên phải, nội dung thêm bên dưới. Dùng cho "Tổng số dư", màn tài khoản (đổi từ căn giữa sang căn trái, người dùng chọn) và màn hũ.
+  - `NavigationRowLabel` (Forms): đưa từ Settings ra design system, thêm `value`. Dòng "Hũ đã hoàn thành" dùng nó.
+  - `StatusBadge(icon:)`: nhãn bo tròn có icon thay chấm. Nhãn "Không tính … đang khoá" dùng nó.
+  - `FormValueLabel(valueIcon:, isInvalid:)`: dòng "Ngân hàng/Ví" có logo trước tên, thay cho bản tự làm.
+  - `SheetCloseButton`, `SelectionCheck` (Sheets): nút ✕ trên thanh của sheet và dấu tích chọn (Hugeicons `tick-02`, thêm asset). Dùng ở sheet chọn ngân hàng, sheet biểu tượng, `SheetScaffold`, `ChoiceSheet`.
+- Khoảng cách viết số trên trang Tài khoản đổi sang `Spacing`.
+- Icon lỗi trong `FormGroup` đổi sang Hugeicons `alert-circle`.
+- Chưa đổi: thẻ tháng ở màn Giao dịch và thẻ Tổng quan vẫn tự làm, có thể chuyển sang `SummaryCard` sau.
+
+## Rà soát trang Tài khoản lần 2 — 2026-10-29
+
+- Tab bar mọc mục thứ 5: dòng `AssistantView()` bị nhân đôi trong `ContentView.swift`; đã xoá.
+- Hũ đã đóng: giao dịch và nạp/rút của nó không sửa/xoá được ở bất kỳ đâu (`FinanceStore.isEditable`, store cũng tự từ chối). Màn Giao dịch nhấn giữ hiện "Mở lại hũ để sửa giao dịch này"; form sửa (từ Trợ lý) chỉ xem, có ghi chú.
+- Phần trăm hũ làm tròn xuống (`SavingsGoal.progressText`): chỉ hiện 100% khi đủ mục tiêu.
+- Nhãn khoá đổi thành "Đang khoá X".
+- Khi mọi hũ đã hoàn thành: thẻ trống ghi "Chưa có hũ đang để dành". Hũ có tiền mà chưa có lần nạp: lời trống nói rõ đó là số có sẵn khi tạo hũ.
+- `PickerRowLabel` (Sheets): dòng chọn dùng chung, có icon/logo, dòng phụ, dấu tích. Dùng ở `ChoiceSheet` và sheet chọn ngân hàng; `OptionSheet` ("Thêm mới") dùng `NavigationRowLabel`.
+- Token mới: `RowMetrics.iconChoice` (52, ô trong sheet biểu tượng), `toolbarGlyph` (22) và `toolbarGlyphFrame` (28) cho nút + và bút chì (nút + to lên 2pt cho bằng bút chì).
+- `SummaryCard` dùng thêm cho "Tổng tài sản" (Tổng quan) và "Tổng cho vay trừ nợ" (Vay nợ); hai thẻ này giờ bo 26 như thẻ đầu trang. Thẻ tháng ở Thu chi (hai số Đã chi/Đã thu cạnh nhau) là mẫu khác nên giữ nguyên.
+
+## Lưu trữ thay vì xoá, rà soát lần 3 — 2026-10-29
+
+- **Xoá tài khoản thiết kế lại** (người dùng chọn): tài khoản đã có giao dịch hoặc nạp/rút hũ chỉ "Lưu trữ tài khoản", một bước, giữ nguyên số dư (không bắt đưa về 0đ). Lưu trữ thì ẩn khỏi danh sách, ô chọn và tổng; lịch sử, báo cáo cũ và lịch sử hũ giữ nguyên. Danh sách ở "Tài khoản đã lưu trữ" (dòng ở cuối trang Tài khoản, chung thẻ với "Hũ đã hoàn thành"); trong form có "Khôi phục tài khoản". Tài khoản chưa có lịch sử vẫn "Xoá tài khoản" hẳn. Bỏ logic trừ lại khỏi hũ khi xoá tài khoản (hết lỗi cộng sai và cảnh báo thiếu). `Account.archivedAt`, `FinanceStore.archivedAccounts`, `archive`/`unarchive`/`hasHistory`; asset `hugeicons-archive-02`.
+- Lỗi nghiệp vụ: khoản chi của hũ đã xoá không sửa được nữa (`isEditable`); sửa khoản chi trên hũ không được vượt số trong hũ; nạp/rút/dùng tiền khi mọi tài khoản đều khoá báo "Mọi tài khoản đang khoá. Mở khoá…" thay vì ✓ mờ im lặng; tài khoản/hũ mới lưu `sortOrder` = lớn nhất + 1 nên không đổi chỗ sau khi mở lại app; mỗi thao tác lưu một lần (`FinanceDatabase.batch`); nút xoá hũ phân biệt hai tài khoản trùng tên (thêm số dư) và dùng id; "Rút hết" khoá ô số tiền.
+- Design system: `listCard()` cho mọi thẻ danh sách ở trang Tài khoản; thẻ hũ padding `Spacing.card`; "Đã đủ mục tiêu" và dòng "Đã dùng…" là `StatusBadge`; token cho `StatusBadge`, `LockBadge`, `SheetHeader`, `RowMetrics.circleDividerInset`; trạng thái trống dùng `EmptyStateCard` (bỏ `ContentUnavailableView`). `SheetHeader` giữ ✕/✓ của hệ thống như nút đóng native.
+- Chữ: "Hũ đã hoàn thành" khi trống nói đúng là hũ đã đóng; xoá hũ khi mọi tài khoản khoá bảo "Mở khoá một tài khoản"; nhãn khoá thống nhất "Đã khoá" ("Đã khoá -300.000đ"), màn chi tiết "Đã khoá · không tính vào tổng và báo cáo"; "Mục tiêu mới" mở form với bàn phím ở ô mục tiêu; hũ đã đóng không sửa mục tiêu.
+
+## Rà soát lần 4 (phạm vi Tài khoản) — 2026-10-29
+
+- Phạm vi review chỉ còn quanh Tài khoản; Trợ lý AI và màn Giao dịch chưa thiết kế xong nên để sau.
+- Tài khoản vừa khoá vừa lưu trữ vẫn không tính vào báo cáo (`lockedAccountIDs` gồm cả tài khoản đã lưu trữ).
+- Lịch sử tài khoản đã lưu trữ chỉ xem như hũ đã đóng: `FinanceStore.readOnlyReason` trả lý do hiển thị ("Tài khoản đã lưu trữ. Khôi phục tài khoản để sửa.", "Hũ của giao dịch này đã bị xoá.", "…Mở lại hũ để sửa."), dùng ở form sửa giao dịch và menu nhấn giữ. Form tài khoản đã lưu trữ khoá số dư và "Số dư âm".
+- "Rút hết" là một thao tác store (`withdrawAll`), lưu một lần.
+- Store tự chặn mất tiền: xoá hũ còn tiền mà không có tài khoản nhận; dùng tiền vượt số trong hũ hoặc để lại tiền mà không có tài khoản nhận; nạp/rút với hũ đã đóng hay tài khoản khoá/lưu trữ; ghi giao dịch vào tài khoản lưu trữ hay hũ đã đóng/xoá.
+- Thứ tự: danh sách lưu trữ mới nhất lên đầu cả sau khi mở lại app; tài khoản khôi phục về cuối danh sách (`FinanceDatabase.moveToEnd`).
+- Bút chì không còn mở bàn phím ở ô mục tiêu; chỉ "Mục tiêu mới" mới mở.
+- Ghi chú "Khôi phục" đúng khi tài khoản vẫn khoá.
+
+## Rà soát lần 5 — 2026-10-29
+
+- Sửa giao dịch "Điều chỉnh số dư" và khoản chi từ hũ: khoá chọn thu/chi (không biến điều chỉnh thành khoản chi có báo cáo, không biến khoản chi hũ thành khoản thu); khoản chi hũ chỉ được ở lại đúng hũ đó. Hộp xoá khoản chi hũ ghi "Số tiền được trả lại vào hũ."
+- Tài khoản đã lưu trữ: khoá cả công tắc "Khoá tài khoản" (đổi nó sẽ đổi báo cáo cũ).
+- Store kiểm cả giá trị mới khi sửa: giao dịch không chuyển sang tài khoản lưu trữ hay hũ khác/đã đóng, khoản chi hũ không vượt số trong hũ; nạp/rút không đổi hũ, không làm hũ âm (kể cả khi xoá); xoá hũ đã đóng mà còn tiền bị chặn; "Khôi phục" lưu một lần.
+- `SheetScaffold` chặn bấm ✓ hai lần. "Dùng tiền" bỏ rung thừa.
+- `FormActionRow` (mới): hành động hoàn tác được, chữ đen, không ›, có thể hỏi xác nhận. Dùng cho "Lưu trữ tài khoản" (trước là dòng đỏ như xoá), "Khôi phục tài khoản", "Mở lại hũ". Bỏ các footer giải thích dưới các nút này (đúng quy tắc ít chữ).
+- Dòng lịch sử chỉ xem (tài khoản lưu trữ, hũ đã đóng/xoá) chạm vào hiện "Không sửa được" kèm lý do.
+- Thẻ hũ dùng `MoneyText`; "Hũ đã hoàn thành" dựng lề bằng `contentMargins` như "Tài khoản đã lưu trữ"; `ListRow` có dòng phụ bên phải cũng tô xám số tiền khi khoá.
+- Chữ: báo vượt số thống nhất "Hũ chỉ có X."; tiêu đề sheet khớp nút ("Nạp tiền", "Rút tiền", "Rút hết", "Dùng tiền"); "Đã lưu trữ 29/10"; màn tài khoản đổi "Giao dịch" thành "Lịch sử" như màn hũ; thẻ tổng bỏ "0 …" ("Chưa có tài khoản nào", "3 tài khoản", "1 hũ"); "Hoá đơn", "Sức khoẻ" theo kiểu dấu "Xoá/Khoá".
+
+## Rà soát lần 6 — 2026-10-29
+
+- Không có lỗi do các chặn mới. Sửa:
+  - "Đóng hũ" (`FinanceStore.closeEmpty`): hũ đã mở lại mà còn 0đ đóng lại được, về "Hũ đã hoàn thành" với ghi chú cũ (mở lại không xoá ghi chú nữa).
+  - Store chặn rút quá số trong hũ và số tiền ≤ 0 khi nạp/rút mới.
+  - Khoản chi của hũ đã xoá ghi "Hũ đã xoá" thay vì "—".
+  - Form giao dịch chỉ xem: khoá cả số tiền, các ô và ghi chú, không chỉ nút ✓.
+  - Sửa trong form rồi bấm "Lưu trữ" / "Khôi phục" / "Mở lại hũ" / "Đóng hũ" thì chỉnh sửa được lưu trước, không mất. Form hũ lưu dựa trên hũ trong store (không ghi đè số tiền bằng bản cũ của form).
+- `SheetAmountHeader` (Forms): phần đầu sheet có nhãn nhỏ + ô số tiền, dùng ở form tài khoản, form hũ, nạp/rút, dùng tiền. `HiddenToolbarTitle` thay `Color.clear` ở thanh trên.
+- "Hũ đã hoàn thành" dựng như "Tài khoản đã lưu trữ" (một ScrollView, cùng lề, trống hay không). Ngày đóng hũ hiện "29/10" ở cả danh sách và màn hũ.
+- Chữ: lý do chỉ xem gom thành 3 câu (`archivedReason`, `closedGoalReason`, `deletedGoalReason`); "Cần nạp ít nhất X, vì tiền đã được rút hoặc dùng."; "Tiền của lần nạp này đã được rút hoặc dùng…"; Dùng tiền: dòng "Về tài khoản", ghi chú "X sẽ về tài khoản này."; ghi chú đóng hũ có phần dư ("Đã dùng: Mua xe · 5tr về Vietcombank"); lần nạp vừa đủ mục tiêu chỉ rung một lần.
+
+## Trang Hạng mục — 2026-10-29
+
+- Cài đặt → "Hạng mục" (số = số hạng mục con đang dùng) mở `CategoriesView`: chọn Chi tiêu / Thu nhập; các nhóm là các dòng trong một thẻ (icon, tên, số hạng mục, ›), như Cài đặt iOS (người dùng chọn, thay cho bản đầu hiện cả cây). Nút + trên thanh thêm nhóm. Có dòng "Hạng mục đã ẩn" khi có. Bấm nhóm mở `CategoryGroupView`: các hạng mục con và "Thêm hạng mục"; bút chì sửa chính nhóm.
+- `CategoryEditorView`: tên, biểu tượng (`IconQuickPicker`, gợi ý lấy từ icon của nhóm và các hạng mục trong nhóm), với hạng mục con có thêm "Nhóm" để chuyển nhóm; nhóm mới có "Hạng mục đầu tiên". Cuối form: "Hiện lại" (đã ẩn), "Ẩn …" (đã có giao dịch, hỏi trước), "Xoá …" (chưa có). Hạng mục con cuối cùng của nhóm không xoá/ẩn riêng được.
+- Người dùng chọn: giao dịch bắt buộc ghi vào hạng mục con; hạng mục có giao dịch thì ẩn, giữ lịch sử; lượt này chỉ làm trang quản lý, chưa nối form giao dịch (ghi trong docs/DATABASE.md).
+- Database V2 (`TimiSchemaV2`, thêm `CategoryRecord.parentID`), dữ liệu mặc định 14 nhóm (10 chi, 4 thu) và các hạng mục con tiếng Việt (`DefaultCategories`).
+- Bảng biểu tượng mở rộng từ 133 lên 311 icon, 15 nhóm (thêm Làm đẹp, Thể thao, Công nghệ, Du lịch, Dịch vụ), toàn bộ Hugeicons free; đã kiểm mỗi tên có asset, không trùng.
+- "Thêm hạng mục" dùng `FormActionRow` (chữ và dấu + màu đen như mọi dòng hành động); màu xám đọc như nút bị tắt.
+- Rà soát phần Hạng mục: mặc định chỉ bổ sung một lần (mục đã xoá không quay lại); ẩn nhóm ẩn luôn hạng mục con thay vì xoá, hiện lại đúng những mục ẩn cùng lúc (nhóm không bao giờ trống); hạng mục cuối cùng không chuyển nhóm được; ẩn/xoá nhóm từ màn của nhóm thì màn tự quay về sau khi sheet đóng; "Đặt lại dữ liệu mẫu" lưu xong bước xoá rồi mới tạo lại hạng mục; thứ tự có tiêu chí phụ `createdAt`.
+- "Hạng mục đã ẩn" dùng `NavigationRowLabel`, dòng phụ "Nhóm · Đã ẩn 29/10" / "Ăn uống · Đã ẩn 29/10"; hạng mục nằm trong nhóm đã ẩn không liệt kê riêng. Ô chọn nhóm có cả nhóm đang ẩn của chính hạng mục. Số ở Cài đặt chỉ đếm hạng mục đang dùng trong nhóm đang dùng; VoiceOver đọc "6 hạng mục". Dưới danh sách có một dòng ghi chú: hạng mục mới dùng được khi ghi giao dịch trong bản cập nhật tới.
+- Rà soát Hạng mục lần 2:
+  - Bấm "Ẩn …" / "Hiện lại …" lưu luôn tên và biểu tượng đang sửa trong form (trước đây mất).
+  - 12 nhóm có sẵn (trùng `TransactionCategory`) chỉ ẩn, không xoá, vì form giao dịch cũ vẫn ghi vào chúng; nhóm đang ẩn vẫn chọn được ở form cũ cho tới khi nối form mới.
+  - Hiện lại một hạng mục nằm trong nhóm đang ẩn thì hiện lại cả nhóm (cùng các mục ẩn cùng nhóm).
+  - Ô "Nhóm" bị khoá ở hạng mục cuối cùng có chú thích "Hạng mục cuối cùng của nhóm nên không chuyển nhóm được."
+  - Chữ: "Hiện lại nhóm/hạng mục"; "…, hoặc ẩn/xoá cả nhóm."; "Đặt lại dữ liệu mẫu" nhắc cả hạng mục.
+  - "Hạng mục đã ẩn" xếp mục ẩn gần nhất lên đầu.
+  - VoiceOver: dòng nhóm đọc "Ăn uống, 6 hạng mục" một lần (`NavigationRowLabel(spokenValue:)`), dòng Hạng mục ở Cài đặt cũng vậy.
+- Rà soát Hạng mục lần 3:
+  - Ghi chú dưới danh sách: "Thay đổi ở đây sẽ áp dụng khi ghi giao dịch từ bản cập nhật tới." (đổi tên, biểu tượng hay ẩn nhóm có sẵn chưa có tác dụng ở form giao dịch). Dùng `FormFooter`, cùng chú thích với `FormGroup`.
+  - Mỗi loại (chi/thu) giữ ít nhất một nhóm: nhóm cuối vẫn có dòng "Ẩn/Xoá nhóm" nhưng hộp thoại chỉ giải thích, nút "OK" (`FormActionRow(canConfirm:)`, như `FormDestructiveRow`).
+  - Biểu tượng "•••" và "+" (không có trong bảng, trông như nút "Xem tất cả"/"Thêm") đổi thành ô lưới (`dashboard-square-01`, "Khác" trong bảng) cho "Chi khác"/"Khác" và `money-add-02` cho "Thu khác"; dữ liệu cũ đổi khi mở app (`FinanceDatabase.replaceRetiredIcons`, cả tên Solar từ V1). Ngôi sao trong bảng giờ tên "Ngôi sao".
+  - Tên tối đa 30 ký tự (`FormTextRow(maxLength:)`, `Category.maxNameLength`).
+  - Không trùng tên: nhóm cùng loại, hạng mục cùng nhóm (không phân biệt hoa thường, có phân biệt dấu; tính cả mục đang ẩn). Lỗi đỏ dưới thẻ "Nhóm này đã có “Internet”." / "Đã có nhóm “Lương” (đang ẩn).", nút ✓ tắt. Gợi ý tên nhóm mới đổi thành "Du lịch" / "Vé máy bay".
+  - Chuyển hạng mục sang nhóm khác: xếp sau mọi mục của nhóm đó, cả mục đang ẩn.
+- Rà soát Hạng mục lần 4:
+  - VoiceOver đọc dòng lỗi đỏ ngay khi nó hiện (`FormGroup` gửi `AccessibilityNotification.Announcement`), cho mọi form.
+  - Nhóm cuối mỗi loại: khi có nhóm đang ẩn, câu giải thích thêm "…hoặc hiện lại một nhóm đã ẩn trước."
+  - Trùng với mục đang ẩn: "Đã có nhóm “Lương”, đang ẩn trong Hạng mục đã ẩn."
+  - Tên được gộp khoảng trắng thừa ("Ăn  sáng" thành "Ăn sáng", chỉ gặp khi dán) trước khi so trùng và lưu.
+  - Bấm "Ẩn"/"Hiện lại" khi tên trống hoặc trùng: vẫn lưu biểu tượng mới, giữ tên và nhóm cũ.
+- Rà soát Hạng mục lần 5: không cho đặt tên trùng tên hạng mục hệ thống ("Điều chỉnh số dư", `Category.reservedNames`), báo "“Điều chỉnh số dư” là tên dành cho hệ thống."

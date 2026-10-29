@@ -17,6 +17,13 @@ extension View {
 }
 
 extension View {
+    /// A white card holding rows (accounts, transactions, settings): no padding, the rows bring
+    /// their own. One helper so every list card looks the same.
+    func listCard() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface(color: Palette.card, elevated: true)
+    }
+
     /// White Sleek card: p-5, large continuous corners and the soft shadow.
     func sleekCard(padding: CGFloat = 20, radius: CGFloat = CardCorners.large) -> some View {
         self.padding(padding)

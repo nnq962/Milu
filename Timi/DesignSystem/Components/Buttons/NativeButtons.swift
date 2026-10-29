@@ -63,8 +63,16 @@ struct EditToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            TimiIcon("hugeicons-pencil-edit-01", size: 22)
+            TimiIcon("hugeicons-pencil-edit-01", size: RowMetrics.toolbarGlyph)
         }
         .accessibilityLabel("Sửa")
+    }
+}
+
+/// Fills the toolbar's centre on a screen whose title is drawn as a leading heading instead, so the
+/// system does not show the navigation title there.
+struct HiddenToolbarTitle: View {
+    var body: some View {
+        Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
     }
 }

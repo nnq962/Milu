@@ -46,6 +46,12 @@ struct Account: Identifiable, Hashable {
     /// "Khoá tài khoản": kept out of totals and reports, and not offered when recording money
     /// (frozen funds, money set aside, someone else's cash…). Stored as `excluded`.
     var isLocked = false
+    /// "Lưu trữ": an account with history the user no longer uses. Hidden from the lists, pickers
+    /// and totals, its history kept (user choice 2026-10-29, instead of deleting it). Stored as the
+    /// record's `archivedAt`.
+    var archivedAt: Date? = nil
+
+    var isArchived: Bool { archivedAt != nil }
 
     var institution: Institution? { Institution.find(institutionID) }
 

@@ -19,11 +19,21 @@ struct SavingsGoal: Identifiable, Hashable {
     var target: Double
     /// The date the user wants to reach the target by; nil when there is none.
     var dueDate: Date? = nil
+    /// When the goal was closed (its money spent or taken out after reaching the target); nil
+    /// while it is still being saved for. Stored as the record's `archivedAt`.
+    var closedAt: Date? = nil
+    /// How it ended, said on "Hũ đã hoàn thành": "Đã dùng: Mua xe", "Đã rút về Vietcombank".
+    /// Stored as the record's `detail`.
+    var closingNote: String = ""
 
     var progress: Double { target > 0 ? min(saved / target, 1) : 0 }
+    /// "99%": rounded down, so a goal only reads "100%" once it is reached.
+    var progressText: String { (floor(progress * 100) / 100).percentText }
     var remaining: Double { max(target - saved, 0) }
-    /// Reached its target: it leaves the cards on Tài khoản for "Đã hoàn thành".
-    var isCompleted: Bool { target > 0 && saved >= target }
+    /// Saved as much as the target: the goal then offers to use the money, take it out, or aim higher.
+    var isReached: Bool { target > 0 && saved >= target }
+    /// Done with: kept on "Hũ đã hoàn thành", out of the cards and totals.
+    var isClosed: Bool { closedAt != nil }
 
     /// Whole months left until `dueDate`, counting a part month as one; at least 1.
     static func monthsLeft(until dueDate: Date, from now: Date = .now) -> Int {

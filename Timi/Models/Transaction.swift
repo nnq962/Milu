@@ -36,9 +36,9 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .food: "Ăn uống"
         case .transport: "Di chuyển"
         case .shopping: "Mua sắm"
-        case .bills: "Hóa đơn"
+        case .bills: "Hoá đơn"
         case .entertainment: "Giải trí"
-        case .health: "Sức khỏe"
+        case .health: "Sức khoẻ"
         case .education: "Học tập"
         case .otherExpense: "Chi khác"
         case .salary: "Lương"
@@ -58,11 +58,11 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .entertainment: "hugeicons-film-02"
         case .health: "hugeicons-first-aid-kit"
         case .education: "hugeicons-book-02"
-        case .otherExpense: "hugeicons-more-horizontal"
+        case .otherExpense: "hugeicons-dashboard-square-01"
         case .salary: "hugeicons-money-bag-02"
         case .bonus: "hugeicons-gift"
         case .investment: "hugeicons-chart-increase"
-        case .otherIncome: "hugeicons-add-01"
+        case .otherIncome: "hugeicons-money-add-02"
         case .adjustmentIn, .adjustmentOut: "hugeicons-pencil-edit-01"
         }
     }
@@ -111,8 +111,11 @@ struct FinanceTransaction: Identifiable, Hashable {
 }
 
 extension Sequence<FinanceTransaction> {
-    /// Without balance adjustments: what totals, charts and the assistant count.
-    var reportable: [FinanceTransaction] { filter { !$0.category.isAdjustment } }
+    /// What totals, charts and the assistant count: no balance adjustments, and nothing recorded on
+    /// a locked account (`lockedAccounts`, from `FinanceStore.lockedAccountIDs`).
+    func reportable(excluding lockedAccounts: Set<Account.ID>) -> [FinanceTransaction] {
+        filter { !$0.category.isAdjustment && !lockedAccounts.contains($0.accountID) }
+    }
 }
 
 extension FinanceTransaction {

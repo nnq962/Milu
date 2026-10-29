@@ -30,7 +30,8 @@ extension Account {
             paymentDueDate: record.paymentDueDate,
             institutionID: record.institutionID,
             openedAt: record.createdAt,
-            isLocked: record.excluded
+            isLocked: record.excluded,
+            archivedAt: record.archivedAt
         )
     }
 }
@@ -47,6 +48,7 @@ extension AccountRecord {
         // V1 has no separate opened date: the row's createdAt holds the date the user picked.
         createdAt = account.openedAt
         excluded = account.isLocked
+        archivedAt = account.archivedAt
         updatedAt = .now
     }
 }
@@ -63,7 +65,9 @@ extension SavingsGoal {
             icon: IconCatalog.migrated(record.goalIcon ?? SavingsGoal.defaultIcon),
             saved: Double(dong: record.balance),
             target: Double(dong: record.goalTarget ?? 0),
-            dueDate: record.goalDueDate
+            dueDate: record.goalDueDate,
+            closedAt: record.archivedAt,
+            closingNote: record.detail
         )
     }
 }
@@ -77,6 +81,8 @@ extension AccountRecord {
         goalTarget = Int64(dong: goal.target)
         goalIcon = goal.icon
         goalDueDate = goal.dueDate
+        archivedAt = goal.closedAt
+        detail = goal.closingNote
         updatedAt = .now
     }
 }
@@ -87,6 +93,25 @@ extension CategoryRecord {
     convenience init(_ category: TransactionCategory, sortOrder: Int) {
         self.init(id: category.rawValue, kind: category.kind.rawValue, name: category.title,
                   icon: category.icon, isBuiltIn: true, sortOrder: sortOrder)
+    }
+
+    func apply(_ category: Category) {
+        kind = category.kind.rawValue
+        parentID = category.parentID
+        name = category.name
+        icon = category.icon
+        isBuiltIn = category.isBuiltIn
+        sortOrder = category.sortOrder
+        archivedAt = category.hiddenAt
+        updatedAt = .now
+    }
+}
+
+extension Category {
+    init(_ record: CategoryRecord) {
+        self.init(id: record.id, kind: TransactionKind(rawValue: record.kind) ?? .expense,
+                  parentID: record.parentID, name: record.name, icon: IconCatalog.migrated(record.icon),
+                  isBuiltIn: record.isBuiltIn, sortOrder: record.sortOrder, hiddenAt: record.archivedAt)
     }
 }
 
@@ -190,13 +215,16 @@ extension ReminderRecord {
 // MARK: - Nạp/rút hũ
 
 extension GoalTransfer {
-    /// Nil unless the row is a transfer with a goal on one side and an account on the other.
-    init?(_ record: TransactionRecord, goalIDs: Set<UUID>) {
+    /// Nil unless the row is a transfer between a goal and an account. The goal may have been
+    /// deleted since: the side that is a known account then tells the direction.
+    init?(_ record: TransactionRecord, goalIDs: Set<UUID>, accountIDs: Set<UUID>) {
         guard record.kind == "transfer", let from = record.fromAccountID, let to = record.toAccountID else { return nil }
         let direction: Direction
         switch (goalIDs.contains(from), goalIDs.contains(to)) {
         case (false, true): direction = .deposit
         case (true, false): direction = .withdrawal
+        case (false, false) where accountIDs.contains(from): direction = .deposit
+        case (false, false) where accountIDs.contains(to): direction = .withdrawal
         default: return nil
         }
         self.init(id: record.id,

@@ -8,6 +8,9 @@ struct GoalRoute: Hashable {
 /// Pushes the list of goals that reached their target.
 struct CompletedGoalsRoute: Hashable {}
 
+/// Pushes the list of archived accounts.
+struct ArchivedAccountsRoute: Hashable {}
+
 struct AccountsView: View {
     @Environment(FinanceStore.self) private var store
     @State private var isChoosingNew = false
@@ -34,17 +37,15 @@ struct AccountsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Spacing.section) {
                     totalCard
                     paymentSection
                     goalsSection
-                    if !store.completedGoals.isEmpty {
-                        completedEntry
-                    }
+                    moreEntries
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.l)
+                .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
@@ -53,7 +54,7 @@ struct AccountsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1) }
+                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                 if #available(iOS 26.0, *) {
                     // Sleek: the heading sits on the same row as the + button.
                     ToolbarItem(placement: .topBarLeading) { heading }
@@ -75,6 +76,9 @@ struct AccountsView: View {
             }
             .navigationDestination(for: CompletedGoalsRoute.self) { _ in
                 CompletedGoalsView()
+            }
+            .navigationDestination(for: ArchivedAccountsRoute.self) { _ in
+                ArchivedAccountsView()
             }
             .sheet(isPresented: $isChoosingNew, onDismiss: {
                 newItem = pendingNew
@@ -105,8 +109,8 @@ struct AccountsView: View {
 
     private var addMenu: some View {
         Button { isChoosingNew = true } label: {
-            TimiIcon("hugeicons-add-circle", size: 20)
-                .frame(width: 28, height: 28)
+            TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
         .tint(Palette.ink)
@@ -114,38 +118,20 @@ struct AccountsView: View {
     }
 
     /// "Tổng số dư" (style 1, user choice 2026-10-28): the total, a quiet line of what it holds,
-    /// and, when some accounts are locked, a grey pill with how much is left out.
+    /// and, when some accounts are locked, a badge with how much is left out.
     private var totalCard: some View {
         let locked = store.lockedPaymentAccounts
-        return VStack(alignment: .leading, spacing: 0) {
-            Text("Tổng số dư")
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
-            Text(store.paymentBalance.vnd)
-                .textRole(.display)
-                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
-                .padding(.top, 4)
-            Text("\(store.paymentAccounts.count - locked.count) tài khoản · \(store.savingsGoals.count) hũ")
+        return SummaryCard(label: "Tổng số dư", amount: store.paymentBalance) {
+            Text(Self.holdings(accounts: store.paymentAccounts.count - locked.count, goals: store.activeGoals.count))
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
-                .padding(.top, 4)
+                .padding(.top, Spacing.xs)
             if !locked.isEmpty {
-                HStack(spacing: 6) {
-                    TimiIcon("hugeicons-square-lock-02", size: 14)
-                    Text("Không tính \(locked.reduce(0) { $0 + $1.balance }.vnd) đang khoá")
-                        .textRole(.captionStrong)
-                        .monospacedDigit()
-                }
-                .foregroundStyle(Palette.secondaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Palette.muted, in: Capsule())
-                .padding(.top, Spacing.m)
+                StatusBadge(text: "Đã khoá \(locked.reduce(0) { $0 + $1.balance }.vnd)",
+                            icon: "hugeicons-square-lock-02")
+                    .padding(.top, Spacing.m)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-        .sleekCard(radius: CardCorners.extraLarge)
     }
 
     private var paymentSection: some View {
@@ -169,7 +155,7 @@ struct AccountsView: View {
                         .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                     }
                 }
-                .cardSurface(color: Palette.card, elevated: true)
+                .listCard()
             }
         }
     }
@@ -178,7 +164,9 @@ struct AccountsView: View {
         VStack(alignment: .leading, spacing: Spacing.headerGap) {
             SectionHeader(title: "Hũ tiết kiệm")
             if store.activeGoals.isEmpty {
-                EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa có hũ nào",
+                // Every goal may be done already: then the empty card invites the next one.
+                EmptyStateCard(icon: "hugeicons-piggy-bank",
+                               title: store.completedGoals.isEmpty ? "Chưa có hũ nào" : "Chưa có hũ đang để dành",
                                message: "Để dành cho chuyến đi, chiếc xe hay quỹ dự phòng, mỗi mục tiêu một hũ.")
             } else {
                 goalCarousel
@@ -186,27 +174,32 @@ struct AccountsView: View {
         }
     }
 
-    /// One row into every goal that reached its target (user choice 2026-10-28): finished goals
-    /// leave the cards above and are kept together on their own screen.
-    private var completedEntry: some View {
-        let completed = store.completedGoals
-        return NavigationLink(value: CompletedGoalsRoute()) {
-            HStack(spacing: RowMetrics.gap) {
-                RowIcon(name: "hugeicons-checkmark-badge-01")
-                Text("Hũ đã hoàn thành")
-                    .textRole(.body)
-                Spacer(minLength: Spacing.s)
-                Text("\(completed.count)")
-                    .textRole(.body)
-                    .foregroundStyle(Palette.secondaryText)
-                    .monospacedDigit()
-                TimiIcon("hugeicons-arrow-right-01", size: 16)
-                    .foregroundStyle(Palette.secondary)
+    /// Rows into what is kept but out of the way: closed goals and archived accounts (user choice
+    /// 2026-10-28 / 2026-10-29), each shown only when there is something in it.
+    @ViewBuilder
+    private var moreEntries: some View {
+        let completed = store.completedGoals.count
+        let archived = store.archivedAccounts.count
+        if completed > 0 || archived > 0 {
+            VStack(spacing: 0) {
+                if completed > 0 {
+                    NavigationLink(value: CompletedGoalsRoute()) {
+                        NavigationRowLabel(title: "Hũ đã hoàn thành", icon: "hugeicons-checkmark-badge-01",
+                                           value: "\(completed)")
+                    }
+                    .buttonStyle(.row)
+                }
+                if archived > 0 {
+                    NavigationLink(value: ArchivedAccountsRoute()) {
+                        NavigationRowLabel(title: "Tài khoản đã lưu trữ", icon: "hugeicons-archive-02",
+                                           value: "\(archived)")
+                    }
+                    .buttonStyle(.row)
+                    .overlay(alignment: .top) { if completed > 0 { FormDivider() } }
+                }
             }
-            .formRowFrame()
+            .listCard()
         }
-        .buttonStyle(.row)
-        .cardSurface(color: Palette.card, elevated: true)
     }
 
     /// Goals side by side, scrolling sideways and settling on a card; each card is three fifths of
@@ -232,11 +225,14 @@ struct AccountsView: View {
 }
 
 extension AccountsView {
-    /// What deleting an account also removes, said before it happens.
-    static func deleteMessage(transactionCount: Int) -> String {
-        transactionCount > 0
-            ? "\(transactionCount) giao dịch của tài khoản này cũng bị xoá. Không thể hoàn tác."
-            : "Không thể hoàn tác."
+    /// "3 tài khoản · 1 hũ", leaving out what there is none of.
+    static func holdings(accounts: Int, goals: Int) -> String {
+        switch (accounts, goals) {
+        case (0, 0): "Chưa có tài khoản nào"
+        case (_, 0): "\(accounts) tài khoản"
+        case (0, _): "\(goals) hũ"
+        default: "\(accounts) tài khoản · \(goals) hũ"
+        }
     }
 }
 

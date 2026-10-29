@@ -27,24 +27,7 @@ struct OptionSheet: View {
                         dismiss()
                         onSelect(option)
                     } label: {
-                        HStack(spacing: RowMetrics.gap) {
-                            FormIconTile(icon: option.icon)
-                            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                                Text(option.title).textRole(.body)
-                                if let subtitle = option.subtitle {
-                                    Text(subtitle)
-                                        .textRole(.caption)
-                                        .foregroundStyle(Palette.secondaryText)
-                                }
-                            }
-                            Spacer()
-                            TimiIcon("hugeicons-arrow-right-01", size: 16)
-                                .foregroundStyle(Palette.secondary)
-                        }
-                        .padding(.horizontal, RowMetrics.horizontal)
-                        .padding(.vertical, RowMetrics.vertical)
-                        .frame(minHeight: RowMetrics.minHeight)
-                        .contentShape(Rectangle())
+                        NavigationRowLabel(title: option.title, subtitle: option.subtitle, icon: option.icon)
                     }
                     .buttonStyle(.row)
                     .overlay(alignment: .top) { if index > 0 { FormDivider() } }

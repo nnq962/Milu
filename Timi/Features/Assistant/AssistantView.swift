@@ -50,7 +50,7 @@ struct AssistantView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1) }
+                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) { heading }
                         .sharedBackgroundVisibility(.hidden)

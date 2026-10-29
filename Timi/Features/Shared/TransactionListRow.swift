@@ -14,7 +14,7 @@ struct TransactionListRow: View {
     var body: some View {
         switch detail {
         case .account:
-            row(subtitle: "\(categoryText) · \(store.account(id: transaction.accountID)?.name ?? "—")", trailing: nil)
+            row(subtitle: "\(categoryText) · \(store.account(id: transaction.accountID)?.name ?? store.goal(id: transaction.accountID)?.name ?? "Hũ đã xoá")", trailing: nil)
         case .day:
             // Amount level with the title, the short date under it.
             row(subtitle: categoryText,
@@ -25,9 +25,12 @@ struct TransactionListRow: View {
         }
     }
 
-    /// The category, or for a balance adjustment (whose title already says so) that it is not counted.
+    /// The category; for a balance adjustment (whose title already says so) or a transaction on a
+    /// locked account, that it is not counted.
     private var categoryText: String {
-        transaction.category.isAdjustment ? "Không tính vào báo cáo" : transaction.category.title
+        if transaction.category.isAdjustment { return "Không tính vào báo cáo" }
+        if !store.isReportable(transaction) { return "\(transaction.category.title) · Không tính" }
+        return transaction.category.title
     }
 
     /// "27/10".

@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// A ready amount offered before anything is typed ("Mỗi tháng 167k" on a goal deposit).
+struct AmountPreset: Hashable {
+    let label: String
+    let value: Double
+}
+
 /// The main amount of a form (web CurrencyInput hero): 40pt figure centred with its sign before and
 /// "đ" right after in the same colour and weight (user request 2026-10-28), shrinking as it grows;
 /// suggestion chips (3 → 3k … 30tr).
@@ -11,6 +17,8 @@ struct TimiAmountField: View {
     var focusesOnAppear = false
     /// Shows the figure as owed: a "−" before it and red (an overdrawn account, cash owed).
     var isNegative = false
+    /// Chips shown while nothing is typed; typing replaces them with the usual suggestions.
+    var presets: [AmountPreset] = []
 
     @FocusState private var isFocused: Bool
     /// Digits the user typed; suggestions follow these, not the chip they picked.
@@ -121,7 +129,7 @@ struct TimiAmountField: View {
                     .modifier(NoScrollEdgeEffect())
                     .padding(.horizontal, -Spacing.page)
                 }
-                .padding(.top, suggestions.isEmpty ? 0 : Spacing.m)
+                .padding(.top, suggestions.isEmpty && shownPresets.isEmpty ? 0 : Spacing.m)
                 .sensoryFeedback(.selection, trigger: picks)
             }
         }
@@ -138,7 +146,8 @@ struct TimiAmountField: View {
                 return
             }
             // A chip's value keeps the row where it is; typing resets the base.
-            if !suggestions.contains(newValue.vndInputAmount) {
+            let value = newValue.vndInputAmount
+            if !suggestions.contains(value) && !presets.contains(where: { $0.value == value }) {
                 let base: Double? = newValue.isEmpty ? nil : newValue.vndInputAmount
                 guard base != typedBase else { return }
                 // One transaction for the whole sheet: the chip row opens or closes and the rows
@@ -161,8 +170,26 @@ struct TimiAmountField: View {
         }
     }
 
+    /// Presets until the user types their own figure.
+    private var shownPresets: [AmountPreset] { typedBase == nil ? presets : [] }
+
     private var chipStack: some View {
         HStack(spacing: Spacing.s) {
+            ForEach(shownPresets, id: \.self) { preset in
+                let picked = preset.value == amount
+                Button {
+                    text = String(Int(preset.value)).groupedVNDInput
+                    picks += 1
+                } label: {
+                    Text("\(preset.label) \(preset.value.vndCompact)")
+                        .textRole(.captionStrong)
+                        .foregroundStyle(picked ? .white : Palette.ink)
+                        .fixedSize()
+                }
+                .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
+                .buttonBorderShape(.capsule)
+                .accessibilityLabel("\(preset.label) \(preset.value.vnd)")
+            }
             ForEach(suggestions, id: \.self) { value in
                 let picked = value == amount
                 Button {
@@ -179,5 +206,23 @@ struct TimiAmountField: View {
                 .accessibilityLabel(value.vnd)
             }
         }
+    }
+}
+
+/// The top of a money sheet: what the amount is (a small grey line: "Số dư hiện tại", the goal's
+/// name) above the big `TimiAmountField`. One layout for every sheet that starts with an amount.
+struct SheetAmountHeader<Field: View>: View {
+    let caption: String
+    @ViewBuilder var field: Field
+
+    var body: some View {
+        VStack(spacing: Spacing.xs) {
+            Text(caption)
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
+            field
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.l)
     }
 }

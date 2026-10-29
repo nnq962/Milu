@@ -5,20 +5,15 @@ struct BalanceCard: View {
     @Environment(FinanceStore.self) private var store
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Tổng tài sản").textRole(.captionStrong).foregroundStyle(Palette.secondaryText)
-                Text(store.netWorth.vnd)
-                    .textRole(.display)
-                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
-            }
-            HStack(spacing: 8) {
+        // The page's lead card, the same `SummaryCard` as "Tổng số dư" on Tài khoản.
+        SummaryCard(label: "Tổng tài sản", amount: store.netWorth, tone: .plain) {
+            HStack(spacing: Spacing.s) {
                 stat("Số dư", value: store.totalAssets.vndCompact, icon: "hugeicons-wallet-01")
                 stat("Cho vay", value: store.totalLent.vndCompact, icon: "hugeicons-hand-coins")
                 stat("Nợ", value: (-store.totalDebt).vndCompact, icon: "hugeicons-credit-card", color: Palette.red)
             }
+            .padding(.top, Spacing.l)
         }
-        .overviewCard()
         .accessibilityElement(children: .contain)
     }
 

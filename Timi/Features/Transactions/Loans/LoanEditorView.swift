@@ -53,7 +53,7 @@ struct LoanEditorView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.s)
         } content: {
-            FormGroup(footer: outstandingFooter) {
+            FormGroup(title: "Thông tin", footer: outstandingFooter) {
                 FormTextRow(title: direction == .lent ? "Người vay" : "Người cho vay", text: $name,
                             prompt: direction == .lent ? "Minh Trần" : "Ngân hàng VCB")
                 FormDivider(hasIcon: false)

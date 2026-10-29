@@ -20,22 +20,8 @@ struct ChoiceSheet<Value: Hashable>: View {
                         selection = option
                         dismiss()
                     } label: {
-                        HStack(spacing: RowMetrics.gap) {
-                            if let icon {
-                                RowIcon(name: icon(option))
-                            }
-                            Text(label(option)).textRole(.body)
-                            Spacer()
-                            if option == selection {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(Palette.primary)
-                            }
-                        }
-                        .padding(.horizontal, RowMetrics.horizontal)
-                        .padding(.vertical, RowMetrics.vertical)
-                        .frame(minHeight: RowMetrics.minHeight)
-                        .contentShape(Rectangle())
+                        PickerRowLabel(icon: icon?(option), title: label(option),
+                                       isSelected: option == selection)
                     }
                     .buttonStyle(.row)
                     .accessibilityAddTraits(option == selection ? .isSelected : [])

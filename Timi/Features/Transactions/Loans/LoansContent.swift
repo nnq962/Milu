@@ -63,27 +63,22 @@ struct LoansContent: View {
         let lenders = store.loans.filter { $0.direction == .lent && !$0.isSettled }.count
         let debts = store.accounts.filter { $0.type == .credit && $0.balance < 0 }.count
             + store.loans.filter { $0.direction == .borrowed && !$0.isSettled }.count
-        return VStack(alignment: .leading, spacing: 4) {
-            Text("Tổng cho vay trừ nợ")
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
-            Text(net.vnd)
-                .textRole(.display)
-                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
+        // The tab's lead card, the same `SummaryCard` as "Tổng số dư" on Tài khoản.
+        return SummaryCard(label: "Tổng cho vay trừ nợ", amount: net, tone: .plain) {
             Text(net < 0 ? "Đang ở mức âm: bạn nợ nhiều hơn số đang cho vay"
                  : net > 0 ? "Đang ở mức dương: số đang cho vay nhiều hơn số bạn nợ"
                  : "Số đang cho vay bằng số bạn đang nợ")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
-            HStack(spacing: 12) {
+                .padding(.top, Spacing.xs)
+            HStack(spacing: Spacing.m) {
                 summaryTile("Đang cho vay", amount: store.totalLent.vndCompact, detail: "\(lenders) người",
                             color: Palette.ink, background: Palette.incomeTile)
                 summaryTile("Đang nợ", amount: store.totalDebt.vndCompact, detail: "\(debts) khoản",
                             color: Palette.red, background: Palette.muted)
             }
-            .padding(.top, 12)
+            .padding(.top, Spacing.m)
         }
-        .sleekCard()
     }
 
     private func summaryTile(_ title: String, amount: String, detail: String, color: Color, background: Color) -> some View {

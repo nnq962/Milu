@@ -19,7 +19,7 @@ Code nằm ở `Timi/Persistence/`:
 3. **Liên kết bằng id, không dùng relationship của SwiftData.** Ví dụ giao dịch giữ `accountID`, giống khoá ngoại trong SQL, nên chuyển sang Postgres là ánh xạ 1:1.
 4. **Kiểu liệt kê lưu dạng chuỗi** (`"expense"`, `"bank"`, `"lent"`…), không lưu enum của Swift. Web và backend đọc được ngay.
 5. **Mọi bảng có `createdAt` và `updatedAt`.** Đồng bộ sau này dựa vào `updatedAt` để biết dòng nào đã đổi.
-6. **Không xoá cứng tài khoản đang có lịch sử**: dùng `archivedAt`. Màn hình hiện chỉ đọc tài khoản chưa lưu trữ.
+6. **Không xoá cứng tài khoản đang có lịch sử**: tài khoản đã có giao dịch hoặc nạp/rút hũ chỉ được "Lưu trữ" (`archivedAt` = ngày lưu trữ), giữ nguyên số dư và lịch sử; app đọc cả tài khoản đã lưu trữ và hiện chúng ở "Tài khoản đã lưu trữ", không tính vào tổng, không có trong ô chọn. Khôi phục thì xoá `archivedAt`. Chỉ tài khoản chưa có lịch sử mới bị xoá hẳn. Hũ thì vẫn xoá hẳn được (tiền còn lại rút về tài khoản trước), các dòng nạp/rút cũ của hũ được giữ.
 7. **Đổi schema = thêm phiên bản mới** (`TimiSchemaV2` + một bước trong `TimiMigrationPlan`), không sửa V1. Nếu sửa V1, máy đã cài app sẽ không mở được dữ liệu cũ.
 
 ## Icon
@@ -41,26 +41,40 @@ Cột icon (`goalIcon`, `CategoryRecord.icon`, `avatarValue` khi là icon) lưu 
 | balance | Int64 | số dư hiện tại; thẻ tín dụng mang số âm |
 | creditLimit, paymentDueDate | Int64?, Date? | chỉ thẻ tín dụng |
 | goalTarget, goalIcon, goalDueDate | Int64?, String?, Date? | chỉ hũ (`type = savings`); `goalIcon` là tên icon ("hugeicons-piggy-bank") |
-| excluded | Bool | "Khoá tài khoản": không tính vào tổng và báo cáo, không chọn được khi ghi giao dịch hay nạp/rút hũ (app gọi là `isLocked`) |
+| excluded | Bool | "Khoá tài khoản": không tính vào tổng số dư, giao dịch của nó không tính vào báo cáo (thu chi, lịch, biểu đồ, trợ lý); không chọn được khi ghi giao dịch hay nạp/rút hũ (app gọi là `isLocked`). Mở khoá là tính lại |
 | archivedAt | Date? | đã lưu trữ |
 | sortOrder | Int | thứ tự hiển thị |
 | createdAt, updatedAt | Date | |
 
 Hũ tiết kiệm là một loại tài khoản, giống bản web. Như vậy sau này "bỏ tiền vào hũ" chỉ là một giao dịch chuyển khoản giữa hai tài khoản.
 
-### `CategoryRecord` — hạng mục
+### `CategoryRecord` — hạng mục (V2: có nhóm)
 
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
-| id | String | hạng mục có sẵn dùng tên cố định (`food`, `salary`…); hạng mục người dùng tạo dùng UUID dạng chuỗi |
+| id | String | có sẵn: nhóm dùng tên cố định (`food`, `salary`…), hạng mục con `food.breakfast`…; người dùng tạo: UUID dạng chuỗi |
 | kind | String | `expense` · `income` |
+| parentID | String? | **mới ở V2.** nil = nhóm ("Ăn uống"); id của nhóm = hạng mục con ("Ăn sáng") |
 | name, icon | String | tên hiển thị; icon là tên trong `IconCatalog` ("hugeicons-car-01") |
 | isBuiltIn | Bool | |
-| sortOrder, archivedAt, createdAt, updatedAt | | |
+| sortOrder | Int | nhóm mặc định cách nhau 100, con của nhóm = nhóm + 1, 2…; mục mới = lớn nhất + 100 |
+| archivedAt | Date? | "Ẩn": đã có giao dịch nên không xoá, chỉ không cho chọn nữa |
+| createdAt, updatedAt | | |
 
-Hiện app vẫn đọc hạng mục từ code (`TransactionCategory`). Bảng này đã được tạo và nạp sẵn để làm màn "Hạng mục" trong Cài đặt.
+Hai cấp: nhóm và hạng mục con, cho cả chi và thu. Giao dịch sẽ luôn được ghi vào **hạng mục con**, không ghi vào nhóm (người dùng chọn 2026-10-29), nên mỗi nhóm luôn còn ít nhất một hạng mục con đang dùng; tạo nhóm mới là tạo luôn hạng mục con đầu tiên. Xoá: chưa có giao dịch thì xoá hẳn, đã có thì ẩn (`archivedAt`); xoá/ẩn nhóm kéo theo các hạng mục con.
 
-Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), tên "Điều chỉnh số dư", không cho người dùng chọn. Máy cài trước khi có hai hạng mục này sẽ không có dòng tương ứng trong bảng; giao dịch vẫn đọc được vì `categoryID` chỉ là chuỗi.
+Chuyển V1 → V2 (lightweight, `TimiMigrationPlan`): 12 hạng mục cũ thành nhóm; lần mở app đầu tiên sau đó (khi chưa có dòng nào có `parentID`), `FinanceDatabase.addMissingDefaultCategories` thêm các hạng mục con và nhóm mặc định (`DefaultCategories`). Chỉ chạy **một lần** (cờ `categories.defaultsAdded` trong UserDefaults, đặt khi `seed()`/bổ sung xong; máy cũ đã có hạng mục con cũng tính là đã chạy): mục mặc định người dùng đã xoá không tự quay lại, kể cả khi xoá hết.
+
+Ẩn nhóm (có giao dịch) thì ẩn luôn các hạng mục con cùng lúc (cùng `archivedAt`); hiện lại nhóm thì hiện lại đúng những hạng mục ẩn cùng lúc với nó, không hiện những hạng mục người dùng đã ẩn riêng trước đó. Hạng mục cuối cùng của nhóm không xoá/ẩn/chuyển nhóm riêng được. Mỗi loại (chi/thu) giữ ít nhất một nhóm đang dùng. Tên là duy nhất trong nhóm cùng loại / hạng mục cùng nhóm (kiểm ở form, không phân biệt hoa thường), tối đa 30 ký tự, không trùng "Điều chỉnh số dư" của hệ thống. Biểu tượng cũ không có trong bảng (`more-horizontal`, `add-01`, kể cả tên Solar cũ) được đổi mỗi lần mở app nếu còn (`replaceRetiredIcons`).
+
+**Chưa nối:** form giao dịch vẫn chọn từ 12 hạng mục cố định (`TransactionCategory`), giao dịch cũ có `categoryID` là id nhóm. Khi nối form giao dịch cần:
+- `FinanceTransaction.category` đổi sang id dạng chuỗi (hiện id lạ bị đọc thành "Chi khác/Thu khác").
+- Chuyển giao dịch cũ đang ở nhóm sang một hạng mục con; hiện chỉ "Chi khác" và "Thu khác" có mục "Khác", nên thêm "Khác" cho mỗi nhóm hoặc chọn hạng mục con đầu tiên.
+- Ô chọn chỉ lấy hạng mục con đang dùng trong nhóm đang dùng.
+- Bỏ quy tắc tạm "12 nhóm có sẵn chỉ ẩn, không xoá" (`FinanceStore.hasHistory`): khi form mới không còn ghi vào nhóm thì nhóm có sẵn chưa có giao dịch xoá được như nhóm khác.
+- Báo cáo chi theo hạng mục (`expensesByCategory`, `CategoryTotal`) cộng dồn hạng mục con lên nhóm; `GoalSpendSheet`, `SampleData` cũng đang dùng enum.
+
+Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), tên "Điều chỉnh số dư", không cho người dùng chọn và không hiện trong "Hạng mục".
 
 ### `TransactionRecord` — giao dịch
 
@@ -86,7 +100,12 @@ Quy tắc theo loại (sẽ thành `CHECK` trong Postgres):
 
 - **điều chỉnh số dư:** chi/thu với `categoryID` là `adjustmentIn`/`adjustmentOut` và `excluded = true`. App tạo khi người dùng sửa số dư trong form "Sửa tài khoản": phần chênh lệch thành một giao dịch, để lịch sử luôn cộng lại đúng bằng số dư. Không tính vào tổng thu chi, biểu đồ, lịch tiền và trợ lý.
 
-- **nạp/rút hũ:** chuyển khoản giữa một tài khoản thanh toán và một hũ (hũ cũng là một `AccountRecord`). Nạp: `fromAccountID` = tài khoản, `toAccountID` = hũ; rút thì ngược lại. `excluded = true`, `title` là "Nạp vào hũ" / "Rút từ hũ". App đọc thành `GoalTransfer`; hiện ở màn hũ và màn tài khoản, không tính vào thu chi. Xoá hũ hay xoá tài khoản thì xoá luôn các dòng này.
+- **dùng tiền hũ:** chi tiêu bình thường (`kind = expense`, có hạng mục, tính vào báo cáo) nhưng `accountID` là id của hũ. Store trừ thẳng vào số tiền của hũ; phần còn lại (nếu chi ít hơn số trong hũ) thành một dòng rút hũ về tài khoản. Sau đó hũ được đóng.
+- **nạp/rút hũ:** chuyển khoản giữa một tài khoản thanh toán và một hũ (hũ cũng là một `AccountRecord`). Nạp: `fromAccountID` = tài khoản, `toAccountID` = hũ; rút thì ngược lại. `excluded = true`, `title` là "Nạp vào hũ" / "Rút từ hũ". App đọc thành `GoalTransfer`; hiện ở màn hũ và màn tài khoản, không tính vào thu chi. Xoá hũ: số tiền còn lại được rút về tài khoản người dùng chọn (một dòng rút mới), rồi xoá hũ nhưng giữ các dòng nạp/rút cũ để lịch sử tài khoản vẫn cộng đúng (app đọc chúng với hũ "đã xoá", nhận hướng nhờ phía còn lại là tài khoản). Tài khoản có lịch sử không bị xoá (chỉ lưu trữ, xem quy tắc 6), nên các dòng nạp/rút của nó luôn còn. Sửa/xoá một lần nạp/rút thì cả hai số dư được tính lại; giao dịch và nạp/rút của hũ đã đóng hoặc đã xoá thì không sửa được.
+
+Mỗi thao tác của người dùng (một lần nạp, một lần dùng tiền…) được lưu trong một lần `save` (`FinanceDatabase.batch`), nên không có trạng thái làm dở. `sortOrder` của tài khoản/hũ mới = lớn nhất hiện có + 1.
+
+Hũ đóng (đã dùng tiền hoặc rút hết sau khi đủ mục tiêu): `AccountRecord.archivedAt` = ngày đóng, `detail` = cách kết thúc ("Đã dùng: Mua xe", "Đã rút về Vietcombank"). App vẫn đọc hũ đã đóng (khác tài khoản đã lưu trữ) để hiện ở "Hũ đã hoàn thành".
 
 Màn hình hiện chỉ hiện chi/thu và nạp/rút hũ. Chuyển khoản giữa hai tài khoản đã có chỗ trong schema, sẽ làm giao diện sau.
 

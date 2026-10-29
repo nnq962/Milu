@@ -40,23 +40,33 @@ enum BadgeTone: CaseIterable, Identifiable {
     }
 }
 
-/// Pill 24 tall with a dot: status, counts, labels.
+/// Pill 24 tall with a dot: status, counts, labels. With `icon`, a small icon takes the dot's place
+/// ("Không tính 300.000đ đang khoá" with a lock).
 struct StatusBadge: View {
+    static let height: CGFloat = 24
+    static let horizontalPadding: CGFloat = 10
+    static let gap: CGFloat = 6
+    static let dot: CGFloat = 6
+    static let icon: CGFloat = 14
+
     let text: String
     var tone: BadgeTone = .neutral
     var showsDot = true
+    var icon: String? = nil
 
     var body: some View {
-        HStack(spacing: 6) {
-            if showsDot {
-                Circle().fill(tone.dot).frame(width: 6, height: 6)
+        HStack(spacing: Self.gap) {
+            if let icon {
+                TimiIcon(icon, size: Self.icon)
+            } else if showsDot {
+                Circle().fill(tone.dot).frame(width: Self.dot, height: Self.dot)
             }
-            Text(text).textRole(.captionStrong).lineLimit(1)
+            Text(text).textRole(.captionStrong).lineLimit(1).monospacedDigit()
         }
         .fixedSize()
         .foregroundStyle(tone.foreground)
-        .padding(.horizontal, 10)
-        .frame(height: 24)
+        .padding(.horizontal, Self.horizontalPadding)
+        .frame(height: Self.height)
         .background(tone.background, in: Capsule())
         .accessibilityElement(children: .combine)
     }
