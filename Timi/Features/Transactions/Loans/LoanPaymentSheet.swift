@@ -15,6 +15,9 @@ struct LoanPaymentSheet: View {
     @State private var accountID: Account.ID?
     @State private var date: Date
     @State private var showsErrors = false
+    /// What was left as the sheet opened: saving changes the loan, and the sheet must not redraw
+    /// "không được lớn hơn số còn lại (0 đ)" on that while it slides away.
+    @State private var openedLeft: Double?
 
     init(loan: Loan, editing payment: LoanPayment? = nil, suggestedInterest: Double = 0) {
         self.loan = loan
@@ -31,7 +34,8 @@ struct LoanPaymentSheet: View {
     private var interest: Double { interestText.isEmpty ? 0 : interestText.vndInputAmount }
     /// What is left before this repayment (its own principal given back when editing).
     /// Never more than the principal less the other repayments' principal.
-    private var left: Double {
+    private var left: Double { openedLeft ?? liveLeft }
+    private var liveLeft: Double {
         let others = store.repaidPrincipal(of: loan) - (original?.principal ?? 0)
         return min(loan.outstanding + (original?.principal ?? 0), max(loan.principal - others, 0))
     }
@@ -61,19 +65,39 @@ struct LoanPaymentSheet: View {
         left > 0 ? [AmountPreset(label: "Hết", value: left)] : []
     }
 
+    /// The principal is all paid: only interest is left to record (a settled loan's late interest).
+    private var interestOnly: Bool { left <= 0 && (original?.principal ?? 0) == 0 }
+
+    private var title: String {
+        if interestOnly {
+            if original != nil { return lent ? "Sửa lần thu lãi" : "Sửa lần trả lãi" }
+            return lent ? "Thu lãi" : "Trả lãi"
+        }
+        return original == nil ? (lent ? "Thu nợ" : "Trả nợ") : (lent ? "Sửa lần thu" : "Sửa lần trả")
+    }
+
     var body: some View {
-        SheetScaffold(title: original == nil ? (lent ? "Thu nợ" : "Trả nợ") : (lent ? "Sửa lần thu" : "Sửa lần trả"),
-                      validate: validate, onConfirm: save) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save) {
             SheetAmountHeader(caption: "Tiền gốc", fieldSaysCaption: true) {
-                TimiAmountField(text: $principalText, focusesOnAppear: original == nil,
-                                presets: presets, label: "Tiền gốc")
-                if let amountError {
+                TimiAmountField(text: $principalText, showsSuggestions: !interestOnly,
+                                focusesOnAppear: original == nil && !interestOnly, presets: presets, label: "Tiền gốc")
+                    .disabled(interestOnly)
+                if interestOnly {
+                    Text("Đã \(lent ? "thu" : "trả") đủ tiền gốc, chỉ ghi tiền lãi.")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                    if showsErrors, interest <= 0 {
+                        FormErrorText(text: "Nhập tiền lãi.")
+                    }
+                } else if let amountError {
                     FormErrorText(text: amountError)
                 }
             }
         } content: {
             FormGroup(title: "Chi tiết", footer: footer, error: accountError) {
-                FormAmountRow(title: "Tiền lãi", text: $interestText)
+                FormAmountRow(title: "Tiền lãi", text: $interestText,
+                              isInvalid: interestOnly && showsErrors && interest <= 0,
+                              focusesOnAppear: interestOnly && original == nil)
                 FormDivider(hasIcon: false)
                 if let chosen = chosenAccount {
                     FormPickerRow(title: lent ? "Nhận vào" : "Chi từ",
@@ -99,14 +123,17 @@ struct LoanPaymentSheet: View {
             }
         }
         .timiSheetStyle()
+        .onAppear { if openedLeft == nil { openedLeft = liveLeft } }
     }
 
     /// What is left after this one, and where the interest goes.
     private var footer: String {
         let after = max(left - principal, 0)
         let rest = after > 0 ? "Còn lại sau lần này: \(after.vnd)." : (lent ? "Lần này thu hết khoản vay." : "Lần này trả hết khoản vay.")
-        let interestNote = interest > 0 ? (lent ? " Tiền lãi tính là thu nhập." : " Tiền lãi tính là chi tiêu.") : ""
-        return rest + interestNote
+        let interestNote = lent ? "Tiền lãi tính là thu nhập." : "Tiền lãi tính là chi tiêu."
+        // Only interest left: what is left of the loan is not news.
+        if interestOnly { return interestNote }
+        return rest + (interest > 0 ? " " + interestNote : "")
     }
 
     private func save() {

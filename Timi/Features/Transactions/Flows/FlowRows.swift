@@ -13,7 +13,8 @@ struct DayTotals: View {
         HStack(spacing: Spacing.m) {
             if income > 0 && expense > 0 {
                 Text("+\(income.formatted(.number.locale(.vietnam)))")
-                Text("-\(expense.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.red)
+                // The same grey as a day of spending alone, so 55k reads the same on every day.
+                Text("-\(expense.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.secondaryText)
             } else if income > 0 {
                 Text("+\(income.vndCompact)")
             } else if expense > 0 {

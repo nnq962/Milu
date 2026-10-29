@@ -39,7 +39,7 @@ struct LoansSummaryCard: View {
         let active = store.loans.filter { !$0.isSettled }
         // People, not loans: two open loans to Minh Trần are one person.
         let lenders = Set(active.filter { $0.direction == .lent }.map { $0.contactID?.uuidString ?? $0.name }).count
-        let debts = active.filter { $0.direction == .borrowed }.count
+        let debts = Set(active.filter { $0.direction == .borrowed }.map { $0.contactID?.uuidString ?? $0.name }).count
         let lent = store.totalLent
         let owed = store.totalBorrowed
         // The same `SummaryCard` as "Tổng số dư" on Tài khoản.
@@ -50,7 +50,7 @@ struct LoansSummaryCard: View {
                 tile("Cho vay", amount: lent, detail: "\(lenders) người", dot: Palette.green,
                      color: Palette.ink, background: Palette.incomeTile)
                 // Red only while something is owed.
-                tile("Đang nợ", amount: owed, detail: "\(debts) khoản", dot: Palette.red,
+                tile("Đang nợ", amount: owed, detail: "\(debts) người", dot: Palette.red,
                      color: owed > 0 ? Palette.red : Palette.ink, background: Palette.muted)
             }
             .padding(.top, Spacing.m)

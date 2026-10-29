@@ -48,6 +48,8 @@ struct FormAmountRow: View {
     var icon: String? = nil
     /// Red label while the group says what is wrong with it.
     var isInvalid = false
+    /// Opens the keyboard here once the sheet has slid in (the only figure to type).
+    var focusesOnAppear = false
 
     @FocusState private var isFocused: Bool
 
@@ -71,6 +73,11 @@ struct FormAmountRow: View {
         .onChange(of: text) { _, newValue in
             let formatted = newValue.groupedVNDInput
             if formatted != newValue { text = formatted }
+        }
+        .task {
+            guard focusesOnAppear else { return }
+            try? await Task.sleep(for: .milliseconds(450))
+            isFocused = true
         }
     }
 }

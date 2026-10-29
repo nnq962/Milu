@@ -5,10 +5,13 @@ import SwiftUI
 /// the details, then every repayment (tap one to change or delete it). The pencil opens the form.
 struct LoanDetailSheet: View {
     let loanID: Loan.ID
+    /// The page's day, so the badge agrees with the card just after midnight.
+    var today = Date.now
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var isEditing = false
+    /// The loan the form opened on, kept so deleting it does not empty the form as it slides away.
+    @State private var editingLoan: Loan?
     @State private var paying: PaymentTarget?
 
     /// A new repayment, or one to change.
@@ -29,7 +32,7 @@ struct LoanDetailSheet: View {
         NavigationStack {
             // Money on an archived account is frozen: the form keeps who, when and the rate.
             DetailScaffold(title: loan?.name ?? "Khoản vay", showsClose: true, canEdit: loan != nil,
-                           onEdit: { isEditing = true }) {
+                           onEdit: { editingLoan = store.loan(id: loanID) }) {
                 if let loan {
                     summary(loan)
                     if !loan.isSettled {
@@ -37,8 +40,16 @@ struct LoanDetailSheet: View {
                             FormActionRow(title: loan.direction == .lent ? "Ghi nhận thu nợ" : "Ghi nhận trả nợ",
                                           icon: "hugeicons-add-01") { paying = .new }
                         }
+                    } else if loan.monthlyInterestRate > 0, store.readOnlyReason(loan) == nil {
+                        // Settled, with interest: the last months' interest can still come in late.
+                        FormGroup {
+                            FormActionRow(title: loan.direction == .lent ? "Ghi nhận thu lãi" : "Ghi nhận trả lãi",
+                                          icon: "hugeicons-add-01") { paying = .new }
+                        }
                     }
-                    if loan.monthlyInterestRate > 0 || store.payments(of: loan).contains(where: { $0.interest > 0 }) {
+                    // Settled with no interest recorded: nothing worth a group.
+                    if (loan.monthlyInterestRate > 0 && !loan.isSettled)
+                        || store.payments(of: loan).contains(where: { $0.interest > 0 }) {
                         interest(loan)
                     }
                     details(loan)
@@ -48,10 +59,10 @@ struct LoanDetailSheet: View {
                                    message: "Khoản vay này không còn trong danh sách.")
                 }
             }
-            .sheet(isPresented: $isEditing, onDismiss: {
+            .sheet(item: $editingLoan, onDismiss: {
                 if store.loan(id: loanID) == nil { dismiss() }
-            }) {
-                if let loan = store.loan(id: loanID) { LoanEditorView(loan: loan) }
+            }) { loan in
+                LoanEditorView(loan: loan)
             }
             .sheet(item: $paying) { target in
                 if let loan = store.loan(id: loanID) {
@@ -69,7 +80,7 @@ struct LoanDetailSheet: View {
     }
 
     private func summary(_ loan: Loan) -> some View {
-        let urgency = LoanUrgency(loan)
+        let urgency = LoanUrgency(loan, today: today)
         let lent = loan.direction == .lent
         return SummaryCard(label: lent ? "Còn phải thu" : "Còn phải trả", amount: loan.outstanding,
                            icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02", tone: .plain) {
@@ -138,7 +149,7 @@ struct LoanDetailSheet: View {
                 Button { paying = .edit(payment) } label: {
                     ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
                             title: lent ? "Thu nợ" : "Trả nợ", subtitle: breakdown(payment),
-                            trailingSubtitle: TransactionListRow.dayMonth(payment.date),
+                            trailingSubtitle: Self.day(payment.date),
                             amount: lent ? payment.total : -payment.total,
                             amountTone: lent ? .signedIncome : .plain, showsChevron: false)
                 }
@@ -148,6 +159,12 @@ struct LoanDetailSheet: View {
                 .overlay(alignment: .top) { if index > 0 { RowDivider() } }
             }
         }
+    }
+
+    /// "05/11" this year, "05/11/2025" another: loans run across years.
+    static func day(_ date: Date) -> String {
+        let sameYear = Calendar.current.isDate(date, equalTo: .now, toGranularity: .year)
+        return TransactionListRow.dayMonth(date) + (sameYear ? "" : "/\(Calendar.current.component(.year, from: date))")
     }
 
     /// None yet, and why the money cannot change (an archived account), whichever apply.

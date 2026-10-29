@@ -196,8 +196,11 @@ final class FinanceStore {
     }
 
     /// Whether anything was ever recorded on the account; such an account is archived, not deleted.
+    /// Balance corrections alone ("Điều chỉnh số dư", a typo fixed after adding it) do not count
+    /// (user choice 2026-10-29): the account can still be deleted, with them.
     func hasHistory(_ account: Account) -> Bool {
-        transactions.contains { $0.accountID == account.id } || goalTransfers.contains { $0.accountID == account.id }
+        transactions.contains { $0.accountID == account.id && !$0.isAdjustment }
+            || goalTransfers.contains { $0.accountID == account.id }
             || accountTransfers.contains { $0.fromAccountID == account.id || $0.toAccountID == account.id }
             || loans.contains { $0.movedAccountID == account.id } || loanPayments.contains { $0.accountID == account.id }
     }
@@ -226,11 +229,17 @@ final class FinanceStore {
 
     /// Deletes an account that has no history (see `hasHistory`); one with history is archived
     /// instead, so no balance, report or goal history changes (user choice 2026-10-29).
+    /// Its balance corrections go with it (nothing else is on it, see `hasHistory`).
     func delete(_ account: Account) {
         guard !hasHistory(account) else { return }
-        accounts.removeAll { $0.id == account.id }
-        archivedAccounts.removeAll { $0.id == account.id }
-        database?.deleteAccount(id: account.id)
+        persist {
+            let corrections = transactions.filter { $0.accountID == account.id }
+            transactions.removeAll { $0.accountID == account.id }
+            for row in corrections { database?.deleteTransaction(id: row.id) }
+            accounts.removeAll { $0.id == account.id }
+            archivedAccounts.removeAll { $0.id == account.id }
+            database?.deleteAccount(id: account.id)
+        }
     }
 
     // MARK: - Hũ tiết kiệm
@@ -657,9 +666,10 @@ final class FinanceStore {
         account(id: payment.accountID)?.isArchived == true ? Self.archivedReason : nil
     }
 
-    /// When a loan was settled: its last repayment, else the day it was made.
+    /// When a loan was settled: its last repayment of principal (late interest does not move it),
+    /// else the day it was made.
     func settledDate(of loan: Loan) -> Date {
-        payments(of: loan).map(\.date).max() ?? loan.date
+        payments(of: loan).filter { $0.principal > 0 }.map(\.date).max() ?? loan.date
     }
 
     /// Principal repaid through the app ("Thu nợ" / "Trả nợ"), for the loan form's limits.

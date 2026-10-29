@@ -1280,6 +1280,30 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Bộ lọc tài khoản trong màn tìm có cả hũ đã có giao dịch "Mua ngay".
 - Rà soát lại (agent): sẵn sàng commit. Sửa thêm: khoản mới lưu từ bản trước với số đã trả nhưng không có lần thu/trả giữ số đó khi bật/tắt "Khoản có sẵn"; VoiceOver đọc cả dòng phụ của thẻ khoản vay (cho vay/đi vay, hạn, lãi); lần rút phần còn lại của "Mua ngay" không lùi sang ngày hôm sau.
 
+## Rà soát lại 3 trang (3 agent, 2026-10-29), đã sửa:
+
+- Nháy chữ đỏ khi sheet đang đóng: sheet thu/trả nợ và sheet nạp/rút hũ giữ giới hạn tính lúc mở (`openedLeft`, `savedWithout`), như "Mua ngay". Form sửa khoản vay mở bằng `sheet(item:)` nên xoá khoản vay không làm form trống khi trượt xuống.
+- Tài khoản:
+  - Hũ quá hạn mà chưa đủ (`SavingsGoal.isOverdue`): badge đỏ "Quá hạn · 70%" thay "45tr/tháng"; thẻ hũ ghi "Quá hạn · mục tiêu 40tr" màu đỏ; form ghi "Hạn đã qua. Chọn hạn mới…"; nạp tiền không còn chip "Mỗi tháng".
+  - Tài khoản chỉ có "Điều chỉnh số dư" (sửa số dư gõ nhầm) vẫn xoá được, xoá luôn các điều chỉnh đó (người dùng chọn).
+  - "Khôi phục tài khoản", "Mở lại hũ", "Đóng hũ" khi tên trống báo lỗi thay vì bỏ phần sửa.
+  - Badge "Đã khoá" chỉ cộng số dư dương.
+  - VoiceOver đọc thẻ hũ thành câu; cỡ chữ rất lớn: thẻ hũ rộng cả trang, dòng tiến độ xếp dọc.
+- Vay nợ:
+  - Khoản đã tất toán có lãi: "Ghi nhận thu/trả lãi" mở sheet "Thu lãi"/"Trả lãi" (tiền gốc khoá ở 0).
+  - Nhóm "Lãi" ẩn khi đã tất toán mà chưa có lãi nào.
+  - Gợi ý dưới "Còn lại" khi đã thu qua Timi: "Để trống nếu trước khi dùng Timi chưa thu đồng nào."
+  - Hai ô trên thẻ tổng quan cùng đếm người ("Đang nợ · 1 người").
+  - Ngày trong lịch sử thu/trả có năm khi khác năm nay. Badge trong sheet theo ngày của trang.
+- Thu chi:
+  - Sửa giao dịch "Mua ngay": dòng "Hũ" chỉ hiển thị, không ›.
+  - VoiceOver đọc dòng hạn mức bằng số đầy đủ.
+  - Tổng chi của ngày luôn màu xám, dù ngày có cả thu.
+  - Sheet chuyển khoản: tài khoản nguồn đang khoá thì ghi "Phí không tính vào báo cáo vì … đang khoá."
+  - Đổi tháng khi đang chọn cột biểu đồ chỉ rung một lần.
+  - Bộ lọc tài khoản có "Hũ đã xoá" khi còn giao dịch của hũ đã xoá.
+- Rà soát lại (agent): sẵn sàng commit. Sửa thêm: sheet sửa nạp/rút hũ giữ giới hạn trong `@State` (một `let` vẫn bị tính lại khi trang cha vẽ lại); sheet "Thu lãi" báo "Nhập tiền lãi." và tự mở bàn phím ở ô tiền lãi (`FormAmountRow(focusesOnAppear:)`), sửa một lần như vậy thì tiêu đề "Sửa lần thu lãi"; "Mở lại hũ"/"Đóng hũ" khi tên trống báo đỏ "Nhập tên."; chạm lại cột biểu đồ để bỏ chọn vẫn rung; lãi trả muộn không đẩy khoản vay lên đầu "Đã tất toán" (xếp theo lần trả gốc cuối).
+
 ## Danh bạ — 2026-10-29
 
 - Cài đặt → Chung → "Danh bạ" (số = số người, VoiceOver đọc "2 người") đẩy sang `ContactsView` (người dùng chọn đẩy màn như Hạng mục, không chồng sheet). Một thẻ `listCard()`, xếp A→Z theo tiếng Việt: vòng chữ cái đầu (từ rà soát lần 2), tên, dòng phụ "Bạn bè · 1 khoản vay". Nút + trên thanh thêm người; chạm một người để sửa. Không có chú thích dưới thẻ (người dùng bỏ 2026-10-29). Trống: `EmptyStateCard` "Danh bạ trống".

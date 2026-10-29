@@ -12,6 +12,7 @@ struct CompletedGoalsRoute: Hashable {}
 struct ArchivedAccountsRoute: Hashable {}
 
 struct AccountsView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(FinanceStore.self) private var store
     @State private var isChoosingNew = false
     /// Picked in the "Thêm mới" sheet; its form opens once that sheet has gone.
@@ -127,8 +128,10 @@ struct AccountsView: View {
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
                 .padding(.top, Spacing.xs)
-            if !locked.isEmpty {
-                StatusBadge(text: "Đã khoá \(locked.reduce(0) { $0 + $1.balance }.vnd)",
+            // Money set aside: what is owed on a locked account is not "khoá" money.
+            let lockedMoney = locked.reduce(0) { $0 + max($1.balance, 0) }
+            if lockedMoney > 0 {
+                StatusBadge(text: "Đã khoá \(lockedMoney.vnd)",
                             icon: "hugeicons-square-lock-02")
                     .padding(.top, Spacing.m)
             }
@@ -212,7 +215,9 @@ struct AccountsView: View {
                     // Tapping opens the goal (deposit, withdraw, history); editing is in its toolbar.
                     NavigationLink(value: GoalRoute(id: goal.id)) { GoalCard(goal: goal) }
                         .buttonStyle(.card)
-                        .containerRelativeFrame(.horizontal, count: 5, span: 3, spacing: Spacing.m)
+                        // Full width at the largest text sizes, so nothing on the card is cut off.
+                        .containerRelativeFrame(.horizontal, count: 5, span: dynamicTypeSize.isAccessibilitySize ? 5 : 3,
+                                                spacing: Spacing.m)
                 }
             }
             .scrollTargetLayout()

@@ -327,6 +327,11 @@ struct AddTransactionView: View {
             if buyingGoal != nil {
                 // "Mua ngay" spends from this goal: shown, not picked.
                 FormInfoRow(title: "Hũ", value: buyingName, valueIcon: buyingIcon)
+            } else if let goal = store.goal(id: accountID) {
+                // A purchase from a goal, being changed: it stays on the goal (as its view sheet says).
+                FormInfoRow(title: "Hũ", value: goal.name, valueIcon: goal.icon)
+            } else if editing.map({ store.goal(id: $0.accountID) == nil && store.account(id: $0.accountID) == nil }) == true {
+                FormInfoRow(title: "Hũ", value: "Hũ đã xoá")
             } else {
                 accountRow(title: "Tài khoản", selection: accountID) { self.accountID = $0 }
             }

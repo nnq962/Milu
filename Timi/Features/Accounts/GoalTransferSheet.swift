@@ -14,6 +14,9 @@ struct GoalTransferSheet: View {
     let direction: GoalTransfer.Direction
     var closesGoal = false
     private var editing: GoalTransfer?
+    /// What the goal holds without the transfer being edited, as the sheet opened: saving changes
+    /// the goal, and the sheet must not redraw a limit error on that while it slides away.
+    @State private var savedWithout: Double
 
     @State private var amountText = ""
     @State private var accountID: Account.ID?
@@ -24,12 +27,14 @@ struct GoalTransferSheet: View {
         self.goal = goal
         self.direction = direction
         self.closesGoal = closesGoal
+        _savedWithout = State(initialValue: goal.saved)
     }
 
     init(editing transfer: GoalTransfer, goal: SavingsGoal) {
         self.goal = goal
         direction = transfer.direction
         editing = transfer
+        _savedWithout = State(initialValue: goal.saved - transfer.goalDelta)
         _amountText = State(initialValue: String(Int(transfer.amount)).groupedVNDInput)
         _accountID = State(initialValue: transfer.accountID)
         _date = State(initialValue: transfer.date)
@@ -38,8 +43,6 @@ struct GoalTransferSheet: View {
 
     private var isDeposit: Bool { direction == .deposit }
     private var amount: Double { amountText.vndInputAmount }
-    /// What the goal holds without the transfer being edited.
-    private var savedWithout: Double { goal.saved - (editing?.goalDelta ?? 0) }
     /// A withdrawal can take at most what the goal holds; a deposit made smaller cannot leave the
     /// goal below 0đ (money already taken out after it).
     private var limitError: String? {
@@ -120,7 +123,7 @@ struct GoalTransferSheet: View {
     private var presets: [AmountPreset] {
         guard goal.remaining > 0 else { return [] }
         var chips: [AmountPreset] = []
-        if let dueDate = goal.dueDate {
+        if let dueDate = goal.dueDate, !goal.isOverdue {
             chips.append(AmountPreset(label: "Mỗi tháng",
                                       value: SavingsGoal.monthlySaving(remaining: goal.remaining, until: dueDate)))
         }

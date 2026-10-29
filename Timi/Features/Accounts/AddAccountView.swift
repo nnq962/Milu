@@ -148,6 +148,8 @@ struct AddAccountView: View {
         if account.isArchived {
             FormGroup {
                 FormActionRow(title: "Khôi phục tài khoản", icon: "hugeicons-archive-02") {
+                    // A name left empty: say so instead of restoring without what was typed.
+                    guard validate() else { return }
                     applyEdits()
                     store.unarchive(account)
                     Haptics.success()

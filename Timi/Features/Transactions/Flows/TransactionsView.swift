@@ -119,7 +119,7 @@ struct TransactionsView: View {
             .sheet(item: $editingItem) { ActivityEditor(item: $0) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             // A loan opens to read first; its pencil opens the form (user request 2026-10-29).
-            .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id) }
+            .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id, today: today) }
             .navigationDestination(for: SettledLoansRoute.self) { _ in SettledLoansView() }
         }
         // Posted off the main thread; the page changes on the main one.
@@ -261,7 +261,10 @@ struct TransactionsView: View {
             // Same colors as the Overview limit bar: green within budget, red when over.
             ProgressBar(value: ratio, color: ProgressBar.budgetColor(ratio))
         }
-        .accessibilityElement(children: .combine)
+        // In full: "Đã dùng 85% hạn mức, còn 2.100.000 đ", not "còn 2,1tr".
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Đã dùng \(ratio.percentText) hạn mức, "
+            + (over ? "vượt \((spent - monthlyBudget).vnd)" : "còn \((monthlyBudget - spent).vnd)"))
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"

@@ -45,6 +45,12 @@ struct SavingsGoal: Identifiable, Hashable {
         return max(months, 1)
     }
 
+    /// The deadline is behind and money is still missing: no monthly amount makes sense any more.
+    var isOverdue: Bool {
+        guard let dueDate, remaining > 0, closedAt == nil else { return false }
+        return Calendar.current.startOfDay(for: dueDate) < Calendar.current.startOfDay(for: .now)
+    }
+
     /// What to put aside each month to reach `remaining` by `dueDate`, rounded up to 1.000đ.
     static func monthlySaving(remaining: Double, until dueDate: Date, from now: Date = .now) -> Double {
         let perMonth = remaining / Double(monthsLeft(until: dueDate, from: now))

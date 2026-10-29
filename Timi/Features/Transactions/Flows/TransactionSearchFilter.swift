@@ -224,10 +224,18 @@ struct TransactionFilterSheet: View {
         }
     }
 
+    /// Purchases from goals deleted since: still listed, so still filterable.
+    private var deletedGoalIDs: [UUID] {
+        let known = Set((store.accounts + store.archivedAccounts).map(\.id) + store.savingsGoals.map(\.id))
+        var seen = Set<UUID>()
+        return store.transactions.map(\.accountID).filter { !known.contains($0) && seen.insert($0).inserted }
+    }
+
     /// Where money is recorded: accounts (archived too), then goals a "Mua ngay" purchase is on.
     private var sources: [(id: UUID, name: String, icon: String)] {
         (store.accounts + store.archivedAccounts).map { ($0.id, $0.name, $0.iconName) }
             + store.savingsGoals.filter { !store.goalTransactions($0).isEmpty }.map { ($0.id, $0.name, $0.icon) }
+            + deletedGoalIDs.map { ($0, "Hũ đã xoá", "hugeicons-piggy-bank") }
     }
 
     var body: some View {

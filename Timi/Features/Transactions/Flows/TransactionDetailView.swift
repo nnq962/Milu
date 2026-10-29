@@ -193,7 +193,11 @@ struct TransferDetailSheet: View {
 
     /// Why it cannot change (if so) and where the fee goes (if any), both.
     private func footer(_ transfer: AccountTransfer) -> String? {
-        let fee = transfer.fee > 0 ? "Phí tính là chi tiêu của \(name(transfer.fromAccountID))." : nil
+        // A locked account is out of reports, its fee too.
+        let locked = store.lockedAccountIDs.contains(transfer.fromAccountID)
+        let fee = transfer.fee <= 0 ? nil
+            : locked ? "Phí không tính vào báo cáo vì \(name(transfer.fromAccountID)) đang khoá."
+            : "Phí tính là chi tiêu của \(name(transfer.fromAccountID))."
         let text = [store.readOnlyReason(transfer), fee].compactMap { $0 }.joined(separator: " ")
         return text.isEmpty ? nil : text
     }

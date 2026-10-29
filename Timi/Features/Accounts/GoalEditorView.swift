@@ -40,6 +40,13 @@ struct GoalEditorView: View {
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    /// Set when "Mở lại hũ" / "Đóng hũ" is tapped with no name: the group says so in red.
+    @State private var showsNameError = false
+
+    private func failClose() {
+        withAnimation(.smooth(duration: 0.3)) { showsNameError = true }
+        Haptics.error()
+    }
     /// "Mục tiêu mới" on a goal that reached its target: the new one is above what it holds.
     private var targetError: String? {
         guard focusesTarget, let saved = original.flatMap({ store.goal(id: $0.id) })?.saved,
@@ -54,6 +61,9 @@ struct GoalEditorView: View {
         let remaining = max(targetText.vndInputAmount - (original?.saved ?? 0), 0)
         guard targetText.vndInputAmount > 0 else { return nil }
         if remaining == 0 { return "Đã đủ mục tiêu." }
+        if Calendar.current.startOfDay(for: dueDate) < Calendar.current.startOfDay(for: .now) {
+            return "Hạn đã qua. Chọn hạn mới để biết cần để dành bao nhiêu mỗi tháng."
+        }
         let months = SavingsGoal.monthsLeft(until: dueDate)
         let perMonth = SavingsGoal.monthlySaving(remaining: remaining, until: dueDate)
         return "Cần để dành \(perMonth.vnd) mỗi tháng trong \(months) tháng."
@@ -72,7 +82,7 @@ struct GoalEditorView: View {
                 }
             }
         } content: {
-            FormGroup(title: "Thông tin") {
+            FormGroup(title: "Thông tin", error: showsNameError && trimmedName.isEmpty ? "Nhập tên." : nil) {
                 // No "Đã để dành": a goal starts empty and money goes in and out through "Nạp" /
                 // "Rút" on its screen, so every change has an account and a date.
                 FormTextRow(title: "Tên hũ", text: $name, prompt: "Du lịch Đà Nẵng")
@@ -97,6 +107,8 @@ struct GoalEditorView: View {
                 if original.isClosed {
                     FormGroup {
                         FormActionRow(title: "Mở lại hũ", icon: "hugeicons-piggy-bank") {
+                            // A name left empty: say so instead of dropping what was typed.
+                            guard canSave else { failClose(); return }
                             applyEdits()
                             store.reopen(original.id)
                             Haptics.success()
@@ -108,6 +120,7 @@ struct GoalEditorView: View {
                     // A reopened, empty goal can go back to "Hũ đã hoàn thành".
                     FormGroup {
                         FormActionRow(title: "Đóng hũ", icon: "hugeicons-checkmark-badge-01") {
+                            guard canSave else { failClose(); return }
                             applyEdits()
                             store.closeEmpty(original.id)
                             Haptics.success()

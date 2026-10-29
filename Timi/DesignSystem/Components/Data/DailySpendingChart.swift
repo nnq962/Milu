@@ -70,6 +70,9 @@ struct DailySpendingChart: View {
                         // A tap on the day already picked clears it.
                         .gesture(SpatialTapGesture().onEnded { value in
                             let day = self.day(at: value.location, proxy: proxy, geometry: geometry)
+                            // Tapping the picked day again clears it, with a tick of its own (the
+                            // feedback below only ticks when a day is picked).
+                            if day == selectedDay, day != nil { Haptics.selection() }
                             selectedDay = day == selectedDay ? nil : day
                         })
                         // Sideways only, so the page still scrolls up and down over the chart.
@@ -80,7 +83,8 @@ struct DailySpendingChart: View {
                 }
             }
             .frame(height: height)
-            .sensoryFeedback(.selection, trigger: selectedDay)
+            // A tick when a day is picked, not when another month clears it (the picker ticks then).
+            .sensoryFeedback(.selection, trigger: selectedDay) { _, new in new != nil }
 
             HStack {
                 Text("1/\(monthNumber)")

@@ -152,22 +152,28 @@ struct GoalDetailView: View {
     /// One line under the bar, never two: how far along (and, with a deadline, the monthly
     /// amount) on the left, the target on the right; "Đã đủ mục tiêu" once reached.
     private func progressLine(_ goal: SavingsGoal) -> some View {
-        HStack(spacing: Spacing.s) {
+        // At the largest text sizes the two halves stack instead of shrinking.
+        AnyLayout(dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
+                  : AnyLayout(HStackLayout(spacing: Spacing.s))) {
             if goal.isReached {
                 StatusBadge(text: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
+            } else if goal.isOverdue {
+                // Past its deadline: say so, as an overdue loan does, instead of "45tr/tháng".
+                StatusBadge(text: "Quá hạn · \(goal.progressText)", tone: .warning)
             } else {
                 (Text(goal.progressText).foregroundStyle(Palette.ink)
                     + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
                     .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
             }
-            Spacer(minLength: Spacing.s)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
             Text("Mục tiêu \(goal.target.vndCompact)")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
+                .accessibilityLabel("Mục tiêu \(goal.target.vnd)")
         }
-        .lineLimit(1)
-        .minimumScaleFactor(0.8)
+        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+        .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.8)
         .monospacedDigit()
     }
 
@@ -224,7 +230,7 @@ struct GoalDetailView: View {
 
     /// "167k/tháng" when the goal has a deadline and is not reached yet.
     static func monthlyText(_ goal: SavingsGoal) -> String? {
-        guard let dueDate = goal.dueDate, goal.remaining > 0 else { return nil }
+        guard let dueDate = goal.dueDate, goal.remaining > 0, !goal.isOverdue else { return nil }
         return "\(SavingsGoal.monthlySaving(remaining: goal.remaining, until: dueDate).vndCompact)/tháng"
     }
 }

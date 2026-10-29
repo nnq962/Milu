@@ -162,7 +162,9 @@ struct LoanEditorView: View {
             }
 
             if isExisting {
-                FormGroup(title: direction == .lent ? "Còn phải thu" : "Còn phải trả", footer: "Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào.",
+                FormGroup(title: direction == .lent ? "Còn phải thu" : "Còn phải trả", footer: repaidInApp > 0
+                              ? "Để trống nếu trước khi dùng Timi chưa \(direction == .lent ? "thu" : "trả") đồng nào."
+                              : "Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào.",
                           error: outstandingError) {
                     FormAmountRow(title: "Còn lại", text: $outstandingText, isInvalid: outstandingError != nil)
                 }
