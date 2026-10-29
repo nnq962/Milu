@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 enum TransactionSegment: String, CaseIterable, Identifiable {
@@ -20,17 +21,25 @@ struct TransactionsView: View {
     @State private var filter: TransactionFilter = .all
     @State private var loanFilter: LoanFilter = .all
     @State private var displayedMonth = Date.now
-    @State private var searchText = ""
+    /// The day the page was last drawn for: left open overnight, it moves on (`followToday`).
+    @State private var today = Date.now
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isSearching = false
     @State private var isAddingLoan = false
     @State private var editingLoan: Loan?
-    /// A row tapped to change or delete it.
+    /// A row tapped to read it (then change or delete it from its sheet).
     @State private var editingItem: AccountDetailView.Activity?
+    /// The visible height of the page: the list keeps at least that, so a short filter does not
+    /// pull the page back up.
+    @State private var viewportHeight: CGFloat = 0
+    /// Where the chip row is on screen: below the bar means the user has scrolled past it.
+    @State private var chipsTop: CGFloat = 0
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { scroller in
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Spacing.section) {
                     Picker("Loại", selection: $segment) {
                         ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
                     }
@@ -39,16 +48,33 @@ struct TransactionsView: View {
 
                     switch segment {
                     case .flows:
-                        summaryCard
-                        FilterChips(selection: $filter)
-                        flowList
+                            summaryCard
+                            FilterChips(selection: $filter)
+                                .id(Self.chipsAnchor)
+                                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { chipsTop = $0 }
+                            // A new chip or month: the list fades over to what it shows now. It
+                            // keeps at least a screen's height, so a shorter one leaves the page
+                            // where it is instead of snapping it up.
+                            VStack(alignment: .leading, spacing: Spacing.section) { flowList }
+                                .id(listIdentity)
+                                .transition(.opacity.combined(with: .offset(y: 12)))
+                                .frame(minHeight: viewportHeight, alignment: .top)
                     case .loans:
-                        LoansContent(filter: $loanFilter, searchText: searchText) { editingLoan = $0 }
+                        LoansContent(filter: $loanFilter, searchText: "") { editingLoan = $0 }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .animation(.smooth(duration: 0.3), value: listIdentity)
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.l)
                 .padding(.bottom, Spacing.xxl)
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
+            // Scrolled down into the list: a new chip glides back to the chips, so what it shows
+            // starts in view.
+            .onChange(of: listIdentity) {
+                guard chipsTop < 0 else { return }
+                withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.chipsAnchor, anchor: .top) }
+            }
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
@@ -60,34 +86,61 @@ struct TransactionsView: View {
                 ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                 // A new transaction comes from the + beside the tab bar (every tab); a new loan from
                 // the + here, shown on "Vay nợ" (user choice 2026-10-29).
+                // The month is picked here, beside search (user choice 2026-10-29), on "Thu chi".
+                // Search opens a screen of its own (TransactionSearchView).
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) { heading }
                         .sharedBackgroundVisibility(.hidden)
-                    if segment == .loans {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            addLoanButton.nativeCircleButton(diameter: 44)
-                        }
-                        .sharedBackgroundVisibility(.hidden)
-                    }
+                    // One item, so the month (or the loan +) sits 8pt from search, not the bar's wider
+                    // gap between separate items.
                     ToolbarItem(placement: .topBarTrailing) {
-                        searchButton.nativeCircleButton(diameter: 44)
+                        HStack(spacing: Spacing.s) {
+                            if segment == .flows {
+                                MonthMenu(month: $displayedMonth)
+                            } else {
+                                addLoanButton.nativeCircleButton(diameter: ControlHeight.regular)
+                            }
+                            searchButton.nativeCircleButton(diameter: ControlHeight.regular)
+                        }
                     }
                     .sharedBackgroundVisibility(.hidden)
                 } else {
                     ToolbarItem(placement: .topBarLeading) { heading }
+                    if segment == .flows {
+                        ToolbarItem(placement: .topBarTrailing) { MonthMenu(month: $displayedMonth) }
+                    }
                     if segment == .loans {
                         ToolbarItem(placement: .topBarTrailing) { addLoanButton }
                     }
                     ToolbarItem(placement: .topBarTrailing) { searchButton }
                 }
             }
-            .modifier(OnDemandSearch(text: $searchText, isPresented: $isSearching,
-                                     prompt: segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay"))
+            .fullScreenCover(isPresented: $isSearching) {
+                TransactionSearchView(segment: segment)
+            }
             .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
             .sheet(item: $editingItem) { ActivityEditor(item: $0) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
         }
+        // Posted off the main thread; the page changes on the main one.
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
+            followToday()
+        }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { followToday() } }
+    }
+
+    private static let chipsAnchor = "chips"
+
+    /// A new day: the chart lights it, and a page that showed the month just ended shows the new
+    /// one (another month picked stays picked).
+    private func followToday() {
+        let now = Date.now
+        guard !Calendar.current.isDate(now, inSameDayAs: today) else { return }
+        if Calendar.current.isDate(displayedMonth, equalTo: today, toGranularity: .month) {
+            displayedMonth = now
+        }
+        today = now
     }
 
     private var heading: some View {
@@ -101,7 +154,7 @@ struct TransactionsView: View {
     private var searchButton: some View {
         Button { isSearching = true } label: {
             TimiIcon("hugeicons-search-01", size: 20)
-                .frame(width: 28, height: 28)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
         .tint(Palette.ink)
@@ -111,7 +164,7 @@ struct TransactionsView: View {
     private var addLoanButton: some View {
         Button { isAddingLoan = true } label: {
             TimiIcon("hugeicons-add-01", size: 20)
-                .frame(width: 28, height: 28)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
         .tint(Palette.ink)
@@ -124,42 +177,46 @@ struct TransactionsView: View {
         store.monthlyTransactions(for: displayedMonth)
     }
 
+    /// What the list shows: a new chip or month redraws it with a fade.
+    private var listIdentity: String {
+        let parts = Calendar.current.dateComponents([.year, .month], from: displayedMonth)
+        return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
+    }
+
+    /// The two totals, a shorter chart and the budget on one line with its bar (user choice
+    /// 2026-10-29); the month is picked in the toolbar.
     private var summaryCard: some View {
         let reported = store.reportableTransactions(inMonthOf: displayedMonth)
         let expenses = reported.filter { $0.kind == .expense }
         let incomes = reported.filter { $0.kind == .income }
         let spent = expenses.reduce(0) { $0 + $1.amount }
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Spacer()
-                MonthMenu(month: $displayedMonth)
-            }
+        // The counts are of the rows the "Chi" and "Thu" chips list (those not counted in the sum too).
+        let listed = monthTransactions
+        return VStack(alignment: .leading, spacing: Spacing.m) {
             HStack(spacing: 0) {
-                // The count is of rows in the list: a transfer fee adds to the sum, not the count.
-                flowTotal("Đã chi · \(expenses.filter { $0.categoryID != TransactionCategory.transferFee.rawValue }.count)",
-                          amount: spent)
-                    .padding(.trailing, 16)
+                flowTotal("Đã chi", count: listed.count(where: TransactionFilter.expense.matches), amount: spent)
+                    .padding(.trailing, Spacing.l)
                     .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
-                flowTotal("Đã thu · \(incomes.count)", amount: incomes.reduce(0) { $0 + $1.amount })
-                    .padding(.leading, 16)
+                flowTotal("Đã thu", count: listed.count(where: TransactionFilter.income.matches),
+                          amount: incomes.reduce(0) { $0 + $1.amount })
+                    .padding(.leading, Spacing.l)
             }
-            .padding(.top, 20)
-            DailySpendingChart(month: displayedMonth, totals: Dictionary(grouping: expenses) { Calendar.current.component(.day, from: $0.date) }
-                .mapValues { $0.reduce(0) { $0 + $1.amount } })
-                .padding(.top, 20)
+            DailySpendingChart(month: displayedMonth,
+                               totals: Dictionary(grouping: expenses) { Calendar.current.component(.day, from: $0.date) }
+                                   .mapValues { $0.reduce(0) { $0 + $1.amount } },
+                               today: today, height: 44)
             if monthlyBudget > 0 {
                 budgetRow(spent: spent)
-                    .padding(.top, 16)
+                    .padding(.top, Spacing.m)
                     .overlay(alignment: .top) { Palette.border.frame(height: 1) }
-                    .padding(.top, 16)
             }
         }
-        .sleekCard(radius: CardCorners.extraLarge)
+        .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
     }
 
-    private func flowTotal(_ title: String, amount: Double) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+    private func flowTotal(_ title: String, count: Int, amount: Double) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("\(title) · \(count)")
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
             // Exact line height + minimumScaleFactor shrinks text unexpectedly on iOS; use min-height.
@@ -169,17 +226,19 @@ struct TransactionsView: View {
                 .frame(minHeight: 32)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        // Read as words: "Đã chi 14.128.000 đồng, 22 giao dịch", not the "·" and a bare number.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(amount.vnd), \(count) giao dịch")
     }
 
     private func budgetRow(spent: Double) -> some View {
         let ratio = spent / monthlyBudget
         let over = spent > monthlyBudget
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: Spacing.s) {
             HStack {
-                Text("Đã dùng \(ratio.percentText) hạn mức tổng")
-                    .textRole(.body)
-                Spacer(minLength: 8)
+                Text("Đã dùng \(ratio.percentText) hạn mức")
+                    .textRole(.caption)
+                Spacer(minLength: Spacing.s)
                 Text(over ? "vượt \((spent - monthlyBudget).vndCompact)" : "còn \((monthlyBudget - spent).vndCompact)")
                     .textRole(.captionStrong)
                     .foregroundStyle(over ? Palette.red : Palette.secondaryText)
@@ -191,71 +250,55 @@ struct TransactionsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The month's transactions and transfers between accounts that match the chip and the search.
+    /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
+    /// their transactions, "Chuyển khoản" the transfers between accounts, "Tất cả" both. A
+    /// transfer's fee stays with the transfer (its sheet), not on "Chi".
     private var filteredItems: [AccountDetailView.Activity] {
-        let transactions = filter == .transfer ? [] : monthTransactions.filter { transaction in
-            filter.matches(transaction)
-                && (searchText.isEmpty
-                    || transaction.note.localizedCaseInsensitiveContains(searchText)
-                    || store.categoryName(transaction.categoryID).localizedCaseInsensitiveContains(searchText))
-        }
+        let transactions = filter == .transfer ? [] : monthTransactions.filter(filter.matches)
         let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { transfer in
             Calendar.current.isDate(transfer.date, equalTo: displayedMonth, toGranularity: .month)
-                && (searchText.isEmpty
-                    || [transfer.fromAccountID, transfer.toAccountID].contains { store.account(id: $0)?.name.localizedCaseInsensitiveContains(searchText) == true }
-                    || "chuyển khoản".localizedCaseInsensitiveContains(searchText)
-                    || transfer.note.localizedCaseInsensitiveContains(searchText))
         }
         return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers)
     }
 
-    /// Gom theo ngày, ngày mới nhất lên đầu.
-    private var itemsByDay: [(day: Date, items: [AccountDetailView.Activity])] {
-        let groups = Dictionary(grouping: filteredItems) { Calendar.current.startOfDay(for: $0.date) }
-        return groups.keys.sorted(by: >).map { day in (day, groups[day] ?? []) }
-    }
-
     @ViewBuilder
     private var flowList: some View {
-        let groups = itemsByDay
+        let groups = ActivityDayList.byDay(filteredItems)
         if groups.isEmpty {
             EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
                            title: emptyTitle, message: emptyMessage)
         } else {
-            ForEach(groups, id: \.day) { group in
-                VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                    SectionHeader(title: group.day.transactionDayTitle) {
-                        // A transfer's fee is spending of that day too.
-                        DayTotals(items: group.items.compactMap {
-                            switch $0 {
-                            case .transaction(let transaction): transaction
-                            case .accountTransfer(let transfer) where transfer.fee > 0: transfer.feeExpense
-                            default: nil
-                            }
-                        })
-                    }
-                    VStack(spacing: 0) {
-                        // Tapping a row opens it to change or delete, as in an account's history.
-                        ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
-                            ActivityRow(item: item, side: .account, detail: .time) { editingItem = $0 }
-                                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
-                        }
-                    }
-                    .cardSurface(color: Palette.card, elevated: true)
-                }
-            }
+            // Tapping a row opens it to read, change or delete, as in an account's history.
+            ActivityDayList(groups: groups) { editingItem = $0 }
         }
     }
 
+    /// "Tháng 9" this year, "Tháng 9/2025" another.
+    private var monthName: String {
+        let calendar = Calendar.current
+        let number = calendar.component(.month, from: displayedMonth)
+        let sameYear = calendar.isDate(displayedMonth, equalTo: .now, toGranularity: .year)
+        return sameYear ? "Tháng \(number)" : "Tháng \(number)/\(calendar.component(.year, from: displayedMonth))"
+    }
+
+    /// The empty list in the words of its chip and month; the first-run invitation only when the
+    /// app has nothing recorded yet.
     private var emptyTitle: String {
-        if !searchText.isEmpty { return "Không tìm thấy" }
-        return filter == .transfer ? "Chưa có giao dịch chuyển khoản" : "Chưa có giao dịch"
+        if store.transactions.isEmpty && store.accountTransfers.isEmpty { return "Chưa có giao dịch" }
+        return switch filter {
+        case .all: "\(monthName) chưa có giao dịch"
+        case .income: "\(monthName) chưa có khoản thu"
+        case .expense: "\(monthName) chưa có khoản chi"
+        case .transfer: "\(monthName) chưa có chuyển khoản"
+        }
     }
 
     private var emptyMessage: String {
-        if !searchText.isEmpty { return "Không có giao dịch nào khớp với “\(searchText)” trong tháng này." }
+        if store.transactions.isEmpty && store.accountTransfers.isEmpty {
+            return "Thêm giao dịch đầu tiên bằng nút + cạnh thanh tab."
+        }
         if filter == .transfer { return "Chuyển tiền giữa hai tài khoản bằng nút + cạnh thanh tab." }
-        return "Thêm giao dịch đầu tiên để bắt đầu theo dõi."
+        return "Chọn tháng khác ở nút tháng, hoặc thêm bằng nút + cạnh thanh tab."
     }
 }
 

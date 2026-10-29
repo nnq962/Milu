@@ -1090,7 +1090,7 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 
 ## Sheet xem giao dịch — 2026-10-29
 
-- Chạm một giao dịch (chi/thu) ở trang Giao dịch, lịch sử tài khoản hay hũ: mở `TransactionDetailSheet` để **xem** thay vì vào thẳng form; bút chì trên thanh mở form sửa (form vẫn có "Xoá giao dịch"), như trang tài khoản và hũ. Xoá xong thì sheet tự đóng. Chuyển khoản và nạp/rút hũ vẫn mở thẳng form của chúng; dòng phí mở chuyển khoản của nó (qua bút chì).
+- Chạm một giao dịch (chi/thu) ở trang Giao dịch, lịch sử tài khoản hay hũ: mở `TransactionDetailSheet` để **xem** thay vì vào thẳng form; bút chì trên thanh mở form sửa (form vẫn có "Xoá giao dịch"), như trang tài khoản và hũ. Xoá xong thì sheet tự đóng. Nạp/rút hũ vẫn mở thẳng form; chuyển khoản có sheet xem riêng (`TransferDetailSheet`, từ 2026-10-29).
 - Bố cục: biểu tượng hạng mục, tên (tên hạng mục, hoặc tên riêng của giao dịch cũ, khi đó hạng mục ghi nhỏ ngay dưới: "Bún chả" / "Ăn trưa"), số tiền lớn có dấu; "Không tính vào báo cáo" / "Tài khoản đã khoá · Không tính" thành badge khi có. Thẻ "Chi tiết": **Nhóm hạng mục** ("Ăn uống", kèm biểu tượng nhóm; người dùng chọn, vì hạng mục đã là tiêu đề phía trên; không có ở điều chỉnh số dư và phí), Tài khoản (kèm logo), Thời gian ("Hôm qua, 28/10 · 12:15"); chú thích lý do khi chỉ xem được. "Ghi chú" khi có (chọn để sao chép được).
 - **"Cùng hạng mục"** (người dùng yêu cầu): tối đa 5 giao dịch khác cùng hạng mục, mới nhất trước. Mỗi dòng: logo tài khoản, ngày, dòng phụ "[tên riêng hoặc ghi chú] · [tài khoản]", số tiền, giờ. Chạm một dòng đẩy sang xem giao dịch đó trong cùng sheet (‹ quay lại; chỉ màn đầu có ✕). Không có giao dịch nào khác thì không hiện mục này.
 - `FormValueLabel(showsChevron: false)` cho các dòng chỉ xem.
@@ -1098,7 +1098,7 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 
 ## Chuyển khoản: bỏ dòng phí, thêm sheet xem — 2026-10-29
 
-- Không còn dòng "Phí chuyển khoản" riêng (người dùng chọn): phí nằm trên chuyển khoản, nguồn trả số tiền + phí. Phí vẫn tính vào chi tiêu (tổng tháng, tổng ngày, biểu đồ, lịch thu chi, hạn mức, chi theo hạng mục, trợ lý); số "Đã chi · N" chỉ đếm dòng có trong danh sách. Dòng phí cũ được gộp khi mở app.
+- Không còn dòng "Phí chuyển khoản" riêng (người dùng chọn): phí nằm trên chuyển khoản, nguồn trả số tiền + phí. Phí vẫn tính vào chi tiêu (tổng tháng, ~~tổng ngày~~ — bỏ ở lần rà soát 3, biểu đồ, lịch thu chi, hạn mức, chi theo hạng mục, trợ lý); số "Đã chi · N" chỉ đếm dòng có trong danh sách. Dòng phí cũ được gộp khi mở app.
 - Dòng chuyển khoản: trang Giao dịch "Ví tiền mặt → Vietcombank" (số tiền không dấu; phí chỉ có trong sheet xem, người dùng chọn); lịch sử tài khoản nguồn "Chuyển đến …" trừ cả phí, dòng phụ "Gồm phí 9.000đ"; tài khoản đích "Nhận từ …" cộng số tiền.
 - Form: chú thích phí "Phí 9.000đ trừ thêm vào Ví tiền mặt và tính là chi tiêu."; xoá chuyển khoản chỉ còn "Số dư hai tài khoản sẽ được tính lại."
 - **Sheet xem chuyển khoản** (`TransferDetailSheet`), cùng kiểu với chi/thu: biểu tượng, "Chuyển khoản", số tiền; Chi tiết: Từ, Đến (kèm logo), Phí (khi có), Thời gian, chú thích "Phí tính là chi tiêu của …"; Ghi chú khi có. Bút chì mở form sửa; xoá xong thì đóng; chuyển khoản dính tài khoản khoá/lưu trữ thì chỉ xem, chú thích lý do.
@@ -1113,3 +1113,67 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Chuyển khoản chỉ xem được: chú thích hiện cả lý do lẫn câu về phí.
 - Giao dịch **không có tên riêng** nữa, ở mọi chỗ (người dùng chọn 2026-10-29): tên là hạng mục ("Ăn trưa", thanh trên của sheet xem, dòng trong danh sách). Tên cũ của dữ liệu mẫu và trợ lý ("Bún chả") được chuyển vào **ghi chú** khi mở app (`FinanceStore.moveTitlesToNotes`, đứng trước ghi chú đã có), nên vẫn hiện ở dòng phụ và trong "Ghi chú". Dữ liệu mẫu và trợ lý từ nay ghi mô tả vào ghi chú; tìm kiếm theo hạng mục và ghi chú.
 - Rà soát sheet xem/sửa giao dịch lần 3: thẻ đầu của điều chỉnh số dư ghi "Điều chỉnh số dư" (người dùng chọn), không ghi "Thu nhập"/"Chi tiêu"; thẻ giao dịch trong trợ lý AI có dòng phụ là ghi chú (hoặc nhóm) · ngày, không lặp hạng mục; khoản chi từ hũ đã xoá ghi nhãn "Hũ"; `FinanceTransaction(title:)` mặc định rỗng.
+
+## Trang Giao dịch: tìm kiếm, card tổng quan, chọn tháng — 2026-10-29
+
+- **Tìm kiếm** (người dùng chọn): bấm kính lúp thì ô tìm của iOS hiện, thanh Thu chi/Vay nợ, card tổng quan và chip lọc ẩn đi. Chưa gõ: "Hạng mục gần đây" (chạm để tìm theo hạng mục). Đang gõ: kết quả ở **mọi tháng**, gộp theo ngày, khớp hạng mục, nhóm, ghi chú, tài khoản (chuyển khoản: hai tài khoản, ghi chú, "chuyển khoản"), không phân biệt dấu. Vay nợ khi tìm: hiện mọi mục khớp, không card, không chip.
+- **Card tổng quan** thấp hơn (người dùng chọn): nút tháng lên đầu thẻ bên trái (bỏ hàng trống), Đã chi/Đã thu ngay dưới, biểu đồ cao 44 (trước 64), hạn mức một dòng chữ nhỏ "Đã dùng 47% hạn mức" + thanh; đệm thẻ 16.
+- **Biểu đồ theo ngày**: chạm một cột là chọn ngay (`SpatialTapGesture` trên `chartOverlay`), kéo ngang để dò; kéo dọc vẫn cuộn trang. Thay `chartXSelection` (trong ScrollView nó chờ nhấn giữ và làm sáng cột trước khi nhận). Đổi tháng thì bỏ chọn.
+- **Chọn tháng**: nút mở `MonthPickerSheet` (người dùng chọn) thay vì menu: năm với ‹ ›, lưới 12 tháng "T1…T12", tháng đang chọn đen, tháng chưa tới mờ và không chọn được, "Tháng này" khi đang ở tháng khác; chạm là chọn và đóng. Bỏ menu cũng hết việc bóng của nút phải chờ mới hiện lại.
+- **Đổi chip lọc hoặc tháng**: danh sách mờ dần sang nội dung mới và trượt nhẹ lên (12pt).
+- Góp ý sau bản đầu (2026-10-29):
+  - Mở/đóng tìm kiếm: nội dung trang mờ dần hiện ra sau ô tìm (trễ 0,12 giây, 0,28 giây, trượt 10pt), không hiện ngay ("Hạng mục gần đây" xuất hiện sau ô tìm).
+  - Đổi chip sang danh sách ngắn hơn: danh sách luôn cao ít nhất bằng màn hình nên trang không bị kéo giật về; nếu đang cuộn xuống dưới chip thì trang trượt mượt về hàng chip.
+  - Nút tháng màu accent (lime, kính nổi), chữ đen.
+- Góp ý lần 2 (2026-10-29):
+  - Tìm kiếm dùng nút gốc của iOS 26: `.searchable(placement: .toolbar)` + `.searchToolbarBehavior(.minimize)`; nút kính lúp của hệ thống nở thành ô tìm ngay trên thanh và thu về khi đóng (như app của Apple). iOS 17–18 vẫn dùng nút riêng của trang. Khi tìm, tiêu đề "Giao dịch" và nút tháng ẩn khỏi thanh.
+  - Nút tháng lên thanh trên, bên trái nút tìm (người dùng chọn), chỉ ở "Thu chi"; card tổng quan bắt đầu ngay bằng Đã chi/Đã thu.
+  - Bộ lọc trong tìm kiếm: hàng chip Tất cả / Thu / Chi / Chuyển khoản riêng cho tìm kiếm (đóng tìm thì về Tất cả). Chưa gõ: "Hạng mục gần đây" theo loại đã chọn; "Chuyển khoản" khi chưa gõ thì liệt kê mọi chuyển khoản.
+- Góp ý lần 3 (2026-10-29):
+  - Nút tháng tự vẽ viên kính lime cao 44pt (`LimeCapsule`, `.glassEffect(.regular.tint(lime).interactive())`) vì kiểu nút kính trong toolbar bị ép thấp hơn nút kính lúp; chữ một dòng.
+  - **Bộ lọc tìm kiếm** (`TransactionSearchFilter`, `TransactionFilterSheet`): nút "Bộ lọc" dưới ô tìm (đen kèm số khi đang bật, bên cạnh là tóm tắt "Chi · MoMo" và × để bỏ). Sheet: Loại (4 chip, thay hàng chip cũ trong tìm kiếm), Khoảng thời gian (Mọi lúc / Tháng này / Tháng trước / 30 ngày qua / Tuỳ chọn với Từ ngày–Đến ngày), Số tiền Từ–Đến (báo lỗi khi Từ > Đến), Tài khoản (chọn nhiều, gồm cả tài khoản lưu trữ), Nhóm hạng mục (chọn nhiều, theo loại), "Đặt lại bộ lọc". Áp dụng khi bấm ✓. Có bộ lọc mà chưa gõ chữ thì hiện mọi giao dịch khớp bộ lọc.
+  - **Lịch sử tìm kiếm** thay "Hạng mục gần đây": "Tìm kiếm gần đây" tối đa 8 (mới nhất trên), lưu khi bấm Tìm trên bàn phím hoặc khi mở một kết quả; chạm để tìm lại, × để xoá một mục, "Xoá" để xoá hết. Chưa có lịch sử: dòng gợi ý cách tìm.
+  - Ô tìm tắt tự sửa chính tả. (Thanh trên vẫn dùng `HiddenToolbarTitle` giữ chỗ tiêu đề: `toolbar(removing:)` cần iOS 18.)
+  - **Chưa sửa được**: lần đầu mở ô tìm (thu gọn, iOS 26) có một mảng trắng mờ sau chữ gợi ý; gõ chữ rồi xoá thì mất. Đã thử bỏ tiêu đề, đổi chữ gợi ý, tắt tự sửa, đổi vị trí ô tìm, bỏ vai trò tìm kiếm của nút + — vẫn còn, nên có vẻ do chính ô tìm của iOS 26.
+- **Màn tìm kiếm riêng** (người dùng chọn 2026-10-29, như các app ngân hàng), thay cho ô tìm của iOS trên thanh (bỏ `OnDemandSearch` và mảng trắng của nó): kính lúp trên thanh mở `TransactionSearchView` phủ toàn màn hình (`fullScreenCover`), trang Giao dịch phía sau đứng yên.
+  - Trên cùng: ô tìm tự làm (viên trắng viền mảnh, kính lúp, nút xoá chữ, tắt tự sửa, phím "Tìm") và nút ✕ kính để đóng; bàn phím mở luôn.
+  - Hàng chip: "Bộ lọc" (đen kèm số khi bật) rồi mỗi điều kiện đang bật một chip có × để bỏ riêng ("Chi ×", "Tháng này ×", "MoMo ×"); chạm chip mở sheet Bộ lọc. Chip thường (không kính) để không có quầng sáng; chỉ cuộn ngang khi tràn.
+  - Chưa gõ, chưa lọc: "Tìm kiếm gần đây". Có chữ hoặc bộ lọc: kết quả mọi tháng gộp theo ngày (`ActivityDayList`, dùng chung với trang Giao dịch); chạm để xem.
+  - Từ "Vay nợ": màn tìm tìm khoản vay.
+  - Chip lọc nhanh cạnh "Bộ lọc" (2026-10-29, để nút không đứng một mình): "Chi", "Thu", "Chuyển khoản" khi chưa chọn loại, "Tháng này" khi chưa chọn thời gian; viền mảnh chữ xám, chạm một lần là bật (thành chip có ×), các chip cùng loại tự ẩn.
+  - Màn tìm trượt lên bằng `fullScreenCover` của iOS; bàn phím mở sau 0,45 giây (khi màn đã trượt xong) vì mở bàn phím ngay lúc trượt làm cú trượt khựng gần cuối.
+- Rà soát trang Thu chi lần 1 (agent, 2026-10-29), đã sửa:
+  - Chip nhanh Thu/Chi/Chuyển khoản dùng `TransactionSearchFilter.setKind` như sheet: bỏ nhóm hạng mục không hợp loại.
+  - ~~Phí chuyển khoản vẫn vào tổng ngày khi lọc "Chi"~~ — bỏ ở lần 3 (người dùng chọn: mỗi loại một chuyện).
+  - Không cho chọn ngày sau hôm nay khi ghi giao dịch, chuyển khoản, nạp/rút hũ, dùng tiền hũ (`FormDateRow(latest:)`, người dùng chọn). "Tháng này" trong bộ lọc tính cả tháng; biểu đồ vẽ cột thật cho ngày sau hôm nay nếu có tiền (dữ liệu cũ).
+  - Màn tìm có `NavigationStack` riêng: thẻ nợ thẻ tín dụng trong tìm "Vay nợ" mở được tài khoản.
+  - Nút tháng: cả viên nhận chạm; iOS 17–18 là viên lime thường (trước nền đen chữ đen). Nút "Năm trước" dừng ở năm có giao dịch cũ nhất.
+  - "Đã chi · N"/"Đã thu · N" đếm đúng số dòng mà chip Chi/Thu liệt kê (cả dòng không tính, trừ điều chỉnh số dư; người dùng chọn).
+  - Danh sách trống nói theo chip và tháng ("Tháng 9 chưa có khoản thu"); lời mời "Thêm giao dịch đầu tiên" chỉ khi chưa có gì.
+  - Kỳ "Tuỳ chọn": báo lỗi đỏ khi Từ ngày sau Đến ngày; chip ghi năm khi khác năm nay.
+  - Lịch sử tìm kiếm bỏ trùng không phân biệt dấu ("an sang" = "Ăn sáng").
+  - Vùng chạm: × trên chip 32×36, × lịch sử 44×44, cả viên chip mở Bộ lọc.
+  - Màn tìm dựng kết quả lười (`LazyVStack`) và tra hạng mục/tài khoản qua bảng dựng một lần mỗi lần tìm.
+  - Thành phần mới của design system: `SearchField` (ô tìm tự vẽ), `TagChip` (chip thường / gợi ý / có × / nổi đen). Số gõ tay đổi sang token (`Spacing`, `ControlHeight`, `RowMetrics`); danh sách theo ngày dùng `listCard()`. Bỏ `summary(in:)` không dùng.
+- Rà soát trang Thu chi lần 2 (agent, 2026-10-29), đã sửa:
+  - Chip Thu/Chi không còn liệt kê "Điều chỉnh số dư" (tổng cũng không tính nó); chỉ "Tất cả" có. Số "Đã chi · N"/"Đã thu · N" đếm đúng các dòng chip liệt kê.
+  - Gõ "phí" trong màn tìm ra chuyển khoản có phí.
+  - Tìm nhiều từ, không cần đúng thứ tự ("phong trua" ra "Cơm trưa văn phòng"); tìm "Vay nợ" cũng bỏ dấu và dấu cách thừa như "Thu chi".
+  - Không có kết quả khi đang bật bộ lọc: "…khớp với “grab” và bộ lọc."
+  - Bộ lọc tính một lần mỗi lượt tìm (`TransactionSearchFilter.Matcher`: khoảng ngày, nhóm của hạng mục), không tính lại cho từng giao dịch.
+  - Để app qua đêm: sang ngày mới thì cột hôm nay đổi theo, đang xem tháng vừa hết thì chuyển sang tháng mới (`NSCalendarDayChanged`, khi app trở lại).
+  - Biểu đồ: vuốt dọc từ biểu đồ vẫn cuộn trang. iOS 18 trở lên dùng một pan UIKit chỉ nhận khi bắt đầu sang ngang; iOS 17 giữ `DragGesture`.
+  - `TagChip`, `SearchField`, nút tháng cao lên theo cỡ chữ (chiều cao tối thiểu thay vì cố định).
+  - VoiceOver đọc "Đã chi 14.128.000 đ, 23 giao dịch".
+- Rà soát trang Thu chi lần 3 (agent, 2026-10-29), đã sửa:
+  - Mỗi chip một chuyện (người dùng chọn): Chi/Thu chỉ có giao dịch chi/thu, Chuyển khoản chỉ có chuyển khoản, Tất cả có cả hai. Phí chuyển khoản ở với chuyển khoản (sheet xem), không lên chip Chi và không cộng vào tổng ngày, ở trang lẫn màn tìm. Thẻ "Đã chi" vẫn là số báo cáo nên vẫn gồm phí (như Tổng quan).
+  - Tìm "Vay nợ": chỉ hiện mục có kết quả; không có gì thì một thẻ "Không tìm thấy" (trước là các thẻ trống lần đầu, có thẻ chỉ tới nút + màn tìm không có).
+  - Đếm "Đã chi · N"/"Đã thu · N" thẳng trên giao dịch của tháng, không dựng danh sách; `DayTotals` lọc dòng tính một lần.
+  - Đổi tháng khi chip vừa khuất dưới thanh: đo trong không gian của ScrollView nên trang cuộn về chip.
+  - Thông báo sang ngày mới nhận trên luồng chính (`receive(on: RunLoop.main)`).
+- Rà soát trang Thu chi lần 4 (agent, 2026-10-29), đã sửa:
+  - Giữ: thẻ tổng quan (số "Đã chi" và biểu đồ) là số báo cáo nên gồm phí chuyển khoản; tổng ngày của danh sách thì không. Ấn cột một ngày chỉ có phí sẽ thấy số phí, còn danh sách Chi ngày đó trống — có chủ ý.
+  - VoiceOver đọc tổng ngày thành chữ ("Thu 1.200.000 đ, chi 55.000 đ"); nút "Xoá" lịch sử đọc "Xoá lịch sử tìm kiếm".
+  - Tìm "Vay nợ" khi chưa gõ: một dòng gợi ý như "Thu chi", không liệt kê hết; chỉ gõ dấu cách cũng tính là chưa gõ.
+  - `ActivityDayList` chuyển sang `FlowRows.swift` cạnh `DayTotals`; bỏ `loanFilter` không dùng trong màn tìm; sửa các chú thích cũ (nút tháng màu chanh, tìm Vay nợ, dòng mở sheet xem).
+- Rà soát lần cuối (agent, 2026-10-29): sẵn sàng commit. Sửa thêm: lịch chọn ngày chặn tới hết hôm nay (không phải giây hiện tại), nên giờ đã đặt muộn hơn bây giờ không bị kéo về; chip lọc đang bật có gợi ý VoiceOver "Mở bộ lọc" (`TagChip(hint:)`).

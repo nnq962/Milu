@@ -2,17 +2,21 @@ import Charts
 import SwiftUI
 
 /// Spending per day of a month, drawn with Swift Charts: one bar per day, today in lime, days still
-/// ahead faint. Press (or press and drag) across the bars to read a day's total under the chart; the selected bar
-/// turns black and the phone ticks. The pick stays after the finger lifts; tapping it again clears
-/// it. VoiceOver reads every day through Charts' own audio graph.
+/// ahead faint. Tap a bar (or drag sideways across them) to read a day's total under the chart; the
+/// selected bar turns black and the phone ticks. The pick stays after the finger lifts; tapping it
+/// again clears it. A tap answers at once: Charts' own selection waited for a long press inside the
+/// scrolling page and lit the bars up before it took. VoiceOver reads every day through Charts'
+/// own audio graph.
 struct DailySpendingChart: View {
     let month: Date
     /// Day of the month → amount spent.
     let totals: [Int: Double]
+    /// Which day is lit; the page passes it on so a new day (the app left open overnight) moves it.
+    var today = Date.now
 
     @State private var selectedDay: String?
-    /// What Charts reports while a finger is down; nil again once it lifts.
-    @State private var touchedDay: String?
+    /// How tall the bars are.
+    var height: CGFloat = 64
 
     private struct Day: Identifiable {
         let number: Int
@@ -29,7 +33,7 @@ struct DailySpendingChart: View {
 
     private var days: [Day] {
         let count = calendar.range(of: .day, in: .month, for: start)?.count ?? 30
-        let today = calendar.startOfDay(for: .now)
+        let today = calendar.startOfDay(for: self.today)
         return (1...count).map { number in
             let date = calendar.date(byAdding: .day, value: number - 1, to: start) ?? start
             return Day(number: number, amount: totals[number, default: 0],
@@ -47,7 +51,7 @@ struct DailySpendingChart: View {
                 // Empty and future days keep a stub so the month still reads as 30 slots.
                 BarMark(
                     x: .value("Ngày", day.label),
-                    y: .value("Chi", day.isFuture ? peak * 0.06 : max(day.amount, peak * 0.04)),
+                    y: .value("Chi", day.isFuture && day.amount == 0 ? peak * 0.06 : max(day.amount, peak * 0.04)),
                     width: .ratio(0.7)
                 )
                 .clipShape(Capsule())
@@ -58,13 +62,24 @@ struct DailySpendingChart: View {
             .chartXAxis(.hidden)
             .chartYAxis(.hidden)
             .chartYScale(domain: 0...peak)
-            .chartXSelection(value: $touchedDay)
-            .onChange(of: touchedDay) { old, new in
-                guard let new else { return }
-                // A new touch that lands on the day already picked clears it.
-                selectedDay = (old == nil && new == selectedDay) ? nil : new
+            .chartOverlay { proxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        // A tap on the day already picked clears it.
+                        .gesture(SpatialTapGesture().onEnded { value in
+                            let day = self.day(at: value.location, proxy: proxy, geometry: geometry)
+                            selectedDay = day == selectedDay ? nil : day
+                        })
+                        // Sideways only, so the page still scrolls up and down over the chart.
+                        .modifier(SidewaysDrag { location in
+                            guard let day = self.day(at: location, proxy: proxy, geometry: geometry) else { return }
+                            selectedDay = day
+                        })
+                }
             }
-            .frame(height: 64)
+            .frame(height: height)
             .sensoryFeedback(.selection, trigger: selectedDay)
 
             HStack {
@@ -85,12 +100,66 @@ struct DailySpendingChart: View {
             // Room for the selected day's line, so the card doesn't jump when it appears.
             .frame(minHeight: 18)
         }
-        .animation(.snappy(duration: 0.2), value: selectedDay)
+        .animation(.easeOut(duration: 0.15), value: selectedDay)
+        // Another month: nothing picked.
+        .onChange(of: start) { selectedDay = nil }
+    }
+
+    /// The day under a point of the chart, if any.
+    private func day(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) -> String? {
+        guard let plot = proxy.plotFrame else { return nil }
+        let x = location.x - geometry[plot].origin.x
+        return proxy.value(atX: x, as: String.self)
     }
 
     private func color(for day: Day, selected: Day?) -> Color {
         if let selected { return day.id == selected.id ? Palette.primary : Palette.secondary.opacity(0.2) }
         if day.isToday { return Palette.lime }
-        return day.isFuture ? Palette.muted : Palette.secondary.opacity(0.3)
+        return day.isFuture && day.amount == 0 ? Palette.muted : Palette.secondary.opacity(0.3)
+    }
+}
+
+/// A drag across the chart that only starts sideways. iOS 18 and later let a SwiftUI drag inside
+/// the page take the touch even when it goes up or down, so a swipe that began on the chart did
+/// not scroll; there a UIKit pan declines anything but a sideways start. iOS 17 keeps the SwiftUI
+/// drag, which shares the touch with the scroll.
+private struct SidewaysDrag: ViewModifier {
+    let onChange: (CGPoint) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.gesture(SidewaysPan(onChange: onChange))
+        } else {
+            content.simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { value in
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
+                onChange(value.location)
+            })
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct SidewaysPan: UIGestureRecognizerRepresentable {
+    let onChange: (CGPoint) -> Void
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let pan = UIPanGestureRecognizer()
+        pan.delegate = context.coordinator
+        return pan
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        guard recognizer.state == .began || recognizer.state == .changed else { return }
+        onChange(context.converter.localLocation)
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = recognizer as? UIPanGestureRecognizer else { return true }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y)
+        }
     }
 }

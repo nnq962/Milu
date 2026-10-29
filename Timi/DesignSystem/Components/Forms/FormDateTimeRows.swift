@@ -9,6 +9,9 @@ struct FormDateRow: View {
     @Binding var date: Date
     /// The earliest day the calendar lets the user pick (a deadline starts tomorrow).
     var earliest: Date? = nil
+    /// The latest day it lets the user pick (something that already happened: today).
+    var latest: Date? = nil
+    var isInvalid = false
 
     @State private var isPicking = false
 
@@ -21,12 +24,12 @@ struct FormDateRow: View {
 
     var body: some View {
         Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: icon, value: valueText)
+            FormValueLabel(title: title, icon: icon, value: valueText, isInvalid: isInvalid)
         }
         .buttonStyle(.row)
         .accessibilityValue(valueText)
         .sheet(isPresented: $isPicking) {
-            DateTimeSheet(title: title, date: $date, component: .date, earliest: earliest)
+            DateTimeSheet(title: title, date: $date, component: .date, earliest: earliest, latest: latest)
         }
     }
 }
@@ -62,16 +65,28 @@ private struct DateTimeSheet: View {
     @Binding var date: Date
     let component: DatePickerComponents
     var earliest: Date? = nil
+    var latest: Date? = nil
 
     @State private var draft: Date
     @Environment(\.dismiss) private var dismiss
 
-    init(title: String, date: Binding<Date>, component: DatePickerComponents, earliest: Date? = nil) {
+    init(title: String, date: Binding<Date>, component: DatePickerComponents, earliest: Date? = nil,
+         latest: Date? = nil) {
         self.title = title
         _date = date
         self.component = component
         self.earliest = earliest
+        self.latest = latest
         _draft = State(initialValue: date.wrappedValue)
+    }
+
+    /// The last moment that can be picked: the end of `latest`'s day, so a time already set later
+    /// today (21:00 at 10:00) is kept rather than pulled back to now.
+    private var latestDay: Date {
+        guard let latest else { return .distantFuture }
+        let calendar = Calendar.current
+        let next = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: latest)) ?? latest
+        return next.addingTimeInterval(-1)
     }
 
     var body: some View {
@@ -83,7 +98,7 @@ private struct DateTimeSheet: View {
             }
             Group {
                 if component == .date {
-                    DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...,
+                    DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
                                displayedComponents: .date)
                         .datePickerStyle(.graphical)
                 } else {

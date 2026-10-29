@@ -20,10 +20,18 @@ struct LoansContent: View {
     @Environment(FinanceStore.self) private var store
     @Binding var filter: LoanFilter
     let searchText: String
+    /// Searching shows only what matches: no total card, no chips, only the sections with a match;
+    /// nothing typed yet, a hint (as the search of "Thu chi").
+    var isSearching = false
     let onEdit: (Loan) -> Void
 
+    /// Every word found in the name, accents and stray spaces aside ("chi lan" finds "Chị Lan"),
+    /// as the search of "Thu chi" does.
     private func matchesSearch(_ name: String) -> Bool {
-        searchText.isEmpty || name.localizedCaseInsensitiveContains(searchText)
+        let words = searchText.searchKey.split(separator: " ")
+        guard !words.isEmpty else { return true }
+        let key = name.searchKey
+        return words.allSatisfy { key.contains($0) }
     }
 
     private var activeLoans: [Loan] {
@@ -40,8 +48,33 @@ struct LoansContent: View {
     }
 
     var body: some View {
-        summaryCard
-        ChipRow(options: LoanFilter.allCases, selection: $filter) { $0.title }
+        if isSearching && searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            Text("Tìm theo tên người cho vay, người vay hoặc thẻ tín dụng.")
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
+                .padding(.horizontal, RowMetrics.horizontal)
+        } else if isSearching {
+            // Only the sections with a match: their empty cards are for a first visit (one even
+            // points at a + the search does not have). Nothing at all: one "Không tìm thấy".
+            if reminders.isEmpty && lentLoans.isEmpty && cardDebts.isEmpty && borrowedLoans.isEmpty
+                && settledLoans.isEmpty {
+                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
+                               message: "Không có khoản vay nào khớp với “\(searchText.trimmingCharacters(in: .whitespaces))”.")
+            } else {
+                attentionSection
+                if !lentLoans.isEmpty { lentSection }
+                if !cardDebts.isEmpty || !borrowedLoans.isEmpty { borrowedSection }
+                if !settledLoans.isEmpty { settledSection }
+            }
+        } else {
+            summaryCard
+            ChipRow(options: LoanFilter.allCases, selection: $filter) { $0.title }
+            sections
+        }
+    }
+
+    @ViewBuilder
+    private var sections: some View {
         switch filter {
         case .all:
             attentionSection
@@ -102,11 +135,15 @@ struct LoansContent: View {
 
     // MARK: - Cần chú ý
 
-    @ViewBuilder
-    private var attentionSection: some View {
-        let reminders = store.paymentReminders
+    private var reminders: [PaymentReminder] {
+        store.paymentReminders
             .filter { matchesSearch($0.title) || matchesSearch($0.detail) }
             .sorted { $0.dueDate < $1.dueDate }
+    }
+
+    @ViewBuilder
+    private var attentionSection: some View {
+        let reminders = reminders
         if !reminders.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 SectionHeader(title: "Cần chú ý") {

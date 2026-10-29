@@ -204,7 +204,8 @@ struct AddTransactionView: View {
                     transactionRows
                 }
                 FormDivider(hasIcon: false)
-                FormDateRow(title: "Ngày", date: $date)
+                // Money already moved: no day after today (user choice 2026-10-29).
+                FormDateRow(title: "Ngày", date: $date, latest: .now)
                 FormDivider(hasIcon: false)
                 FormTimeRow(title: "Giờ", date: $date)
             }

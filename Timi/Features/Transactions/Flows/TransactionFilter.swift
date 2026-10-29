@@ -14,11 +14,12 @@ enum TransactionFilter: String, CaseIterable, Identifiable {
         }
     }
 
+    /// "Thu" and "Chi" list what their totals count, so not balance adjustments (only "Tất cả" does).
     func matches(_ transaction: FinanceTransaction) -> Bool {
         switch self {
         case .all: true
-        case .income: transaction.kind == .income
-        case .expense: transaction.kind == .expense
+        case .income: transaction.kind == .income && !transaction.isAdjustment
+        case .expense: transaction.kind == .expense && !transaction.isAdjustment
         // Transfers are not transactions: the list adds them itself (`AccountTransfer`).
         case .transfer: false
         }

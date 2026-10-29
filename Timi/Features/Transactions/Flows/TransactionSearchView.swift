@@ -1,0 +1,279 @@
+import SwiftUI
+
+/// The search of "Giao dịch", on a screen of its own over everything (user choice 2026-10-29, as
+/// banking apps do): its own field on top with ✕, then the filters as chips, then the recent
+/// searches (nothing typed, no filter) or what matches, by day, in every month. The page behind
+/// stays as it is. On "Vay nợ" it searches loans instead.
+struct TransactionSearchView: View {
+    let segment: TransactionSegment
+
+    @Environment(FinanceStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var filter = TransactionSearchFilter()
+    @State private var isFiltering = false
+    /// A result tapped to read or change it.
+    @State private var openedItem: AccountDetailView.Activity?
+    @State private var editingLoan: Loan?
+    @FocusState private var isFieldFocused: Bool
+    /// The last searches, one per line (`remember`).
+    @AppStorage("transactions.searchHistory") private var historyText = ""
+
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
+
+    var body: some View {
+        // Its own stack: a credit card's debt on "Vay nợ" opens the account, as on the page.
+        NavigationStack {
+            VStack(spacing: 0) {
+                searchBar
+                    .padding(.horizontal, Spacing.page)
+                    .padding(.top, Spacing.s)
+                    .padding(.bottom, Spacing.m)
+                ScrollView {
+                    // Lazy: "Chi, Mọi lúc" can list every expense ever recorded.
+                    LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                        switch segment {
+                        case .flows: flowsContent
+                        case .loans:
+                            LoansContent(filter: .constant(.all), searchText: query, isSearching: true) { editingLoan = $0 }
+                        }
+                    }
+                    .padding(.horizontal, Spacing.page)
+                    .padding(.bottom, Spacing.xxl)
+                    .animation(.smooth(duration: 0.25), value: filter)
+                    .animation(.smooth(duration: 0.2), value: trimmedQuery.isEmpty)
+                }
+                .scrollDismissesKeyboard(.immediately)
+                // No bar above it: iOS 26's soft top edge drew a light band behind the chips.
+                .modifier(NoScrollEdgeEffect())
+            }
+            .background(Palette.background)
+            .foregroundStyle(Palette.ink)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
+        }
+        // The keyboard comes up once the screen has slid in: started during the slide, it took
+        // frames from it and the slide caught near its end (as TimiAmountField waits too).
+        .task {
+            try? await Task.sleep(for: .milliseconds(450))
+            isFieldFocused = true
+        }
+        .sheet(item: $openedItem) { ActivityEditor(item: $0) }
+        .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
+        .sheet(isPresented: $isFiltering) { TransactionFilterSheet(filter: $filter) }
+        // Opening a result means the search was the right one: keep it.
+        .onChange(of: openedItem) { _, item in if item != nil { remember(query) } }
+    }
+
+    // MARK: - Ô tìm
+
+    private var searchBar: some View {
+        HStack(spacing: Spacing.s) {
+            SearchField(prompt: segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay", text: $query,
+                        isFocused: $isFieldFocused) {
+                if segment == .flows { remember(query) }
+            }
+            Button { dismiss() } label: {
+                TimiIcon("hugeicons-cancel-01", size: 20)
+                    .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            }
+            .nativeCircleButton(diameter: ControlHeight.regular)
+            .tint(Palette.ink)
+            .accessibilityLabel("Đóng tìm kiếm")
+        }
+    }
+
+    // MARK: - Thu chi
+
+    @ViewBuilder
+    private var flowsContent: some View {
+        filterChips
+        Group {
+            if trimmedQuery.isEmpty && !filter.isActive {
+                recentSearches
+            } else {
+                let matcher = filter.matcher(in: store)
+                let groups = ActivityDayList.byDay(matches(matcher))
+                if groups.isEmpty {
+                    EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage)
+                } else {
+                    ActivityDayList(groups: groups) { openedItem = $0 }
+                }
+            }
+        }
+        .transition(.opacity)
+    }
+
+    /// "Bộ lọc" (black with a count when something is on), one chip per thing that is on (× drops
+    /// it), then quick picks for what is not set yet, so the button never stands alone.
+    private var filterChips: some View {
+        // Scroll only when the chips overflow: a horizontal ScrollView behind glass draws a lighter
+        // band across the row on iOS 26 (as ChipRow does).
+        ViewThatFits(in: .horizontal) {
+            chipStack.frame(maxWidth: .infinity, alignment: .leading)
+            ScrollView(.horizontal) {
+                chipStack.padding(.horizontal, Spacing.page)
+            }
+            .scrollIndicators(.hidden)
+            .modifier(NoScrollEdgeEffect())
+            .padding(.horizontal, -Spacing.page)
+        }
+    }
+
+    private var chipStack: some View {
+        HStack(spacing: Spacing.s) {
+            TagChip(title: filter.isActive ? "Bộ lọc · \(filter.activeCount)" : "Bộ lọc",
+                    icon: "hugeicons-filter-horizontal", isProminent: filter.isActive) { isFiltering = true }
+                .accessibilityLabel(filter.isActive ? "Bộ lọc, đang bật \(filter.activeCount)" : "Bộ lọc")
+
+            ForEach(filter.chips(in: store)) { chip in
+                TagChip(title: chip.title, hint: "Mở bộ lọc", action: { isFiltering = true }) {
+                    withAnimation(.smooth(duration: 0.25)) { filter.clear(chip.part) }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+
+            ForEach(quickPicks, id: \.title) { pick in
+                TagChip(title: pick.title, isSuggestion: true) {
+                    Haptics.selection()
+                    withAnimation(.smooth(duration: 0.25)) { pick.apply(&filter, store) }
+                }
+                .accessibilityHint("Thêm vào bộ lọc")
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+    }
+
+    private struct QuickPick {
+        let title: String
+        let apply: (inout TransactionSearchFilter, FinanceStore) -> Void
+    }
+
+    /// The kinds while none is chosen, and "Tháng này" while no period is.
+    private var quickPicks: [QuickPick] {
+        var picks: [QuickPick] = []
+        if filter.kind == .all {
+            picks += [TransactionFilter.expense, .income, .transfer].map { kind in
+                QuickPick(title: kind.title) { $0.setKind(kind, groupsOf: $1) }
+            }
+        }
+        if filter.period == .all {
+            picks.append(QuickPick(title: TransactionSearchFilter.Period.thisMonth.title) { filter, _ in
+                filter.period = .thisMonth
+            })
+        }
+        return picks
+    }
+
+    /// What matches the words and the filters, in every month: a transaction by its category,
+    /// group, note or account; a transfer by either account, its note, "chuyển khoản" (and "phí"
+    /// when it has a fee). Every word has to be found, in any order, accents aside ("momo cafe").
+    /// No words: everything the filters let through.
+    private func matches(_ matcher: TransactionSearchFilter.Matcher) -> [AccountDetailView.Activity] {
+        let words = trimmedQuery.searchKey.split(separator: " ")
+        func found(in text: String) -> Bool {
+            guard !words.isEmpty else { return true }
+            let key = text.searchKey
+            return words.allSatisfy { key.contains($0) }
+        }
+        // Looked up once per search, not once per transaction.
+        let categories = Dictionary(store.categories.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let names = Dictionary((store.accounts + store.archivedAccounts).map { ($0.id, $0.name) },
+                               uniquingKeysWith: { first, _ in first })
+            .merging(store.savingsGoals.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let transactions = store.transactions.filter { transaction in
+            guard matcher.matches(transaction) else { return false }
+            let item = categories[transaction.categoryID]
+            let group = item?.parentID.flatMap { categories[$0]?.name } ?? ""
+            let name = item?.name ?? store.categoryName(transaction.categoryID)
+            return found(in: "\(name) \(group) \(transaction.note) \(names[transaction.accountID] ?? "")")
+        }
+        let transfers = store.accountTransfers.filter { transfer in
+            guard matcher.matches(transfer) else { return false }
+            let sides = [transfer.fromAccountID, transfer.toAccountID].compactMap { names[$0] }
+            let fee = transfer.fee > 0 ? "phí" : ""
+            return found(in: "chuyển khoản \(fee) \(sides.joined(separator: " ")) \(transfer.note)")
+        }
+        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers)
+    }
+
+    /// Says what left nothing: the words, the filters, or both.
+    private var emptyMessage: String {
+        if trimmedQuery.isEmpty { return "Không có giao dịch nào khớp với bộ lọc." }
+        let words = "“\(trimmedQuery)”"
+        return filter.isActive ? "Không có giao dịch nào khớp với \(words) và bộ lọc."
+            : "Không có giao dịch nào khớp với \(words)."
+    }
+
+    // MARK: - Lịch sử tìm kiếm
+
+    /// The last searches, newest first: tap one to search it again, × to forget it, "Xoá" to
+    /// forget all (user request 2026-10-29).
+    @ViewBuilder
+    private var recentSearches: some View {
+        let history = self.history
+        if history.isEmpty {
+            Text("Tìm theo hạng mục, ghi chú hoặc tài khoản. Dùng Bộ lọc để chọn loại, thời gian, số tiền.")
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
+                .padding(.horizontal, RowMetrics.horizontal)
+        } else {
+            VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                SectionHeader(title: "Tìm kiếm gần đây", style: .group) {
+                    Button("Xoá") { withAnimation(.smooth(duration: 0.25)) { historyText = "" } }
+                        .textRole(.captionStrong)
+                        .tint(Palette.ink)
+                        .accessibilityLabel("Xoá lịch sử tìm kiếm")
+                }
+                VStack(spacing: 0) {
+                    ForEach(Array(history.enumerated()), id: \.element) { index, item in
+                        HStack(spacing: 0) {
+                            Button {
+                                query = item
+                                remember(item)
+                            } label: {
+                                FormRowLabel(title: item, icon: "hugeicons-clock-01")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            Button { forget(item) } label: {
+                                TimiIcon("hugeicons-cancel-01", size: 14)
+                                    .foregroundStyle(Palette.secondaryText)
+                                    .frame(width: ControlHeight.regular, height: ControlHeight.regular)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Xoá “\(item)” khỏi lịch sử")
+                        }
+                        .formRowFrame()
+                        .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                    }
+                }
+                .listCard()
+            }
+        }
+    }
+
+    /// Kept as lines, newest first, at most `historyLimit`.
+    private var history: [String] {
+        historyText.split(separator: "\n").map(String.init)
+    }
+
+    private static let historyLimit = 8
+
+    /// Saves a search, newest first; one that differs only in case or accents ("an sang", "Ăn
+    /// sáng") replaces the older one.
+    private func remember(_ text: String) {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        let rest = history.filter { $0.searchKey != clean.searchKey }
+        historyText = ([clean] + rest).prefix(Self.historyLimit).joined(separator: "\n")
+    }
+
+    private func forget(_ text: String) {
+        withAnimation(.smooth(duration: 0.25)) {
+            historyText = history.filter { $0 != text }.joined(separator: "\n")
+        }
+    }
+}
