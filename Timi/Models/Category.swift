@@ -24,11 +24,11 @@ struct Category: Identifiable, Hashable {
     var isHidden: Bool { hiddenAt != nil }
 
     /// The balance adjustments are categories of the system, never listed in "Hạng mục".
-    static let systemIDs: Set<String> = [TransactionCategory.adjustmentIn.rawValue, TransactionCategory.adjustmentOut.rawValue]
+    static let systemIDs: Set<String> = Set(TransactionCategory.allCases.filter(\.isSystem).map(\.rawValue))
 
     /// Names the system's own categories use ("Điều chỉnh số dư"): a user category may not take
     /// one, or its transactions would read like balance adjustments.
-    static let reservedNames: [String] = [TransactionCategory.adjustmentIn.title]
+    static let reservedNames: [String] = [TransactionCategory.adjustmentIn.title, TransactionCategory.transferFee.title]
 }
 
 /// The categories a new install starts with: the V1 groups (same ids, so existing transactions

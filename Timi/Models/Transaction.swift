@@ -21,6 +21,9 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
     /// "Điều chỉnh số dư": the difference when the user corrects an account's balance. Never
     /// offered in the pickers and kept out of totals and reports.
     case adjustmentIn, adjustmentOut
+    /// "Phí chuyển khoản": the fee of a transfer between two accounts, recorded as spending from the
+    /// source account (it counts in reports). Made and changed only through its transfer.
+    case transferFee
 
     var id: Self { self }
 
@@ -46,6 +49,7 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .investment: "Đầu tư"
         case .otherIncome: "Thu khác"
         case .adjustmentIn, .adjustmentOut: "Điều chỉnh số dư"
+        case .transferFee: "Phí chuyển khoản"
         }
     }
 
@@ -64,6 +68,7 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .investment: "hugeicons-chart-increase"
         case .otherIncome: "hugeicons-money-add-02"
         case .adjustmentIn, .adjustmentOut: "hugeicons-pencil-edit-01"
+        case .transferFee: "hugeicons-receipt-dollar"
         }
     }
 
@@ -76,7 +81,7 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .entertainment: .cyan
         case .health: .indigo
         case .education: .brown
-        case .otherExpense, .otherIncome, .adjustmentIn, .adjustmentOut: .gray
+        case .otherExpense, .otherIncome, .adjustmentIn, .adjustmentOut, .transferFee: .gray
         case .salary: .green
         case .bonus: .mint
         case .investment: .teal
@@ -84,9 +89,11 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
     }
 
     var isAdjustment: Bool { self == .adjustmentIn || self == .adjustmentOut }
+    /// The system's own categories, never picked by the user nor listed in "Hạng mục".
+    var isSystem: Bool { isAdjustment || self == .transferFee }
 
-    /// The categories a user can pick, without the balance adjustments.
-    static var pickable: [TransactionCategory] { allCases.filter { !$0.isAdjustment } }
+    /// The built-in groups a user could pick before items existed, without the system ones.
+    static var pickable: [TransactionCategory] { allCases.filter { !$0.isSystem } }
 
     static func categories(for kind: TransactionKind) -> [TransactionCategory] {
         pickable.filter { $0.kind == kind }
@@ -96,25 +103,64 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
 struct FinanceTransaction: Identifiable, Hashable {
     /// Stable across launches: the same id is stored in the database.
     var id = UUID()
+    /// Empty for a transaction added in the app: it has no name of its own and shows its category
+    /// (`FinanceStore.title(of:)`, user choice 2026-10-29). Sample data, the assistant and the
+    /// system's own rows have one.
     var title: String
-    /// Luôn là số dương; chiều tiền (thu hay chi) suy ra từ danh mục.
+    /// Luôn là số dương; chiều tiền (thu hay chi) theo `kind`.
     var amount: Double
-    var category: TransactionCategory
+    /// An item of "Hạng mục" ("food.breakfast"); a built-in group ("food") for a transaction from
+    /// before items existed (kept as it was, user choice 2026-10-29); or a system category
+    /// (`TransactionCategory`: balance adjustments, transfer fees).
+    var categoryID: String
+    var kind: TransactionKind
     var accountID: Account.ID
     var date: Date
     var note: String = ""
+    /// When it was recorded (not `date`, when it happened); orders "Gần đây" in the category picker.
+    var createdAt = Date.now
+    /// "Không tính vào báo cáo", chosen by the user: still moves the balance, but stays out of
+    /// totals, charts and the assistant, as a balance adjustment does.
+    var isExcluded = false
 
-    var kind: TransactionKind { category.kind }
+    init(id: UUID = UUID(), title: String, amount: Double, categoryID: String, kind: TransactionKind,
+         accountID: Account.ID, date: Date, note: String = "", isExcluded: Bool = false) {
+        self.id = id
+        self.title = title
+        self.amount = amount
+        self.categoryID = categoryID
+        self.kind = kind
+        self.accountID = accountID
+        self.date = date
+        self.note = note
+        self.isExcluded = isExcluded
+    }
+
+    /// On a system category or a built-in group (sample data, the assistant, balance adjustments).
+    init(id: UUID = UUID(), title: String, amount: Double, category: TransactionCategory,
+         accountID: Account.ID, date: Date, note: String = "") {
+        self.init(id: id, title: title, amount: amount, categoryID: category.rawValue, kind: category.kind,
+                  accountID: accountID, date: date, note: note)
+    }
+
+    /// The system category it is on, if any.
+    var systemCategory: TransactionCategory? {
+        TransactionCategory(rawValue: categoryID).flatMap { $0.isSystem ? $0 : nil }
+    }
+    var isAdjustment: Bool { systemCategory?.isAdjustment == true }
+    /// The fee of a transfer: changed through the transfer (`AccountTransfer.id(ofFee:)`).
+    var isTransferFee: Bool { systemCategory == .transferFee }
 
     /// Số tiền có dấu: thu là dương, chi là âm.
     var signedAmount: Double { kind == .income ? amount : -amount }
 }
 
 extension Sequence<FinanceTransaction> {
-    /// What totals, charts and the assistant count: no balance adjustments, and nothing recorded on
-    /// a locked account (`lockedAccounts`, from `FinanceStore.lockedAccountIDs`).
+    /// What totals, charts and the assistant count: no balance adjustments, nothing the user left
+    /// out, and nothing recorded on a locked account (`lockedAccounts`, from
+    /// `FinanceStore.lockedAccountIDs`).
     func reportable(excluding lockedAccounts: Set<Account.ID>) -> [FinanceTransaction] {
-        filter { !$0.category.isAdjustment && !lockedAccounts.contains($0.accountID) }
+        filter { !$0.isAdjustment && !$0.isExcluded && !lockedAccounts.contains($0.accountID) }
     }
 }
 

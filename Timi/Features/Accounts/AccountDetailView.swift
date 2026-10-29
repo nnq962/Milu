@@ -6,6 +6,8 @@ import SwiftUI
 struct AccountDetailView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    /// Tells the + beside the tab bar which account to start on (absent in previews).
+    @Environment(AddTransactionContext.self) private var addContext: AddTransactionContext?
     let accountID: Account.ID
     @State private var isEditing = false
     /// Set by "Lưu trữ" / "Xoá" in the edit form; the account goes once that form has closed.
@@ -16,7 +18,8 @@ struct AccountDetailView: View {
     var body: some View {
         if let account = store.account(id: accountID) {
             let transactions = store.accountTransactions(account)
-            let activity = Self.activity(transactions: transactions, transfers: store.transfers(of: account))
+            let activity = Self.activity(transactions: transactions, transfers: store.transfers(of: account),
+                                         accountTransfers: store.accountTransfers(of: account))
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
                     SummaryCard(label: "Số dư", amount: account.balance, icon: account.iconName,
@@ -37,7 +40,7 @@ struct AccountDetailView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(activity.enumerated()), id: \.element.id) { index, item in
-                                    ActivityRow(item: item, side: .account, isEditable: true) { editingItem = $0 }
+                                    ActivityRow(item: item, side: .account, viewedAccount: account.id) { editingItem = $0 }
                                         .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                                 }
                             }
@@ -71,6 +74,9 @@ struct AccountDetailView: View {
             .sheet(item: $editingItem) { item in
                 ActivityEditor(item: item)
             }
+            // Also on switching tabs: the + on another tab does not start on this account.
+            .onAppear { addContext?.accountID = accountID }
+            .onDisappear { if addContext?.accountID == accountID { addContext?.accountID = nil } }
         } else {
             EmptyStateCard(icon: "hugeicons-alert-02", title: "Không tìm thấy tài khoản",
                            message: "Tài khoản này có thể đã bị xoá.")
@@ -82,15 +88,18 @@ struct AccountDetailView: View {
 }
 
 extension AccountDetailView {
-    /// A row of the account's history: a transaction or money moved to or from a goal.
+    /// A row of the account's history: a transaction, money moved to or from a goal, or a transfer
+    /// with another account.
     enum Activity: Identifiable, Hashable {
         case transaction(FinanceTransaction)
         case transfer(GoalTransfer)
+        case accountTransfer(AccountTransfer)
 
         var id: UUID {
             switch self {
             case .transaction(let transaction): transaction.id
             case .transfer(let transfer): transfer.id
+            case .accountTransfer(let transfer): transfer.id
             }
         }
 
@@ -98,12 +107,15 @@ extension AccountDetailView {
             switch self {
             case .transaction(let transaction): transaction.date
             case .transfer(let transfer): transfer.date
+            case .accountTransfer(let transfer): transfer.date
             }
         }
     }
 
-    static func activity(transactions: [FinanceTransaction], transfers: [GoalTransfer]) -> [Activity] {
-        (transactions.map(Activity.transaction) + transfers.map(Activity.transfer))
+    static func activity(transactions: [FinanceTransaction], transfers: [GoalTransfer] = [],
+                         accountTransfers: [AccountTransfer] = []) -> [Activity] {
+        (transactions.map(Activity.transaction) + transfers.map(Activity.transfer)
+            + accountTransfers.map(Activity.accountTransfer))
             .sorted { $0.date > $1.date }
     }
 
@@ -129,6 +141,11 @@ struct ActivityRow: View {
     let item: AccountDetailView.Activity
     let side: GoalTransferRow.Side
     var isEditable = true
+    /// The account whose history this is: a transfer reads "Chuyển đến …" or "Nhận từ …" from it;
+    /// nil on "Giao dịch", where it reads "Từ … → …".
+    var viewedAccount: Account.ID? = nil
+    /// What goes under the amount: the day (an account's history) or the time (grouped by day).
+    var detail: TransactionListRow.Detail = .day
     let onEdit: (AccountDetailView.Activity) -> Void
 
     @Environment(FinanceStore.self) private var store
@@ -138,6 +155,7 @@ struct ActivityRow: View {
         switch item {
         case .transaction(let transaction): return store.isEditable(transaction)
         case .transfer(let transfer): return store.isEditable(transfer)
+        case .accountTransfer(let transfer): return store.readOnlyReason(transfer) == nil
         }
     }
 
@@ -145,9 +163,11 @@ struct ActivityRow: View {
         let row = Group {
             switch item {
             case .transaction(let transaction):
-                TransactionListRow(transaction: transaction, detail: .day)
+                TransactionListRow(transaction: transaction, detail: detail)
             case .transfer(let transfer):
                 GoalTransferRow(transfer: transfer, side: side)
+            case .accountTransfer(let transfer):
+                AccountTransferRow(transfer: transfer, viewedAccount: viewedAccount, detail: detail)
             }
         }
         if canEdit {
@@ -173,7 +193,40 @@ struct ActivityRow: View {
         switch item {
         case .transaction(let transaction): store.readOnlyReason(transaction)
         case .transfer(let transfer): store.readOnlyReason(transfer)
+        case .accountTransfer(let transfer): store.readOnlyReason(transfer)
         }
+    }
+}
+
+/// A transfer between two accounts. From one of them: "Chuyển đến MoMo" (−) or "Nhận từ
+/// Vietcombank" (+); on "Giao dịch": "Chuyển khoản", "Vietcombank → MoMo", without a sign.
+struct AccountTransferRow: View {
+    let transfer: AccountTransfer
+    var viewedAccount: Account.ID? = nil
+    var detail: TransactionListRow.Detail = .day
+
+    @Environment(FinanceStore.self) private var store
+
+    var body: some View {
+        let from = store.account(id: transfer.fromAccountID)?.name ?? "Tài khoản đã xoá"
+        let to = store.account(id: transfer.toAccountID)?.name ?? "Tài khoản đã xoá"
+        let outgoing = viewedAccount == transfer.fromAccountID
+        let title: String
+        let tone: MoneyText.Tone
+        switch viewedAccount {
+        case nil:
+            title = "Chuyển khoản"
+            tone = .plain
+        default:
+            title = outgoing ? "Chuyển đến \(to)" : "Nhận từ \(from)"
+            tone = outgoing ? .signedExpense : .signedIncome
+        }
+        return ListRow(icon: "hugeicons-arrow-data-transfer-horizontal", title: title,
+                       subtitle: viewedAccount == nil ? "\(from) → \(to)" : "Chuyển khoản",
+                       trailingSubtitle: detail == .time
+                           ? transfer.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
+                           : TransactionListRow.dayMonth(transfer.date),
+                       amount: transfer.amount, amountTone: tone, showsChevron: false)
     }
 }
 
@@ -186,7 +239,9 @@ struct ActivityEditor: View {
     var body: some View {
         switch item {
         case .transaction(let transaction):
-            AddTransactionView(editing: transaction)
+            TransactionEditSheet(transaction: transaction)
+        case .accountTransfer(let transfer):
+            AddTransactionView(editingTransfer: transfer)
         case .transfer(let transfer):
             if let goal = store.goal(id: transfer.goalID) {
                 GoalTransferSheet(editing: transfer, goal: goal)

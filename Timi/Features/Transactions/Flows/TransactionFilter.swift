@@ -19,7 +19,7 @@ enum TransactionFilter: String, CaseIterable, Identifiable {
         case .all: true
         case .income: transaction.kind == .income
         case .expense: transaction.kind == .expense
-        // The app has no transfer transactions yet; the chip stays to match the design.
+        // Transfers are not transactions: the list adds them itself (`AccountTransfer`).
         case .transfer: false
         }
     }

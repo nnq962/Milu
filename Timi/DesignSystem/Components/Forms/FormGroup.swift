@@ -20,25 +20,33 @@ struct FormGroup<Content: View>: View {
             VStack(spacing: 0) { content }
                 .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
             if let error {
-                Label {
-                    Text(error)
-                } icon: {
-                    TimiIcon("hugeicons-alert-circle", size: 16)
-                }
-                .textRole(.caption)
-                .foregroundStyle(Palette.red)
-                .padding(.horizontal, RowMetrics.horizontal)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-                .accessibilityAddTraits(.isStaticText)
+                FormErrorText(text: error)
+                    .padding(.horizontal, RowMetrics.horizontal)
             } else if let footer {
                 FormFooter(text: footer)
             }
         }
         .animation(.easeOut(duration: 0.2), value: error)
-        // VoiceOver reads the error as it appears: otherwise nothing says why ✓ went grey.
-        .onChange(of: error) { _, new in
-            if let new { AccessibilityNotification.Announcement(new).post() }
+    }
+}
+
+/// A red line saying what to fix: under a `FormGroup` (its `error`), or under a field outside one
+/// (the big amount). VoiceOver reads it as it appears, since nothing else says why saving failed.
+struct FormErrorText: View {
+    let text: String
+
+    var body: some View {
+        Label {
+            Text(text)
+        } icon: {
+            TimiIcon("hugeicons-alert-circle", size: 16)
         }
+        .textRole(.caption)
+        .foregroundStyle(Palette.red)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+        .accessibilityAddTraits(.isStaticText)
+        .onAppear { AccessibilityNotification.Announcement(text).post() }
+        .onChange(of: text) { _, new in AccessibilityNotification.Announcement(new).post() }
     }
 }
 

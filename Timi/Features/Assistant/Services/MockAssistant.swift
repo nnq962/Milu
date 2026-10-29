@@ -72,7 +72,7 @@ struct MockAssistant {
         let candidates = store.transactions.filter { transaction in
             if let day, !Calendar.current.isDate(transaction.date, inSameDayAs: day) { return false }
             guard !keywords.isEmpty else { return true }
-            let haystack = Self.normalize("\(transaction.title) \(transaction.category.title)")
+            let haystack = Self.normalize("\(transaction.title) \(store.categoryName(transaction.categoryID))")
             return keywords.allSatisfy { haystack.contains($0) }
         }
         guard let match = candidates.first, keywords.isEmpty == false || day != nil else {
@@ -177,11 +177,7 @@ struct MockAssistant {
     }
 
     /// Bỏ dấu tiếng Việt để so khớp từ khoá: "Tiết kiệm" → "tiet kiem"
-    static func normalize(_ text: String) -> String {
-        text.lowercased()
-            .replacingOccurrences(of: "đ", with: "d")
-            .folding(options: .diacriticInsensitive, locale: .vietnam)
-    }
+    static func normalize(_ text: String) -> String { text.searchKey }
 
     // MARK: - Các câu trả lời
 
@@ -191,7 +187,7 @@ struct MockAssistant {
         guard expense > 0 else { return "Tháng này bạn chưa có khoản chi nào." }
 
         let topCategories = store.expensesByCategory().prefix(3)
-            .map { "• \($0.category.title): \($0.amount.vnd) (\(($0.amount / expense).percentText))" }
+            .map { "• \($0.name): \($0.amount.vnd) (\(($0.amount / expense).percentText))" }
             .joined(separator: "\n")
 
         var answer = "Tháng này bạn đã chi **\(expense.vnd)**.\n\nNhiều nhất là:\n\(topCategories)"
@@ -210,7 +206,7 @@ struct MockAssistant {
         }
         let components = Calendar.current.dateComponents([.day, .month], from: biggest.date)
         let day = "\(components.day ?? 0)/\(components.month ?? 0)"
-        return "Khoản chi lớn nhất tháng này là **\(biggest.title)**: **\(biggest.amount.vnd)** (\(biggest.category.title), ngày \(day))."
+        return "Khoản chi lớn nhất tháng này là **\(store.title(of: biggest))**: **\(biggest.amount.vnd)** (\(store.categoryName(biggest.categoryID)), ngày \(day))."
     }
 
     private func incomeSummary() -> String {
@@ -218,7 +214,7 @@ struct MockAssistant {
         guard income > 0 else { return "Tháng này bạn chưa ghi nhận khoản thu nào." }
         let lines = store.monthlyTransactions().reportable(excluding: store.lockedAccountIDs)
             .filter { $0.kind == .income }
-            .map { "• \($0.title): \($0.amount.vnd)" }
+            .map { "• \(store.title(of: $0)): \($0.amount.vnd)" }
             .joined(separator: "\n")
         return "Tháng này bạn đã nhận **\(income.vnd)**, gồm:\n\(lines)"
     }
@@ -238,7 +234,7 @@ struct MockAssistant {
     private func savingTips() -> String {
         var tips = ["Một vài gợi ý cho bạn:"]
         if let top = store.expensesByCategory().first {
-            tips.append("• **\(top.category.title)** đang là khoản chi lớn nhất (\(top.amount.vnd)). \(tip(for: top.category))")
+            tips.append("• **\(top.name)** đang là khoản chi lớn nhất (\(top.amount.vnd)). \(tip(for: TransactionCategory(rawValue: top.groupID)))")
         }
         let income = store.total(.income)
         if income > 0 {
@@ -248,7 +244,7 @@ struct MockAssistant {
         return tips.joined(separator: "\n")
     }
 
-    private func tip(for category: TransactionCategory) -> String {
+    private func tip(for category: TransactionCategory?) -> String {
         switch category {
         case .food: "Thử nấu ăn ở nhà vài bữa mỗi tuần và hạn chế đồ uống mua ngoài."
         case .transport: "Gộp các chuyến đi hoặc dùng xe buýt, metro cho quãng đường quen thuộc."

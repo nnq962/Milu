@@ -63,7 +63,7 @@ struct AssistantView: View {
                     ToolbarItem(placement: .topBarTrailing) { historyMenu }
                 }
             }
-            .sheet(item: $editingTransaction) { AddTransactionView(editing: $0) }
+            .sheet(item: $editingTransaction) { TransactionEditSheet(transaction: $0) }
             .onChange(of: dictation.transcript) { _, text in
                 if dictation.isRecording { draft = text }
             }

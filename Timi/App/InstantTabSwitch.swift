@@ -5,17 +5,29 @@ import UIKit
 /// screen going blurry, then sharp. This swaps the fade for the instant switch of earlier iOS
 /// (and of most banking apps) by giving the tab bar controller an animator that finishes at once.
 /// SwiftUI's own delegate keeps receiving every other call, so selection still works.
+///
+/// It also answers taps on the last tab, the + beside the bar (`AppTab.add`): that tab is never
+/// selected, so the page never switches to its empty view and back (a white flash), and
+/// `onAddTab` runs instead.
 struct InstantTabSwitch: UIViewControllerRepresentable {
+    var onAddTab: () -> Void = {}
+
     func makeUIViewController(context: Context) -> Finder { Finder() }
-    func updateUIViewController(_ controller: Finder, context: Context) {}
+    func updateUIViewController(_ controller: Finder, context: Context) {
+        controller.onAddTab = onAddTab
+    }
 
     final class Finder: UIViewController {
         private var proxy: DelegateProxy?
+        var onAddTab: () -> Void = {} {
+            didSet { proxy?.onAddTab = onAddTab }
+        }
 
         override func viewDidAppear(_ animated: Bool) {
             super.viewDidAppear(animated)
             guard proxy == nil, let tabs = tabBarController ?? findTabBarController() else { return }
             let proxy = DelegateProxy(original: tabs.delegate)
+            proxy.onAddTab = onAddTab
             self.proxy = proxy
             tabs.delegate = proxy
         }
@@ -35,9 +47,31 @@ struct InstantTabSwitch: UIViewControllerRepresentable {
     /// Answers the transition question itself and forwards everything else to SwiftUI's delegate.
     final class DelegateProxy: NSObject, UITabBarControllerDelegate {
         weak var original: UITabBarControllerDelegate?
+        var onAddTab: () -> Void = {}
 
         init(original: UITabBarControllerDelegate?) {
             self.original = original
+        }
+
+        /// iOS 18+ (SwiftUI's `Tab`): the + is the search-role tab, set apart beside the bar.
+        @available(iOS 18.0, *)
+        func tabBarController(_ tabBarController: UITabBarController, shouldSelectTab tab: UITab) -> Bool {
+            if tab is UISearchTab || tab === tabBarController.tabs.last {
+                onAddTab()
+                return false
+            }
+            return original?.tabBarController?(tabBarController, shouldSelectTab: tab) ?? true
+        }
+
+        /// iOS 17: the + is the fifth tab.
+        func tabBarController(_ tabBarController: UITabBarController,
+                              shouldSelect viewController: UIViewController) -> Bool {
+            if let controllers = tabBarController.viewControllers, controllers.count == 5,
+               viewController === controllers.last {
+                onAddTab()
+                return false
+            }
+            return original?.tabBarController?(tabBarController, shouldSelect: viewController) ?? true
         }
 
         func tabBarController(_ tabBarController: UITabBarController,

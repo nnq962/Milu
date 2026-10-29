@@ -915,7 +915,7 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Đang để dành: Rút tiền / Nạp tiền như cũ.
   - Đã đủ mục tiêu: dòng dưới thanh tiến độ ghi "Đã đủ mục tiêu"; nút chính "Dùng tiền", hai nút phụ "Rút hết" và "Mục tiêu mới" (mở form hũ để tăng mục tiêu). Lần nạp làm hũ vừa đủ hiện alert "Đã đủ mục tiêu" kèm rung thành công. Hũ đủ tiền vẫn nằm trong dãy thẻ (ghi "Đã đủ · mục tiêu 40tr") và vẫn tính vào tổng.
   - Đã đóng: thẻ đầu ghi "Mục tiêu 40.000.000đ" và "Đã dùng: … · ngày", không còn nút; hũ rời dãy thẻ và tổng số dư, nằm ở "Hũ đã hoàn thành" (mới đóng lên trước, dòng phụ "Đã dùng: … · 29/10").
-- "Dùng tiền" (`GoalSpendSheet`): số tiền mặc định là toàn bộ hũ, "Dùng vào", danh mục chi, ngày, giờ. Ghi thành khoản chi từ hũ (tính vào báo cáo); chi ít hơn thì hiện "Phần còn lại về [tài khoản]" và số còn lại được rút về. Lưu xong thì hũ đóng.
+- "Dùng tiền" (`GoalSpendSheet`): số tiền mặc định là toàn bộ hũ, hạng mục chi (không có ô tên, từ 2026-10-29), ngày, giờ. Ghi thành khoản chi từ hũ (tính vào báo cáo); chi ít hơn thì hiện "Phần còn lại về [tài khoản]" và số còn lại được rút về. Lưu xong thì hũ đóng.
 - "Rút hết" dùng sheet rút với số tiền điền sẵn bằng cả hũ; rút hết thì hũ đóng với ghi chú "Đã rút về …".
 - Lịch sử màn hũ gồm cả khoản chi từ hũ.
 - Gợi ý khi nạp (`TimiAmountField(presets:)`): trước khi gõ, hiện chip "Mỗi tháng 167k" (hũ có thời hạn) và "Còn thiếu 1tr"; bấm là điền ngay. Gõ số thì thay bằng gợi ý thường.
@@ -924,6 +924,7 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 
 - Ý người dùng (2026-10-29): bấm "Dùng tiền" trên hũ đã đủ mục tiêu thì mở **sheet tạo giao dịch** (`AddTransactionView`), điền sẵn từ hũ: loại chi tiêu, số tiền = cả hũ, tài khoản = hũ, tên = tên hũ. Lưu xong thì xử lý phần còn lại (nếu có) và đóng hũ như `FinanceStore.spend(from:…)`.
 - Chưa làm vì sheet tạo giao dịch còn đang làm dở. Tạm thời dùng `GoalSpendSheet` (có ghi TODO trong file). Khi xong sheet giao dịch: thêm chế độ "từ hũ" cho nó, bỏ `GoalSpendSheet`.
+- 2026-10-29: sheet giao dịch đã xong; `GoalSpendSheet` đã dùng ô chọn hạng mục con mới, nhưng vẫn là sheet riêng. Bước gộp vào `AddTransactionView` còn chờ.
 
 ## Tiêu đề nhóm viết hoa trong form — 2026-10-29
 
@@ -1044,3 +1045,45 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Tên được gộp khoảng trắng thừa ("Ăn  sáng" thành "Ăn sáng", chỉ gặp khi dán) trước khi so trùng và lưu.
   - Bấm "Ẩn"/"Hiện lại" khi tên trống hoặc trùng: vẫn lưu biểu tượng mới, giữ tên và nhóm cũ.
 - Rà soát Hạng mục lần 5: không cho đặt tên trùng tên hạng mục hệ thống ("Điều chỉnh số dư", `Category.reservedNames`), báo "“Điều chỉnh số dư” là tên dành cho hệ thống."
+
+## Thêm giao dịch và chuyển khoản — 2026-10-29
+
+- Nút thêm giao dịch: bỏ nút nổi đen ở trang Giao dịch (nhỏ, che số tiền). Thay bằng **nút + tròn tách riêng cạnh thanh tab** (`Tab(role: .search)` trên iOS 26, như nút Tìm kiếm của App Store), có ở mọi tab (người dùng chọn kiểu B trong 4 kiểu). Chọn nó không chuyển tab, chỉ mở sheet (`ContentView.tabSelection`). iOS 17 hiện thành tab thứ 5 "Thêm".
+- Thêm khoản vay: nút + cạnh kính lúp, chỉ hiện khi đang ở "Vay nợ".
+- Sheet `AddTransactionView`: Chi tiêu / Thu nhập / Chuyển khoản.
+  - Chi/thu: Tên (gợi ý = tên hạng mục), **Hạng mục** (`CategoryPickerRow` → `CategoryPickerSheet`: tìm kiếm, "Gần đây" 4 mục, rồi từng nhóm với hạng mục con; người dùng chọn), Tài khoản, Ngày, Giờ, Ghi chú. Mặc định hạng mục dùng gần nhất và tài khoản dùng gần nhất (`transactions.lastAccountID`).
+  - Giao dịch cũ ghi vào nhóm: "Hạng mục" đỏ, chú thích "Chọn hạng mục con cho giao dịch này.", ✓ tắt đến khi chọn.
+  - Chuyển khoản: Từ, Đến, Phí, Ngày, Giờ, Ghi chú; chú thích "Không tính là thu hay chi." hoặc "Phí 5.000đ được ghi là khoản chi từ tài khoản nguồn.". Chỉ giữa tài khoản (không gồm hũ), cần hai tài khoản khác nhau chưa khoá. Sửa chuyển khoản không hiện thanh chọn loại.
+- Danh sách Giao dịch: có cả chuyển khoản ("Chuyển khoản", "Ví tiền mặt → Vietcombank", số không dấu) và dòng phí ("Phí chuyển khoản", dòng phụ "Chuyển sang …"). Ô lọc "Chuyển khoản" giờ có dữ liệu. Chạm một dòng để sửa/xoá (như lịch sử tài khoản), bỏ menu nhấn giữ; dòng phí mở chuyển khoản của nó.
+- Lịch sử tài khoản: "Chuyển đến MoMo" (−) / "Nhận từ Vietcombank" (+).
+
+- Góp ý 2026-10-29 (sau bản đầu):
+  - Giao dịch **không có tên**: bỏ ô "Tên", chỉ chọn hạng mục. Dòng hiện tên hạng mục ("Ăn trưa"); dòng phụ là ghi chú (dòng đầu), không có thì tên nhóm ("Ăn uống") (`FinanceStore.title(of:)`). Giao dịch cũ có tên vẫn giữ tên (mẫu, trợ lý AI).
+  - Công tắc **"Không tính vào báo cáo"** cho chi/thu (`FinanceTransaction.isExcluded`, lưu ở `TransactionRecord.excluded`): vẫn đổi số dư, không tính vào tổng, biểu đồ, hạn mức, trợ lý; dòng phụ thêm "· Không tính"; bật lên thì chú thích "Vẫn tính vào số dư tài khoản.". Không có ở chuyển khoản và điều chỉnh số dư.
+  - Sheet chọn hạng mục có **bút chì** góc trên: mở trang "Hạng mục" (đúng loại chi/thu) ngay trong sheet, thêm/sửa xong quay lại chọn luôn. Bỏ ghi chú "Thay đổi ở đây sẽ áp dụng… bản cập nhật tới" trong trang Hạng mục (đã nối).
+  - Bỏ chú thích "Không tính là thu hay chi." của chuyển khoản; chỉ còn chú thích khi có phí.
+  - Hạng mục **không tự chọn** (người dùng chọn 2026-10-29): dòng "Hạng mục" ghi "Chưa chọn"; đổi Chi tiêu ↔ Thu nhập thì bỏ chọn. Áp dụng cả "Dùng tiền".
+  - Nút ✓ luôn bấm được (trừ khi chỉ xem): thiếu thì rung lỗi, giữ sheet và báo đỏ — "Nhập số tiền." dưới số tiền, "Hạng mục" đỏ và "Chọn hạng mục." dưới thẻ Chi tiết (như form tài khoản, `SheetScaffold(validate:)`). Dòng lỗi dùng `FormErrorText` (tách từ `FormGroup`, VoiceOver đọc khi hiện).
+  - Sửa nháy khi mở sheet bằng nút +: nút + là một tab thật, nên iOS chuyển sang tab trống (màn trắng) rồi mới quay lại. Giờ `InstantTabSwitch` trả lời "không chọn" cho tab đó (`shouldSelectTab` iOS 18+, `shouldSelect` iOS 17) và mở sheet luôn; trang đang xem đứng yên phía sau. Việc sheet giãn ra full màn hình khi bàn phím số tiền mở là của iOS 26, giống mọi sheet có ô số tiền.
+- Rà soát sheet thêm giao dịch lần 1:
+  - Chuyển khoản dính tài khoản đã khoá: chỉ xem, "Tài khoản đã khoá. Mở khoá để sửa." (`FinanceStore.lockedReason`), thay vì lưu không được mà không báo.
+  - Không có tài khoản dùng được: báo đỏ ngay "Chưa có tài khoản để ghi. Thêm tài khoản ở tab Tài khoản."
+  - Câu báo hạng mục theo đúng lý do: "Chọn hạng mục." (chưa chọn, hiện sau ✓), "Chọn hạng mục thu nhập/chi tiêu." (đổi loại khi sửa), "Chọn hạng mục con cho giao dịch này." (giao dịch cũ ghi vào nhóm), "“X” không còn dùng được. Chọn hạng mục khác." (đã ẩn/xoá). Ba lý do sau hiện ngay vì dòng đã đỏ.
+  - Ô Phí dùng `FormAmountRow` (có "đ"), như các ô số tiền phụ khác.
+  - Hai hạng mục cùng tên trong cùng loại: dòng "Hạng mục" ghi kèm nhóm ("Mua sắm · Khác").
+  - Giao dịch cũ có tên riêng: đổi hạng mục thì bỏ tên cũ, từ đó hiện tên hạng mục như giao dịch mới.
+- Rà soát sheet thêm giao dịch lần 2:
+  - Sửa giao dịch cũ có hạng mục đã ẩn: hạng mục đó vẫn hợp lệ (`CategoryPickerRow(kept:)`), không bắt chọn lại; nó chỉ không có trong danh sách chọn.
+  - Chuyển khoản: chọn ở "Từ" tài khoản đang ở "Đến" (hoặc ngược lại) thì hai bên tự đổi chỗ.
+  - Đổi Chi tiêu ↔ Thu nhập khi thêm mới: nhớ hạng mục đã chọn cho từng loại, quay lại thì còn.
+  - Dòng phí ghi "Chuyển sang [tên tài khoản hiện tại]" (đổi tên tài khoản thì đổi theo).
+  - "Gần đây" xếp theo lúc ghi (`FinanceTransaction.createdAt`, từ `TransactionRecord.createdAt`), không theo ngày của giao dịch.
+  - "Dùng tiền" bỏ ô "Dùng vào" (người dùng chọn): giao dịch không tên như mọi giao dịch, ghi chú đóng hũ theo hạng mục ("Đã dùng: Mua xe máy").
+- Rà soát sheet thêm giao dịch lần 3:
+  - Bấm + khi đang xem một tài khoản: form chọn sẵn tài khoản đó (`AddTransactionContext`, `AccountDetailView` đặt khi hiện, bỏ khi ẩn hoặc chuyển tab); ở chỗ khác vẫn là tài khoản dùng lần trước.
+  - "Không tính vào báo cáo" trên khoản chi từ hũ: chú thích "Vẫn tính vào số tiền trong hũ."
+  - Một hàm bỏ dấu dùng chung `String.searchKey` (tìm hạng mục, tìm ngân hàng, trợ lý), thay cho hai bản riêng.
+
+## VIỆC ĐỂ SAU — sheet giao dịch trong ngày (Tổng quan)
+
+- Ý người dùng (2026-10-29): để sau. `DayTransactionsSheet` (chạm một ngày ở "Lịch thu chi") chưa giống trang Giao dịch: các dòng không chạm để sửa/xoá được và không có chuyển khoản. Khi làm: dùng `ActivityRow` + `AccountDetailView.activity(transactions:accountTransfers:)` như `TransactionsView`, mở `ActivityEditor`.

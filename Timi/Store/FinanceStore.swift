@@ -27,6 +27,8 @@ final class FinanceStore {
     var categories: [Category]
     /// Nạp/rút hũ, mới nhất lên đầu.
     var goalTransfers: [GoalTransfer]
+    /// Chuyển khoản giữa hai tài khoản, mới nhất lên đầu.
+    var accountTransfers: [AccountTransfer]
 
     init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
         self.accounts = accounts
@@ -36,6 +38,7 @@ final class FinanceStore {
         self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
         self.goalTransfers = []
+        self.accountTransfers = []
         self.categories = DefaultCategories.all
         self.database = nil
     }
@@ -56,6 +59,7 @@ final class FinanceStore {
         savingsGoals = snapshot.savingsGoals
         transactions = snapshot.transactions
         goalTransfers = snapshot.goalTransfers
+        accountTransfers = snapshot.accountTransfers
         categories = snapshot.categories
         loans = snapshot.loans
         paymentReminders = snapshot.paymentReminders
@@ -71,6 +75,7 @@ final class FinanceStore {
         savingsGoals = snapshot.savingsGoals
         transactions = snapshot.transactions
         goalTransfers = snapshot.goalTransfers
+        accountTransfers = snapshot.accountTransfers
         categories = snapshot.categories
         loans = snapshot.loans
         paymentReminders = snapshot.paymentReminders
@@ -128,7 +133,7 @@ final class FinanceStore {
 
     /// Whether a transaction counts in totals, charts and the assistant.
     func isReportable(_ transaction: FinanceTransaction) -> Bool {
-        !transaction.category.isAdjustment && !lockedAccountIDs.contains(transaction.accountID)
+        !transaction.isAdjustment && !transaction.isExcluded && !lockedAccountIDs.contains(transaction.accountID)
     }
 
     /// Accounts money can be recorded on: every account but the locked ones.
@@ -175,6 +180,7 @@ final class FinanceStore {
     /// Whether anything was ever recorded on the account; such an account is archived, not deleted.
     func hasHistory(_ account: Account) -> Bool {
         transactions.contains { $0.accountID == account.id } || goalTransfers.contains { $0.accountID == account.id }
+            || accountTransfers.contains { $0.fromAccountID == account.id || $0.toAccountID == account.id }
     }
 
     /// Hides an account with history: out of lists, pickers and totals, history kept. What it
@@ -258,8 +264,9 @@ final class FinanceStore {
     }
 
     /// "Dùng tiền": spends from the goal (an expense recorded on the goal itself, so it counts in
-    /// reports), sends whatever is left to `leftoverAccount`, then closes the goal.
-    func spend(from goal: SavingsGoal, title: String, category: TransactionCategory, amount: Double,
+    /// reports), sends whatever is left to `leftoverAccount`, then closes the goal. Like any
+    /// transaction it has no name; the closing note says the category ("Đã dùng: Mua xe máy").
+    func spend(from goal: SavingsGoal, categoryID: String, amount: Double,
                date: Date, leftoverAccount: Account.ID?) {
         persist {
             // Spend no more than the goal holds, and leave nothing behind in a closed goal.
@@ -267,9 +274,10 @@ final class FinanceStore {
             if saved - amount >= 1 {
                 guard let leftoverAccount, acceptsMoney(leftoverAccount) else { return }
             }
-            add(FinanceTransaction(title: title, amount: amount, category: category, accountID: goal.id, date: date))
+            add(FinanceTransaction(title: "", amount: amount, categoryID: categoryID, kind: .expense,
+                                   accountID: goal.id, date: date))
             let left = (self.goal(id: goal.id)?.saved ?? 0)
-            var note = "Đã dùng: \(title)"
+            var note = "Đã dùng: \(categoryName(categoryID))"
             if left >= 1, let leftoverAccount {
                 add(GoalTransfer(goalID: goal.id, accountID: leftoverAccount, direction: .withdrawal,
                                  amount: left, date: date))
@@ -327,6 +335,7 @@ final class FinanceStore {
     }
 
     static let archivedReason = "Tài khoản đã lưu trữ. Khôi phục tài khoản để sửa."
+    static let lockedReason = "Tài khoản đã khoá. Mở khoá để sửa."
     static let closedGoalReason = "Hũ đã hoàn thành. Mở lại hũ để sửa."
     static let deletedGoalReason = "Hũ đã bị xoá nên không sửa được."
 
@@ -403,6 +412,88 @@ final class FinanceStore {
         goalTransfers.filter { $0.accountID == account.id }
     }
 
+    // MARK: - Chuyển khoản
+
+    func accountTransfer(id: AccountTransfer.ID) -> AccountTransfer? {
+        accountTransfers.first { $0.id == id }
+    }
+
+    /// Transfers into or out of an account.
+    func accountTransfers(of account: Account) -> [AccountTransfer] {
+        accountTransfers.filter { $0.fromAccountID == account.id || $0.toAccountID == account.id }
+    }
+
+    /// Why a transfer cannot be changed; nil when it can. An archived account on either side
+    /// freezes it, as its other history; so does a locked one, as no money moves into or out of
+    /// a locked account.
+    func readOnlyReason(_ transfer: AccountTransfer) -> String? {
+        let sides = [transfer.fromAccountID, transfer.toAccountID].compactMap { account(id: $0) }
+        if sides.count < 2 || sides.contains(where: \.isArchived) { return Self.archivedReason }
+        return sides.contains(where: \.isLocked) ? Self.lockedReason : nil
+    }
+
+    /// Two different unlocked accounts in use, a positive amount and a fee of 0 or more.
+    private func accepts(_ transfer: AccountTransfer) -> Bool {
+        transfer.fromAccountID != transfer.toAccountID && transfer.amount > 0 && transfer.fee >= 0
+            && acceptsMoney(transfer.fromAccountID) && acceptsMoney(transfer.toAccountID)
+    }
+
+    /// Moves `amount` from one account to the other; a fee is spent from the source as well.
+    func add(_ transfer: AccountTransfer) {
+        persist {
+            guard accepts(transfer) else { return }
+            accountTransfers.append(transfer)
+            accountTransfers.sort { $0.date > $1.date }
+            apply(transfer, sign: 1)
+            database?.save(transfer)
+        }
+    }
+
+    /// Replaces a transfer: the old one is undone on both accounts, the new one applied.
+    func update(_ transfer: AccountTransfer) {
+        persist {
+            guard let index = accountTransfers.firstIndex(where: { $0.id == transfer.id }),
+                  readOnlyReason(accountTransfers[index]) == nil else { return }
+            let old = accountTransfers[index]
+            apply(old, sign: -1)
+            guard accepts(transfer) else {
+                apply(old, sign: 1)
+                return
+            }
+            accountTransfers[index] = transfer
+            accountTransfers.sort { $0.date > $1.date }
+            apply(transfer, sign: 1)
+            database?.save(transfer)
+        }
+    }
+
+    func delete(_ transfer: AccountTransfer) {
+        persist {
+            guard accountTransfers.contains(where: { $0.id == transfer.id }), readOnlyReason(transfer) == nil else { return }
+            accountTransfers.removeAll { $0.id == transfer.id }
+            apply(transfer, sign: -1)
+            database?.deleteTransaction(id: transfer.id)
+        }
+    }
+
+    /// Applies (1) or undoes (-1) a transfer on both balances, with its fee expense.
+    private func apply(_ transfer: AccountTransfer, sign: Double) {
+        adjustBalance(of: transfer.fromAccountID, by: -transfer.amount * sign)
+        adjustBalance(of: transfer.toAccountID, by: transfer.amount * sign)
+        if sign > 0 {
+            guard transfer.fee > 0 else { return }
+            let fee = transfer.feeTransaction(toName: account(id: transfer.toAccountID)?.name ?? "tài khoản")
+            transactions.append(fee)
+            transactions.sort { $0.date > $1.date }
+            adjustBalance(of: fee.accountID, by: fee.signedAmount)
+            database?.save(fee)
+        } else if let fee = transaction(id: transfer.feeID) {
+            transactions.removeAll { $0.id == fee.id }
+            adjustBalance(of: fee.accountID, by: -fee.signedAmount)
+            database?.deleteTransaction(id: fee.id)
+        }
+    }
+
     /// Dư nợ thẻ/tài khoản âm cộng các khoản đi vay.
     var totalDebt: Double {
         countedAccounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance } + totalBorrowed
@@ -455,6 +546,7 @@ final class FinanceStore {
     func update(_ transaction: FinanceTransaction) {
         persist {
             guard let index = transactions.firstIndex(where: { $0.id == transaction.id }),
+                  !transactions[index].isTransferFee,
                   isEditable(transactions[index]), accepts(transaction, replacing: transactions[index])
             else { return }
             let old = transactions[index]
@@ -473,7 +565,8 @@ final class FinanceStore {
     func delete(_ transaction: FinanceTransaction) {
         persist {
             // Chat cards can ask twice; only reverse the balance for a transaction that still exists.
-            guard transactions.contains(where: { $0.id == transaction.id }), isEditable(transaction) else { return }
+            guard transactions.contains(where: { $0.id == transaction.id }), !transaction.isTransferFee,
+                  isEditable(transaction) else { return }
             transactions.removeAll { $0.id == transaction.id }
             adjustBalance(of: transaction.accountID, by: -transaction.signedAmount)
             database?.deleteTransaction(id: transaction.id)
@@ -500,6 +593,43 @@ final class FinanceStore {
     }
 
     // MARK: - Hạng mục
+
+    /// What a transaction is called: its own name, or (added in the app, without one) its category.
+    func title(of transaction: FinanceTransaction) -> String {
+        transaction.title.isEmpty ? categoryName(transaction.categoryID) : transaction.title
+    }
+
+    /// The name a transaction shows for its category: the item ("Ăn sáng"), an old transaction's
+    /// group ("Ăn uống"), or the system's ("Điều chỉnh số dư").
+    func categoryName(_ id: String) -> String {
+        category(id: id)?.name ?? TransactionCategory(rawValue: id)?.title ?? "Hạng mục đã xoá"
+    }
+
+    func categoryIcon(_ id: String) -> String {
+        category(id: id)?.icon ?? TransactionCategory(rawValue: id)?.icon ?? "hugeicons-tag-01"
+    }
+
+    /// The group a category belongs to (itself for a group or a system category).
+    func groupID(of id: String) -> String {
+        category(id: id)?.parentID ?? id
+    }
+
+    /// Items that can be picked for a new transaction: in use, in a group in use, of `kind`.
+    func pickableItems(_ kind: TransactionKind) -> [Category] {
+        groups(kind).flatMap { items(of: $0) }
+    }
+
+    /// The items last used for `kind`, newest first, still pickable.
+    func recentItems(_ kind: TransactionKind, limit: Int = 4) -> [Category] {
+        let pickable = Dictionary(uniqueKeysWithValues: pickableItems(kind).map { ($0.id, $0) })
+        var seen = Set<String>()
+        // By when it was recorded, not its date: one recorded today for last week is recent too.
+        return transactions.sorted { $0.createdAt > $1.createdAt }.compactMap { transaction -> Category? in
+            guard let item = pickable[transaction.categoryID], seen.insert(item.id).inserted else { return nil }
+            return item
+        }
+        .prefix(limit).map { $0 }
+    }
 
     func groups(_ kind: TransactionKind, hidden: Bool = false) -> [Category] {
         categories.filter { $0.isGroup && $0.kind == kind && $0.isHidden == hidden }
@@ -531,7 +661,7 @@ final class FinanceStore {
     func hasHistory(_ category: Category) -> Bool {
         if category.isGroup, TransactionCategory(rawValue: category.id) != nil { return true }
         let ids = Set([category.id] + categories.filter { $0.parentID == category.id }.map(\.id))
-        return transactions.contains { ids.contains($0.category.rawValue) }
+        return transactions.contains { ids.contains($0.categoryID) }
     }
 
     /// Adds or changes a category. A new group comes with its first item (a transaction is always
@@ -651,20 +781,25 @@ final class FinanceStore {
             .reduce(0) { $0 + $1.amount }
     }
 
-    /// Chi tiêu trong tháng gộp theo danh mục, lớn nhất lên đầu.
+    /// Chi tiêu trong tháng gộp theo nhóm hạng mục ("Ăn sáng" và "Ăn trưa" vào "Ăn uống"), lớn nhất
+    /// lên đầu.
     func expensesByCategory(inMonthOf date: Date = .now) -> [CategoryTotal] {
         let expenses = monthlyTransactions(for: date).reportable(excluding: lockedAccountIDs).filter { $0.kind == .expense }
-        return Dictionary(grouping: expenses, by: \.category)
-            .map { category, items in
-                CategoryTotal(category: category, amount: items.reduce(0) { $0 + $1.amount })
+        return Dictionary(grouping: expenses) { groupID(of: $0.categoryID) }
+            .map { groupID, items in
+                CategoryTotal(groupID: groupID, name: categoryName(groupID), icon: categoryIcon(groupID),
+                              amount: items.reduce(0) { $0 + $1.amount })
             }
             .sorted { $0.amount > $1.amount }
     }
 }
 
 struct CategoryTotal: Identifiable {
-    let category: TransactionCategory
+    /// A group of "Hạng mục", or a system category ("Phí chuyển khoản").
+    let groupID: String
+    let name: String
+    let icon: String
     let amount: Double
 
-    var id: TransactionCategory { category }
+    var id: String { groupID }
 }

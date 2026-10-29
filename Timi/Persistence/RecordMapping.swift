@@ -121,16 +121,21 @@ extension FinanceTransaction {
     /// Nil for a row the screens cannot show yet (a transfer, or one without an account).
     init?(_ record: TransactionRecord) {
         guard record.kind != "transfer", let accountID = record.accountID else { return nil }
-        let fallback: TransactionCategory = record.kind == TransactionKind.income.rawValue ? .otherIncome : .otherExpense
+        let kind = TransactionKind(rawValue: record.kind) ?? .expense
+        let fallback: TransactionCategory = kind == .income ? .otherIncome : .otherExpense
         self.init(
             id: record.id,
             title: record.title,
             amount: Double(dong: record.amount),
-            category: record.categoryID.flatMap(TransactionCategory.init(rawValue:)) ?? fallback,
+            categoryID: record.categoryID ?? fallback.rawValue,
+            kind: kind,
             accountID: accountID,
             date: record.occurredAt,
             note: record.note
         )
+        // A balance adjustment is always excluded; for anything else it is the user's choice.
+        isExcluded = record.excluded && !isAdjustment
+        createdAt = record.createdAt
     }
 }
 
@@ -141,8 +146,8 @@ extension TransactionRecord {
         accountID = transaction.accountID
         fromAccountID = nil
         toAccountID = nil
-        categoryID = transaction.category.rawValue
-        excluded = transaction.category.isAdjustment
+        categoryID = transaction.categoryID
+        excluded = transaction.isAdjustment || transaction.isExcluded
         title = transaction.title
         note = transaction.note
         occurredAt = transaction.date
@@ -218,7 +223,8 @@ extension GoalTransfer {
     /// Nil unless the row is a transfer between a goal and an account. The goal may have been
     /// deleted since: the side that is a known account then tells the direction.
     init?(_ record: TransactionRecord, goalIDs: Set<UUID>, accountIDs: Set<UUID>) {
-        guard record.kind == "transfer", let from = record.fromAccountID, let to = record.toAccountID else { return nil }
+        guard record.kind == "transfer", record.categoryID != AccountTransfer.marker,
+              let from = record.fromAccountID, let to = record.toAccountID else { return nil }
         let direction: Direction
         switch (goalIDs.contains(from), goalIDs.contains(to)) {
         case (false, true): direction = .deposit
@@ -247,6 +253,37 @@ extension TransactionRecord {
         fromAccountID = transfer.direction == .deposit ? transfer.accountID : transfer.goalID
         toAccountID = transfer.direction == .deposit ? transfer.goalID : transfer.accountID
         title = transfer.direction == .deposit ? "Nạp vào hũ" : "Rút từ hũ"
+        note = transfer.note
+        occurredAt = transfer.date
+        excluded = true
+        updatedAt = .now
+    }
+}
+
+// MARK: - Chuyển khoản
+
+extension AccountTransfer {
+    /// `categoryID` of a transfer row between two accounts (a goal transfer has none).
+    static let marker = "accountTransfer"
+
+    init?(_ record: TransactionRecord) {
+        guard record.kind == "transfer", record.categoryID == Self.marker,
+              let from = record.fromAccountID, let to = record.toAccountID else { return nil }
+        self.init(id: record.id, fromAccountID: from, toAccountID: to, amount: Double(dong: record.amount),
+                  fee: Double(dong: record.fee), date: record.occurredAt, note: record.note)
+    }
+}
+
+extension TransactionRecord {
+    func apply(_ transfer: AccountTransfer) {
+        kind = "transfer"
+        amount = Int64(dong: transfer.amount)
+        fee = Int64(dong: transfer.fee)
+        accountID = nil
+        categoryID = AccountTransfer.marker
+        fromAccountID = transfer.fromAccountID
+        toAccountID = transfer.toAccountID
+        title = "Chuyển khoản"
         note = transfer.note
         occurredAt = transfer.date
         excluded = true

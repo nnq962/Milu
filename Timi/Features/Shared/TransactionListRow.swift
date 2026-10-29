@@ -25,12 +25,28 @@ struct TransactionListRow: View {
         }
     }
 
-    /// The category; for a balance adjustment (whose title already says so) or a transaction on a
-    /// locked account, that it is not counted.
+    /// The second line. A named transaction: its category. One without a name already shows its
+    /// category as the title: its note, or else the item's group ("Ăn uống"). Then, when it is not
+    /// counted (left out by the user, or on a locked account), "Không tính".
     private var categoryText: String {
-        if transaction.category.isAdjustment { return "Không tính vào báo cáo" }
-        if !store.isReportable(transaction) { return "\(transaction.category.title) · Không tính" }
-        return transaction.category.title
+        if transaction.isAdjustment { return "Không tính vào báo cáo" }
+        // "Chuyển sang MoMo", with the account's name as it is now: the title already says fee.
+        if transaction.isTransferFee {
+            let transfer = store.accountTransfer(id: AccountTransfer.id(ofFee: transaction.id))
+            if let name = transfer.flatMap({ store.account(id: $0.toAccountID)?.name }) { return "Chuyển sang \(name)" }
+            if !transaction.note.isEmpty { return transaction.note }
+        }
+        let base: String
+        // A name that only repeats the category (saved before names went away) counts as none.
+        if !transaction.title.isEmpty, transaction.title != store.categoryName(transaction.categoryID) {
+            base = store.categoryName(transaction.categoryID)
+        } else if !transaction.note.isEmpty {
+            base = transaction.note.components(separatedBy: .newlines).first ?? ""
+        } else {
+            base = store.category(id: transaction.categoryID)?.parentID.map(store.categoryName) ?? ""
+        }
+        guard !store.isReportable(transaction) else { return base }
+        return base.isEmpty ? "Không tính" : "\(base) · Không tính"
     }
 
     /// "27/10".
@@ -41,8 +57,8 @@ struct TransactionListRow: View {
 
     private func row(subtitle: String, trailing: String?) -> some View {
         ListRow(
-            icon: transaction.category.icon,
-            title: transaction.title,
+            icon: store.categoryIcon(transaction.categoryID),
+            title: store.title(of: transaction),
             subtitle: subtitle,
             trailingSubtitle: trailing,
             amount: transaction.amount,

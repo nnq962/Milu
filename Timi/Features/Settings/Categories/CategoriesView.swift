@@ -5,8 +5,13 @@ import SwiftUI
 /// it with its items; + in the toolbar adds a group.
 struct CategoriesView: View {
     @Environment(FinanceStore.self) private var store
-    @State private var kind: TransactionKind = .expense
+    @State private var kind: TransactionKind
     @State private var editing: CategoryEditorView.Target?
+
+    /// Opens on `kind`: spending from Cài đặt, the kind being recorded from the transaction form.
+    init(kind: TransactionKind = .expense) {
+        _kind = State(initialValue: kind)
+    }
 
     var body: some View {
         let groups = store.groups(kind)
@@ -23,25 +28,20 @@ struct CategoriesView: View {
                     EmptyStateCard(icon: "hugeicons-tag-01", title: "Chưa có nhóm nào",
                                    message: "Thêm một nhóm, rồi các hạng mục trong nhóm đó.")
                 } else {
-                    VStack(alignment: .leading, spacing: Spacing.s) {
-                        VStack(spacing: 0) {
-                            ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                                NavigationLink {
-                                    CategoryGroupView(groupID: group.id)
-                                } label: {
-                                    let count = store.items(of: group).count
-                                    NavigationRowLabel(title: group.name, icon: group.icon,
-                                                       value: "\(count)", spokenValue: "\(count) hạng mục")
-                                }
-                                .buttonStyle(.row)
-                                .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                    VStack(spacing: 0) {
+                        ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+                            NavigationLink {
+                                CategoryGroupView(groupID: group.id)
+                            } label: {
+                                let count = store.items(of: group).count
+                                NavigationRowLabel(title: group.name, icon: group.icon,
+                                                   value: "\(count)", spokenValue: "\(count) hạng mục")
                             }
+                            .buttonStyle(.row)
+                            .overlay(alignment: .top) { if index > 0 { FormDivider() } }
                         }
-                        .listCard()
-                        // Until the transaction form is wired to this list (see docs/DATABASE.md),
-                        // nothing done here shows when recording a transaction.
-                        FormFooter(text: "Thay đổi ở đây sẽ áp dụng khi ghi giao dịch từ bản cập nhật tới.")
                     }
+                    .listCard()
                 }
 
                 if hidden > 0 {

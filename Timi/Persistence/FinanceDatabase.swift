@@ -36,6 +36,7 @@ final class FinanceDatabase {
         var archivedAccounts: [Account]
         var savingsGoals: [SavingsGoal]
         var transactions: [FinanceTransaction]
+        var accountTransfers: [AccountTransfer]
         var goalTransfers: [GoalTransfer]
         var loans: [Loan]
         var paymentReminders: [PaymentReminder]
@@ -58,6 +59,7 @@ final class FinanceDatabase {
                 .sorted { ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast) },
             savingsGoals: accountRows.filter { $0.type == goalType }.map(SavingsGoal.init),
             transactions: transactionRows.compactMap(FinanceTransaction.init),
+            accountTransfers: transactionRows.compactMap(AccountTransfer.init),
             goalTransfers: transactionRows.compactMap {
                 GoalTransfer($0, goalIDs: goalIDs, accountIDs: Set(accountRows.filter { $0.type != goalType }.map(\.id)))
             },
@@ -131,6 +133,11 @@ final class FinanceDatabase {
     }
 
     func save(_ transfer: GoalTransfer) {
+        record(TransactionRecord.self, id: transfer.id) { TransactionRecord(id: $0) }.apply(transfer)
+        commit()
+    }
+
+    func save(_ transfer: AccountTransfer) {
         record(TransactionRecord.self, id: transfer.id) { TransactionRecord(id: $0) }.apply(transfer)
         commit()
     }

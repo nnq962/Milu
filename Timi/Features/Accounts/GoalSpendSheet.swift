@@ -2,8 +2,8 @@ import SwiftUI
 
 /// TODO(user, 2026-10-29): "Dùng tiền" should open the full add-transaction sheet (prefilled from the
 /// goal) once that sheet is finished; this sheet is the stand-in until then. See DESIGN_NOTES.
-/// "Dùng tiền" on a goal that reached its target: what the money was spent on, recorded as an
-/// expense from the goal (it counts in reports, like any spending). The amount starts at what the
+/// "Dùng tiền" on a goal that reached its target: the category it was spent on (no name, as any
+/// transaction), recorded as an expense from the goal (it counts in reports, like any spending). The amount starts at what the
 /// goal holds; spending less sends the rest to an account. Saving closes the goal.
 struct GoalSpendSheet: View {
     @Environment(FinanceStore.self) private var store
@@ -12,8 +12,7 @@ struct GoalSpendSheet: View {
     let goal: SavingsGoal
 
     @State private var amountText: String
-    @State private var title = ""
-    @State private var category: TransactionCategory = .shopping
+    @State private var categoryID = ""
     @State private var date = Date.now
     @State private var leftoverAccount: Account.ID?
 
@@ -28,25 +27,34 @@ struct GoalSpendSheet: View {
     /// Too much, or money left over with no unlocked account to send it to.
     private var error: String? {
         if isTooMuch { return "Hũ chỉ có \(goal.saved.vnd)." }
+        if showsErrors, amount <= 0 { return "Nhập số tiền." }
+        if showsErrors, categoryID.isEmpty { return "Chọn hạng mục." }
         if leftover >= 1, leftoverAccount == nil {
             return "Còn \(leftover.vnd) trong hũ. \(GoalTransferSheet.noAccountError(store))"
         }
         return nil
     }
-    private var canSave: Bool { amount > 0 && !isTooMuch && (leftover < 1 || leftoverAccount != nil) }
+    private var canSave: Bool {
+        amount > 0 && !isTooMuch && (leftover < 1 || leftoverAccount != nil)
+            && CategoryPickerRow.isPickable(categoryID, kind: .expense, in: store)
+    }
+
+    @State private var showsErrors = false
+
+    /// ✓ with something missing: shows what, keeps the sheet open (SheetScaffold buzzes).
+    private func validate() -> Bool {
+        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        return canSave
+    }
 
     var body: some View {
-        SheetScaffold(title: "Dùng tiền", canConfirm: canSave, onConfirm: save) {
+        SheetScaffold(title: "Dùng tiền", validate: validate, onConfirm: save) {
             SheetAmountHeader(caption: goal.name) {
                 TimiAmountField(text: $amountText, kind: .expense, showsSuggestions: false)
             }
         } content: {
             FormGroup(title: "Chi tiết", error: error) {
-                FormTextRow(title: "Dùng vào", text: $title, prompt: goal.name)
-                FormDivider(hasIcon: false)
-                FormPickerRow(title: "Danh mục", selection: $category,
-                              options: TransactionCategory.categories(for: .expense),
-                              optionIcon: { $0.icon }) { $0.title }
+                CategoryPickerRow(kind: .expense, selection: $categoryID, showsError: showsErrors)
                 FormDivider(hasIcon: false)
                 FormDateRow(title: "Ngày", date: $date)
                 FormDivider(hasIcon: false)
@@ -75,8 +83,7 @@ struct GoalSpendSheet: View {
 
     private func save() {
         guard canSave else { return }
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        store.spend(from: goal, title: trimmed.isEmpty ? goal.name : trimmed, category: category,
+        store.spend(from: goal, categoryID: categoryID,
                     amount: amount, date: date, leftoverAccount: leftover >= 1 ? leftoverAccount : nil)
         dismiss()
     }

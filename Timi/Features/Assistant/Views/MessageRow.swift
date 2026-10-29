@@ -142,16 +142,18 @@ struct MessageRow: View {
 private struct TransactionCard: View {
     let transaction: FinanceTransaction
 
+    @Environment(FinanceStore.self) private var store
+
     var body: some View {
         HStack(spacing: 12) {
-            IconCircle(icon: transaction.category.icon, iconSize: 18, background: Palette.card)
+            IconCircle(icon: store.categoryIcon(transaction.categoryID), iconSize: 18, background: Palette.card)
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
             VStack(alignment: .leading, spacing: 0) {
-                Text(transaction.title)
+                Text(store.title(of: transaction))
                     .textRole(.body)
                     .lineLimit(1)
-                Text("\(transaction.category.title) · \(dayText)")
+                Text("\(store.categoryName(transaction.categoryID)) · \(dayText)")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
                     .lineLimit(1)

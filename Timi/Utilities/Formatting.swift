@@ -79,4 +79,10 @@ extension Date {
 extension String {
     /// "thứ tư, 28 tháng 10" → "Thứ tư, 28 tháng 10".
     var capitalizedFirstLetter: String { prefix(1).uppercased() + dropFirst() }
+
+    /// Lower case without Vietnamese accents, to match what is typed: "Tiết kiệm" → "tiet kiem".
+    var searchKey: String {
+        lowercased().replacingOccurrences(of: "đ", with: "d")
+            .folding(options: .diacriticInsensitive, locale: .vietnam)
+    }
 }

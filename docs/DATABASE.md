@@ -67,14 +67,13 @@ Chuyển V1 → V2 (lightweight, `TimiMigrationPlan`): 12 hạng mục cũ thàn
 
 Ẩn nhóm (có giao dịch) thì ẩn luôn các hạng mục con cùng lúc (cùng `archivedAt`); hiện lại nhóm thì hiện lại đúng những hạng mục ẩn cùng lúc với nó, không hiện những hạng mục người dùng đã ẩn riêng trước đó. Hạng mục cuối cùng của nhóm không xoá/ẩn/chuyển nhóm riêng được. Mỗi loại (chi/thu) giữ ít nhất một nhóm đang dùng. Tên là duy nhất trong nhóm cùng loại / hạng mục cùng nhóm (kiểm ở form, không phân biệt hoa thường), tối đa 30 ký tự, không trùng "Điều chỉnh số dư" của hệ thống. Biểu tượng cũ không có trong bảng (`more-horizontal`, `add-01`, kể cả tên Solar cũ) được đổi mỗi lần mở app nếu còn (`replaceRetiredIcons`).
 
-**Chưa nối:** form giao dịch vẫn chọn từ 12 hạng mục cố định (`TransactionCategory`), giao dịch cũ có `categoryID` là id nhóm. Khi nối form giao dịch cần:
-- `FinanceTransaction.category` đổi sang id dạng chuỗi (hiện id lạ bị đọc thành "Chi khác/Thu khác").
-- Chuyển giao dịch cũ đang ở nhóm sang một hạng mục con; hiện chỉ "Chi khác" và "Thu khác" có mục "Khác", nên thêm "Khác" cho mỗi nhóm hoặc chọn hạng mục con đầu tiên.
-- Ô chọn chỉ lấy hạng mục con đang dùng trong nhóm đang dùng.
-- Bỏ quy tắc tạm "12 nhóm có sẵn chỉ ẩn, không xoá" (`FinanceStore.hasHistory`): khi form mới không còn ghi vào nhóm thì nhóm có sẵn chưa có giao dịch xoá được như nhóm khác.
-- Báo cáo chi theo hạng mục (`expensesByCategory`, `CategoryTotal`) cộng dồn hạng mục con lên nhóm; `GoalSpendSheet`, `SampleData` cũng đang dùng enum.
+**Đã nối (2026-10-29):** `FinanceTransaction` có `categoryID` (chuỗi) và `kind` lưu riêng. Form giao dịch và "Dùng tiền" chọn **hạng mục con** đang dùng (`CategoryPickerSheet`: gần đây + các nhóm). Giao dịch cũ đang ở nhóm được **giữ nguyên** (người dùng chọn): vẫn hiện tên nhóm, vẫn tính đúng; khi mở sửa thì phải chọn hạng mục con mới lưu được. Báo cáo chi theo hạng mục (`expensesByCategory`) cộng dồn lên nhóm (`FinanceStore.groupID(of:)`). `SampleData` ghi vào hạng mục con.
 
-Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), tên "Điều chỉnh số dư", không cho người dùng chọn và không hiện trong "Hạng mục".
+Còn lại:
+- Trợ lý AI (chưa thiết kế xong) vẫn ghi giao dịch vào nhóm (`MockAssistant.category(for:)`), nên quy tắc tạm "12 nhóm có sẵn chỉ ẩn, không xoá" (`FinanceStore.hasHistory`) vẫn giữ.
+- "Dùng tiền" vẫn là `GoalSpendSheet` riêng (xem DESIGN_NOTES "Việc để sau").
+
+Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), tên "Điều chỉnh số dư", không cho người dùng chọn và không hiện trong "Hạng mục". Hạng mục hệ thống thứ ba `transferFee` ("Phí chuyển khoản", chi) không có dòng `CategoryRecord`: tên và biểu tượng lấy từ `TransactionCategory`.
 
 ### `TransactionRecord` — giao dịch
 
@@ -87,6 +86,7 @@ Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), t�
 | accountID | UUID? | chi/thu: tài khoản |
 | fromAccountID, toAccountID | UUID? | chuyển khoản: từ → đến |
 | categoryID | String? | chi/thu: hạng mục |
+| (title) | | chi/thu thêm trong app để trống: hiện tên hạng mục |
 | loanID | UUID? | nếu là lần trả/thu nợ |
 | title, note | String | |
 | occurredAt | Date | thời điểm phát sinh (ngày + giờ) |
@@ -95,8 +95,9 @@ Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), t�
 
 Quy tắc theo loại (sẽ thành `CHECK` trong Postgres):
 
-- **chi/thu:** có `accountID` và `categoryID`, không có from/to, `fee = 0`.
-- **chuyển khoản:** có `fromAccountID ≠ toAccountID`, không có `accountID`/`categoryID`.
+- **chi/thu:** có `accountID` và `categoryID`, không có from/to, `fee = 0`. `excluded = true` khi người dùng bật "Không tính vào báo cáo" (vẫn đổi số dư).
+- **chuyển khoản giữa hai tài khoản** (`AccountTransfer`): `kind = transfer`, `categoryID = "accountTransfer"` (để phân biệt với nạp/rút hũ, vốn không có `categoryID`), `fromAccountID ≠ toAccountID`, `fee` là phí, `excluded = true` (không tính thu chi). Phí > 0 được ghi thêm một dòng **chi** riêng (`categoryID = "transferFee"`, tài khoản nguồn, tính vào báo cáo) có id = id chuyển khoản lật byte cuối (`AccountTransfer.feeID`), nên hai dòng luôn tìm được nhau mà không cần cột liên kết. Sửa/xoá chuyển khoản thì phí đi theo; dòng phí không sửa riêng được.
+- **nạp/rút hũ** (`GoalTransfer`): `kind = transfer`, không có `categoryID`, một đầu là hũ.
 
 - **điều chỉnh số dư:** chi/thu với `categoryID` là `adjustmentIn`/`adjustmentOut` và `excluded = true`. App tạo khi người dùng sửa số dư trong form "Sửa tài khoản": phần chênh lệch thành một giao dịch, để lịch sử luôn cộng lại đúng bằng số dư. Không tính vào tổng thu chi, biểu đồ, lịch tiền và trợ lý.
 
@@ -145,8 +146,8 @@ Những phần web có mà app chưa cần (người dùng, gói, thanh toán, t
 
 ## Bước tiếp theo
 
-1. Màn **Hạng mục** đọc/ghi `CategoryRecord`; giao dịch chuyển sang dùng `categoryID` thay vì enum cố định.
-2. Giao diện **chuyển khoản** (`kind = transfer`) và trả nợ ghi giao dịch có `loanID`.
+1. ~~Màn **Hạng mục** đọc/ghi `CategoryRecord`; giao dịch chuyển sang dùng `categoryID` thay vì enum cố định.~~ Xong 2026-10-29.
+2. ~~Giao diện **chuyển khoản** (`kind = transfer`)~~ (xong 2026-10-29); trả nợ ghi giao dịch có `loanID`.
 3. Lưu **hạn mức** vào database (hiện ở `UserDefaults`).
 4. Khi có backend: đồng bộ theo `updatedAt`, thêm `deletedAt` để báo xoá cho máy khác.
 5. Nâng target lên iOS 18 để thêm `#Index` cho `occurredAt`, `accountID`.

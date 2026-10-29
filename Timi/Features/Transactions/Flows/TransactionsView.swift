@@ -22,9 +22,10 @@ struct TransactionsView: View {
     @State private var displayedMonth = Date.now
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var isAddingTransaction = false
     @State private var isAddingLoan = false
     @State private var editingLoan: Loan?
+    /// A row tapped to change or delete it.
+    @State private var editingItem: AccountDetailView.Activity?
 
     var body: some View {
         NavigationStack {
@@ -47,34 +48,43 @@ struct TransactionsView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
-                // Leave room for the floating + button above the tab bar.
-                .padding(.bottom, 96)
+                .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
-            .overlay(alignment: .bottomTrailing) { addButton }
             // The title names the back button of pushed screens; the leading heading is the visible title.
             .navigationTitle("Giao dịch")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
+                // A new transaction comes from the + beside the tab bar (every tab); a new loan from
+                // the + here, shown on "Vay nợ" (user choice 2026-10-29).
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) { heading }
                         .sharedBackgroundVisibility(.hidden)
+                    if segment == .loans {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            addLoanButton.nativeCircleButton(diameter: 44)
+                        }
+                        .sharedBackgroundVisibility(.hidden)
+                    }
                     ToolbarItem(placement: .topBarTrailing) {
                         searchButton.nativeCircleButton(diameter: 44)
                     }
                     .sharedBackgroundVisibility(.hidden)
                 } else {
                     ToolbarItem(placement: .topBarLeading) { heading }
+                    if segment == .loans {
+                        ToolbarItem(placement: .topBarTrailing) { addLoanButton }
+                    }
                     ToolbarItem(placement: .topBarTrailing) { searchButton }
                 }
             }
             .modifier(OnDemandSearch(text: $searchText, isPresented: $isSearching,
                                      prompt: segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay"))
             .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
-            .sheet(isPresented: $isAddingTransaction) { AddTransactionView() }
+            .sheet(item: $editingItem) { ActivityEditor(item: $0) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
         }
@@ -98,20 +108,14 @@ struct TransactionsView: View {
         .accessibilityLabel(segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay")
     }
 
-    private var addButton: some View {
-        Button {
-            switch segment {
-            case .flows: isAddingTransaction = true
-            case .loans: isAddingLoan = true
-            }
-        } label: {
-            TimiIcon("hugeicons-add-01", size: 26)
-                .foregroundStyle(.white)
+    private var addLoanButton: some View {
+        Button { isAddingLoan = true } label: {
+            TimiIcon("hugeicons-add-01", size: 20)
+                .frame(width: 28, height: 28)
         }
-        .nativeFloatingButton(diameter: ControlHeight.floating, tint: Palette.primary)
-        .padding(.trailing, 20)
-        .padding(.bottom, 16)
-        .accessibilityLabel(segment == .flows ? "Thêm giao dịch" : "Thêm khoản vay")
+        .buttonBorderShape(.circle)
+        .tint(Palette.ink)
+        .accessibilityLabel("Thêm khoản vay")
     }
 
     // MARK: - Thu chi
@@ -184,43 +188,50 @@ struct TransactionsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var filteredTransactions: [FinanceTransaction] {
-        monthTransactions.filter { transaction in
+    /// The month's transactions and transfers between accounts that match the chip and the search.
+    private var filteredItems: [AccountDetailView.Activity] {
+        let transactions = filter == .transfer ? [] : monthTransactions.filter { transaction in
             filter.matches(transaction)
                 && (searchText.isEmpty
                     || transaction.title.localizedCaseInsensitiveContains(searchText)
-                    || transaction.category.title.localizedCaseInsensitiveContains(searchText))
+                    || transaction.note.localizedCaseInsensitiveContains(searchText)
+                    || store.categoryName(transaction.categoryID).localizedCaseInsensitiveContains(searchText))
         }
+        let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { transfer in
+            Calendar.current.isDate(transfer.date, equalTo: displayedMonth, toGranularity: .month)
+                && (searchText.isEmpty
+                    || [transfer.fromAccountID, transfer.toAccountID].contains { store.account(id: $0)?.name.localizedCaseInsensitiveContains(searchText) == true }
+                    || "chuyển khoản".localizedCaseInsensitiveContains(searchText)
+                    || transfer.note.localizedCaseInsensitiveContains(searchText))
+        }
+        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers)
     }
 
-    /// Gom giao dịch theo ngày, ngày mới nhất lên đầu.
-    private var transactionsByDay: [(day: Date, items: [FinanceTransaction])] {
-        let groups = Dictionary(grouping: filteredTransactions) { Calendar.current.startOfDay(for: $0.date) }
+    /// Gom theo ngày, ngày mới nhất lên đầu.
+    private var itemsByDay: [(day: Date, items: [AccountDetailView.Activity])] {
+        let groups = Dictionary(grouping: filteredItems) { Calendar.current.startOfDay(for: $0.date) }
         return groups.keys.sorted(by: >).map { day in (day, groups[day] ?? []) }
     }
 
     @ViewBuilder
     private var flowList: some View {
-        let groups = transactionsByDay
+        let groups = itemsByDay
         if groups.isEmpty {
             EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
                            title: emptyTitle, message: emptyMessage)
         } else {
             ForEach(groups, id: \.day) { group in
                 VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                    SectionHeader(title: group.day.transactionDayTitle) { DayTotals(items: group.items) }
+                    SectionHeader(title: group.day.transactionDayTitle) {
+                        DayTotals(items: group.items.compactMap {
+                            if case .transaction(let transaction) = $0 { transaction } else { nil }
+                        })
+                    }
                     VStack(spacing: 0) {
-                        ForEach(Array(group.items.enumerated()), id: \.element.id) { index, transaction in
-                            TransactionListRow(transaction: transaction, detail: .time)
+                        // Tapping a row opens it to change or delete, as in an account's history.
+                        ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+                            ActivityRow(item: item, side: .account, detail: .time) { editingItem = $0 }
                                 .overlay(alignment: .top) { if index > 0 { RowDivider() } }
-                                .contextMenu {
-                                    if store.isEditable(transaction) {
-                                        Button("Xoá giao dịch", role: .destructive) { store.delete(transaction) }
-                                    } else if let reason = store.readOnlyReason(transaction) {
-                                        // Frozen history (closed goal, archived account, deleted goal).
-                                        Text(reason)
-                                    }
-                                }
                         }
                     }
                     .cardSurface(color: Palette.card, elevated: true)
@@ -236,7 +247,7 @@ struct TransactionsView: View {
 
     private var emptyMessage: String {
         if !searchText.isEmpty { return "Không có giao dịch nào khớp với “\(searchText)” trong tháng này." }
-        if filter == .transfer { return "Chuyển tiền giữa các tài khoản sẽ có trong bản cập nhật sau." }
+        if filter == .transfer { return "Chuyển tiền giữa hai tài khoản bằng nút + cạnh thanh tab." }
         return "Thêm giao dịch đầu tiên để bắt đầu theo dõi."
     }
 }

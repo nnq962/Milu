@@ -159,10 +159,7 @@ extension Institution {
             .map(\.institution)
     }
 
-    private static func searchKey(_ text: String) -> String {
-        text.replacingOccurrences(of: "đ", with: "d").replacingOccurrences(of: "Đ", with: "d")
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .vietnam)
-    }
+    private static func searchKey(_ text: String) -> String { text.searchKey }
 
     private static func words(_ text: String) -> [String] {
         text.split(whereSeparator: { $0 == " " || $0 == "-" }).map(String.init)
