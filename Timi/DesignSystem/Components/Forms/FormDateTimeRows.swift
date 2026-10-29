@@ -77,7 +77,19 @@ private struct DateTimeSheet: View {
         self.component = component
         self.earliest = earliest
         self.latest = latest
-        _draft = State(initialValue: date.wrappedValue)
+        // A day now outside the range (a due date before a later loan date) starts on the nearest
+        // one allowed, so ✓ without a tap fixes it rather than writing the old day back.
+        var start = date.wrappedValue
+        if component == .date {
+            let calendar = Calendar.current
+            if let earliest, start < calendar.startOfDay(for: earliest) {
+                start = calendar.date(bySettingHour: calendar.component(.hour, from: start),
+                                      minute: calendar.component(.minute, from: start), second: 0,
+                                      of: earliest) ?? earliest
+            }
+            if let latest, !calendar.isDate(start, inSameDayAs: latest), start > latest { start = latest }
+        }
+        _draft = State(initialValue: start)
     }
 
     /// The last moment that can be picked: the end of `latest`'s day, so a time already set later

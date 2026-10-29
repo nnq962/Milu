@@ -1182,7 +1182,7 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 
 - Vay nợ chỉ còn khoản vay với người (người dùng chọn): dư nợ thẻ tín dụng không còn ở mục Đi vay, ô "Đang nợ" hay "Cần chú ý" (nhắc trả thẻ ở với Tài khoản). Tổng quan và Trợ lý vẫn tính nợ thẻ (`totalDebt`). Bỏ `CreditCardDebtCard`.
 - Thẻ tổng quan (`LoansSummaryCard`, người dùng chọn "số ròng + 2 ô"): nhãn "Chênh lệch" (người dùng đổi từ "Cho vay trừ nợ") và số ròng; dưới đó thanh phân bổ (`SplitBar`: xanh lá phần cho vay, đỏ phần đang nợ, mỗi bên có tiền giữ tối thiểu 8pt, chưa có gì thì một thanh xám); rồi hai ô "Cho vay · 80tr · 2 người", "Đang nợ · 12tr · 3 khoản", mỗi ô có chấm màu như thanh để làm chú giải. Bỏ câu giải thích dài. Số "Đang nợ" chỉ đỏ khi còn nợ. VoiceOver đọc thanh "Cho vay 80%, đang nợ 20%" và mỗi ô thành một câu.
-- Chip Tất cả / Cho vay / Đi vay / Đã tất toán có hiệu ứng như Thu chi: danh sách mờ dần sang chip mới, giữ tối thiểu một màn hình cao, đã cuộn xuống thì trượt về hàng chip.
+- Chip Tất cả / Cho vay / Đi vay (bỏ "Đã tất toán", người dùng chọn) có hiệu ứng như Thu chi: danh sách mờ dần sang chip mới, giữ tối thiểu một màn hình cao, đã cuộn xuống thì trượt về hàng chip.
 - Tìm Vay nợ giống tìm Thu chi: hàng chip "Bộ lọc" + gợi ý Cho vay / Đi vay; chip đang bật có ×. Bộ lọc (`LoanFilterSheet`, sheet vừa nội dung) chỉ có Loại (người dùng chọn). Lịch sử tìm kiếm riêng (`loans.searchHistory`), lưu khi bấm Tìm hoặc mở một khoản vay. Không có kết quả: "…khớp với bộ lọc" / "…khớp với “Minh” và bộ lọc".
 - Màn tìm bỏ `NavigationStack` riêng (chỉ để mở thẻ tín dụng).
 
@@ -1190,13 +1190,35 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 
 - Trang Vay nợ bỏ mục "Cần chú ý" (người dùng chọn); nhắc hạn vẫn ở Tổng quan.
 - Form (`LoanEditorView`):
-  - Người vay / Người cho vay chọn từ Danh bạ (`ContactPickerSheet`, người dùng chọn): "Thêm người mới" trên cùng (mở form Danh bạ rồi chọn luôn người vừa lưu), rồi mọi người A→Z kèm icon và tên mối quan hệ. Ô tìm là `.searchable` của hệ thống như sheet chọn ngân hàng/hạng mục: iOS 26 đặt ở dưới cùng (người dùng chọn), iOS cũ dưới tiêu đề. Dòng trên form hiện icon mối quan hệ cạnh tên, "Chọn" khi chưa có.
+  - Người vay / Người cho vay chọn từ Danh bạ (`ContactPickerSheet`, người dùng chọn): mọi người A→Z kèm icon và tên mối quan hệ, rồi "Thêm người mới" là dòng cuối của danh sách như sheet chọn mối quan hệ (người dùng chọn; mở form Danh bạ rồi chọn luôn người vừa lưu). Ô tìm là `.searchable` của hệ thống như sheet chọn ngân hàng/hạng mục: iOS 26 đặt ở dưới cùng (người dùng chọn), iOS cũ dưới tiêu đề. Dòng trên form hiện icon mối quan hệ cạnh tên, "Chọn" khi chưa có.
   - Bỏ dòng "Còn phải thu/trả". Bật "Khoản có sẵn" (có từ trước khi dùng Timi, không đổi số dư) thì hiện nhóm "Đã trả" với "Còn lại" (trống = chưa trả đồng nào). Tắt thì là khoản mới: nhóm "Tiền đi" (cho vay, "Chi từ") hoặc "Tiền về" (đi vay, "Nhận vào") chọn tài khoản, và ngày cho vay / ngày vay (không sau hôm nay).
   - Lãi suất: "% mỗi tháng" (người dùng chọn), tính trên số gốc, tháng nào cũng như nhau; chân nhóm tính sẵn "Mỗi tháng 375.000đ, tính trên số gốc.".
   - "Có hạn trả" bật/tắt thì dòng "Hạn trả" trượt vào/ra; đổi "Khoản có sẵn" cũng có hiệu ứng.
   - Bấm ✓ khi thiếu: báo đỏ "Nhập số tiền gốc." và "Chọn người vay." (như form thêm giao dịch).
 - Khoản mới đổi số dư: cho vay trừ, đi vay cộng; sửa thì hoàn lần cũ rồi áp lần mới, xoá thì hoàn lại. Hiện ở "Thu chi" chip Tất cả và lịch sử tài khoản (`LoanMoveRow`: "Cho vay · Mẹ · Ví tiền mặt −25.000.000đ", chữ đen) nhưng không tính vào Đã chi/Đã thu, biểu đồ, tổng ngày (người dùng chọn). Chạm vào mở `LoanMoveSheet` chỉ để xem; sửa/xoá ở tab Vay nợ. Tìm kiếm Thu chi tìm được theo người, "cho vay"/"đi vay", tài khoản.
 - Database V6 (`TimiSchemaV6`): thêm `isExisting` (dòng cũ = có sẵn), `accountID`, `loanDate`, `monthlyInterestRate` vào `LoanRecord`.
+
+## Vay nợ: khoản đã tất toán có lối vào riêng — 2026-10-29
+
+- Bỏ chip "Đã tất toán" ở trang và ở Bộ lọc tìm kiếm (người dùng chọn); `LoanFilter` chỉ còn Tất cả / Cho vay / Đi vay.
+- Cuối trang Vay nợ, ở mọi chip, khi có khoản tất toán: dòng "Khoản vay đã tất toán · N ›" (icon huy hiệu tích như "Hũ đã hoàn thành"), mở `SettledLoansView` (thẻ khoản vay, mới nhất trước; chạm để mở form). Tìm kiếm vẫn hiện mục "Đã tất toán" khi khớp.
+
+## Rà soát sheet thêm khoản vay lần 1 (agent, 2026-10-29), đã sửa:
+
+- Khoản mới đã thu/trả một phần: số tiền gốc nhỏ hơn số đã thu/trả thì báo đỏ ngay dưới số tiền ("Số tiền gốc không nhỏ hơn số đã thu (30.000.000đ).") thay vì lặng lẽ thành "đã tất toán".
+- Lãi suất: gõ tới đâu sửa tới đó (chỉ số, một dấu phẩy, dấu chấm thành phẩy, tối đa 3 chữ số trước và 2 số lẻ), nên không còn số âm, chữ hay số lẻ bị làm tròn khi mở lại; trên 100 vẫn báo đỏ.
+- Hạn trả của khoản mới không trước ngày cho vay/ngày vay: lịch chặn từ ngày đó, đổi ngày cho vay sau hạn trả thì nhóm "Hạn trả" báo đỏ.
+- Bật/tắt "Khoản có sẵn" giữ số còn lại: "Còn lại" vừa gõ thành số đã thu/trả của khoản mới, và ngược lại.
+- VoiceOver gọi ô số tiền lớn theo nhãn của nó (`TimiAmountField(label:)`, mặc định "Số tiền"; form khoản vay là "Số tiền gốc").
+- Nhóm "Đã trả" đổi thành "Còn phải thu" / "Còn phải trả" cho khớp dòng "Còn lại".
+- Rà soát sheet thêm khoản vay lần 2 (agent, 2026-10-29), đã sửa:
+  - Bật/tắt "Khoản có sẵn": "Còn lại" trống là chưa trả đồng nào (khoản mới thành chưa thu/trả); khoản đã trả đủ bật lên thì "Còn lại" là 0.
+  - Câu lỗi theo dạng quy tắc: "Số tiền gốc không được nhỏ hơn số đã thu (…)", "Hạn trả phải sau ngày cho vay."
+  - Hạn trả của khoản mới từ hôm sau ngày cho vay trở đi (người dùng chọn "sửa hết", theo ghi chú "hạn bắt đầu từ ngày mai" của `FormDateRow`).
+  - Số tiền gốc dùng `SheetAmountHeader` như các sheet tiền khác; VoiceOver đọc "Số tiền gốc" một lần (`SheetAmountHeader(fieldSaysCaption:)`).
+  - "Còn lại" đỏ khi sai (`FormAmountRow(isInvalid:)`).
+  - Tìm "Tuan" không thấy rồi "Thêm người mới": form Danh bạ điền sẵn tên đã tìm (`ContactEditorView.Target.new(name:)`).
+- Rà soát sheet thêm khoản vay lần 3 (agent, 2026-10-29): sẵn sàng commit. Sửa thêm: tên điền sẵn cắt còn 40 ký tự như khi gõ; lịch chọn ngày mở với ngày ngoài khoảng cho phép (hạn trả trước ngày cho vay) thì bắt đầu ở ngày gần nhất được chọn, nên ✓ là sửa luôn. Giữ tên đúng như đã gõ khi tìm (không tự viết hoa).
 
 ## Danh bạ — 2026-10-29
 

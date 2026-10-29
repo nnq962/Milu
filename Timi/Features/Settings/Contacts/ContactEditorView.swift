@@ -6,7 +6,8 @@ import SwiftUI
 /// accents count) and at most `Contact.maxNameLength`; ✓ with no name says "Nhập tên.".
 struct ContactEditorView: View {
     enum Target: Identifiable {
-        case new
+        /// Someone new, the name started with what was searched ("Lan" in the loan form's picker).
+        case new(name: String = "")
         case edit(Contact)
 
         var id: String {
@@ -34,8 +35,9 @@ struct ContactEditorView: View {
         self.target = target
         self.onSave = onSave
         switch target {
-        case .new:
-            _name = State(initialValue: "")
+        case .new(let name):
+            // At most as long as a name typed here may be.
+            _name = State(initialValue: String(Contact.clean(name).prefix(Contact.maxNameLength)))
             _relationshipID = State(initialValue: ContactRelationship.friend.rawValue)
         case .edit(let contact):
             _name = State(initialValue: contact.name)

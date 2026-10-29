@@ -19,6 +19,8 @@ struct TimiAmountField: View {
     var isNegative = false
     /// Chips shown while nothing is typed; typing replaces them with the usual suggestions.
     var presets: [AmountPreset] = []
+    /// What VoiceOver calls the field ("Số tiền gốc"); the caption above it is a separate element.
+    var label = "Số tiền"
 
     @FocusState private var isFocused: Bool
     /// Digits the user typed; suggestions follow these, not the chip they picked.
@@ -94,6 +96,7 @@ struct TimiAmountField: View {
                             .foregroundStyle(.clear)
                             .tint(Palette.ink)
                             .focused($isFocused)
+                            .accessibilityLabel(label)
                     }
                 if text.isEmpty {
                     Text("0")
@@ -213,6 +216,9 @@ struct TimiAmountField: View {
 /// name) above the big `TimiAmountField`. One layout for every sheet that starts with an amount.
 struct SheetAmountHeader<Field: View>: View {
     let caption: String
+    /// The field reads the caption itself (`TimiAmountField(label:)`), so VoiceOver skips the line
+    /// above it rather than saying it twice.
+    var fieldSaysCaption = false
     @ViewBuilder var field: Field
 
     var body: some View {
@@ -220,6 +226,7 @@ struct SheetAmountHeader<Field: View>: View {
             Text(caption)
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
+                .accessibilityHidden(fieldSaysCaption)
             field
         }
         .frame(maxWidth: .infinity)

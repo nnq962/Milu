@@ -26,6 +26,9 @@ struct LoanEditorView: View {
     @State private var isPickingPerson = false
     /// Set by the first ✓: from then on what is missing shows in red.
     @State private var showsErrors = false
+    /// Repaid so far: the saved loan's, or what "Còn lại" said when "Khoản có sẵn" was turned off,
+    /// so a figure just typed is not lost.
+    @State private var repaid: Double
 
     init(loan: Loan?) {
         original = loan
@@ -41,22 +44,21 @@ struct LoanEditorView: View {
         _rateText = State(initialValue: loan.map { $0.monthlyInterestRate > 0 ? Self.percent($0.monthlyInterestRate) : "" } ?? "")
         _hasDueDate = State(initialValue: loan?.dueDate != nil)
         _dueDate = State(initialValue: loan?.dueDate ?? Calendar.current.date(byAdding: .month, value: 1, to: .now) ?? .now)
+        _repaid = State(initialValue: loan.map { $0.principal - $0.outstanding } ?? 0)
     }
 
     // MARK: - Values
 
     private var person: Contact? { contactID.flatMap { store.contact(id: $0) } }
     private var principal: Double { principalText.vndInputAmount }
-    /// Repaid so far, kept when the principal of a loan that moved money changes.
-    private var repaid: Double { original.map { $0.principal - $0.outstanding } ?? 0 }
     private var outstanding: Double {
         if isExisting { return outstandingText.isEmpty ? principal : outstandingText.vndInputAmount }
         return max(principal - repaid, 0)
     }
-    /// "1,5" or "1.5" → 1.5; empty → 0.
-    private var rate: Double? {
-        let text = rateText.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)
-        return text.isEmpty ? 0 : Double(text)
+    /// "1,5" or "1.5" → 1.5; empty → 0. Typing keeps it to digits, one comma, two decimals
+    /// (`cleanRate`), so this is always a number of 0 or more.
+    private var rate: Double {
+        Double(rateText.replacingOccurrences(of: ",", with: ".")) ?? 0
     }
     private var accountOptions: [Account.ID] { store.loanAccountOptions(keeping: original?.accountID) }
     /// The account a new loan moves money with: the one picked, else the first that can.
@@ -75,13 +77,30 @@ struct LoanEditorView: View {
     private var outstandingError: String? {
         isExisting && outstanding > principal ? "Số còn lại không được lớn hơn số tiền gốc." : nil
     }
+    /// A new loan already partly repaid: the principal cannot go under what came back, or it would
+    /// quietly count as settled.
+    private var principalError: String? {
+        guard !isExisting, repaid > 0, principal > 0, principal < repaid else { return nil }
+        return "Số tiền gốc không được nhỏ hơn số đã \(direction == .lent ? "thu" : "trả") (\(repaid.vnd))."
+    }
     private var rateError: String? {
-        guard let rate else { return "Lãi suất là một số, ví dụ 1,5." }
-        return rate > 100 ? "Lãi suất tối đa 100% mỗi tháng." : nil
+        rate > 100 ? "Lãi suất tối đa 100% mỗi tháng." : nil
+    }
+    /// A new loan's deadline comes after the day it was lent: the next day at the earliest.
+    private var dueError: String? {
+        guard hasDueDate, !isExisting,
+              Calendar.current.startOfDay(for: dueDate) <= Calendar.current.startOfDay(for: date) else { return nil }
+        return "Hạn trả phải sau \(direction == .lent ? "ngày cho vay" : "ngày vay")."
+    }
+    /// The first day a new loan's deadline can be: the day after it was lent.
+    private var firstDueDay: Date {
+        let calendar = Calendar.current
+        return calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date)) ?? date
     }
 
     private var canSave: Bool {
-        [personError, amountError, accountError, outstandingError, rateError].allSatisfy { $0 == nil }
+        [personError, amountError, principalError, accountError, outstandingError, rateError, dueError]
+            .allSatisfy { $0 == nil }
     }
 
     /// ✓ with something missing: shows what, keeps the sheet open (SheetScaffold buzzes).
@@ -100,29 +119,24 @@ struct LoanEditorView: View {
             .pickerStyle(.segmented)
             .controlSize(.large)
 
-            VStack(spacing: Spacing.xs) {
-                Text("Số tiền gốc")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                TimiAmountField(text: $principalText, focusesOnAppear: original == nil)
-                if showsErrors, let amountError {
-                    FormErrorText(text: amountError)
+            SheetAmountHeader(caption: "Số tiền gốc", fieldSaysCaption: true) {
+                TimiAmountField(text: $principalText, focusesOnAppear: original == nil, label: "Số tiền gốc")
+                if let error = principalError ?? (showsErrors ? amountError : nil) {
+                    FormErrorText(text: error)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Spacing.s)
         } content: {
             FormGroup(title: "Thông tin", error: showsErrors ? personError : nil) {
                 personRow
                 FormDivider(hasIcon: false)
                 FormToggleRow(title: "Khoản có sẵn", subtitle: "Có từ trước khi dùng Timi, không đổi số dư",
-                              isOn: $isExisting.animation(.smooth(duration: 0.25)))
+                              isOn: Binding { isExisting } set: { setExisting($0) })
             }
 
             if isExisting {
-                FormGroup(title: "Đã trả", footer: "Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào.",
+                FormGroup(title: direction == .lent ? "Còn phải thu" : "Còn phải trả", footer: "Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào.",
                           error: outstandingError) {
-                    FormAmountRow(title: "Còn lại", text: $outstandingText)
+                    FormAmountRow(title: "Còn lại", text: $outstandingText, isInvalid: outstandingError != nil)
                 }
                 .transition(.opacity)
             } else {
@@ -143,14 +157,20 @@ struct LoanEditorView: View {
 
             FormGroup(title: "Lãi suất", footer: rateFooter, error: rateError) {
                 FormTextRow(title: "% mỗi tháng", text: $rateText, prompt: "0", keyboard: .decimalPad,
-                            isInvalid: rateError != nil, maxLength: 6)
+                            isInvalid: rateError != nil)
+                    // Rewritten as typed (a field keeps its own text when a binding only filters it).
+                    .onChange(of: rateText) { _, new in
+                        let clean = Self.cleanRate(new)
+                        if clean != new { rateText = clean }
+                    }
             }
 
-            FormGroup(title: "Hạn trả") {
+            FormGroup(title: "Hạn trả", error: dueError) {
                 FormToggleRow(title: "Có hạn trả", isOn: $hasDueDate.animation(.smooth(duration: 0.25)))
                 if hasDueDate {
                     FormDivider(hasIcon: false)
-                    FormDateRow(title: "Hạn trả", date: $dueDate)
+                    FormDateRow(title: "Hạn trả", date: $dueDate, earliest: isExisting ? nil : firstDueDay,
+                                isInvalid: dueError != nil)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
@@ -166,6 +186,40 @@ struct LoanEditorView: View {
         }
     }
 
+    /// Switches between a loan from before the app and a new one, carrying what is left across:
+    /// "Còn lại" typed becomes what a new loan has had back, and back again.
+    private func setExisting(_ value: Bool) {
+        withAnimation(.smooth(duration: 0.25)) {
+            if value {
+                // Something came back: "Còn lại" shows what is left ("0" when all of it).
+                if outstandingText.isEmpty, repaid > 0 {
+                    outstandingText = String(Int(max(principal - repaid, 0))).groupedVNDInput
+                }
+            } else {
+                // Empty "Còn lại" means nothing came back yet.
+                repaid = outstandingText.isEmpty ? 0 : max(principal - outstandingText.vndInputAmount, 0)
+            }
+            isExisting = value
+        }
+    }
+
+    /// Digits, one comma (a dot typed becomes one) and at most two decimals; at most three digits
+    /// before it ("100").
+    static func cleanRate(_ text: String) -> String {
+        var whole = ""
+        var decimals: String?
+        for character in text {
+            if character.isASCII, character.isNumber {
+                if decimals == nil { if whole.count < 3 { whole.append(character) } }
+                else if decimals!.count < 2 { decimals!.append(character) }
+            } else if character == "," || character == ".", decimals == nil {
+                decimals = ""
+            }
+        }
+        guard let decimals else { return whole }
+        return (whole.isEmpty ? "0" : whole) + "," + decimals
+    }
+
     /// Who it is with, from Danh bạ: their name and relationship icon, or "Chọn" in grey.
     private var personRow: some View {
         Button { isPickingPerson = true } label: {
@@ -179,7 +233,7 @@ struct LoanEditorView: View {
 
     /// The interest each month, worked out as it is typed: "Mỗi tháng 375.000đ, tính trên số gốc."
     private var rateFooter: String? {
-        guard let rate, rate > 0, principal > 0 else { return "Tính trên số gốc, tháng nào cũng như nhau." }
+        guard rate > 0, principal > 0 else { return "Tính trên số gốc, tháng nào cũng như nhau." }
         return "Mỗi tháng \((principal * rate / 100).vnd), tính trên số gốc."
     }
 
@@ -214,7 +268,7 @@ struct LoanEditorView: View {
         loan.isExisting = isExisting
         loan.accountID = isExisting ? nil : chosenAccount
         loan.date = date
-        loan.monthlyInterestRate = rate ?? 0
+        loan.monthlyInterestRate = rate
         loan.dueDate = hasDueDate ? dueDate : nil
         store.save(loan)
         dismiss()

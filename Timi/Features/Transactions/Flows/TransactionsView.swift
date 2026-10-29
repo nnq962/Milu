@@ -119,6 +119,7 @@ struct TransactionsView: View {
             .sheet(item: $editingItem) { ActivityEditor(item: $0) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
+            .navigationDestination(for: SettledLoansRoute.self) { _ in SettledLoansView() }
         }
         // Posted off the main thread; the page changes on the main one.
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in

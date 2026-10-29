@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Picks who a loan is with from "Danh bạ" (user choice 2026-10-29): "Thêm người mới" on top,
-/// which opens the Danh bạ form and picks the person it saves, then everyone A→Z with their
-/// relationship. Picking closes the sheet. The search is the system one, as the bank and category
+/// Picks who a loan is with from "Danh bạ" (user choice 2026-10-29): everyone A→Z with their
+/// relationship, then "Thêm người mới" as the last row, which opens the Danh bạ form and picks the
+/// person it saves. Picking closes the sheet. The search is the system one, as the bank and category
 /// pickers have: on iOS 26 it sits at the bottom, by the thumb (user request 2026-10-29).
 struct ContactPickerSheet: View {
     let title: String
@@ -26,21 +26,20 @@ struct ContactPickerSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
-                    FormGroup {
-                        FormActionRow(title: "Thêm người mới", icon: "hugeicons-add-01") { isAdding = true }
-                    }
-
                     let people = people
-                    if !people.isEmpty {
-                        FormGroup(title: query.isEmpty ? "Danh bạ" : nil) {
-                            ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
-                                row(person)
-                                    .overlay(alignment: .top) { if index > 0 { FormDivider() } }
-                            }
-                        }
-                    } else if !query.isEmpty {
+                    if people.isEmpty && !query.isEmpty {
                         EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                                       message: "Danh bạ chưa có ai tên “\(query.trimmingCharacters(in: .whitespaces))”. Thêm người mới ở trên.")
+                                       message: "Danh bạ chưa có ai tên “\(query.trimmingCharacters(in: .whitespaces))”.")
+                    }
+                    // Everyone, then "Thêm người mới" as the last row of the list, as the
+                    // relationship and category pickers do (user choice 2026-10-29).
+                    FormGroup(title: query.isEmpty && !people.isEmpty ? "Danh bạ" : nil) {
+                        ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
+                            row(person)
+                                .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                        }
+                        FormActionRow(title: "Thêm người mới", icon: "hugeicons-add-01") { isAdding = true }
+                            .overlay(alignment: .top) { if !people.isEmpty { FormDivider() } }
                     }
                 }
             }
@@ -62,7 +61,7 @@ struct ContactPickerSheet: View {
         .timiSheetStyle()
         .sheet(isPresented: $isAdding) {
             // The person just added is the one picked.
-            ContactEditorView(target: .new) { person in
+            ContactEditorView(target: .new(name: query)) { person in
                 selection = person.id
                 dismiss()
             }

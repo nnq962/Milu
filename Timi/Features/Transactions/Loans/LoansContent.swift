@@ -1,7 +1,9 @@
 import SwiftUI
 
+/// The kind a chip or the search's "Bộ lọc" keeps. Settled loans have no chip: they sit behind
+/// "Khoản vay đã tất toán" at the bottom of the page (user choice 2026-10-29, as "Hũ đã hoàn thành").
 enum LoanFilter: String, CaseIterable, Identifiable {
-    case all, lent, borrowed, settled
+    case all, lent, borrowed
 
     var id: Self { self }
 
@@ -10,22 +12,21 @@ enum LoanFilter: String, CaseIterable, Identifiable {
         case .all: "Tất cả"
         case .lent: "Cho vay"
         case .borrowed: "Đi vay"
-        case .settled: "Đã tất toán"
         }
     }
 
-    /// What the search's "Bộ lọc" picks from: the kind only (search shows every state).
-    static let kinds: [LoanFilter] = [.all, .lent, .borrowed]
-
-    /// The side a kind keeps; nil for "Tất cả" (and "Đã tất toán", which is a state).
+    /// The side a kind keeps; nil for "Tất cả".
     var direction: LoanDirection? {
         switch self {
         case .lent: .lent
         case .borrowed: .borrowed
-        case .all, .settled: nil
+        case .all: nil
         }
     }
 }
+
+/// Opens "Khoản vay đã tất toán".
+struct SettledLoansRoute: Hashable {}
 
 /// The lead card of "Vay nợ" (user choice 2026-10-29): "Chênh lệch", what is lent minus what is
 /// owed; a bar splitting the two (green lent, red owed); then the two sides in short ("80tr · 2
@@ -171,9 +172,22 @@ struct LoansContent: View {
                 lentSection
             case .borrowed:
                 borrowedSection
-            case .settled:
-                settledSection
             }
+            settledEntry
+        }
+    }
+
+    /// The way into the loans repaid in full, at the bottom on every chip, once there is one.
+    @ViewBuilder
+    private var settledEntry: some View {
+        let count = store.loans.count(where: \.isSettled)
+        if count > 0 {
+            NavigationLink(value: SettledLoansRoute()) {
+                NavigationRowLabel(title: "Khoản vay đã tất toán", icon: "hugeicons-checkmark-badge-01",
+                                   value: "\(count)", spokenValue: "\(count) khoản")
+            }
+            .buttonStyle(.row)
+            .listCard()
         }
     }
 
@@ -217,14 +231,11 @@ struct LoansContent: View {
         }
     }
 
+    /// Search only: the page keeps these behind `settledEntry`.
     private var settledSection: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             SectionHeader(title: "Đã tất toán")
                 .padding(.bottom, Spacing.headerGap - Spacing.m)
-            if settledLoans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-checkmark-circle-02", title: "Chưa có khoản nào tất toán",
-                               message: "Khoản vay đã thu hoặc trả đủ sẽ được lưu ở đây.")
-            }
             ForEach(settledLoans) { loan in
                 Button { onEdit(loan) } label: { LoanCard(loan: loan) }
                     .buttonStyle(.card)
@@ -237,6 +248,39 @@ struct LoansContent: View {
             .textRole(.captionStrong)
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
+    }
+}
+
+/// "Khoản vay đã tất toán": loans repaid in full, newest first, as on the page; tapping one opens
+/// its form (to read, reopen by changing what is left, or delete). Laid out as "Hũ đã hoàn thành".
+struct SettledLoansView: View {
+    @Environment(FinanceStore.self) private var store
+    @State private var editingLoan: Loan?
+
+    var body: some View {
+        let loans = store.loans.filter(\.isSettled).sorted { $0.date > $1.date }
+        ScrollView {
+            if loans.isEmpty {
+                // Reopening the last one empties this list while the screen is open.
+                EmptyStateCard(icon: "hugeicons-checkmark-badge-01", title: "Chưa có khoản nào tất toán",
+                               message: "Khoản vay đã thu hoặc trả đủ sẽ nằm ở đây.")
+            } else {
+                VStack(spacing: Spacing.m) {
+                    ForEach(loans) { loan in
+                        Button { editingLoan = loan } label: { LoanCard(loan: loan) }
+                            .buttonStyle(.card)
+                    }
+                }
+            }
+        }
+        .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
+        .contentMargins(.top, Spacing.l, for: .scrollContent)
+        .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
+        .background(Palette.background)
+        .foregroundStyle(Palette.ink)
+        .navigationTitle("Khoản vay đã tất toán")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
     }
 }
 

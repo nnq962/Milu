@@ -46,12 +46,14 @@ struct FormAmountRow: View {
     let title: String
     @Binding var text: String
     var icon: String? = nil
+    /// Red label while the group says what is wrong with it.
+    var isInvalid = false
 
     @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: Spacing.m) {
-            FormRowLabel(title: title, icon: icon)
+            FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
                 .fixedSize()
             HStack(spacing: 0) {
                 TextField("0", text: $text)

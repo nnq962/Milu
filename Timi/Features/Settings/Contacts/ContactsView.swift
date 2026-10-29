@@ -37,7 +37,7 @@ struct ContactsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { editing = .new } label: {
+                Button { editing = .new() } label: {
                     TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
                 }
                 .accessibilityLabel("Thêm người")

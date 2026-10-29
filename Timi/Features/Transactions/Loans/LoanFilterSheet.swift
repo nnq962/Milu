@@ -21,7 +21,7 @@ struct LoanFilterSheet: View {
             }
             VStack(alignment: .leading, spacing: Spacing.headerGap) {
                 SectionHeader(title: "Loại", style: .group)
-                ChipRow(options: LoanFilter.kinds, selection: $draft) { $0.title }
+                ChipRow(options: LoanFilter.allCases, selection: $draft) { $0.title }
             }
             if draft != .all {
                 FormGroup {
