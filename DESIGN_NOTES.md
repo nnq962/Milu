@@ -1177,3 +1177,51 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Tìm "Vay nợ" khi chưa gõ: một dòng gợi ý như "Thu chi", không liệt kê hết; chỉ gõ dấu cách cũng tính là chưa gõ.
   - `ActivityDayList` chuyển sang `FlowRows.swift` cạnh `DayTotals`; bỏ `loanFilter` không dùng trong màn tìm; sửa các chú thích cũ (nút tháng màu chanh, tìm Vay nợ, dòng mở sheet xem).
 - Rà soát lần cuối (agent, 2026-10-29): sẵn sàng commit. Sửa thêm: lịch chọn ngày chặn tới hết hôm nay (không phải giây hiện tại), nên giờ đã đặt muộn hơn bây giờ không bị kéo về; chip lọc đang bật có gợi ý VoiceOver "Mở bộ lọc" (`TagChip(hint:)`).
+
+## Vay nợ: bỏ thẻ tín dụng, thẻ gọn, tìm và lọc như Thu chi — 2026-10-29
+
+- Vay nợ chỉ còn khoản vay với người (người dùng chọn): dư nợ thẻ tín dụng không còn ở mục Đi vay, ô "Đang nợ" hay "Cần chú ý" (nhắc trả thẻ ở với Tài khoản). Tổng quan và Trợ lý vẫn tính nợ thẻ (`totalDebt`). Bỏ `CreditCardDebtCard`.
+- Thẻ tổng quan (`LoansSummaryCard`, người dùng chọn "số ròng + 2 ô"): nhãn "Chênh lệch" (người dùng đổi từ "Cho vay trừ nợ") và số ròng; dưới đó thanh phân bổ (`SplitBar`: xanh lá phần cho vay, đỏ phần đang nợ, mỗi bên có tiền giữ tối thiểu 8pt, chưa có gì thì một thanh xám); rồi hai ô "Cho vay · 80tr · 2 người", "Đang nợ · 12tr · 3 khoản", mỗi ô có chấm màu như thanh để làm chú giải. Bỏ câu giải thích dài. Số "Đang nợ" chỉ đỏ khi còn nợ. VoiceOver đọc thanh "Cho vay 80%, đang nợ 20%" và mỗi ô thành một câu.
+- Chip Tất cả / Cho vay / Đi vay / Đã tất toán có hiệu ứng như Thu chi: danh sách mờ dần sang chip mới, giữ tối thiểu một màn hình cao, đã cuộn xuống thì trượt về hàng chip.
+- Tìm Vay nợ giống tìm Thu chi: hàng chip "Bộ lọc" + gợi ý Cho vay / Đi vay; chip đang bật có ×. Bộ lọc (`LoanFilterSheet`, sheet vừa nội dung) chỉ có Loại (người dùng chọn). Lịch sử tìm kiếm riêng (`loans.searchHistory`), lưu khi bấm Tìm hoặc mở một khoản vay. Không có kết quả: "…khớp với bộ lọc" / "…khớp với “Minh” và bộ lọc".
+- Màn tìm bỏ `NavigationStack` riêng (chỉ để mở thẻ tín dụng).
+
+## Vay nợ: form thêm khoản vay mới — 2026-10-29
+
+- Trang Vay nợ bỏ mục "Cần chú ý" (người dùng chọn); nhắc hạn vẫn ở Tổng quan.
+- Form (`LoanEditorView`):
+  - Người vay / Người cho vay chọn từ Danh bạ (`ContactPickerSheet`, người dùng chọn): "Thêm người mới" trên cùng (mở form Danh bạ rồi chọn luôn người vừa lưu), rồi mọi người A→Z kèm icon và tên mối quan hệ. Ô tìm là `.searchable` của hệ thống như sheet chọn ngân hàng/hạng mục: iOS 26 đặt ở dưới cùng (người dùng chọn), iOS cũ dưới tiêu đề. Dòng trên form hiện icon mối quan hệ cạnh tên, "Chọn" khi chưa có.
+  - Bỏ dòng "Còn phải thu/trả". Bật "Khoản có sẵn" (có từ trước khi dùng Timi, không đổi số dư) thì hiện nhóm "Đã trả" với "Còn lại" (trống = chưa trả đồng nào). Tắt thì là khoản mới: nhóm "Tiền đi" (cho vay, "Chi từ") hoặc "Tiền về" (đi vay, "Nhận vào") chọn tài khoản, và ngày cho vay / ngày vay (không sau hôm nay).
+  - Lãi suất: "% mỗi tháng" (người dùng chọn), tính trên số gốc, tháng nào cũng như nhau; chân nhóm tính sẵn "Mỗi tháng 375.000đ, tính trên số gốc.".
+  - "Có hạn trả" bật/tắt thì dòng "Hạn trả" trượt vào/ra; đổi "Khoản có sẵn" cũng có hiệu ứng.
+  - Bấm ✓ khi thiếu: báo đỏ "Nhập số tiền gốc." và "Chọn người vay." (như form thêm giao dịch).
+- Khoản mới đổi số dư: cho vay trừ, đi vay cộng; sửa thì hoàn lần cũ rồi áp lần mới, xoá thì hoàn lại. Hiện ở "Thu chi" chip Tất cả và lịch sử tài khoản (`LoanMoveRow`: "Cho vay · Mẹ · Ví tiền mặt −25.000.000đ", chữ đen) nhưng không tính vào Đã chi/Đã thu, biểu đồ, tổng ngày (người dùng chọn). Chạm vào mở `LoanMoveSheet` chỉ để xem; sửa/xoá ở tab Vay nợ. Tìm kiếm Thu chi tìm được theo người, "cho vay"/"đi vay", tài khoản.
+- Database V6 (`TimiSchemaV6`): thêm `isExisting` (dòng cũ = có sẵn), `accountID`, `loanDate`, `monthlyInterestRate` vào `LoanRecord`.
+
+## Danh bạ — 2026-10-29
+
+- Cài đặt → Chung → "Danh bạ" (số = số người, VoiceOver đọc "2 người") đẩy sang `ContactsView` (người dùng chọn đẩy màn như Hạng mục, không chồng sheet). Một thẻ `listCard()`, xếp A→Z theo tiếng Việt: vòng chữ cái đầu (từ rà soát lần 2), tên, dòng phụ "Bạn bè · 1 khoản vay". Nút + trên thanh thêm người; chạm một người để sửa. Không có chú thích dưới thẻ (người dùng bỏ 2026-10-29). Trống: `EmptyStateCard` "Danh bạ trống".
+- `ContactEditorView` (`SheetScaffold`): Tên (`FormTextRow`, tối đa 40 ký tự) và Mối quan hệ (`FormPickerRow`). Cuối form "Xoá khỏi danh bạ" (`FormDestructiveRow`). Có `onSave` để form khoản vay sau này thêm người rồi chọn luôn.
+- Người dùng chọn:
+  - Mối quan hệ là danh sách cố định: Gia đình, Bạn bè, Đồng nghiệp, Người quen, Khác (`ContactRelationship`, mỗi loại một icon Hugeicons).
+  - Khoản vay nối với người bằng id (`Loan.contactID`, database V3). Đổi tên người thì tên trên khoản vay đổi theo.
+  - Người còn khoản vay (kể cả đã tất toán) không xoá được: hộp thoại chỉ giải thích và có nút "OK".
+- Tên không trùng (không phân biệt hoa thường, có phân biệt dấu, gộp khoảng trắng thừa), báo đỏ "Danh bạ đã có “Minh Trần”.", nút ✓ tắt.
+- Chưa nối form khoản vay: `LoanEditorView` vẫn gõ tên. Khi lưu, store tìm người trùng tên, không có thì tạo người mới loại "Khác" (`FinanceStore.link`), nên khoản vay nào cũng có người. Sửa tên trên khoản vay thành tên khác thì khoản đó chuyển sang người khác (người cũ vẫn còn trong danh bạ).
+- Mở từ trang Vay nợ sau này: `ContactsSheet` (cùng màn, trong `NavigationStack` riêng, có ✕).
+- Database V3: bảng `ContactRecord`, cột `LoanRecord.contactID`; chuyển V2 → V3 tự động (lightweight), lần mở app đầu sau đó mỗi tên trong khoản vay cũ thành một người "Khác". Dữ liệu mẫu có 3 người (Minh Trần, Hùng Lê, Mẹ). "Đặt lại dữ liệu mẫu" xoá cả danh bạ.
+- Góp ý lần 1 (2026-10-29):
+  - Chưa nhập tên mà bấm ✓: báo đỏ "Nhập tên." và tô đỏ chữ "Tên" (như form tài khoản). Nút ✓ luôn bật, chỉ báo lỗi khi bấm.
+  - **Loại mối quan hệ tự thêm** (người dùng chọn: có icon riêng, thêm/sửa/xoá được): sheet chọn mối quan hệ (`RelationshipPickerSheet`) có thêm dòng "Thêm loại mới" (dấu +, màu đen) ở cuối; loại tự thêm nằm trước "Khác", có bút chì bên phải để sửa. Form `RelationshipEditorView`: Tên loại (tối đa 20 ký tự, không trùng loại nào kể cả loại có sẵn, báo "Nhập tên." khi trống) và Biểu tượng (`IconQuickPicker`, gợi ý icon người, nhà, công việc…). "Xoá loại": ai thuộc loại đó chuyển về "Khác". Thêm xong loại mới thì loại đó được chọn luôn và sheet chọn đóng lại.
+  - Database V4: bảng `RelationshipRecord` (V3 chưa phát hành nhưng máy thử đã ở V3 nên thêm V4 thay vì sửa V3).
+- Rà soát Danh bạ lần 1 (2026-10-29), đã sửa:
+  - Bỏ chú thích dưới danh sách (người dùng chọn).
+  - Người do app tự tạo từ tên gõ ở khoản vay (`Contact.isAutoCreated`, database V5) tự xoá khi không còn khoản vay nào: sửa tên trên khoản vay ("Minh Tran" thành "Minh Trần") hay xoá khoản vay gõ nhầm không còn để lại người thừa. Người bạn thêm hoặc đã lưu lại trong Danh bạ thì giữ nguyên.
+  - Sheet chọn mối quan hệ cao theo nội dung nhưng cuộn được khi nhiều loại (trước bị cắt mất các dòng cuối và "Thêm loại mới").
+  - Tên người tự tạo cắt còn 40 ký tự, như giới hạn ở Danh bạ.
+  - Thêm người, thêm loại: ô Tên tự focus khi sheet trượt xong (`FormTextRow(focusesOnAppear:)`, như iOS Danh bạ).
+  - Để sau: tìm kiếm trong Danh bạ (làm khi nối Danh bạ vào form khoản vay).
+- Rà soát Danh bạ lần 2 (2026-10-29), đã sửa:
+  - Xếp tên theo tiếng Việt dù iPhone để tiếng Anh ("Dũng" trước "Đức", "Anh" trước "Ăn"): so sánh với `Locale.vietnam` thay vì ngôn ngữ của máy.
+  - Mỗi dòng Danh bạ hiện vòng chữ cái đầu như thẻ khoản vay ở Vay nợ (người dùng chọn, thay cho icon mối quan hệ); mối quan hệ vẫn ở dòng phụ. Đường kẻ bắt đầu sau vòng tròn.
+  - Để sau: thẻ "Cần chú ý" mẫu lưu tên dạng chữ nên không đổi khi đổi tên người (làm lời nhắc thật thì lưu id khoản vay); gợi ý "Có phải Minh Trần?" khi gõ tên gần giống người đã có (khi nối form khoản vay với Danh bạ).

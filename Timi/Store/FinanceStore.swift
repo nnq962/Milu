@@ -29,6 +29,10 @@ final class FinanceStore {
     var goalTransfers: [GoalTransfer]
     /// Chuyển khoản giữa hai tài khoản, mới nhất lên đầu.
     var accountTransfers: [AccountTransfer]
+    /// "Danh bạ" (Cài đặt): who loans are with, in the order added; screens list `sortedContacts`.
+    var contacts: [Contact]
+    /// Relationships the user added in Danh bạ, in the order added; screens list `relationships`.
+    var customRelationships: [Relationship]
 
     init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
         self.accounts = accounts
@@ -40,6 +44,8 @@ final class FinanceStore {
         self.goalTransfers = []
         self.accountTransfers = []
         self.categories = DefaultCategories.all
+        self.contacts = SampleData.contacts
+        self.customRelationships = []
         self.database = nil
     }
 
@@ -63,6 +69,9 @@ final class FinanceStore {
         categories = snapshot.categories
         loans = snapshot.loans
         paymentReminders = snapshot.paymentReminders
+        contacts = snapshot.contacts
+        customRelationships = snapshot.relationships
+        linkLoansToContacts()
         foldFeeRows()
         moveTitlesToNotes()
     }
@@ -81,6 +90,8 @@ final class FinanceStore {
         categories = snapshot.categories
         loans = snapshot.loans
         paymentReminders = snapshot.paymentReminders
+        contacts = snapshot.contacts
+        customRelationships = snapshot.relationships
     }
 
     // MARK: - Tài khoản
@@ -534,18 +545,103 @@ final class FinanceStore {
 
     // MARK: - Vay nợ
 
+    /// Also files the loan under the person its name names (see `link`); a person the app made who
+    /// is left with no loan goes. A new loan (not from before the app) moves its principal out of
+    /// or into its account; changing it undoes the old move first.
     func save(_ loan: Loan) {
-        if let index = loans.firstIndex(where: { $0.id == loan.id }) {
-            loans[index] = loan
-        } else {
-            loans.append(loan)
+        let old = loans.first { $0.id == loan.id }
+        persist {
+            let loan = link(loan)
+            if let old { moveMoney(of: old, sign: -1) }
+            if let index = loans.firstIndex(where: { $0.id == loan.id }) {
+                loans[index] = loan
+            } else {
+                loans.append(loan)
+            }
+            moveMoney(of: loan, sign: 1)
+            database?.save(loan)
+            if let previous = old?.contactID, previous != loan.contactID { removeIfUnused(previous) }
         }
-        database?.save(loan)
+    }
+
+    /// Applies (1) or undoes (-1) a new loan's money on its account: lending takes it out,
+    /// borrowing brings it in. A loan from before the app moves nothing.
+    private func moveMoney(of loan: Loan, sign: Double) {
+        guard let accountID = loan.movedAccountID else { return }
+        adjustBalance(of: accountID, by: (loan.direction == .lent ? -loan.principal : loan.principal) * sign)
+    }
+
+    /// New loans whose money moved, newest first: rows of "Thu chi" (neither income nor spending)
+    /// and of the account's history.
+    var loanMoves: [Loan] {
+        loans.filter { $0.movedAccountID != nil }.sorted { $0.date > $1.date }
+    }
+
+    func loanMoves(of account: Account) -> [Loan] {
+        loanMoves.filter { $0.movedAccountID == account.id }
+    }
+
+    /// "Đánh dấu đã tất toán": nothing left to repay.
+    func settle(_ loan: Loan) {
+        var loan = loan
+        loan.outstanding = 0
+        save(loan)
+    }
+
+    func loan(id: Loan.ID) -> Loan? {
+        loans.first { $0.id == id }
+    }
+
+    /// Accounts a new loan can move money with: unlocked ones in use, plus the one it already has.
+    func loanAccountOptions(keeping kept: Account.ID?) -> [Account.ID] {
+        accounts.filter { !$0.isLocked || $0.id == kept }.map(\.id)
+    }
+
+    /// The loan with its person in "Danh bạ": its own while the name still matches, else the one
+    /// with the name typed, else someone new ("Khác"), so every loan has a person. The name is
+    /// written as the person's. Until the loan form picks from Danh bạ, the name is how it says who.
+    private func link(_ loan: Loan) -> Loan {
+        // As long as a name typed in Danh bạ may be; the loan form has no limit.
+        let name = String(Contact.clean(loan.name).prefix(Contact.maxNameLength))
+        guard !name.isEmpty else { return loan }
+        var loan = loan
+        let person: Contact
+        if let own = loan.contactID.flatMap({ contact(id: $0) }), own.hasName(name) {
+            person = own
+        } else if let named = contact(named: name) {
+            person = named
+        } else {
+            person = Contact(name: name, relationshipID: ContactRelationship.other.rawValue, isAutoCreated: true)
+            contacts.append(person)
+            database?.save(person)
+        }
+        loan.contactID = person.id
+        loan.name = person.name
+        return loan
+    }
+
+    /// Loans from before "Danh bạ" (V2) have only a name: each gets its person, once, at launch.
+    private func linkLoansToContacts() {
+        let unlinked = loans.filter { loan in loan.contactID.flatMap { contact(id: $0) } == nil }
+        guard !unlinked.isEmpty else { return }
+        persist { for loan in unlinked { save(loan) } }
     }
 
     func delete(_ loan: Loan) {
-        loans.removeAll { $0.id == loan.id }
-        database?.deleteLoan(id: loan.id)
+        persist {
+            if let saved = self.loan(id: loan.id) { moveMoney(of: saved, sign: -1) }
+            loans.removeAll { $0.id == loan.id }
+            database?.deleteLoan(id: loan.id)
+            if let person = loan.contactID { removeIfUnused(person) }
+        }
+    }
+
+    /// A person the app made from a loan's name ("Minh Tran", fixed to "Minh Trần" on the loan)
+    /// goes once no loan names them; someone the user added or edited stays.
+    private func removeIfUnused(_ id: Contact.ID) {
+        guard let person = contact(id: id), person.isAutoCreated, loans(of: person).isEmpty else { return }
+        contacts.removeAll { $0.id == id }
+        database?.deleteContact(id: id)
     }
 
     /// An account in use or archived (archived ones still name their history).
@@ -555,6 +651,98 @@ final class FinanceStore {
 
     func accountTransactions(_ account: Account) -> [FinanceTransaction] {
         transactions.filter { $0.accountID == account.id }
+    }
+
+    // MARK: - Danh bạ
+
+    /// "Danh bạ" A→Z as Vietnamese sorts names ("Dũng" before "Đức", "Anh" before "Ăn"), whatever
+    /// language the phone is set to.
+    var sortedContacts: [Contact] {
+        contacts.sorted {
+            $0.name.compare($1.name, options: [.caseInsensitive, .numeric], locale: .vietnam) == .orderedAscending
+        }
+    }
+
+    func contact(id: Contact.ID) -> Contact? {
+        contacts.first { $0.id == id }
+    }
+
+    /// The person with this name (case aside, accents count), as names are unique.
+    func contact(named name: String) -> Contact? {
+        contacts.first { $0.hasName(name) }
+    }
+
+    func loans(of contact: Contact) -> [Loan] {
+        loans.filter { $0.contactID == contact.id }
+    }
+
+    /// Adds or changes a person. Their loans show the name, so a new one is written onto them too.
+    func save(_ contact: Contact) {
+        persist {
+            if let index = contacts.firstIndex(where: { $0.id == contact.id }) {
+                contacts[index] = contact
+            } else {
+                contacts.append(contact)
+            }
+            database?.save(contact)
+            for index in loans.indices where loans[index].contactID == contact.id && loans[index].name != contact.name {
+                loans[index].name = contact.name
+                database?.save(loans[index])
+            }
+        }
+    }
+
+    /// Only someone with no loans, settled ones included: a loan never loses who it is with (user
+    /// choice 2026-10-29).
+    func canDelete(_ contact: Contact) -> Bool {
+        loans(of: contact).isEmpty
+    }
+
+    func delete(_ contact: Contact) {
+        guard canDelete(contact) else { return }
+        contacts.removeAll { $0.id == contact.id }
+        database?.deleteContact(id: contact.id)
+    }
+
+    /// Every relationship to pick from: the built-in ones, those the user added, then "Khác" last.
+    var relationships: [Relationship] {
+        let builtIn = ContactRelationship.allCases.filter { $0 != .other }.map(\.relationship)
+        return builtIn + customRelationships + [ContactRelationship.other.relationship]
+    }
+
+    /// "Khác" for an id that is gone, so a person always shows a relationship.
+    func relationship(id: String) -> Relationship {
+        ContactRelationship(rawValue: id)?.relationship
+            ?? customRelationships.first { $0.id == id }
+            ?? ContactRelationship.other.relationship
+    }
+
+    func contacts(in relationship: Relationship) -> [Contact] {
+        contacts.filter { $0.relationshipID == relationship.id }
+    }
+
+    /// Adds or changes a relationship the user made.
+    func save(_ relationship: Relationship) {
+        guard !relationship.isBuiltIn else { return }
+        if let index = customRelationships.firstIndex(where: { $0.id == relationship.id }) {
+            customRelationships[index] = relationship
+        } else {
+            customRelationships.append(relationship)
+        }
+        database?.save(relationship)
+    }
+
+    /// Deletes a relationship the user made; the people in it move to "Khác" (user choice 2026-10-29).
+    func delete(_ relationship: Relationship) {
+        guard !relationship.isBuiltIn else { return }
+        persist {
+            for index in contacts.indices where contacts[index].relationshipID == relationship.id {
+                contacts[index].relationshipID = ContactRelationship.other.rawValue
+                database?.save(contacts[index])
+            }
+            customRelationships.removeAll { $0.id == relationship.id }
+            database?.deleteRelationship(id: relationship.id)
+        }
     }
 
     // MARK: - Thêm / xoá giao dịch

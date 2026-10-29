@@ -218,6 +218,49 @@ struct TransferDetailSheet: View {
 
 /// The frame both detail sheets share: the scrolling page, the name in the bar, ✕ on the first
 /// screen, and the pencil when it can change.
+/// The money of a new loan, tapped on "Thu chi" or in an account's history: read only (user
+/// choice 2026-10-29), as the loan is changed on "Vay nợ".
+struct LoanMoveSheet: View {
+    let loanID: Loan.ID
+
+    @Environment(FinanceStore.self) private var store
+
+    var body: some View {
+        let loan = store.loan(id: loanID)
+        NavigationStack {
+            DetailScaffold(title: loan?.direction.title ?? "Khoản vay", showsClose: true, canEdit: false, onEdit: {}) {
+                if let loan {
+                    // Neither income nor spending: no sign.
+                    SummaryCard(label: loan.direction == .lent ? "Số tiền cho vay" : "Số tiền đi vay",
+                                amount: loan.principal,
+                                icon: loan.direction == .lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02",
+                                tone: .plain)
+                    FormGroup(title: "Chi tiết", footer: "Không tính là thu hay chi. Sửa hoặc xoá ở tab Vay nợ.") {
+                        FormInfoRow(title: loan.direction == .lent ? "Người vay" : "Người cho vay", value: loan.name)
+                        FormDivider(hasIcon: false)
+                        if let id = loan.movedAccountID {
+                            FormInfoRow(title: loan.direction == .lent ? "Chi từ" : "Nhận vào",
+                                        value: store.account(id: id)?.name ?? "Tài khoản đã xoá",
+                                        valueIcon: store.account(id: id)?.iconName)
+                            FormDivider(hasIcon: false)
+                        }
+                        FormInfoRow(title: "Thời gian", value: TransactionDetailView.when(loan.date))
+                        if loan.monthlyInterestRate > 0 {
+                            FormDivider(hasIcon: false)
+                            FormInfoRow(title: "Lãi mỗi tháng",
+                                        value: "\(loan.monthlyInterest.vnd) (\(LoanEditorView.percent(loan.monthlyInterestRate))%)")
+                        }
+                    }
+                } else {
+                    EmptyStateCard(icon: "hugeicons-inbox", title: "Khoản vay đã bị xoá",
+                                   message: "Khoản vay này không còn trong danh sách.")
+                }
+            }
+        }
+        .timiSheetStyle()
+    }
+}
+
 private struct DetailScaffold<Content: View>: View {
     let title: String
     let showsClose: Bool

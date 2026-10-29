@@ -6,7 +6,8 @@ Code nằm ở `Timi/Persistence/`:
 
 | File | Vai trò |
 |---|---|
-| `TimiSchemaV1.swift` | Định nghĩa 5 bảng (phiên bản 1) và kế hoạch chuyển phiên bản |
+| `TimiSchemaV1.swift` | Định nghĩa 5 bảng (phiên bản 1) |
+| `TimiSchemaV2.swift` … `TimiSchemaV6.swift` | Các bảng đổi ở V2 (hạng mục có nhóm), V3 (danh bạ, khoản vay nối với người), V4 (loại mối quan hệ tự thêm), V5 (đánh dấu người app tự tạo), V6 (khoản vay có sẵn hay mới, tài khoản, ngày, lãi suất) và kế hoạch chuyển phiên bản |
 | `RecordMapping.swift` | Đổi qua lại giữa dòng trong database và kiểu dữ liệu các màn dùng |
 | `FinanceDatabase.swift` | Đọc, ghi, nạp dữ liệu mẫu, đặt lại; mọi code SwiftData chỉ ở đây |
 
@@ -116,10 +117,42 @@ Màn hình hiện chỉ hiện chi/thu và nạp/rút hũ. Chuyển khoản gi�
 |---|---|---|
 | id | UUID | |
 | direction | String | `lent` (cho vay) · `borrowed` (đi vay) |
-| counterparty | String | người vay / người cho vay |
+| counterparty | String | người vay / người cho vay; luôn bằng tên người trong danh bạ |
+| contactID | UUID? | **mới ở V3.** người trong `ContactRecord`; nil ở dòng từ V2 cho tới khi app nối lúc mở |
 | principal, outstanding | Int64 | gốc, còn lại |
 | dueDate, settledAt | Date? | hạn trả, ngày tất toán |
+| isExisting | Bool | **mới ở V6**, mặc định `true` (dòng cũ chưa từng đổi số dư). Khoản có từ trước khi dùng app: không đổi số dư tài khoản nào |
+| accountID | UUID? | **mới ở V6.** Khoản mới: tài khoản tiền đi ra (cho vay) hoặc vào (đi vay); nil với khoản có sẵn |
+| loanDate | Date? | **mới ở V6.** Ngày cho vay / đi vay; nil ở dòng cũ (dùng `createdAt`) |
+| monthlyInterestRate | Double | **mới ở V6**, mặc định 0. % số gốc mỗi tháng, tháng nào cũng như nhau (không giảm dần) |
 | note, createdAt, updatedAt | | |
+
+Khoản mới (người dùng chọn 2026-10-29) trừ số gốc khỏi `accountID` khi cho vay, cộng vào khi đi vay; sửa thì hoàn lần cũ rồi áp lần mới, xoá thì hoàn lại. Không có dòng giao dịch riêng: "Thu chi" (chip Tất cả) và lịch sử tài khoản dựng dòng từ chính khoản vay, không tính là thu hay chi. Chuyển V5 → V6 (lightweight): chỉ thêm cột.
+
+### `ContactRecord` — danh bạ (mới ở V3)
+
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| name | String | tên, duy nhất (kiểm ở form, không phân biệt hoa thường, có phân biệt dấu), tối đa 40 ký tự |
+| isAutoCreated | Bool | **mới ở V5**, mặc định `false`. App tạo từ tên gõ ở khoản vay và người dùng chưa lưu lại trong Danh bạ: bị xoá khi không còn khoản vay nào |
+| relationship | String | có sẵn: `family` · `friend` · `colleague` · `acquaintance` · `other`; tự thêm: `id` của `RelationshipRecord` (UUID dạng chuỗi) |
+| createdAt, updatedAt | Date | |
+
+Người mà khoản vay ghi theo (người dùng chọn 2026-10-29): khoản vay giữ `contactID`; đổi tên người thì app ghi tên mới vào `counterparty` của các khoản vay của họ. Người còn khoản vay (kể cả đã tất toán) không xoá được. Form khoản vay chọn người từ danh bạ (từ V6); khoản cũ chỉ có tên thì khi lưu app tìm người trùng tên, không có thì tạo người mới `other` (`FinanceStore.link`), nên mọi khoản vay đều có người.
+
+Chuyển V2 → V3 (lightweight): thêm bảng và cột `contactID`; lần mở app đầu sau đó, mỗi tên trong khoản vay chưa có người thành một người `other` (trùng tên thì dùng chung). Chuyển V4 → V5 (lightweight): thêm cột `isAutoCreated` = `false` cho dòng cũ.
+
+### `RelationshipRecord` — loại mối quan hệ tự thêm (mới ở V4)
+
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| id | String | UUID dạng chuỗi, không trùng id có sẵn |
+| name | String | "Hàng xóm"; duy nhất trong mọi loại kể cả loại có sẵn (kiểm ở form), tối đa 20 ký tự |
+| icon | String | tên icon trong `IconCatalog` |
+| createdAt, updatedAt | Date | |
+
+Năm loại có sẵn không có dòng ở đây. Xoá một loại thì những người thuộc loại đó chuyển về `other`. Chuyển V3 → V4 (lightweight): chỉ thêm bảng.
 
 ### `ReminderRecord` — lịch thanh toán sắp tới ("Cần chú ý")
 
@@ -137,7 +170,7 @@ Màn hình hiện chỉ hiện chi/thu và nạp/rút hũ. Chuyển khoản gi�
 | Ví điện tử | `type = 'e-wallet'` | `eWallet` — chọn một kiểu viết cho cả hai bên khi đồng bộ |
 | Thẻ tín dụng | chưa là loại tài khoản | `type = 'credit'` có `creditLimit`, `paymentDueDate` |
 | Hạng mục | `category_groups` + `category_items` (2 cấp) | một bảng phẳng; thêm nhóm cha ở V2 nếu cần |
-| Vay nợ | `debts` + `debt_payments` + `contacts` | `LoanRecord`; các lần trả là giao dịch có `loanID` |
+| Vay nợ | `debts` + `debt_payments` + `contacts` | `LoanRecord` + `ContactRecord` (V3) + `RelationshipRecord` (V4); các lần trả là giao dịch có `loanID` |
 | Tên giao dịch | chỉ `note` | có thêm `title` |
 | Lưu trữ | `status = 'archived'` | `archivedAt` (biết cả thời điểm) |
 | Hũ | màu `goal_color` | chưa có màu (app không dùng); thêm khi cần |

@@ -21,28 +21,6 @@ struct LoanCard: View {
     }
 }
 
-/// A credit card balance shown as borrowing; progress is the share of the limit in use.
-struct CreditCardDebtCard: View {
-    let card: Account
-
-    var body: some View {
-        let debt = -card.balance
-        let limit = card.creditLimit ?? 0
-        let used = limit > 0 ? debt / limit : 0
-        DebtCardLayout(
-            avatar: { RowIcon(name: card.iconName, size: RowMetrics.featureIcon) },
-            title: card.name,
-            subtitle: card.paymentDueDate?.dueDescription ?? card.detail,
-            amount: debt.vndCompact,
-            amountColor: Palette.red,
-            progress: used,
-            progressColor: Palette.red,
-            leading: limit > 0 ? "Đã dùng \(used.percentText) hạn mức" : "Chưa đặt hạn mức",
-            trailing: limit > 0 ? "Còn hạn mức \(max(limit - debt, 0).vndCompact)" : ""
-        )
-    }
-}
-
 struct DebtCardLayout<Avatar: View>: View {
     @ViewBuilder let avatar: Avatar
     let title: String

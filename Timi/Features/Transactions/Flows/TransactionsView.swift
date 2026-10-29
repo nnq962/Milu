@@ -38,43 +38,41 @@ struct TransactionsView: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { scroller in
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.section) {
-                    Picker("Loại", selection: $segment) {
-                        ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-                    .controlSize(.large)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.section) {
+                        Picker("Loại", selection: $segment) {
+                            ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        .controlSize(.large)
 
-                    switch segment {
-                    case .flows:
+                        // Both segments: the card, the chips, then the list. A new chip or month:
+                        // the list fades over to what it shows now. It keeps at least a screen's
+                        // height, so a shorter one leaves the page where it is instead of snapping
+                        // it up.
+                        switch segment {
+                        case .flows:
                             summaryCard
-                            FilterChips(selection: $filter)
-                                .id(Self.chipsAnchor)
-                                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { chipsTop = $0 }
-                            // A new chip or month: the list fades over to what it shows now. It
-                            // keeps at least a screen's height, so a shorter one leaves the page
-                            // where it is instead of snapping it up.
-                            VStack(alignment: .leading, spacing: Spacing.section) { flowList }
-                                .id(listIdentity)
-                                .transition(.opacity.combined(with: .offset(y: 12)))
-                                .frame(minHeight: viewportHeight, alignment: .top)
-                    case .loans:
-                        LoansContent(filter: $loanFilter, searchText: "") { editingLoan = $0 }
+                            chipsRow { FilterChips(selection: $filter) }
+                            listContainer { flowList }
+                        case .loans:
+                            LoansSummaryCard()
+                            chipsRow { ChipRow(options: LoanFilter.allCases, selection: $loanFilter) { $0.title } }
+                            listContainer { LoansContent(filter: loanFilter) { editingLoan = $0 } }
+                        }
                     }
+                    .animation(.smooth(duration: 0.3), value: listIdentity)
+                    .padding(.horizontal, Spacing.page)
+                    .padding(.top, Spacing.l)
+                    .padding(.bottom, Spacing.xxl)
                 }
-                .animation(.smooth(duration: 0.3), value: listIdentity)
-                .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.l)
-                .padding(.bottom, Spacing.xxl)
-            }
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
-            // Scrolled down into the list: a new chip glides back to the chips, so what it shows
-            // starts in view.
-            .onChange(of: listIdentity) {
-                guard chipsTop < 0 else { return }
-                withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.chipsAnchor, anchor: .top) }
-            }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
+                // Scrolled down into the list: a new chip glides back to the chips, so what it
+                // shows starts in view.
+                .onChange(of: listIdentity) {
+                    guard chipsTop < 0 else { return }
+                    withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.chipsAnchor, anchor: .top) }
+                }
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
@@ -118,7 +116,6 @@ struct TransactionsView: View {
             .fullScreenCover(isPresented: $isSearching) {
                 TransactionSearchView(segment: segment)
             }
-            .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
             .sheet(item: $editingItem) { ActivityEditor(item: $0) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
@@ -131,6 +128,20 @@ struct TransactionsView: View {
     }
 
     private static let chipsAnchor = "chips"
+
+    /// The chip row, where a new chip scrolls back to.
+    private func chipsRow(@ViewBuilder _ chips: () -> some View) -> some View {
+        chips()
+            .id(Self.chipsAnchor)
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { chipsTop = $0 }
+    }
+
+    private func listContainer(@ViewBuilder _ list: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.section) { list() }
+            .id(listIdentity)
+            .transition(.opacity.combined(with: .offset(y: 12)))
+            .frame(minHeight: viewportHeight, alignment: .top)
+    }
 
     /// A new day: the chart lights it, and a page that showed the month just ended shows the new
     /// one (another month picked stays picked).
@@ -177,8 +188,9 @@ struct TransactionsView: View {
         store.monthlyTransactions(for: displayedMonth)
     }
 
-    /// What the list shows: a new chip or month redraws it with a fade.
+    /// What the list shows: a new chip, month or segment redraws it with a fade.
     private var listIdentity: String {
+        if segment == .loans { return "loans-\(loanFilter.rawValue)" }
         let parts = Calendar.current.dateComponents([.year, .month], from: displayedMonth)
         return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
@@ -251,14 +263,15 @@ struct TransactionsView: View {
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
-    /// their transactions, "Chuyển khoản" the transfers between accounts, "Tất cả" both. A
-    /// transfer's fee stays with the transfer (its sheet), not on "Chi".
+    /// their transactions, "Chuyển khoản" the transfers between accounts, "Tất cả" all of them and
+    /// the money of new loans (neither income nor spending). A transfer's fee stays with the
+    /// transfer (its sheet), not on "Chi".
     private var filteredItems: [AccountDetailView.Activity] {
+        let inMonth = { (date: Date) in Calendar.current.isDate(date, equalTo: displayedMonth, toGranularity: .month) }
         let transactions = filter == .transfer ? [] : monthTransactions.filter(filter.matches)
-        let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { transfer in
-            Calendar.current.isDate(transfer.date, equalTo: displayedMonth, toGranularity: .month)
-        }
-        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers)
+        let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { inMonth($0.date) }
+        let loans = filter != .all ? [] : store.loanMoves.filter { inMonth($0.date) }
+        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans)
     }
 
     @ViewBuilder

@@ -165,7 +165,12 @@ extension Loan {
             direction: LoanDirection(rawValue: record.direction) ?? .lent,
             principal: Double(dong: record.principal),
             outstanding: Double(dong: record.outstanding),
-            dueDate: record.dueDate
+            dueDate: record.dueDate,
+            contactID: record.contactID,
+            isExisting: record.isExisting,
+            accountID: record.accountID,
+            date: record.loanDate ?? record.createdAt,
+            monthlyInterestRate: record.monthlyInterestRate
         )
     }
 }
@@ -174,10 +179,47 @@ extension LoanRecord {
     func apply(_ loan: Loan) {
         direction = loan.direction.rawValue
         counterparty = loan.name
+        contactID = loan.contactID
         principal = Int64(dong: loan.principal)
         outstanding = Int64(dong: loan.outstanding)
         dueDate = loan.dueDate
+        isExisting = loan.isExisting
+        accountID = loan.isExisting ? nil : loan.accountID
+        loanDate = loan.date
+        monthlyInterestRate = loan.monthlyInterestRate
         settledAt = loan.isSettled ? (settledAt ?? .now) : nil
+        updatedAt = .now
+    }
+}
+
+// MARK: - Danh bạ
+
+extension Contact {
+    init(_ record: ContactRecord) {
+        self.init(id: record.id, name: record.name, relationshipID: record.relationship,
+                  isAutoCreated: record.isAutoCreated)
+    }
+}
+
+extension ContactRecord {
+    func apply(_ contact: Contact) {
+        name = contact.name
+        relationship = contact.relationshipID
+        isAutoCreated = contact.isAutoCreated
+        updatedAt = .now
+    }
+}
+
+extension Relationship {
+    init(_ record: RelationshipRecord) {
+        self.init(id: record.id, name: record.name, icon: IconCatalog.migrated(record.icon))
+    }
+}
+
+extension RelationshipRecord {
+    func apply(_ relationship: Relationship) {
+        name = relationship.name
+        icon = relationship.icon
         updatedAt = .now
     }
 }

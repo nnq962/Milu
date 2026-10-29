@@ -52,6 +52,15 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.row)
                         FormDivider()
+                        NavigationLink {
+                            ContactsView()
+                        } label: {
+                            NavigationRowLabel(title: "Danh bạ", icon: "hugeicons-user-group",
+                                               value: "\(store.contacts.count)",
+                                               spokenValue: "\(store.contacts.count) người")
+                        }
+                        .buttonStyle(.row)
+                        FormDivider()
                         FormNavigationRow(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
                                           value: monthlyBudget > 0 ? monthlyBudget.vndCompact : "Chưa đặt") {
                             isEditingBudget = true
@@ -113,7 +122,7 @@ struct SettingsView: View {
                         }
                         FormDivider(hasIcon: false)
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
-                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay và hạng mục bạn đã thêm hoặc sửa sẽ bị xoá.") {
+                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục và danh bạ bạn đã thêm hoặc sửa sẽ bị xoá.") {
                             store.resetToSampleData()
                         }
                     }

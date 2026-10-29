@@ -3,7 +3,8 @@ import SwiftUI
 /// The search of "Giao dịch", on a screen of its own over everything (user choice 2026-10-29, as
 /// banking apps do): its own field on top with ✕, then the filters as chips, then the recent
 /// searches (nothing typed, no filter) or what matches, by day, in every month. The page behind
-/// stays as it is. On "Vay nợ" it searches loans instead.
+/// stays as it is. On "Vay nợ" it searches loans the same way: chips for the kind (Cho vay, Đi
+/// vay), its own recent searches (user choice 2026-10-29).
 struct TransactionSearchView: View {
     let segment: TransactionSegment
 
@@ -11,47 +12,54 @@ struct TransactionSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var filter = TransactionSearchFilter()
+    /// "Vay nợ": Tất cả, Cho vay or Đi vay.
+    @State private var loanKind: LoanFilter = .all
     @State private var isFiltering = false
     /// A result tapped to read or change it.
     @State private var openedItem: AccountDetailView.Activity?
     @State private var editingLoan: Loan?
     @FocusState private var isFieldFocused: Bool
-    /// The last searches, one per line (`remember`).
-    @AppStorage("transactions.searchHistory") private var historyText = ""
+    /// The last searches, one per line (`remember`); "Vay nợ" keeps its own.
+    @AppStorage private var historyText: String
+
+    init(segment: TransactionSegment) {
+        self.segment = segment
+        _historyText = AppStorage(wrappedValue: "",
+                                  segment == .flows ? "transactions.searchHistory" : "loans.searchHistory")
+    }
 
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
-        // Its own stack: a credit card's debt on "Vay nợ" opens the account, as on the page.
-        NavigationStack {
-            VStack(spacing: 0) {
-                searchBar
-                    .padding(.horizontal, Spacing.page)
-                    .padding(.top, Spacing.s)
-                    .padding(.bottom, Spacing.m)
-                ScrollView {
-                    // Lazy: "Chi, Mọi lúc" can list every expense ever recorded.
-                    LazyVStack(alignment: .leading, spacing: Spacing.section) {
+        VStack(spacing: 0) {
+            searchBar
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.s)
+                .padding(.bottom, Spacing.m)
+            ScrollView {
+                // Lazy: "Chi, Mọi lúc" can list every expense ever recorded.
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
+                    filterChips
+                    Group {
                         switch segment {
-                        case .flows: flowsContent
-                        case .loans:
-                            LoansContent(filter: .constant(.all), searchText: query, isSearching: true) { editingLoan = $0 }
+                        case .flows: flowsResults
+                        case .loans: loansResults
                         }
                     }
-                    .padding(.horizontal, Spacing.page)
-                    .padding(.bottom, Spacing.xxl)
-                    .animation(.smooth(duration: 0.25), value: filter)
-                    .animation(.smooth(duration: 0.2), value: trimmedQuery.isEmpty)
+                    .transition(.opacity)
                 }
-                .scrollDismissesKeyboard(.immediately)
-                // No bar above it: iOS 26's soft top edge drew a light band behind the chips.
-                .modifier(NoScrollEdgeEffect())
+                .padding(.horizontal, Spacing.page)
+                .padding(.bottom, Spacing.xxl)
+                .animation(.smooth(duration: 0.25), value: filter)
+                .animation(.smooth(duration: 0.25), value: loanKind)
+                .animation(.smooth(duration: 0.2), value: trimmedQuery.isEmpty)
             }
-            .background(Palette.background)
-            .foregroundStyle(Palette.ink)
-            .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
+            .scrollDismissesKeyboard(.immediately)
+            // No bar above it: iOS 26's soft top edge drew a light band behind the chips.
+            .modifier(NoScrollEdgeEffect())
         }
+        .background(Palette.background)
+        .foregroundStyle(Palette.ink)
         // The keyboard comes up once the screen has slid in: started during the slide, it took
         // frames from it and the slide caught near its end (as TimiAmountField waits too).
         .task {
@@ -60,9 +68,15 @@ struct TransactionSearchView: View {
         }
         .sheet(item: $openedItem) { ActivityEditor(item: $0) }
         .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
-        .sheet(isPresented: $isFiltering) { TransactionFilterSheet(filter: $filter) }
+        .sheet(isPresented: $isFiltering) {
+            switch segment {
+            case .flows: TransactionFilterSheet(filter: $filter)
+            case .loans: LoanFilterSheet(kind: $loanKind)
+            }
+        }
         // Opening a result means the search was the right one: keep it.
         .onChange(of: openedItem) { _, item in if item != nil { remember(query) } }
+        .onChange(of: editingLoan) { _, loan in if loan != nil { remember(query) } }
     }
 
     // MARK: - Ô tìm
@@ -71,7 +85,7 @@ struct TransactionSearchView: View {
         HStack(spacing: Spacing.s) {
             SearchField(prompt: segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay", text: $query,
                         isFocused: $isFieldFocused) {
-                if segment == .flows { remember(query) }
+                remember(query)
             }
             Button { dismiss() } label: {
                 TimiIcon("hugeicons-cancel-01", size: 20)
@@ -83,26 +97,33 @@ struct TransactionSearchView: View {
         }
     }
 
-    // MARK: - Thu chi
+    // MARK: - Kết quả
 
     @ViewBuilder
-    private var flowsContent: some View {
-        filterChips
-        Group {
-            if trimmedQuery.isEmpty && !filter.isActive {
-                recentSearches
+    private var flowsResults: some View {
+        if trimmedQuery.isEmpty && !filter.isActive {
+            recentSearches
+        } else {
+            let matcher = filter.matcher(in: store)
+            let groups = ActivityDayList.byDay(matches(matcher))
+            if groups.isEmpty {
+                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage)
             } else {
-                let matcher = filter.matcher(in: store)
-                let groups = ActivityDayList.byDay(matches(matcher))
-                if groups.isEmpty {
-                    EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage)
-                } else {
-                    ActivityDayList(groups: groups) { openedItem = $0 }
-                }
+                ActivityDayList(groups: groups) { openedItem = $0 }
             }
         }
-        .transition(.opacity)
     }
+
+    @ViewBuilder
+    private var loansResults: some View {
+        if trimmedQuery.isEmpty && loanKind == .all {
+            recentSearches
+        } else {
+            LoansContent(filter: loanKind, searchText: query, isSearching: true) { editingLoan = $0 }
+        }
+    }
+
+    // MARK: - Bộ lọc
 
     /// "Bộ lọc" (black with a count when something is on), one chip per thing that is on (× drops
     /// it), then quick picks for what is not set yet, so the button never stands alone.
@@ -121,14 +142,15 @@ struct TransactionSearchView: View {
     }
 
     private var chipStack: some View {
-        HStack(spacing: Spacing.s) {
-            TagChip(title: filter.isActive ? "Bộ lọc · \(filter.activeCount)" : "Bộ lọc",
-                    icon: "hugeicons-filter-horizontal", isProminent: filter.isActive) { isFiltering = true }
-                .accessibilityLabel(filter.isActive ? "Bộ lọc, đang bật \(filter.activeCount)" : "Bộ lọc")
+        let count = segment == .flows ? filter.activeCount : (loanKind == .all ? 0 : 1)
+        return HStack(spacing: Spacing.s) {
+            TagChip(title: count > 0 ? "Bộ lọc · \(count)" : "Bộ lọc",
+                    icon: "hugeicons-filter-horizontal", isProminent: count > 0) { isFiltering = true }
+                .accessibilityLabel(count > 0 ? "Bộ lọc, đang bật \(count)" : "Bộ lọc")
 
-            ForEach(filter.chips(in: store)) { chip in
+            ForEach(activeChips) { chip in
                 TagChip(title: chip.title, hint: "Mở bộ lọc", action: { isFiltering = true }) {
-                    withAnimation(.smooth(duration: 0.25)) { filter.clear(chip.part) }
+                    withAnimation(.smooth(duration: 0.25)) { chip.clear() }
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
@@ -136,7 +158,7 @@ struct TransactionSearchView: View {
             ForEach(quickPicks, id: \.title) { pick in
                 TagChip(title: pick.title, isSuggestion: true) {
                     Haptics.selection()
-                    withAnimation(.smooth(duration: 0.25)) { pick.apply(&filter, store) }
+                    withAnimation(.smooth(duration: 0.25)) { pick.apply() }
                 }
                 .accessibilityHint("Thêm vào bộ lọc")
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
@@ -144,30 +166,57 @@ struct TransactionSearchView: View {
         }
     }
 
-    private struct QuickPick {
+    /// One thing that is on: the chip opens "Bộ lọc", × drops it.
+    private struct ActiveChip: Identifiable {
+        let id: String
         let title: String
-        let apply: (inout TransactionSearchFilter, FinanceStore) -> Void
+        let clear: () -> Void
     }
 
-    /// The kinds while none is chosen, and "Tháng này" while no period is.
+    private var activeChips: [ActiveChip] {
+        switch segment {
+        case .flows:
+            filter.chips(in: store).map { chip in
+                ActiveChip(id: "\(chip.part)", title: chip.title) { filter.clear(chip.part) }
+            }
+        case .loans:
+            loanKind == .all ? [] : [ActiveChip(id: "kind", title: loanKind.title) { loanKind = .all }]
+        }
+    }
+
+    private struct QuickPick {
+        let title: String
+        let apply: () -> Void
+    }
+
+    /// What is not set yet, one tap to turn on: on "Thu chi" the kinds while none is chosen and
+    /// "Tháng này" while no period is; on "Vay nợ" the two kinds while neither is.
     private var quickPicks: [QuickPick] {
         var picks: [QuickPick] = []
-        if filter.kind == .all {
-            picks += [TransactionFilter.expense, .income, .transfer].map { kind in
-                QuickPick(title: kind.title) { $0.setKind(kind, groupsOf: $1) }
+        switch segment {
+        case .flows:
+            if filter.kind == .all {
+                picks += [TransactionFilter.expense, .income, .transfer].map { kind in
+                    QuickPick(title: kind.title) { filter.setKind(kind, groupsOf: store) }
+                }
             }
-        }
-        if filter.period == .all {
-            picks.append(QuickPick(title: TransactionSearchFilter.Period.thisMonth.title) { filter, _ in
-                filter.period = .thisMonth
-            })
+            if filter.period == .all {
+                picks.append(QuickPick(title: TransactionSearchFilter.Period.thisMonth.title) {
+                    filter.period = .thisMonth
+                })
+            }
+        case .loans:
+            if loanKind == .all {
+                picks += [LoanFilter.lent, .borrowed].map { kind in QuickPick(title: kind.title) { loanKind = kind } }
+            }
         }
         return picks
     }
 
     /// What matches the words and the filters, in every month: a transaction by its category,
     /// group, note or account; a transfer by either account, its note, "chuyển khoản" (and "phí"
-    /// when it has a fee). Every word has to be found, in any order, accents aside ("momo cafe").
+    /// when it has a fee); a new loan's money by its person, kind and account. Every word has to be
+    /// found, in any order, accents aside ("momo cafe").
     /// No words: everything the filters let through.
     private func matches(_ matcher: TransactionSearchFilter.Matcher) -> [AccountDetailView.Activity] {
         let words = trimmedQuery.searchKey.split(separator: " ")
@@ -194,7 +243,11 @@ struct TransactionSearchView: View {
             let fee = transfer.fee > 0 ? "phí" : ""
             return found(in: "chuyển khoản \(fee) \(sides.joined(separator: " ")) \(transfer.note)")
         }
-        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers)
+        let loans = store.loanMoves.filter { loan in
+            guard matcher.matches(loan) else { return false }
+            return found(in: "\(loan.direction.title) khoản vay \(loan.name) \(loan.movedAccountID.flatMap { names[$0] } ?? "")")
+        }
+        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans)
     }
 
     /// Says what left nothing: the words, the filters, or both.
@@ -213,7 +266,8 @@ struct TransactionSearchView: View {
     private var recentSearches: some View {
         let history = self.history
         if history.isEmpty {
-            Text("Tìm theo hạng mục, ghi chú hoặc tài khoản. Dùng Bộ lọc để chọn loại, thời gian, số tiền.")
+            Text(segment == .flows ? "Tìm theo hạng mục, ghi chú hoặc tài khoản. Dùng Bộ lọc để chọn loại, thời gian, số tiền."
+                 : "Tìm theo tên người cho vay hoặc người vay. Dùng Bộ lọc để chọn cho vay hay đi vay.")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
                 .padding(.horizontal, RowMetrics.horizontal)

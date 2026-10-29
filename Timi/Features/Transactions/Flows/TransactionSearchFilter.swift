@@ -91,6 +91,14 @@ struct TransactionSearchFilter: Equatable {
             return true
         }
 
+        /// The money of a new loan: on "Tất cả" only (it is neither income, spending nor a transfer),
+        /// by its principal, date and account.
+        func matches(_ loan: Loan) -> Bool {
+            guard filter.kind == .all, filter.groupIDs.isEmpty, let account = loan.movedAccountID,
+                  fits(amount: loan.principal, date: loan.date) else { return false }
+            return filter.accountIDs.isEmpty || filter.accountIDs.contains(account)
+        }
+
         /// The transfer itself: its amount, either account.
         func matches(_ transfer: AccountTransfer) -> Bool {
             guard filter.kind == .all || filter.kind == .transfer, filter.groupIDs.isEmpty,

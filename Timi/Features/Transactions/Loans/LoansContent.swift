@@ -13,17 +13,121 @@ enum LoanFilter: String, CaseIterable, Identifiable {
         case .settled: "Đã tất toán"
         }
     }
+
+    /// What the search's "Bộ lọc" picks from: the kind only (search shows every state).
+    static let kinds: [LoanFilter] = [.all, .lent, .borrowed]
+
+    /// The side a kind keeps; nil for "Tất cả" (and "Đã tất toán", which is a state).
+    var direction: LoanDirection? {
+        switch self {
+        case .lent: .lent
+        case .borrowed: .borrowed
+        case .all, .settled: nil
+        }
+    }
 }
 
-/// "Vay nợ" tab of the Transactions screen.
+/// The lead card of "Vay nợ" (user choice 2026-10-29): "Chênh lệch", what is lent minus what is
+/// owed; a bar splitting the two (green lent, red owed); then the two sides in short ("80tr · 2
+/// người"), each with its bar color as a dot. Loans with people only: a credit card's debt stays
+/// on Tài khoản.
+struct LoansSummaryCard: View {
+    @Environment(FinanceStore.self) private var store
+
+    var body: some View {
+        let active = store.loans.filter { !$0.isSettled }
+        let lenders = active.filter { $0.direction == .lent }.count
+        let debts = active.filter { $0.direction == .borrowed }.count
+        let lent = store.totalLent
+        let owed = store.totalBorrowed
+        // The same `SummaryCard` as "Tổng số dư" on Tài khoản.
+        SummaryCard(label: "Chênh lệch", amount: lent - owed, tone: .plain) {
+            SplitBar(lent: lent, owed: owed)
+                .padding(.top, Spacing.m)
+            HStack(spacing: Spacing.m) {
+                tile("Cho vay", amount: lent, detail: "\(lenders) người", dot: Palette.green,
+                     color: Palette.ink, background: Palette.incomeTile)
+                // Red only while something is owed.
+                tile("Đang nợ", amount: owed, detail: "\(debts) khoản", dot: Palette.red,
+                     color: owed > 0 ? Palette.red : Palette.ink, background: Palette.muted)
+            }
+            .padding(.top, Spacing.m)
+        }
+    }
+
+    private func tile(_ title: String, amount: Double, detail: String, dot: Color, color: Color,
+                      background: Color) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            HStack(spacing: Spacing.xs) {
+                Circle().fill(dot).frame(width: 8, height: 8)
+                Text(title)
+                    .textRole(.captionStrong)
+                    .foregroundStyle(Palette.secondaryText)
+            }
+            (Text(amount.vndCompact).foregroundStyle(color)
+                + Text(" · \(detail)").foregroundStyle(Palette.secondaryText))
+                .textRole(.bodyStrong)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.m)
+        .cardSurface(radius: CardCorners.flow, color: background)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(amount.vnd), \(detail)")
+    }
+}
+
+/// How lent and owed split, side by side on one bar (user request 2026-10-29). A side with
+/// money keeps a sliver even when tiny; nothing at all is one grey bar.
+private struct SplitBar: View {
+    let lent: Double
+    let owed: Double
+
+    private static let height: CGFloat = 8
+    private static let gap: CGFloat = 3
+    /// The thinnest a side with money is drawn, so a small debt still shows.
+    private static let sliver: CGFloat = 8
+
+    var body: some View {
+        let total = lent + owed
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            if total <= 0 {
+                Capsule().fill(Palette.fill2)
+            } else if lent <= 0 || owed <= 0 {
+                Capsule().fill(lent > 0 ? Palette.green : Palette.red)
+            } else {
+                let room = width - Self.gap
+                let lentWidth = min(max(room * lent / total, Self.sliver), room - Self.sliver)
+                HStack(spacing: Self.gap) {
+                    Capsule().fill(Palette.green).frame(width: lentWidth)
+                    Capsule().fill(Palette.red)
+                }
+            }
+        }
+        .frame(height: Self.height)
+        .animation(.smooth(duration: 0.3), value: lent)
+        .animation(.smooth(duration: 0.3), value: owed)
+        .accessibilityElement()
+        .accessibilityLabel(total > 0
+            ? "Cho vay \((lent / total).percentText), đang nợ \((owed / total).percentText)"
+            : "Chưa có khoản vay")
+    }
+}
+
+/// "Vay nợ" of the Transactions screen: loans with people (a credit card's debt stays on Tài
+/// khoản, user choice 2026-10-29). On the page, the sections of the chip picked; in search, every
+/// section with a match for the words and the kind (`filter`: Tất cả, Cho vay or Đi vay).
 struct LoansContent: View {
     @Environment(FinanceStore.self) private var store
-    @Binding var filter: LoanFilter
-    let searchText: String
-    /// Searching shows only what matches: no total card, no chips, only the sections with a match;
-    /// nothing typed yet, a hint (as the search of "Thu chi").
+    var filter: LoanFilter = .all
+    var searchText = ""
     var isSearching = false
     let onEdit: (Loan) -> Void
+
+    private var trimmedSearch: String { searchText.trimmingCharacters(in: .whitespaces) }
 
     /// Every word found in the name, accents and stray spaces aside ("chi lan" finds "Chị Lan"),
     /// as the search of "Thu chi" does.
@@ -34,159 +138,51 @@ struct LoansContent: View {
         return words.allSatisfy { key.contains($0) }
     }
 
-    private var activeLoans: [Loan] {
-        store.loans.filter { !$0.isSettled && matchesSearch($0.name) }
+    /// The side the search keeps; the page keeps both and picks sections instead.
+    private var direction: LoanDirection? { isSearching ? filter.direction : nil }
+
+    private var shownLoans: [Loan] {
+        store.loans.filter { loan in
+            matchesSearch(loan.name) && (direction == nil || loan.direction == direction)
+        }
     }
 
-    private var lentLoans: [Loan] { activeLoans.filter { $0.direction == .lent } }
-    private var borrowedLoans: [Loan] { activeLoans.filter { $0.direction == .borrowed } }
-    private var settledLoans: [Loan] { store.loans.filter { $0.isSettled && matchesSearch($0.name) } }
-
-    /// Credit cards carrying a balance are shown as borrowing.
-    private var cardDebts: [Account] {
-        store.accounts.filter { $0.type == .credit && $0.balance < 0 && matchesSearch($0.name) }
-    }
+    private var lentLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .lent } }
+    private var borrowedLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .borrowed } }
+    private var settledLoans: [Loan] { shownLoans.filter(\.isSettled) }
 
     var body: some View {
-        if isSearching && searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-            Text("Tìm theo tên người cho vay, người vay hoặc thẻ tín dụng.")
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
-                .padding(.horizontal, RowMetrics.horizontal)
-        } else if isSearching {
+        if isSearching {
             // Only the sections with a match: their empty cards are for a first visit (one even
             // points at a + the search does not have). Nothing at all: one "Không tìm thấy".
-            if reminders.isEmpty && lentLoans.isEmpty && cardDebts.isEmpty && borrowedLoans.isEmpty
-                && settledLoans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                               message: "Không có khoản vay nào khớp với “\(searchText.trimmingCharacters(in: .whitespaces))”.")
+            if lentLoans.isEmpty && borrowedLoans.isEmpty && settledLoans.isEmpty {
+                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage)
             } else {
-                attentionSection
                 if !lentLoans.isEmpty { lentSection }
-                if !cardDebts.isEmpty || !borrowedLoans.isEmpty { borrowedSection }
+                if !borrowedLoans.isEmpty { borrowedSection }
                 if !settledLoans.isEmpty { settledSection }
             }
         } else {
-            summaryCard
-            ChipRow(options: LoanFilter.allCases, selection: $filter) { $0.title }
-            sections
-        }
-    }
-
-    @ViewBuilder
-    private var sections: some View {
-        switch filter {
-        case .all:
-            attentionSection
-            lentSection
-            borrowedSection
-        case .lent:
-            lentSection
-        case .borrowed:
-            borrowedSection
-        case .settled:
-            settledSection
-        }
-    }
-
-    // MARK: - Tổng quan
-
-    private var summaryCard: some View {
-        let net = store.totalLent - store.totalDebt
-        let lenders = store.loans.filter { $0.direction == .lent && !$0.isSettled }.count
-        let debts = store.accounts.filter { $0.type == .credit && $0.balance < 0 }.count
-            + store.loans.filter { $0.direction == .borrowed && !$0.isSettled }.count
-        // The tab's lead card, the same `SummaryCard` as "Tổng số dư" on Tài khoản.
-        return SummaryCard(label: "Tổng cho vay trừ nợ", amount: net, tone: .plain) {
-            Text(net < 0 ? "Đang ở mức âm: bạn nợ nhiều hơn số đang cho vay"
-                 : net > 0 ? "Đang ở mức dương: số đang cho vay nhiều hơn số bạn nợ"
-                 : "Số đang cho vay bằng số bạn đang nợ")
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
-                .padding(.top, Spacing.xs)
-            HStack(spacing: Spacing.m) {
-                summaryTile("Đang cho vay", amount: store.totalLent.vndCompact, detail: "\(lenders) người",
-                            color: Palette.ink, background: Palette.incomeTile)
-                summaryTile("Đang nợ", amount: store.totalDebt.vndCompact, detail: "\(debts) khoản",
-                            color: Palette.red, background: Palette.muted)
-            }
-            .padding(.top, Spacing.m)
-        }
-    }
-
-    private func summaryTile(_ title: String, amount: String, detail: String, color: Color, background: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
-            Text(amount)
-                .textRole(.bodyStrong)
-                .foregroundStyle(color)
-                .monospacedDigit()
-            Text(detail)
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .cardSurface(radius: CardCorners.flow, color: background)
-        .accessibilityElement(children: .combine)
-    }
-
-    // MARK: - Cần chú ý
-
-    private var reminders: [PaymentReminder] {
-        store.paymentReminders
-            .filter { matchesSearch($0.title) || matchesSearch($0.detail) }
-            .sorted { $0.dueDate < $1.dueDate }
-    }
-
-    @ViewBuilder
-    private var attentionSection: some View {
-        let reminders = reminders
-        if !reminders.isEmpty {
-            VStack(alignment: .leading, spacing: Spacing.m) {
-                SectionHeader(title: "Cần chú ý") {
-                    StatusBadge(text: "\(reminders.count) sắp đến hạn", tone: .warning)
-                }
-                .padding(.bottom, Spacing.headerGap - Spacing.m)
-                ForEach(reminders) { reminder in
-                    HStack(spacing: 12) {
-                        switch reminder.avatar {
-                        case .initials(let name): InitialsAvatar(name: name)
-                        case .icon(let icon): IconCircle(icon: icon)
-                        }
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(reminder.title)
-                                .textRole(.body)
-                                .lineLimit(1)
-                            Text(reminder.detail)
-                                .textRole(.caption)
-                                .foregroundStyle(Palette.secondaryText)
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        VStack(alignment: .trailing, spacing: 0) {
-                            Text("\(reminder.isIncome ? "+" : "-")\(reminder.amount.vnd)")
-                                .textRole(.amount)
-                                .foregroundStyle(reminder.isIncome ? Palette.ink : Palette.red)
-                                .monospacedDigit()
-                            Text("Hạn \(reminder.dueDate.dayMonth)")
-                                .textRole(.caption)
-                                .foregroundStyle(Palette.secondaryText)
-                        }
-                    }
-                    .padding(17)
-                    // Bordered, shadowless card; the 1pt border sits inside like CSS.
-                    .background {
-                        RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
-                            .fill(Palette.card)
-                            .strokeBorder(Palette.border, lineWidth: 1)
-                    }
-                    .accessibilityElement(children: .combine)
-                }
+            switch filter {
+            case .all:
+                lentSection
+                borrowedSection
+            case .lent:
+                lentSection
+            case .borrowed:
+                borrowedSection
+            case .settled:
+                settledSection
             }
         }
+    }
+
+    /// Says what left nothing: the words, the kind, or both.
+    private var emptyMessage: String {
+        if trimmedSearch.isEmpty { return "Không có khoản vay nào khớp với bộ lọc." }
+        let words = "“\(trimmedSearch)”"
+        return filter == .all ? "Không có khoản vay nào khớp với \(words)."
+            : "Không có khoản vay nào khớp với \(words) và bộ lọc."
     }
 
     // MARK: - Cho vay / Đi vay / Đã tất toán
@@ -207,17 +203,12 @@ struct LoansContent: View {
     }
 
     private var borrowedSection: some View {
-        let total = cardDebts.reduce(0) { $0 - $1.balance } + borrowedLoans.reduce(0) { $0 + $1.outstanding }
-        return VStack(alignment: .leading, spacing: Spacing.m) {
-            SectionHeader(title: "Đi vay") { remainingLabel(total) }
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            SectionHeader(title: "Đi vay") { remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }) }
                 .padding(.bottom, Spacing.headerGap - Spacing.m)
-            if cardDebts.isEmpty && borrowedLoans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-credit-card", title: "Chưa có khoản đi vay",
-                               message: "Dư nợ thẻ tín dụng và các khoản bạn vay sẽ hiện ở đây.")
-            }
-            ForEach(cardDebts) { card in
-                NavigationLink(value: card.id) { CreditCardDebtCard(card: card) }
-                    .buttonStyle(.card)
+            if borrowedLoans.isEmpty {
+                EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa có khoản đi vay",
+                               message: "Khoản bạn vay của người khác sẽ hiện ở đây.")
             }
             ForEach(borrowedLoans) { loan in
                 Button { onEdit(loan) } label: { LoanCard(loan: loan) }

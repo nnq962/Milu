@@ -19,7 +19,7 @@ final class FinanceDatabase {
     /// The on-device database; falls back to memory only if the file cannot be opened, so the app
     /// still starts (that session's changes are then not kept).
     static func makeContainer() -> ModelContainer {
-        let schema = Schema(versionedSchema: TimiSchemaV2.self)
+        let schema = Schema(versionedSchema: TimiSchemaV6.self)
         do {
             return try ModelContainer(for: schema, migrationPlan: TimiMigrationPlan.self,
                                       configurations: ModelConfiguration("Timi", schema: schema))
@@ -41,6 +41,9 @@ final class FinanceDatabase {
         var loans: [Loan]
         var paymentReminders: [PaymentReminder]
         var categories: [Category]
+        var contacts: [Contact]
+        /// Only the ones the user added; the built-in ones are `ContactRelationship`.
+        var relationships: [Relationship]
     }
 
     func load() -> Snapshot {
@@ -67,7 +70,10 @@ final class FinanceDatabase {
             paymentReminders: fetch(FetchDescriptor<ReminderRecord>(sortBy: [SortDescriptor(\.dueDate)])).map(PaymentReminder.init),
             categories: fetch(FetchDescriptor<CategoryRecord>(sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]))
                 .filter { !Category.systemIDs.contains($0.id) }
-                .map(Category.init)
+                .map(Category.init),
+            contacts: fetch(FetchDescriptor<ContactRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Contact.init),
+            relationships: fetch(FetchDescriptor<RelationshipRecord>(sortBy: [SortDescriptor(\.createdAt)]))
+                .map(Relationship.init)
         )
     }
 
@@ -231,6 +237,36 @@ final class FinanceDatabase {
         delete(LoanRecord.self, id: id)
     }
 
+    // MARK: - Danh bạ
+
+    func save(_ contact: Contact) {
+        record(ContactRecord.self, id: contact.id) { ContactRecord(id: $0) }.apply(contact)
+        commit()
+    }
+
+    func deleteContact(id: UUID) {
+        delete(ContactRecord.self, id: id)
+    }
+
+    func save(_ relationship: Relationship) {
+        let row = relationshipRecord(relationship.id) ?? {
+            let row = RelationshipRecord(id: relationship.id)
+            context.insert(row)
+            return row
+        }()
+        row.apply(relationship)
+        commit()
+    }
+
+    func deleteRelationship(id: String) {
+        if let row = relationshipRecord(id) { context.delete(row) }
+        commit()
+    }
+
+    private func relationshipRecord(_ id: String) -> RelationshipRecord? {
+        fetch(FetchDescriptor<RelationshipRecord>(predicate: #Predicate { $0.id == id })).first
+    }
+
     func save(_ reminder: PaymentReminder) {
         record(ReminderRecord.self, id: reminder.id) { ReminderRecord(id: $0) }.apply(reminder)
         commit()
@@ -257,6 +293,11 @@ final class FinanceDatabase {
             row.createdAt = transaction.date
             context.insert(row)
         }
+        for contact in SampleData.contacts {
+            let row = ContactRecord(id: contact.id)
+            row.apply(contact)
+            context.insert(row)
+        }
         for loan in SampleData.loans {
             let row = LoanRecord(id: loan.id)
             row.apply(loan)
@@ -278,6 +319,8 @@ final class FinanceDatabase {
             try context.delete(model: CategoryRecord.self)
             try context.delete(model: LoanRecord.self)
             try context.delete(model: ReminderRecord.self)
+            try context.delete(model: ContactRecord.self)
+            try context.delete(model: RelationshipRecord.self)
             // Saved before seeding, so the default categories are added to an empty table rather
             // than skipped as "already there".
             try context.save()
@@ -340,6 +383,10 @@ extension TransactionRecord: IdentifiedRecord {
 
 extension LoanRecord: IdentifiedRecord {
     static func matching(_ id: UUID) -> Predicate<LoanRecord> { #Predicate { $0.id == id } }
+}
+
+extension ContactRecord: IdentifiedRecord {
+    static func matching(_ id: UUID) -> Predicate<ContactRecord> { #Predicate { $0.id == id } }
 }
 
 extension ReminderRecord: IdentifiedRecord {

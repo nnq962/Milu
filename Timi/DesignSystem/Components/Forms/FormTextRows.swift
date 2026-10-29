@@ -10,6 +10,8 @@ struct FormTextRow: View {
     var isInvalid = false
     /// Longer text is cut to this many characters as it is typed.
     var maxLength: Int? = nil
+    /// Opens the keyboard here once the sheet has slid in, as a new contact in iOS Contacts.
+    var focusesOnAppear = false
 
     @FocusState private var isFocused: Bool
 
@@ -29,6 +31,12 @@ struct FormTextRow: View {
         }
         .formRowFrame()
         .onTapGesture { isFocused = true }
+        .task {
+            guard focusesOnAppear else { return }
+            // Wait for the sheet to settle, or the keyboard fights its slide-in.
+            try? await Task.sleep(for: .milliseconds(450))
+            isFocused = true
+        }
     }
 }
 

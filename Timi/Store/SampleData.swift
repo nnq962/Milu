@@ -27,9 +27,19 @@ enum SampleData {
     ]
 
     // Khoản vay mẫu theo thiết kế Sleek (tổng cho vay còn 80tr), không phải giao dịch ngân hàng thật.
+    // Có từ trước khi dùng app, nên không đổi số dư tài khoản nào.
     static let loans = [
-        Loan(name: "Minh Trần", direction: .lent, principal: 75_000_000, outstanding: 45_000_000, dueDate: daysFromNow(8)),
-        Loan(name: "Hùng Lê", direction: .lent, principal: 35_000_000, outstanding: 35_000_000, dueDate: daysFromNow(46)),
+        Loan(name: "Minh Trần", direction: .lent, principal: 75_000_000, outstanding: 45_000_000, dueDate: daysFromNow(8),
+             contactID: contacts[0].id, isExisting: true),
+        Loan(name: "Hùng Lê", direction: .lent, principal: 35_000_000, outstanding: 35_000_000, dueDate: daysFromNow(46),
+             contactID: contacts[1].id, isExisting: true),
+    ]
+
+    /// "Danh bạ": the people of the sample loans first, then one with no loan yet.
+    static let contacts = [
+        Contact(name: "Minh Trần", relationshipID: ContactRelationship.friend.rawValue),
+        Contact(name: "Hùng Lê", relationshipID: ContactRelationship.colleague.rawValue),
+        Contact(name: "Mẹ", relationshipID: ContactRelationship.family.rawValue),
     ]
 
     private static func daysFromNow(_ days: Int) -> Date {
