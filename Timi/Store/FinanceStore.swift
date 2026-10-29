@@ -19,6 +19,8 @@ final class FinanceStore {
     /// "Lưu trữ": out of every list, picker and total; reached from "Đã lưu trữ" on Tài khoản.
     var archivedAccounts: [Account]
     var loans: [Loan]
+    /// Repayments of loans ("Thu nợ" / "Trả nợ"), newest first.
+    var loanPayments: [LoanPayment]
     var paymentReminders: [PaymentReminder]
     var savingsGoals: [SavingsGoal]
     /// Luôn sắp xếp mới nhất lên đầu.
@@ -38,6 +40,7 @@ final class FinanceStore {
         self.accounts = accounts
         self.archivedAccounts = []
         self.loans = loans
+        self.loanPayments = []
         self.paymentReminders = paymentReminders
         self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
@@ -68,6 +71,7 @@ final class FinanceStore {
         accountTransfers = snapshot.accountTransfers
         categories = snapshot.categories
         loans = snapshot.loans
+        loanPayments = snapshot.loanPayments
         paymentReminders = snapshot.paymentReminders
         contacts = snapshot.contacts
         customRelationships = snapshot.relationships
@@ -89,6 +93,7 @@ final class FinanceStore {
         accountTransfers = snapshot.accountTransfers
         categories = snapshot.categories
         loans = snapshot.loans
+        loanPayments = snapshot.loanPayments
         paymentReminders = snapshot.paymentReminders
         contacts = snapshot.contacts
         customRelationships = snapshot.relationships
@@ -194,6 +199,7 @@ final class FinanceStore {
     func hasHistory(_ account: Account) -> Bool {
         transactions.contains { $0.accountID == account.id } || goalTransfers.contains { $0.accountID == account.id }
             || accountTransfers.contains { $0.fromAccountID == account.id || $0.toAccountID == account.id }
+            || loans.contains { $0.movedAccountID == account.id } || loanPayments.contains { $0.accountID == account.id }
     }
 
     /// Hides an account with history: out of lists, pickers and totals, history kept. What it
@@ -581,11 +587,91 @@ final class FinanceStore {
         loanMoves.filter { $0.movedAccountID == account.id }
     }
 
-    /// "Đánh dấu đã tất toán": nothing left to repay.
-    func settle(_ loan: Loan) {
-        var loan = loan
-        loan.outstanding = 0
-        save(loan)
+    // MARK: - Thu nợ / Trả nợ
+
+    /// Repayments that came into or left an account, newest first: rows of its history.
+    func loanPayments(of account: Account) -> [LoanPayment] {
+        loanPayments.filter { $0.accountID == account.id }
+    }
+
+    /// A loan's repayments, newest first.
+    func payments(of loan: Loan) -> [LoanPayment] {
+        loanPayments.filter { $0.loanID == loan.id }
+    }
+
+    /// Adds or changes a repayment: the old one is undone first. Its principal comes off what is
+    /// left of the loan; principal and interest both come into the account (lent) or leave it
+    /// (borrowed).
+    func save(_ payment: LoanPayment) {
+        persist {
+            if let index = loanPayments.firstIndex(where: { $0.id == payment.id }) {
+                apply(loanPayments[index], sign: -1)
+                loanPayments[index] = payment
+            } else {
+                loanPayments.append(payment)
+            }
+            loanPayments.sort { $0.date > $1.date }
+            apply(payment, sign: 1)
+            database?.save(payment)
+        }
+    }
+
+    func delete(_ payment: LoanPayment) {
+        persist {
+            guard let saved = loanPayments.first(where: { $0.id == payment.id }) else { return }
+            apply(saved, sign: -1)
+            loanPayments.removeAll { $0.id == payment.id }
+            database?.deleteLoanPayment(id: payment.id)
+        }
+    }
+
+    /// Applies (1) or undoes (-1) a repayment on its loan and its account.
+    /// What is left stays between 0 and the principal, whatever was typed on the loan since.
+    private func apply(_ payment: LoanPayment, sign: Double) {
+        guard let index = loans.firstIndex(where: { $0.id == payment.loanID }) else { return }
+        let loan = loans[index]
+        loans[index].outstanding = min(max(loan.outstanding - payment.principal * sign, 0), loan.principal)
+        database?.save(loans[index])
+        let lent = loan.direction == .lent
+        adjustBalance(of: payment.accountID, by: (lent ? payment.total : -payment.total) * sign)
+    }
+
+    /// Principal repaid through the app ("Thu nợ" / "Trả nợ"), for the loan form's limits.
+    func repaidPrincipal(of loan: Loan) -> Double {
+        payments(of: loan).reduce(0) { $0 + $1.principal }
+    }
+
+    /// The day of a loan's first repayment: its own date cannot move past it.
+    func firstPaymentDate(of loan: Loan) -> Date? {
+        payments(of: loan).map(\.date).min()
+    }
+
+    /// Repayments whose loan is still there (a row of "Thu chi" opens the loan).
+    var listedLoanPayments: [LoanPayment] {
+        loanPayments.filter { payment in loans.contains { $0.id == payment.loanID } }
+    }
+
+    /// The month's loan interest as the income (lent) or spending (borrowed) reports count.
+    private func interestTransactions(inMonthOf date: Date) -> [FinanceTransaction] {
+        loanPayments
+            .filter { $0.interest > 0 && Calendar.current.isDate($0.date, equalTo: date, toGranularity: .month) }
+            .compactMap { payment in
+                loan(id: payment.loanID).map { payment.interestTransaction(lent: $0.direction == .lent) }
+            }
+    }
+
+    /// Whether interest is due this month: some is set and the loan began before this month (one
+    /// lent today owes none yet).
+    func owesInterest(_ loan: Loan, inMonthOf month: Date = .now) -> Bool {
+        guard loan.monthlyInterestRate > 0, !loan.isSettled else { return false }
+        let calendar = Calendar.current
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? month
+        return loan.date < startOfMonth || loan.isExisting
+    }
+
+    /// Whether the interest of `month` was paid on this loan (any repayment with interest in it).
+    func hasPaidInterest(_ loan: Loan, inMonthOf month: Date = .now) -> Bool {
+        payments(of: loan).contains { $0.interest > 0 && Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }
     }
 
     func loan(id: Loan.ID) -> Loan? {
@@ -593,8 +679,11 @@ final class FinanceStore {
     }
 
     /// Accounts a new loan can move money with: unlocked ones in use, plus the one it already has.
+    /// The one kept may be archived (its history still names it), so changing something else does
+    /// not move the money to another account.
     func loanAccountOptions(keeping kept: Account.ID?) -> [Account.ID] {
         accounts.filter { !$0.isLocked || $0.id == kept }.map(\.id)
+            + archivedAccounts.filter { $0.id == kept }.map(\.id)
     }
 
     /// The loan with its person in "Danh bạ": its own while the name still matches, else the one
@@ -627,8 +716,15 @@ final class FinanceStore {
         persist { for loan in unlinked { save(loan) } }
     }
 
+    /// Also undoes its repayments on their accounts, as the loan's own money is.
     func delete(_ loan: Loan) {
         persist {
+            for payment in payments(of: loan) {
+                let lent = loan.direction == .lent
+                adjustBalance(of: payment.accountID, by: lent ? -payment.total : payment.total)
+                database?.deleteLoanPayment(id: payment.id)
+            }
+            loanPayments.removeAll { $0.loanID == loan.id }
             if let saved = self.loan(id: loan.id) { moveMoney(of: saved, sign: -1) }
             loans.removeAll { $0.id == loan.id }
             database?.deleteLoan(id: loan.id)
@@ -997,7 +1093,8 @@ final class FinanceStore {
     /// What a month's totals, charts and the assistant count: its transactions that are reported,
     /// and the fees of its transfers (spending, though they have no row).
     func reportableTransactions(inMonthOf date: Date = .now) -> [FinanceTransaction] {
-        (monthlyTransactions(for: date) + feeExpenses(inMonthOf: date)).reportable(excluding: lockedAccountIDs)
+        (monthlyTransactions(for: date) + feeExpenses(inMonthOf: date) + interestTransactions(inMonthOf: date))
+            .reportable(excluding: lockedAccountIDs)
     }
 
     func total(_ kind: TransactionKind, inMonthOf date: Date = .now) -> Double {

@@ -118,7 +118,8 @@ struct TransactionsView: View {
             }
             .sheet(item: $editingItem) { ActivityEditor(item: $0) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
-            .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
+            // A loan opens to read first; its pencil opens the form (user request 2026-10-29).
+            .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id) }
             .navigationDestination(for: SettledLoansRoute.self) { _ in SettledLoansView() }
         }
         // Posted off the main thread; the page changes on the main one.
@@ -272,7 +273,9 @@ struct TransactionsView: View {
         let transactions = filter == .transfer ? [] : monthTransactions.filter(filter.matches)
         let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { inMonth($0.date) }
         let loans = filter != .all ? [] : store.loanMoves.filter { inMonth($0.date) }
-        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans)
+        let payments = filter != .all ? [] : store.listedLoanPayments.filter { inMonth($0.date) }
+        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans,
+                                          loanPayments: payments)
     }
 
     @ViewBuilder

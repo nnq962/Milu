@@ -28,7 +28,8 @@ struct Category: Identifiable, Hashable {
 
     /// Names the system's own categories use ("Điều chỉnh số dư"): a user category may not take
     /// one, or its transactions would read like balance adjustments.
-    static let reservedNames: [String] = [TransactionCategory.adjustmentIn.title, TransactionCategory.transferFee.title]
+    static let reservedNames: [String] = [TransactionCategory.adjustmentIn.title, TransactionCategory.transferFee.title,
+                                          TransactionCategory.loanInterestIncome.title, TransactionCategory.loanInterestExpense.title]
 }
 
 /// The categories a new install starts with: the V1 groups (same ids, so existing transactions

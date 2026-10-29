@@ -1220,6 +1220,35 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Tìm "Tuan" không thấy rồi "Thêm người mới": form Danh bạ điền sẵn tên đã tìm (`ContactEditorView.Target.new(name:)`).
 - Rà soát sheet thêm khoản vay lần 3 (agent, 2026-10-29): sẵn sàng commit. Sửa thêm: tên điền sẵn cắt còn 40 ký tự như khi gõ; lịch chọn ngày mở với ngày ngoài khoảng cho phép (hạn trả trước ngày cho vay) thì bắt đầu ở ngày gần nhất được chọn, nên ✓ là sửa luôn. Giữ tên đúng như đã gõ khi tìm (không tự viết hoa).
 
+## Vay nợ: thẻ khoản vay mới, badge theo hạn, khoản gấp lên trước — 2026-10-29
+
+- Thẻ (`LoanCard`): chữ cái đầu, tên, dòng phụ "Hạn 6/11 · Lãi 375k" (không hạn thì tên mối quan hệ); badge ở góc phải theo hạn; dòng "Còn 45tr / 75tr" (đỏ khi đi vay) và "Đã trả 40%"; thanh tiến độ. Khoản quá hạn thêm viền đỏ nhạt. Bỏ `DebtCardLayout`.
+- Mức hạn (`LoanUrgency`, mình chọn, đổi được): quá hạn → đỏ "Quá hạn 3 ngày"; hôm nay đến 7 ngày → cam "Đến hạn hôm nay" / "Còn 3 ngày"; 8–30 ngày → xám; trên 30 ngày → xanh lá; không có hạn → xám "Không có hạn"; tất toán → xanh lá "Đã tất toán". Thanh tiến độ cũng đỏ/cam khi quá hạn/sắp đến hạn.
+- `BadgeTone.caution` mới: nền cam nhạt (`Palette.warning` 16%), chữ cam đậm cho dễ đọc. `warning` đổi tên hiển thị thành "Quá hạn".
+- Mục Cho vay và Đi vay xếp khoản gấp lên trước: quá hạn lâu nhất, rồi hạn gần nhất, không có hạn cuối cùng; cùng hạn thì khoản còn nhiều hơn trước.
+
+## Vay nợ: sheet xem khoản vay và ghi nhận thu/trả nợ — 2026-10-29
+
+- Chạm một khoản vay (trang, màn tìm, "Khoản vay đã tất toán") mở `LoanDetailSheet` để xem trước (người dùng chọn); bút chì mở form sửa. Thứ tự: thẻ "Còn phải thu/trả" (badge hạn, thanh tiến độ, "Gốc …"); "Ghi nhận thu nợ / trả nợ" (ẩn khi đã tất toán); nhóm "Lãi" (Mỗi tháng · Tháng này đã/chưa thu/trả · Đã thu/trả tổng cộng); "Chi tiết" (người, tài khoản và ngày nếu là khoản mới, hoặc "Khoản có sẵn", hạn trả); "Lịch sử thu/trả nợ" (chạm để sửa/xoá).
+- `LoanPaymentSheet` (người dùng chọn tách gốc và lãi, chọn tài khoản): Tiền gốc (chip "Hết 45tr"), Tiền lãi (điền sẵn lãi tháng nếu tháng này chưa thu/trả), Nhận vào / Chi từ, Ngày (không sau hôm nay, không trước ngày cho vay). Gốc không lớn hơn số còn lại. Chân nhóm: "Còn lại sau lần này: …" / "Lần này trả hết khoản vay." + "Tiền lãi tính là thu nhập/chi tiêu."
+- Tiền: thu nợ cộng gốc + lãi vào tài khoản, trả nợ trừ ra; gốc trừ vào "Còn lại" (về 0 là tất toán). Gốc không tính là thu/chi; lãi là "Lãi cho vay" (thu nhập) / "Lãi đi vay" (chi tiêu), hệ thống, vào báo cáo như phí chuyển khoản (`interestTransactions`), không có dòng riêng.
+- Dòng thu/trả nợ (`LoanPaymentRow`) ở chip Tất cả của Thu chi, màn tìm và lịch sử tài khoản: "Thu nợ · Mẹ · Ví tiền mặt +25.375.000đ"; chạm mở sheet khoản vay. Tổng ngày không cộng lãi (thẻ tổng quan là số báo cáo, như phí).
+- Bỏ "Đánh dấu đã tất toán" khỏi form sửa (tất toán bằng một lần thu/trả hết). Khoản có lần thu/trả thì không đổi được Cho vay ↔ Đi vay. Xoá khoản vay xoá cả các lần thu/trả và hoàn số dư. Tài khoản có khoản vay hoặc lần thu/trả thì chỉ lưu trữ được, không xoá.
+- Database V7: bảng `LoanPaymentRecord`.
+- Rà soát trang Vay nợ (agent, 2026-10-29), đã sửa:
+  - Khoản có sẵn đã có lần thu/trả: "Còn lại" để trống là gốc trừ phần đã thu/trả qua Timi; gõ cao hơn thì báo "Đã thu 5.000đ qua Timi: còn lại tối đa …". Số còn lại luôn nằm trong 0…gốc khi thêm/sửa/xoá lần thu/trả.
+  - Sửa lần thu/trả (hoặc khoản vay) có tài khoản đã lưu trữ giữ nguyên tài khoản đó, không tự chuyển sang tài khoản khác.
+  - Ngày cho vay không sau lần thu/trả đầu tiên.
+  - Lần thu/trả mà khoản vay không còn không hiện ở Thu chi (`listedLoanPayments`).
+  - Lãi "Tháng này" và lãi điền sẵn chỉ khi khoản bắt đầu trước tháng này (hoặc là khoản có sẵn) (`owesInterest`).
+  - Tìm "lãi" / "lãi cho vay" ra lần thu/trả có lãi.
+  - Thẻ khoản đã tất toán bỏ "Hạn …"; thanh tiến độ ở thẻ và sheet cùng một màu (`LoanCard.progressColor`).
+- Rà soát trang Vay nợ lần 2 (agent, 2026-10-29), đã sửa:
+  - Khoản đã có lần thu/trả: khoá công tắc "Khoản có sẵn" (người dùng chọn), như đã khoá Cho vay ↔ Đi vay; dòng phụ "Đã có lần thu nợ, không đổi được". Nhờ vậy số còn lại, ngày cho vay và các lần thu/trả luôn khớp nhau.
+  - Số gốc không nhỏ hơn phần đã thu/trả (khoản có sẵn: phần qua Timi); số còn lại không âm.
+  - Sửa một lần thu/trả: tiền gốc tối đa là gốc trừ các lần khác.
+- Rà soát trang Vay nợ lần 3 (agent, 2026-10-29): sẵn sàng commit. Sửa thêm: khoản có sẵn chỉ được thu/trả qua Timi mở form với "Còn lại" trống (số đó do app tính, không phải người dùng gõ); "Lần này thu hết khoản vay." khi cho vay; hộp xoá khoản mới chưa có lần thu/trả chỉ nói "Số dư tài khoản sẽ được tính lại."
+
 ## Danh bạ — 2026-10-29
 
 - Cài đặt → Chung → "Danh bạ" (số = số người, VoiceOver đọc "2 người") đẩy sang `ContactsView` (người dùng chọn đẩy màn như Hạng mục, không chồng sheet). Một thẻ `listCard()`, xếp A→Z theo tiếng Việt: vòng chữ cái đầu (từ rà soát lần 2), tên, dòng phụ "Bạn bè · 1 khoản vay". Nút + trên thanh thêm người; chạm một người để sửa. Không có chú thích dưới thẻ (người dùng bỏ 2026-10-29). Trống: `EmptyStateCard` "Danh bạ trống".

@@ -148,8 +148,9 @@ struct LoansContent: View {
         }
     }
 
-    private var lentLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .lent } }
-    private var borrowedLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .borrowed } }
+    /// Most urgent first: overdue, then the nearest deadline (user request 2026-10-29).
+    private var lentLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .lent }.byUrgency }
+    private var borrowedLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .borrowed }.byUrgency }
     private var settledLoans: [Loan] { shownLoans.filter(\.isSettled) }
 
     var body: some View {
@@ -280,7 +281,7 @@ struct SettledLoansView: View {
         .foregroundStyle(Palette.ink)
         .navigationTitle("Khoản vay đã tất toán")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
+        .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id) }
     }
 }
 

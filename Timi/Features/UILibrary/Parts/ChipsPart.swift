@@ -14,7 +14,7 @@ struct ChipsPart: View {
                         ForEach(BadgeTone.allCases.prefix(3)) { StatusBadge(text: $0.name, tone: $0) }
                     }
                     HStack(spacing: Spacing.s) {
-                        ForEach(BadgeTone.allCases.suffix(2)) { StatusBadge(text: $0.name, tone: $0) }
+                        ForEach(BadgeTone.allCases.suffix(3)) { StatusBadge(text: $0.name, tone: $0) }
                     }
                     StatusBadge(text: "2 sắp đến hạn", showsDot: false)
                 }

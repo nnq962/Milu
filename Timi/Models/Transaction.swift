@@ -24,12 +24,15 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
     /// "Phí chuyển khoản": the fee of a transfer between two accounts, counted in reports as
     /// spending from the source; it lives on its transfer and has no row of its own.
     case transferFee
+    /// "Lãi cho vay" / "Lãi đi vay": the interest of a loan's repayment (`LoanPayment`), counted
+    /// in reports as income or spending; it lives on its repayment and has no row of its own.
+    case loanInterestIncome, loanInterestExpense
 
     var id: Self { self }
 
     var kind: TransactionKind {
         switch self {
-        case .salary, .bonus, .investment, .otherIncome, .adjustmentIn: .income
+        case .salary, .bonus, .investment, .otherIncome, .adjustmentIn, .loanInterestIncome: .income
         default: .expense
         }
     }
@@ -50,6 +53,8 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .otherIncome: "Thu khác"
         case .adjustmentIn, .adjustmentOut: "Điều chỉnh số dư"
         case .transferFee: "Phí chuyển khoản"
+        case .loanInterestIncome: "Lãi cho vay"
+        case .loanInterestExpense: "Lãi đi vay"
         }
     }
 
@@ -69,6 +74,7 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .otherIncome: "hugeicons-money-add-02"
         case .adjustmentIn, .adjustmentOut: "hugeicons-pencil-edit-01"
         case .transferFee: "hugeicons-receipt-dollar"
+        case .loanInterestIncome, .loanInterestExpense: "hugeicons-percent"
         }
     }
 
@@ -81,7 +87,8 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
         case .entertainment: .cyan
         case .health: .indigo
         case .education: .brown
-        case .otherExpense, .otherIncome, .adjustmentIn, .adjustmentOut, .transferFee: .gray
+        case .otherExpense, .otherIncome, .adjustmentIn, .adjustmentOut, .transferFee,
+             .loanInterestIncome, .loanInterestExpense: .gray
         case .salary: .green
         case .bonus: .mint
         case .investment: .teal
@@ -90,7 +97,7 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
 
     var isAdjustment: Bool { self == .adjustmentIn || self == .adjustmentOut }
     /// The system's own categories, never picked by the user nor listed in "Hạng mục".
-    var isSystem: Bool { isAdjustment || self == .transferFee }
+    var isSystem: Bool { isAdjustment || self == .transferFee || self == .loanInterestIncome || self == .loanInterestExpense }
 
     /// The built-in groups a user could pick before items existed, without the system ones.
     static var pickable: [TransactionCategory] { allCases.filter { !$0.isSystem } }

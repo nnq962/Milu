@@ -192,6 +192,26 @@ extension LoanRecord {
     }
 }
 
+// MARK: - Trả nợ
+
+extension LoanPayment {
+    init(_ record: LoanPaymentRecord) {
+        self.init(id: record.id, loanID: record.loanID, principal: Double(dong: record.principal),
+                  interest: Double(dong: record.interest), accountID: record.accountID, date: record.paidAt)
+    }
+}
+
+extension LoanPaymentRecord {
+    func apply(_ payment: LoanPayment) {
+        loanID = payment.loanID
+        principal = Int64(dong: payment.principal)
+        interest = Int64(dong: payment.interest)
+        accountID = payment.accountID
+        paidAt = payment.date
+        updatedAt = .now
+    }
+}
+
 // MARK: - Danh bạ
 
 extension Contact {

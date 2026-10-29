@@ -52,7 +52,8 @@ struct LoanEditorView: View {
     private var person: Contact? { contactID.flatMap { store.contact(id: $0) } }
     private var principal: Double { principalText.vndInputAmount }
     private var outstanding: Double {
-        if isExisting { return outstandingText.isEmpty ? principal : outstandingText.vndInputAmount }
+        // Empty: nothing repaid before Timi, so the principal less what came back through it.
+        if isExisting { return max(outstandingText.isEmpty ? principal - repaidInApp : outstandingText.vndInputAmount, 0) }
         return max(principal - repaid, 0)
     }
     /// "1,5" or "1.5" → 1.5; empty → 0. Typing keeps it to digits, one comma, two decimals
@@ -74,15 +75,27 @@ struct LoanEditorView: View {
         guard !isExisting, chosenAccount == nil else { return nil }
         return "Chưa có tài khoản để ghi. Thêm tài khoản ở tab Tài khoản, hoặc chọn khoản có sẵn."
     }
+    /// Repaid through the app ("Thu nợ" / "Trả nợ"): what is left can't be typed back over it.
+    private var repaidInApp: Double { original.map(store.repaidPrincipal) ?? 0 }
     private var outstandingError: String? {
-        isExisting && outstanding > principal ? "Số còn lại không được lớn hơn số tiền gốc." : nil
+        guard isExisting else { return nil }
+        if outstanding > principal { return "Số còn lại không được lớn hơn số tiền gốc." }
+        if repaidInApp > 0, outstanding > principal - repaidInApp {
+            return "Đã \(direction == .lent ? "thu" : "trả") \(repaidInApp.vnd) qua Timi: còn lại tối đa \((principal - repaidInApp).vnd)."
+        }
+        return nil
     }
     /// A new loan already partly repaid: the principal cannot go under what came back, or it would
     /// quietly count as settled.
+    /// An existing loan: what came back through Timi; a new one: all that came back.
     private var principalError: String? {
-        guard !isExisting, repaid > 0, principal > 0, principal < repaid else { return nil }
-        return "Số tiền gốc không được nhỏ hơn số đã \(direction == .lent ? "thu" : "trả") (\(repaid.vnd))."
+        let floor = isExisting ? repaidInApp : repaid
+        guard floor > 0, principal > 0, principal < floor else { return nil }
+        return "Số tiền gốc không được nhỏ hơn số đã \(direction == .lent ? "thu" : "trả") (\(floor.vnd))."
     }
+    /// Its repayments moved money one way: whether it was there before Timi cannot change under
+    /// them (as the side cannot), so what is left always agrees with them (user choice 2026-10-29).
+    private var hasPayments: Bool { original.map { !store.payments(of: $0).isEmpty } ?? false }
     private var rateError: String? {
         rate > 100 ? "Lãi suất tối đa 100% mỗi tháng." : nil
     }
@@ -118,6 +131,8 @@ struct LoanEditorView: View {
             }
             .pickerStyle(.segmented)
             .controlSize(.large)
+            // Its repayments moved money one way: the side cannot flip under them.
+            .disabled(hasPayments)
 
             SheetAmountHeader(caption: "Số tiền gốc", fieldSaysCaption: true) {
                 TimiAmountField(text: $principalText, focusesOnAppear: original == nil, label: "Số tiền gốc")
@@ -129,8 +144,11 @@ struct LoanEditorView: View {
             FormGroup(title: "Thông tin", error: showsErrors ? personError : nil) {
                 personRow
                 FormDivider(hasIcon: false)
-                FormToggleRow(title: "Khoản có sẵn", subtitle: "Có từ trước khi dùng Timi, không đổi số dư",
+                FormToggleRow(title: "Khoản có sẵn",
+                              subtitle: hasPayments ? "Đã có lần \(direction == .lent ? "thu" : "trả") nợ, không đổi được"
+                                  : "Có từ trước khi dùng Timi, không đổi số dư",
                               isOn: Binding { isExisting } set: { setExisting($0) })
+                    .disabled(hasPayments)
             }
 
             if isExisting {
@@ -150,7 +168,9 @@ struct LoanEditorView: View {
                         }
                         FormDivider(hasIcon: false)
                     }
-                    FormDateRow(title: direction == .lent ? "Ngày cho vay" : "Ngày vay", date: $date, latest: .now)
+                    // Not after its first repayment, nor after today.
+                    FormDateRow(title: direction == .lent ? "Ngày cho vay" : "Ngày vay", date: $date,
+                                latest: original.flatMap(store.firstPaymentDate).map { min($0, .now) } ?? .now)
                 }
                 .transition(.opacity)
             }
@@ -181,6 +201,14 @@ struct LoanEditorView: View {
         }
         .animation(.smooth(duration: 0.25), value: direction)
         .timiSheetStyle()
+        // A loan from before Timi repaid only through it: what is left was worked out, not typed,
+        // so the field stays empty ("empty = the principal less what came back through Timi").
+        .onAppear {
+            if let original, original.isExisting, store.repaidPrincipal(of: original) > 0,
+               original.outstanding == original.principal - store.repaidPrincipal(of: original) {
+                outstandingText = ""
+            }
+        }
         .sheet(isPresented: $isPickingPerson) {
             ContactPickerSheet(title: lentLabel, selection: $contactID)
         }
@@ -239,22 +267,21 @@ struct LoanEditorView: View {
 
     @ViewBuilder
     private func actions(_ original: Loan) -> some View {
+        // Repaying is recorded from the loan's sheet ("Thu nợ" / "Trả nợ"), so the money moves.
         FormGroup {
-            if !original.isSettled {
-                FormActionRow(title: "Đánh dấu đã tất toán", icon: "hugeicons-checkmark-circle-02") {
-                    store.settle(original)
-                    dismiss()
-                }
-                FormDivider()
-            }
             FormDestructiveRow(title: "Xoá khoản vay", question: "Xoá khoản vay với “\(original.name)”?",
-                               message: original.movedAccountID != nil
-                                   ? "Số dư tài khoản sẽ được tính lại."
-                                   : "Khoản này sẽ không còn được tính vào cho vay hoặc nợ.") {
+                               message: deleteMessage(original)) {
                 store.delete(original)
                 dismiss()
             }
         }
+    }
+
+    /// What deleting undoes: its repayments and their money, its own money, or only the figure.
+    private func deleteMessage(_ loan: Loan) -> String {
+        if !store.payments(of: loan).isEmpty { return "Các lần thu/trả nợ cũng bị xoá, số dư tài khoản sẽ được tính lại." }
+        if loan.movedAccountID != nil { return "Số dư tài khoản sẽ được tính lại." }
+        return "Khoản này sẽ không còn được tính vào cho vay hoặc nợ."
     }
 
     private func save() {

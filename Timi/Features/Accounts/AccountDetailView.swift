@@ -20,7 +20,8 @@ struct AccountDetailView: View {
             let transactions = store.accountTransactions(account)
             let activity = Self.activity(transactions: transactions, transfers: store.transfers(of: account),
                                          accountTransfers: store.accountTransfers(of: account),
-                                         loans: store.loanMoves(of: account))
+                                         loans: store.loanMoves(of: account),
+                                         loanPayments: store.loanPayments(of: account))
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
                     SummaryCard(label: "Số dư", amount: account.balance, icon: account.iconName,
@@ -96,6 +97,7 @@ extension AccountDetailView {
         case transfer(GoalTransfer)
         case accountTransfer(AccountTransfer)
         case loan(Loan)
+        case loanPayment(LoanPayment)
 
         var id: UUID {
             switch self {
@@ -103,6 +105,7 @@ extension AccountDetailView {
             case .transfer(let transfer): transfer.id
             case .accountTransfer(let transfer): transfer.id
             case .loan(let loan): loan.id
+            case .loanPayment(let payment): payment.id
             }
         }
 
@@ -112,14 +115,17 @@ extension AccountDetailView {
             case .transfer(let transfer): transfer.date
             case .accountTransfer(let transfer): transfer.date
             case .loan(let loan): loan.date
+            case .loanPayment(let payment): payment.date
             }
         }
     }
 
     static func activity(transactions: [FinanceTransaction], transfers: [GoalTransfer] = [],
-                         accountTransfers: [AccountTransfer] = [], loans: [Loan] = []) -> [Activity] {
+                         accountTransfers: [AccountTransfer] = [], loans: [Loan] = [],
+                         loanPayments: [LoanPayment] = []) -> [Activity] {
         (transactions.map(Activity.transaction) + transfers.map(Activity.transfer)
-            + accountTransfers.map(Activity.accountTransfer) + loans.map(Activity.loan))
+            + accountTransfers.map(Activity.accountTransfer) + loans.map(Activity.loan)
+            + loanPayments.map(Activity.loanPayment))
             .sorted { $0.date > $1.date }
     }
 
@@ -159,7 +165,7 @@ struct ActivityRow: View {
     /// so only when it can change.
     private var canEdit: Bool {
         switch item {
-        case .transaction, .accountTransfer, .loan: return true
+        case .transaction, .accountTransfer, .loan, .loanPayment: return true
         case .transfer(let transfer): return isEditable && store.isEditable(transfer)
         }
     }
@@ -175,6 +181,8 @@ struct ActivityRow: View {
                 AccountTransferRow(transfer: transfer, viewedAccount: viewedAccount, detail: detail)
             case .loan(let loan):
                 LoanMoveRow(loan: loan, viewedAccount: viewedAccount, detail: detail)
+            case .loanPayment(let payment):
+                LoanPaymentRow(payment: payment, viewedAccount: viewedAccount, detail: detail)
             }
         }
         if canEdit {
@@ -201,7 +209,7 @@ struct ActivityRow: View {
         case .transaction(let transaction): store.readOnlyReason(transaction)
         case .transfer(let transfer): store.readOnlyReason(transfer)
         case .accountTransfer(let transfer): store.readOnlyReason(transfer)
-        case .loan: nil
+        case .loan, .loanPayment: nil
         }
     }
 }
@@ -271,6 +279,35 @@ struct LoanMoveRow: View {
     }
 }
 
+/// A loan's repayment (user choice 2026-10-29): money in when a loan given is repaid, out when
+/// one taken is; neither income nor spending, though its interest counts as one. On "Giao dịch":
+/// "Thu nợ", "Minh Trần · Vietcombank"; in an account's history: "Thu nợ Minh Trần", "Gốc 5tr · Lãi 375k".
+struct LoanPaymentRow: View {
+    let payment: LoanPayment
+    var viewedAccount: Account.ID? = nil
+    var detail: TransactionListRow.Detail = .day
+
+    @Environment(FinanceStore.self) private var store
+
+    var body: some View {
+        let loan = store.loan(id: payment.loanID)
+        let lent = loan?.direction != .borrowed
+        let name = loan?.name ?? "Khoản vay đã xoá"
+        let kind = lent ? "Thu nợ" : "Trả nợ"
+        let account = store.account(id: payment.accountID)?.name ?? "Tài khoản đã xoá"
+        let parts = [payment.principal > 0 ? "Gốc \(payment.principal.vndCompact)" : nil,
+                     payment.interest > 0 ? "Lãi \(payment.interest.vndCompact)" : nil].compactMap { $0 }
+        ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
+                title: viewedAccount == nil ? kind : "\(kind) \(name)",
+                subtitle: viewedAccount == nil ? "\(name) · \(account)" : parts.joined(separator: " · "),
+                trailingSubtitle: detail == .time
+                    ? payment.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
+                    : TransactionListRow.dayMonth(payment.date),
+                amount: lent ? payment.total : -payment.total, amountTone: lent ? .signedIncome : .plain,
+                showsChevron: false)
+    }
+}
+
 /// What opens for a tapped history row: a transaction's or a transfer's details (their pencil
 /// opens the form), the deposit/withdrawal sheet, or a loan's money (read only).
 struct ActivityEditor: View {
@@ -290,6 +327,8 @@ struct ActivityEditor: View {
             }
         case .loan(let loan):
             LoanMoveSheet(loanID: loan.id)
+        case .loanPayment(let payment):
+            LoanDetailSheet(loanID: payment.loanID)
         }
     }
 }

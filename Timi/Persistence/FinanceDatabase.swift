@@ -19,7 +19,7 @@ final class FinanceDatabase {
     /// The on-device database; falls back to memory only if the file cannot be opened, so the app
     /// still starts (that session's changes are then not kept).
     static func makeContainer() -> ModelContainer {
-        let schema = Schema(versionedSchema: TimiSchemaV6.self)
+        let schema = Schema(versionedSchema: TimiSchemaV7.self)
         do {
             return try ModelContainer(for: schema, migrationPlan: TimiMigrationPlan.self,
                                       configurations: ModelConfiguration("Timi", schema: schema))
@@ -39,6 +39,7 @@ final class FinanceDatabase {
         var accountTransfers: [AccountTransfer]
         var goalTransfers: [GoalTransfer]
         var loans: [Loan]
+        var loanPayments: [LoanPayment]
         var paymentReminders: [PaymentReminder]
         var categories: [Category]
         var contacts: [Contact]
@@ -67,6 +68,8 @@ final class FinanceDatabase {
                 GoalTransfer($0, goalIDs: goalIDs, accountIDs: Set(accountRows.filter { $0.type != goalType }.map(\.id)))
             },
             loans: fetch(FetchDescriptor<LoanRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Loan.init),
+            loanPayments: fetch(FetchDescriptor<LoanPaymentRecord>(sortBy: [SortDescriptor(\.paidAt, order: .reverse)]))
+                .map(LoanPayment.init),
             paymentReminders: fetch(FetchDescriptor<ReminderRecord>(sortBy: [SortDescriptor(\.dueDate)])).map(PaymentReminder.init),
             categories: fetch(FetchDescriptor<CategoryRecord>(sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]))
                 .filter { !Category.systemIDs.contains($0.id) }
@@ -237,6 +240,15 @@ final class FinanceDatabase {
         delete(LoanRecord.self, id: id)
     }
 
+    func save(_ payment: LoanPayment) {
+        record(LoanPaymentRecord.self, id: payment.id) { LoanPaymentRecord(id: $0) }.apply(payment)
+        commit()
+    }
+
+    func deleteLoanPayment(id: UUID) {
+        delete(LoanPaymentRecord.self, id: id)
+    }
+
     // MARK: - Danh bạ
 
     func save(_ contact: Contact) {
@@ -318,6 +330,7 @@ final class FinanceDatabase {
             try context.delete(model: AccountRecord.self)
             try context.delete(model: CategoryRecord.self)
             try context.delete(model: LoanRecord.self)
+            try context.delete(model: LoanPaymentRecord.self)
             try context.delete(model: ReminderRecord.self)
             try context.delete(model: ContactRecord.self)
             try context.delete(model: RelationshipRecord.self)
@@ -379,6 +392,10 @@ extension AccountRecord: IdentifiedRecord {
 
 extension TransactionRecord: IdentifiedRecord {
     static func matching(_ id: UUID) -> Predicate<TransactionRecord> { #Predicate { $0.id == id } }
+}
+
+extension LoanPaymentRecord: IdentifiedRecord {
+    static func matching(_ id: UUID) -> Predicate<LoanPaymentRecord> { #Predicate { $0.id == id } }
 }
 
 extension LoanRecord: IdentifiedRecord {

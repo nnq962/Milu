@@ -67,7 +67,7 @@ struct TransactionSearchView: View {
             isFieldFocused = true
         }
         .sheet(item: $openedItem) { ActivityEditor(item: $0) }
-        .sheet(item: $editingLoan) { LoanEditorView(loan: $0) }
+        .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id) }
         .sheet(isPresented: $isFiltering) {
             switch segment {
             case .flows: TransactionFilterSheet(filter: $filter)
@@ -247,7 +247,14 @@ struct TransactionSearchView: View {
             guard matcher.matches(loan) else { return false }
             return found(in: "\(loan.direction.title) khoản vay \(loan.name) \(loan.movedAccountID.flatMap { names[$0] } ?? "")")
         }
-        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans)
+        let payments = store.loanPayments.filter { payment in
+            guard let loan = store.loan(id: payment.loanID), matcher.matches(payment) else { return false }
+            let kind = loan.direction == .lent ? "thu nợ" : "trả nợ"
+            let interest = payment.interest > 0 ? (loan.direction == .lent ? "lãi cho vay" : "lãi đi vay") : ""
+            return found(in: "\(kind) \(interest) khoản vay \(loan.name) \(names[payment.accountID] ?? "")")
+        }
+        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans,
+                                          loanPayments: payments)
     }
 
     /// Says what left nothing: the words, the filters, or both.

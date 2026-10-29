@@ -261,7 +261,7 @@ struct LoanMoveSheet: View {
     }
 }
 
-private struct DetailScaffold<Content: View>: View {
+struct DetailScaffold<Content: View>: View {
     let title: String
     let showsClose: Bool
     let canEdit: Bool

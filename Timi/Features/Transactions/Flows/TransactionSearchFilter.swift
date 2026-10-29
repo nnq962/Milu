@@ -99,6 +99,12 @@ struct TransactionSearchFilter: Equatable {
             return filter.accountIDs.isEmpty || filter.accountIDs.contains(account)
         }
 
+        /// A loan's repayment: on "Tất cả" only, by what moved, its date and account.
+        func matches(_ payment: LoanPayment) -> Bool {
+            guard filter.kind == .all, filter.groupIDs.isEmpty, fits(amount: payment.total, date: payment.date) else { return false }
+            return filter.accountIDs.isEmpty || filter.accountIDs.contains(payment.accountID)
+        }
+
         /// The transfer itself: its amount, either account.
         func matches(_ transfer: AccountTransfer) -> Bool {
             guard filter.kind == .all || filter.kind == .transfer, filter.groupIDs.isEmpty,

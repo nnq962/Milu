@@ -7,7 +7,7 @@ Code nằm ở `Timi/Persistence/`:
 | File | Vai trò |
 |---|---|
 | `TimiSchemaV1.swift` | Định nghĩa 5 bảng (phiên bản 1) |
-| `TimiSchemaV2.swift` … `TimiSchemaV6.swift` | Các bảng đổi ở V2 (hạng mục có nhóm), V3 (danh bạ, khoản vay nối với người), V4 (loại mối quan hệ tự thêm), V5 (đánh dấu người app tự tạo), V6 (khoản vay có sẵn hay mới, tài khoản, ngày, lãi suất) và kế hoạch chuyển phiên bản |
+| `TimiSchemaV2.swift` … `TimiSchemaV7.swift` | Các bảng đổi ở V2 (hạng mục có nhóm), V3 (danh bạ, khoản vay nối với người), V4 (loại mối quan hệ tự thêm), V5 (đánh dấu người app tự tạo), V6 (khoản vay có sẵn hay mới, tài khoản, ngày, lãi suất), V7 (các lần thu/trả nợ) và kế hoạch chuyển phiên bản |
 | `RecordMapping.swift` | Đổi qua lại giữa dòng trong database và kiểu dữ liệu các màn dùng |
 | `FinanceDatabase.swift` | Đọc, ghi, nạp dữ liệu mẫu, đặt lại; mọi code SwiftData chỉ ở đây |
 
@@ -128,6 +128,19 @@ Màn hình hiện chỉ hiện chi/thu và nạp/rút hũ. Chuyển khoản gi�
 | note, createdAt, updatedAt | | |
 
 Khoản mới (người dùng chọn 2026-10-29) trừ số gốc khỏi `accountID` khi cho vay, cộng vào khi đi vay; sửa thì hoàn lần cũ rồi áp lần mới, xoá thì hoàn lại. Không có dòng giao dịch riêng: "Thu chi" (chip Tất cả) và lịch sử tài khoản dựng dòng từ chính khoản vay, không tính là thu hay chi. Chuyển V5 → V6 (lightweight): chỉ thêm cột.
+
+### `LoanPaymentRecord` — một lần thu/trả nợ (mới ở V7)
+
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| id | UUID | |
+| loanID | UUID | khoản vay |
+| principal | Int64 | tiền gốc trả lần này, trừ vào `outstanding` của khoản vay |
+| interest | Int64 | tiền lãi; báo cáo tính là thu nhập (cho vay) hoặc chi tiêu (đi vay), không có dòng giao dịch riêng |
+| accountID | UUID | tài khoản nhận (cho vay) hoặc trả (đi vay) gốc + lãi |
+| paidAt, createdAt, updatedAt | Date | |
+
+Chuyển V6 → V7 (lightweight): chỉ thêm bảng.
 
 ### `ContactRecord` — danh bạ (mới ở V3)
 
