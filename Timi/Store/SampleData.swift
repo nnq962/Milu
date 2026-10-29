@@ -88,7 +88,8 @@ enum SampleData {
         // "food.coffee" is in the group "food".
         let group = item.split(separator: ".").first.map(String.init) ?? item
         let kind = DefaultCategories.groups.first { $0.id == group }?.kind ?? .expense
-        return FinanceTransaction(title: title, amount: amount, categoryID: item, kind: kind,
-                                  accountID: account.id, date: date)
+        // What it was for goes in the note; a transaction has no name of its own.
+        return FinanceTransaction(amount: amount, categoryID: item, kind: kind,
+                                  accountID: account.id, date: date, note: title)
     }
 }

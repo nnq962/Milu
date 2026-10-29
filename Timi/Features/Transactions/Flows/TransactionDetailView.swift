@@ -1,0 +1,256 @@
+import SwiftUI
+
+/// What opens on tapping a transaction: its details to read, the pencil to change it (the form
+/// also deletes), and the last few others in the same category, each opening the same way
+/// (user request 2026-10-29). Laid out as an account's or a goal's screen: the name in the bar,
+/// a `SummaryCard` lead (user choice 2026-10-29), then the details.
+struct TransactionDetailSheet: View {
+    let transactionID: FinanceTransaction.ID
+
+    var body: some View {
+        NavigationStack {
+            TransactionDetailView(transactionID: transactionID, isRoot: true)
+                .navigationDestination(for: FinanceTransaction.ID.self) { TransactionDetailView(transactionID: $0) }
+        }
+        .timiSheetStyle()
+    }
+}
+
+struct TransactionDetailView: View {
+    let transactionID: FinanceTransaction.ID
+    /// The first screen of the sheet has ✕; one opened from "Cùng hạng mục" has only ‹.
+    var isRoot = false
+
+    @Environment(FinanceStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var isEditing = false
+
+    /// How many others of the same category are listed.
+    static let similarLimit = 5
+
+    var body: some View {
+        let transaction = store.transaction(id: transactionID)
+        DetailScaffold(title: transaction.map(store.title(of:)) ?? "Giao dịch", showsClose: isRoot,
+                       canEdit: transaction.map(store.isEditable) ?? false, onEdit: { isEditing = true }) {
+            if let transaction {
+                lead(transaction)
+                details(transaction)
+                if !transaction.note.isEmpty {
+                    FormGroup(title: "Ghi chú") { FormNoteText(text: transaction.note) }
+                }
+                similar(to: transaction)
+            } else {
+                // Deleted from the form opened here: the sheet closes as that form does.
+                EmptyStateCard(icon: "hugeicons-inbox", title: "Giao dịch đã bị xoá",
+                               message: "Giao dịch này không còn trong lịch sử.")
+            }
+        }
+        .sheet(isPresented: $isEditing, onDismiss: {
+            if store.transaction(id: transactionID) == nil { dismiss() }
+        }) {
+            if let transaction = store.transaction(id: transactionID) {
+                TransactionEditSheet(transaction: transaction)
+            }
+        }
+    }
+
+    /// "Chi tiêu" or "Thu nhập", the signed amount and the category's icon (the category itself is
+    /// the bar's title); a badge when it does not count.
+    private func lead(_ transaction: FinanceTransaction) -> some View {
+        // A balance adjustment is neither income nor spending (user choice 2026-10-29).
+        SummaryCard(label: transaction.isAdjustment ? "Điều chỉnh số dư" : transaction.kind.title, amount: transaction.amount,
+                    icon: store.categoryIcon(transaction.categoryID),
+                    tone: transaction.kind == .income ? .signedIncome : .signedExpense) {
+            if let excluded = Self.notCountedText(transaction, store: store) {
+                StatusBadge(text: excluded)
+                    .padding(.top, Spacing.s)
+            }
+        }
+    }
+
+    /// Why it stays out of reports, if it does.
+    static func notCountedText(_ transaction: FinanceTransaction, store: FinanceStore) -> String? {
+        if transaction.isAdjustment || transaction.isExcluded { return "Không tính vào báo cáo" }
+        return store.isReportable(transaction) ? nil : "Tài khoản đã khoá · Không tính"
+    }
+
+    private func details(_ transaction: FinanceTransaction) -> some View {
+        FormGroup(title: "Chi tiết", footer: store.readOnlyReason(transaction)) {
+            // The item is the name above; this says the group it belongs to (user choice 2026-10-29).
+            // The system's own categories (balance adjustment) have none.
+            if let groupID = groupID(of: transaction) {
+                FormInfoRow(title: "Nhóm hạng mục", value: store.categoryName(groupID), valueIcon: store.categoryIcon(groupID))
+                FormDivider(hasIcon: false)
+            }
+            // Spending from a goal ("Dùng tiền") is on the goal, even one deleted since.
+            FormInfoRow(title: store.account(id: transaction.accountID) == nil ? "Hũ" : "Tài khoản",
+                        value: accountName(transaction.accountID), valueIcon: accountIcon(transaction.accountID))
+            FormDivider(hasIcon: false)
+            FormInfoRow(title: "Thời gian", value: Self.when(transaction.date))
+        }
+    }
+
+    /// The last few others in the same category, newest first: the day, then what tells it apart
+    /// (its note) and the account, and the amount. Balance adjustments count as one category,
+    /// either way.
+    @ViewBuilder
+    private func similar(to transaction: FinanceTransaction) -> some View {
+        let others = store.transactions
+            .filter { other in
+                other.id != transaction.id
+                    && (transaction.isAdjustment ? other.isAdjustment : other.categoryID == transaction.categoryID)
+            }
+            .prefix(Self.similarLimit)
+        if !others.isEmpty {
+            FormGroup(title: "Cùng hạng mục") {
+                ForEach(Array(others.enumerated()), id: \.element.id) { index, other in
+                    NavigationLink(value: other.id) {
+                        ListRow(icon: accountIcon(other.accountID),
+                                title: other.date.transactionDayTitle,
+                                subtitle: similarSubtitle(other),
+                                trailingSubtitle: Self.time(other.date),
+                                amount: other.amount,
+                                amountTone: other.kind == .income ? .signedIncome : .signedExpense,
+                                showsChevron: false)
+                    }
+                    .buttonStyle(.row)
+                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                }
+            }
+        }
+    }
+
+    /// "Đi chợ WinMart · Vietcombank", or just the account.
+    private func similarSubtitle(_ transaction: FinanceTransaction) -> String {
+        let note = transaction.note.components(separatedBy: .newlines).first ?? ""
+        return [note, accountName(transaction.accountID)].filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
+    /// The group of the transaction's item, or the group itself for a transaction from before
+    /// items existed; nil for the system's own categories.
+    private func groupID(of transaction: FinanceTransaction) -> String? {
+        if transaction.systemCategory != nil { return nil }
+        return store.category(id: transaction.categoryID)?.parentID ?? transaction.categoryID
+    }
+
+    /// An account, or a goal when the money was spent from one ("Dùng tiền").
+    private func accountName(_ id: Account.ID) -> String {
+        store.account(id: id)?.name ?? store.goal(id: id)?.name ?? "Hũ đã xoá"
+    }
+
+    private func accountIcon(_ id: Account.ID) -> String {
+        store.account(id: id)?.iconName ?? store.goal(id: id)?.icon ?? "hugeicons-wallet-01"
+    }
+
+    static func time(_ date: Date) -> String {
+        date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
+    }
+
+    /// "Hôm qua, 28/10 · 12:15"; another year shows it.
+    static func when(_ date: Date) -> String {
+        "\(date.transactionDayTitle) · \(time(date))"
+    }
+}
+
+/// What opens on tapping a transfer between two accounts: its details to read, the pencil to change
+/// it (the form also deletes), as spending and income do (user request 2026-10-29).
+struct TransferDetailSheet: View {
+    let transferID: AccountTransfer.ID
+
+    @Environment(FinanceStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var isEditing = false
+
+    var body: some View {
+        let transfer = store.accountTransfer(id: transferID)
+        NavigationStack {
+            DetailScaffold(title: "Chuyển khoản", showsClose: true,
+                           canEdit: transfer.map { store.readOnlyReason($0) == nil } ?? false,
+                           onEdit: { isEditing = true }) {
+                if let transfer {
+                    // Neither income nor spending: no sign.
+                    SummaryCard(label: "Số tiền chuyển", amount: transfer.amount,
+                                icon: "hugeicons-arrow-data-transfer-horizontal", tone: .plain)
+                    details(transfer)
+                    if !transfer.note.isEmpty {
+                        FormGroup(title: "Ghi chú") { FormNoteText(text: transfer.note) }
+                    }
+                } else {
+                    EmptyStateCard(icon: "hugeicons-inbox", title: "Chuyển khoản đã bị xoá",
+                                   message: "Chuyển khoản này không còn trong lịch sử.")
+                }
+            }
+            .sheet(isPresented: $isEditing, onDismiss: {
+                if store.accountTransfer(id: transferID) == nil { dismiss() }
+            }) {
+                if let transfer = store.accountTransfer(id: transferID) {
+                    AddTransactionView(editingTransfer: transfer)
+                }
+            }
+        }
+        .timiSheetStyle()
+    }
+
+    /// Why it cannot change (if so) and where the fee goes (if any), both.
+    private func footer(_ transfer: AccountTransfer) -> String? {
+        let fee = transfer.fee > 0 ? "Phí tính là chi tiêu của \(name(transfer.fromAccountID))." : nil
+        let text = [store.readOnlyReason(transfer), fee].compactMap { $0 }.joined(separator: " ")
+        return text.isEmpty ? nil : text
+    }
+
+    private func details(_ transfer: AccountTransfer) -> some View {
+        FormGroup(title: "Chi tiết", footer: footer(transfer)) {
+            FormInfoRow(title: "Từ", value: name(transfer.fromAccountID), valueIcon: icon(transfer.fromAccountID))
+            FormDivider(hasIcon: false)
+            FormInfoRow(title: "Đến", value: name(transfer.toAccountID), valueIcon: icon(transfer.toAccountID))
+            if transfer.fee > 0 {
+                FormDivider(hasIcon: false)
+                FormInfoRow(title: "Phí", value: transfer.fee.vnd)
+            }
+            FormDivider(hasIcon: false)
+            FormInfoRow(title: "Thời gian", value: TransactionDetailView.when(transfer.date))
+        }
+    }
+
+    private func name(_ id: Account.ID) -> String { store.account(id: id)?.name ?? "Tài khoản đã xoá" }
+    private func icon(_ id: Account.ID) -> String { store.account(id: id)?.iconName ?? "hugeicons-wallet-01" }
+}
+
+/// The frame both detail sheets share: the scrolling page, the name in the bar, ✕ on the first
+/// screen, and the pencil when it can change.
+private struct DetailScaffold<Content: View>: View {
+    let title: String
+    let showsClose: Bool
+    let canEdit: Bool
+    let onEdit: () -> Void
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.section) {
+                content
+            }
+            .padding(.horizontal, Spacing.page)
+            .padding(.top, Spacing.l)
+            .padding(.bottom, Spacing.xxl)
+        }
+        .background(Palette.background)
+        .foregroundStyle(Palette.ink)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if showsClose {
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+            }
+            if canEdit {
+                ToolbarItem(placement: .topBarTrailing) { EditToolbarButton(action: onEdit) }
+            }
+        }
+    }
+}
+
+#Preview {
+    TransactionDetailSheet(transactionID: SampleData.transactions[0].id)
+        .environment(FinanceStore())
+        .environment(\.locale, .vietnam)
+}

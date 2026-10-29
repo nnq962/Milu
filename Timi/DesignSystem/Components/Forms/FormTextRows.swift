@@ -66,6 +66,21 @@ struct FormAmountRow: View {
 }
 
 /// A multi-line note filling a FormGroup row, placeholder in grey (iOS Notes / Reminders style).
+/// A note shown, not typed into (a detail sheet): the same box as `FormNoteRow`, text selectable.
+struct FormNoteText: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .textRole(.body)
+            .foregroundStyle(Palette.ink)
+            .textSelection(.enabled)
+            .padding(.horizontal, RowMetrics.horizontal)
+            .padding(.vertical, RowMetrics.vertical)
+            .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .topLeading)
+    }
+}
+
 struct FormNoteRow: View {
     @Binding var text: String
     var prompt = "Ghi chú"

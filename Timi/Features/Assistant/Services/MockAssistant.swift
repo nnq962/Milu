@@ -56,8 +56,10 @@ struct MockAssistant {
         let category = Self.category(for: Self.normalize(question))
         let title = Self.title(from: question, fallback: category.title)
         let date = Self.date(in: Self.normalize(question)) ?? .now
-        let transaction = FinanceTransaction(title: title, amount: amount, category: category,
-                                             accountID: account.id, date: Self.keepingTime(of: .now, on: date))
+        // What was said ("Ăn trưa") goes in the note when it says more than the category.
+        let transaction = FinanceTransaction(amount: amount, category: category,
+                                             accountID: account.id, date: Self.keepingTime(of: .now, on: date),
+                                             note: title == category.title ? "" : title)
         store.add(transaction)
         let kind = category.kind == .income ? "khoản thu" : "khoản chi"
         return .init(text: "Mình đã ghi \(kind) này vào \(account.name):", action: .recorded(transaction))
@@ -72,7 +74,7 @@ struct MockAssistant {
         let candidates = store.transactions.filter { transaction in
             if let day, !Calendar.current.isDate(transaction.date, inSameDayAs: day) { return false }
             guard !keywords.isEmpty else { return true }
-            let haystack = Self.normalize("\(transaction.title) \(store.categoryName(transaction.categoryID))")
+            let haystack = Self.normalize("\(transaction.note) \(store.categoryName(transaction.categoryID))")
             return keywords.allSatisfy { haystack.contains($0) }
         }
         guard let match = candidates.first, keywords.isEmpty == false || day != nil else {
@@ -200,21 +202,25 @@ struct MockAssistant {
     }
 
     private func biggestExpense() -> String {
-        let expenses = store.monthlyTransactions().reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .expense }
+        let expenses = store.reportableTransactions().filter { $0.kind == .expense }
         guard let biggest = expenses.max(by: { $0.amount < $1.amount }) else {
             return "Tháng này bạn chưa có khoản chi nào."
         }
         let components = Calendar.current.dateComponents([.day, .month], from: biggest.date)
         let day = "\(components.day ?? 0)/\(components.month ?? 0)"
-        return "Khoản chi lớn nhất tháng này là **\(store.title(of: biggest))**: **\(biggest.amount.vnd)** (\(store.categoryName(biggest.categoryID)), ngày \(day))."
+        // "Đi chợ WinMart (Đi chợ, …)" when the note says what it was; just the category otherwise.
+        let category = store.categoryName(biggest.categoryID)
+        let what = biggest.note.isEmpty ? "**\(category)**"
+            : "**\(biggest.note.components(separatedBy: .newlines)[0])** (\(category))"
+        return "Khoản chi lớn nhất tháng này là \(what): **\(biggest.amount.vnd)**, ngày \(day)."
     }
 
     private func incomeSummary() -> String {
         let income = store.total(.income)
         guard income > 0 else { return "Tháng này bạn chưa ghi nhận khoản thu nào." }
-        let lines = store.monthlyTransactions().reportable(excluding: store.lockedAccountIDs)
+        let lines = store.reportableTransactions()
             .filter { $0.kind == .income }
-            .map { "• \(store.title(of: $0)): \($0.amount.vnd)" }
+            .map { "• \($0.note.isEmpty ? store.categoryName($0.categoryID) : $0.note.components(separatedBy: .newlines)[0]): \($0.amount.vnd)" }
             .joined(separator: "\n")
         return "Tháng này bạn đã nhận **\(income.vnd)**, gồm:\n\(lines)"
     }

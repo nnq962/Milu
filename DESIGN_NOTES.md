@@ -1087,3 +1087,29 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 ## VIỆC ĐỂ SAU — sheet giao dịch trong ngày (Tổng quan)
 
 - Ý người dùng (2026-10-29): để sau. `DayTransactionsSheet` (chạm một ngày ở "Lịch thu chi") chưa giống trang Giao dịch: các dòng không chạm để sửa/xoá được và không có chuyển khoản. Khi làm: dùng `ActivityRow` + `AccountDetailView.activity(transactions:accountTransfers:)` như `TransactionsView`, mở `ActivityEditor`.
+
+## Sheet xem giao dịch — 2026-10-29
+
+- Chạm một giao dịch (chi/thu) ở trang Giao dịch, lịch sử tài khoản hay hũ: mở `TransactionDetailSheet` để **xem** thay vì vào thẳng form; bút chì trên thanh mở form sửa (form vẫn có "Xoá giao dịch"), như trang tài khoản và hũ. Xoá xong thì sheet tự đóng. Chuyển khoản và nạp/rút hũ vẫn mở thẳng form của chúng; dòng phí mở chuyển khoản của nó (qua bút chì).
+- Bố cục: biểu tượng hạng mục, tên (tên hạng mục, hoặc tên riêng của giao dịch cũ, khi đó hạng mục ghi nhỏ ngay dưới: "Bún chả" / "Ăn trưa"), số tiền lớn có dấu; "Không tính vào báo cáo" / "Tài khoản đã khoá · Không tính" thành badge khi có. Thẻ "Chi tiết": **Nhóm hạng mục** ("Ăn uống", kèm biểu tượng nhóm; người dùng chọn, vì hạng mục đã là tiêu đề phía trên; không có ở điều chỉnh số dư và phí), Tài khoản (kèm logo), Thời gian ("Hôm qua, 28/10 · 12:15"); chú thích lý do khi chỉ xem được. "Ghi chú" khi có (chọn để sao chép được).
+- **"Cùng hạng mục"** (người dùng yêu cầu): tối đa 5 giao dịch khác cùng hạng mục, mới nhất trước. Mỗi dòng: logo tài khoản, ngày, dòng phụ "[tên riêng hoặc ghi chú] · [tài khoản]", số tiền, giờ. Chạm một dòng đẩy sang xem giao dịch đó trong cùng sheet (‹ quay lại; chỉ màn đầu có ✕). Không có giao dịch nào khác thì không hiện mục này.
+- `FormValueLabel(showsChevron: false)` cho các dòng chỉ xem.
+- Đồng nhất dòng chọn (2026-10-29): `FormPickerRow` có `optionIcon` thì dòng hiện luôn biểu tượng/logo của lựa chọn đang chọn trước tên, như "Hạng mục". Áp dụng: Tài khoản, Từ, Đến (thêm/sửa giao dịch), "Về tài khoản" / "Từ tài khoản" (nạp, rút, dùng tiền hũ), "Nhóm" (sửa hạng mục).
+
+## Chuyển khoản: bỏ dòng phí, thêm sheet xem — 2026-10-29
+
+- Không còn dòng "Phí chuyển khoản" riêng (người dùng chọn): phí nằm trên chuyển khoản, nguồn trả số tiền + phí. Phí vẫn tính vào chi tiêu (tổng tháng, tổng ngày, biểu đồ, lịch thu chi, hạn mức, chi theo hạng mục, trợ lý); số "Đã chi · N" chỉ đếm dòng có trong danh sách. Dòng phí cũ được gộp khi mở app.
+- Dòng chuyển khoản: trang Giao dịch "Ví tiền mặt → Vietcombank" (số tiền không dấu; phí chỉ có trong sheet xem, người dùng chọn); lịch sử tài khoản nguồn "Chuyển đến …" trừ cả phí, dòng phụ "Gồm phí 9.000đ"; tài khoản đích "Nhận từ …" cộng số tiền.
+- Form: chú thích phí "Phí 9.000đ trừ thêm vào Ví tiền mặt và tính là chi tiêu."; xoá chuyển khoản chỉ còn "Số dư hai tài khoản sẽ được tính lại."
+- **Sheet xem chuyển khoản** (`TransferDetailSheet`), cùng kiểu với chi/thu: biểu tượng, "Chuyển khoản", số tiền; Chi tiết: Từ, Đến (kèm logo), Phí (khi có), Thời gian, chú thích "Phí tính là chi tiêu của …"; Ghi chú khi có. Bút chì mở form sửa; xoá xong thì đóng; chuyển khoản dính tài khoản khoá/lưu trữ thì chỉ xem, chú thích lý do.
+- Chạm giao dịch hoặc chuyển khoản **chỉ xem được** giờ cũng mở sheet xem (không bút chì, có lý do), thay cho hộp thoại "Không sửa được". Nạp/rút hũ vẫn như cũ.
+- Sửa giao dịch (2026-10-29): đổi Chi tiêu → Thu nhập thì hạng mục trống ("Chưa chọn"), đổi về thì hạng mục cũ trở lại, như khi thêm mới.
+- Rà soát sheet xem/sửa giao dịch lần 2:
+  - Hai sheet xem mở đầu bằng `SummaryCard` căn trái như trang tài khoản và hũ (người dùng chọn): thanh trên ghi tên giao dịch ("Bún chả") hoặc "Chuyển khoản"; thẻ ghi "Chi tiêu"/"Thu nhập"/"Số tiền chuyển", số tiền, biểu tượng bên phải; dưới số tiền là hạng mục khi giao dịch có tên riêng, và badge "Không tính" khi có. Khung chung `DetailScaffold`; dòng chỉ xem `FormInfoRow`, ghi chú chỉ xem `FormNoteText` (design system).
+  - Chuyển khoản có tài khoản đã khoá sửa được như giao dịch thường: tài khoản khoá giữ được ở đúng phía của nó, không chọn được cho chuyển khoản mới.
+  - Trợ lý AI mở sheet xem thay vì form sửa.
+  - Ngày của năm khác ghi năm ("Thứ Ba, 27/10/2025"), ở mọi chỗ dùng tiêu đề ngày.
+  - Khoản chi từ hũ ghi nhãn "Hũ". "Cùng hạng mục" của điều chỉnh số dư gồm cả hai chiều.
+  - Chuyển khoản chỉ xem được: chú thích hiện cả lý do lẫn câu về phí.
+- Giao dịch **không có tên riêng** nữa, ở mọi chỗ (người dùng chọn 2026-10-29): tên là hạng mục ("Ăn trưa", thanh trên của sheet xem, dòng trong danh sách). Tên cũ của dữ liệu mẫu và trợ lý ("Bún chả") được chuyển vào **ghi chú** khi mở app (`FinanceStore.moveTitlesToNotes`, đứng trước ghi chú đã có), nên vẫn hiện ở dòng phụ và trong "Ghi chú". Dữ liệu mẫu và trợ lý từ nay ghi mô tả vào ghi chú; tìm kiếm theo hạng mục và ghi chú.
+- Rà soát sheet xem/sửa giao dịch lần 3: thẻ đầu của điều chỉnh số dư ghi "Điều chỉnh số dư" (người dùng chọn), không ghi "Thu nhập"/"Chi tiêu"; thẻ giao dịch trong trợ lý AI có dòng phụ là ghi chú (hoặc nhóm) · ngày, không lặp hạng mục; khoản chi từ hũ đã xoá ghi nhãn "Hũ"; `FinanceTransaction(title:)` mặc định rỗng.

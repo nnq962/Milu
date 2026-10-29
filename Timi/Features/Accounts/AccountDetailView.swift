@@ -150,12 +150,13 @@ struct ActivityRow: View {
 
     @Environment(FinanceStore.self) private var store
 
+    /// Whether a tap opens it. Transactions and transfers open their view sheet even when they
+    /// cannot change (it says why, without the pencil); a goal deposit or withdrawal opens its form,
+    /// so only when it can change.
     private var canEdit: Bool {
-        guard isEditable else { return false }
         switch item {
-        case .transaction(let transaction): return store.isEditable(transaction)
-        case .transfer(let transfer): return store.isEditable(transfer)
-        case .accountTransfer(let transfer): return store.readOnlyReason(transfer) == nil
+        case .transaction, .accountTransfer: return true
+        case .transfer(let transfer): return isEditable && store.isEditable(transfer)
         }
     }
 
@@ -198,8 +199,9 @@ struct ActivityRow: View {
     }
 }
 
-/// A transfer between two accounts. From one of them: "Chuyển đến MoMo" (−) or "Nhận từ
-/// Vietcombank" (+); on "Giao dịch": "Chuyển khoản", "Vietcombank → MoMo", without a sign.
+/// A transfer between two accounts. From one of them: "Chuyển đến MoMo" (− the amount and its fee,
+/// "Gồm phí 5.000đ", so the figure adds up) or "Nhận từ Vietcombank" (+ the amount); on "Giao
+/// dịch": "Chuyển khoản", "Vietcombank → MoMo", without a sign (the fee is in its view sheet).
 struct AccountTransferRow: View {
     let transfer: AccountTransfer
     var viewedAccount: Account.ID? = nil
@@ -221,16 +223,24 @@ struct AccountTransferRow: View {
             title = outgoing ? "Chuyển đến \(to)" : "Nhận từ \(from)"
             tone = outgoing ? .signedExpense : .signedIncome
         }
+        let fee = transfer.fee > 0 ? transfer.fee.vnd : nil
+        let subtitle: String
+        switch viewedAccount {
+        case nil: subtitle = "\(from) → \(to)"
+        case transfer.fromAccountID?: subtitle = fee.map { "Gồm phí \($0)" } ?? "Chuyển khoản"
+        default: subtitle = "Chuyển khoản"
+        }
         return ListRow(icon: "hugeicons-arrow-data-transfer-horizontal", title: title,
-                       subtitle: viewedAccount == nil ? "\(from) → \(to)" : "Chuyển khoản",
+                       subtitle: subtitle,
                        trailingSubtitle: detail == .time
                            ? transfer.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
                            : TransactionListRow.dayMonth(transfer.date),
-                       amount: transfer.amount, amountTone: tone, showsChevron: false)
+                       amount: outgoing ? transfer.totalOut : transfer.amount, amountTone: tone, showsChevron: false)
     }
 }
 
-/// The form for a tapped history row: the transaction form, or the deposit/withdrawal sheet.
+/// What opens for a tapped history row: a transaction's or a transfer's details (their pencil
+/// opens the form), or the deposit/withdrawal sheet.
 struct ActivityEditor: View {
     let item: AccountDetailView.Activity
 
@@ -239,9 +249,9 @@ struct ActivityEditor: View {
     var body: some View {
         switch item {
         case .transaction(let transaction):
-            TransactionEditSheet(transaction: transaction)
+            TransactionDetailSheet(transactionID: transaction.id)
         case .accountTransfer(let transfer):
-            AddTransactionView(editingTransfer: transfer)
+            TransferDetailSheet(transferID: transfer.id)
         case .transfer(let transfer):
             if let goal = store.goal(id: transfer.goalID) {
                 GoalTransferSheet(editing: transfer, goal: goal)

@@ -144,6 +144,11 @@ private struct TransactionCard: View {
 
     @Environment(FinanceStore.self) private var store
 
+    private var detail: String {
+        if let note = transaction.note.components(separatedBy: .newlines).first, !note.isEmpty { return note }
+        return store.category(id: transaction.categoryID)?.parentID.map(store.categoryName) ?? ""
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             IconCircle(icon: store.categoryIcon(transaction.categoryID), iconSize: 18, background: Palette.card)
@@ -153,7 +158,8 @@ private struct TransactionCard: View {
                 Text(store.title(of: transaction))
                     .textRole(.body)
                     .lineLimit(1)
-                Text("\(store.categoryName(transaction.categoryID)) · \(dayText)")
+                // The name is the category: below it, the note (or the group) and the day.
+                Text([detail, dayText].filter { !$0.isEmpty }.joined(separator: " · "))
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
                     .lineLimit(1)

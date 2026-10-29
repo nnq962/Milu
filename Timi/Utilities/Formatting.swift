@@ -49,7 +49,9 @@ extension Date {
         let prefix = calendar.isDateInToday(self) ? "Hôm nay"
             : calendar.isDateInYesterday(self) ? "Hôm qua"
             : formatted(.dateTime.weekday(.wide).locale(.vietnam)).capitalized(with: .vietnam)
-        return "\(prefix), \(dayMonth)"
+        // Another year says which: "Thứ Ba, 27/10/2025".
+        let year = calendar.isDate(self, equalTo: .now, toGranularity: .year) ? "" : "/\(calendar.component(.year, from: self))"
+        return "\(prefix), \(dayMonth)\(year)"
     }
 
     /// "22/5"

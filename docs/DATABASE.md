@@ -86,7 +86,7 @@ Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), t�
 | accountID | UUID? | chi/thu: tài khoản |
 | fromAccountID, toAccountID | UUID? | chuyển khoản: từ → đến |
 | categoryID | String? | chi/thu: hạng mục |
-| (title) | | chi/thu thêm trong app để trống: hiện tên hạng mục |
+| (title) | | luôn để trống (từ 2026-10-29): giao dịch hiện tên hạng mục; tên cũ được chuyển vào `note` khi mở app |
 | loanID | UUID? | nếu là lần trả/thu nợ |
 | title, note | String | |
 | occurredAt | Date | thời điểm phát sinh (ngày + giờ) |
@@ -96,7 +96,7 @@ Hai hạng mục hệ thống `adjustmentIn` (thu) và `adjustmentOut` (chi), t�
 Quy tắc theo loại (sẽ thành `CHECK` trong Postgres):
 
 - **chi/thu:** có `accountID` và `categoryID`, không có from/to, `fee = 0`. `excluded = true` khi người dùng bật "Không tính vào báo cáo" (vẫn đổi số dư).
-- **chuyển khoản giữa hai tài khoản** (`AccountTransfer`): `kind = transfer`, `categoryID = "accountTransfer"` (để phân biệt với nạp/rút hũ, vốn không có `categoryID`), `fromAccountID ≠ toAccountID`, `fee` là phí, `excluded = true` (không tính thu chi). Phí > 0 được ghi thêm một dòng **chi** riêng (`categoryID = "transferFee"`, tài khoản nguồn, tính vào báo cáo) có id = id chuyển khoản lật byte cuối (`AccountTransfer.feeID`), nên hai dòng luôn tìm được nhau mà không cần cột liên kết. Sửa/xoá chuyển khoản thì phí đi theo; dòng phí không sửa riêng được.
+- **chuyển khoản giữa hai tài khoản** (`AccountTransfer`): `kind = transfer`, `categoryID = "accountTransfer"` (để phân biệt với nạp/rút hũ, vốn không có `categoryID`), `fromAccountID ≠ toAccountID`, `fee` là phí, `excluded = true`. Tài khoản nguồn trả `amount + fee`, đích nhận `amount`. Phí **không có dòng riêng** (người dùng chọn 2026-10-29) nhưng vẫn tính là chi tiêu: báo cáo cộng nó vào qua `FinanceStore.reportableTransactions(inMonthOf:)` (hạng mục hệ thống `transferFee`). Dòng phí riêng của bản trước (id = id chuyển khoản lật byte cuối, `AccountTransfer.feeID`) được xoá khi mở app (`foldFeeRows`), số dư không đổi.
 - **nạp/rút hũ** (`GoalTransfer`): `kind = transfer`, không có `categoryID`, một đầu là hũ.
 
 - **điều chỉnh số dư:** chi/thu với `categoryID` là `adjustmentIn`/`adjustmentOut` và `excluded = true`. App tạo khi người dùng sửa số dư trong form "Sửa tài khoản": phần chênh lệch thành một giao dịch, để lịch sử luôn cộng lại đúng bằng số dư. Không tính vào tổng thu chi, biểu đồ, lịch tiền và trợ lý.

@@ -15,7 +15,8 @@ struct MoneyCalendarCard: View {
         let dayCount = calendar.range(of: .day, in: .month, for: start)!.count
         let offset = (calendar.component(.weekday, from: start) + 5) % 7
         let cellCount = ((offset + dayCount + 6) / 7) * 7
-        let transactionsByDay = Dictionary(grouping: store.monthlyTransactions(for: start)) {
+        // Reported ones only, transfer fees included (already filtered, so `reportable` below is a no-op).
+        let transactionsByDay = Dictionary(grouping: store.reportableTransactions(inMonthOf: start)) {
             calendar.startOfDay(for: $0.date)
         }
         VStack(alignment: .leading, spacing: 16) {

@@ -21,8 +21,8 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
     /// "Điều chỉnh số dư": the difference when the user corrects an account's balance. Never
     /// offered in the pickers and kept out of totals and reports.
     case adjustmentIn, adjustmentOut
-    /// "Phí chuyển khoản": the fee of a transfer between two accounts, recorded as spending from the
-    /// source account (it counts in reports). Made and changed only through its transfer.
+    /// "Phí chuyển khoản": the fee of a transfer between two accounts, counted in reports as
+    /// spending from the source; it lives on its transfer and has no row of its own.
     case transferFee
 
     var id: Self { self }
@@ -103,9 +103,8 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
 struct FinanceTransaction: Identifiable, Hashable {
     /// Stable across launches: the same id is stored in the database.
     var id = UUID()
-    /// Empty for a transaction added in the app: it has no name of its own and shows its category
-    /// (`FinanceStore.title(of:)`, user choice 2026-10-29). Sample data, the assistant and the
-    /// system's own rows have one.
+    /// Always empty now: a transaction has no name of its own and shows its category (user choice
+    /// 2026-10-29). Names saved before ("Bún chả") are moved into `note` when the store opens.
     var title: String
     /// Luôn là số dương; chiều tiền (thu hay chi) theo `kind`.
     var amount: Double
@@ -123,7 +122,7 @@ struct FinanceTransaction: Identifiable, Hashable {
     /// totals, charts and the assistant, as a balance adjustment does.
     var isExcluded = false
 
-    init(id: UUID = UUID(), title: String, amount: Double, categoryID: String, kind: TransactionKind,
+    init(id: UUID = UUID(), title: String = "", amount: Double, categoryID: String, kind: TransactionKind,
          accountID: Account.ID, date: Date, note: String = "", isExcluded: Bool = false) {
         self.id = id
         self.title = title
@@ -137,7 +136,7 @@ struct FinanceTransaction: Identifiable, Hashable {
     }
 
     /// On a system category or a built-in group (sample data, the assistant, balance adjustments).
-    init(id: UUID = UUID(), title: String, amount: Double, category: TransactionCategory,
+    init(id: UUID = UUID(), title: String = "", amount: Double, category: TransactionCategory,
          accountID: Account.ID, date: Date, note: String = "") {
         self.init(id: id, title: title, amount: amount, categoryID: category.rawValue, kind: category.kind,
                   accountID: accountID, date: date, note: note)
@@ -148,8 +147,6 @@ struct FinanceTransaction: Identifiable, Hashable {
         TransactionCategory(rawValue: categoryID).flatMap { $0.isSystem ? $0 : nil }
     }
     var isAdjustment: Bool { systemCategory?.isAdjustment == true }
-    /// The fee of a transfer: changed through the transfer (`AccountTransfer.id(ofFee:)`).
-    var isTransferFee: Bool { systemCategory == .transferFee }
 
     /// Số tiền có dấu: thu là dương, chi là âm.
     var signedAmount: Double { kind == .income ? amount : -amount }

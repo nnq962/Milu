@@ -144,17 +144,12 @@ struct AddTransactionView: View {
         return !CategoryPickerRow.isPickable(categoryID, kind: kind, in: store, kept: editing?.categoryID)
     }
 
-    /// What is wrong with the category, in words: none picked, one of the other kind (the switch
-    /// was changed), a group (a transaction from before items existed), or one hidden or deleted
-    /// since.
+    /// What is wrong with the category, in words: none picked (switching the kind empties it too),
+    /// a group (a transaction from before items existed), or one hidden or deleted since.
     private var categoryProblem: String? {
-        guard missesCategory, let kind = mode.kind else { return nil }
+        guard missesCategory else { return nil }
         if categoryID.isEmpty { return "Chọn hạng mục." }
         let picked = store.category(id: categoryID)
-        let pickedKind = picked?.kind ?? TransactionCategory(rawValue: categoryID)?.kind
-        if let pickedKind, pickedKind != kind {
-            return "Chọn hạng mục \(kind == .income ? "thu nhập" : "chi tiêu")."
-        }
         if picked?.isGroup ?? (TransactionCategory(rawValue: categoryID) != nil) {
             return "Chọn hạng mục con cho giao dịch này."
         }
@@ -238,9 +233,9 @@ struct AddTransactionView: View {
         }
         .timiSheetStyle()
         // An item of the other kind no longer fits: the one picked for the new kind comes back, or
-        // none (the user picks).
+        // none (the user picks). Editing too: Ăn trưa → Thu nhập is empty, back → Ăn trưa again.
         .onChange(of: mode) { oldMode, newMode in
-            guard !isModeFixed, editing == nil else { return }
+            guard !isModeFixed else { return }
             if let oldKind = oldMode.kind { pickedByKind[oldKind] = categoryID }
             guard let kind = newMode.kind,
                   !CategoryPickerRow.isPickable(categoryID, kind: kind, in: store) else { return }
@@ -261,7 +256,8 @@ struct AddTransactionView: View {
     /// Under the details: a transfer with a fee says where the fee goes.
     private var footer: String? {
         guard mode == .transfer, fee > 0 else { return nil }
-        return "Phí \(fee.vnd) được ghi là khoản chi từ tài khoản nguồn."
+        let source = accountID.flatMap { store.account(id: $0)?.name } ?? "tài khoản nguồn"
+        return "Phí \(fee.vnd) trừ thêm vào \(source) và tính là chi tiêu."
     }
 
     @ViewBuilder
@@ -313,9 +309,7 @@ struct AddTransactionView: View {
     private var deleteRow: some View {
         if let editingTransfer {
             FormDestructiveRow(title: "Xoá chuyển khoản", question: "Xoá chuyển khoản này?",
-                               message: editingTransfer.fee > 0
-                                   ? "Số dư hai tài khoản được tính lại, phí chuyển khoản cũng bị xoá."
-                                   : "Số dư hai tài khoản sẽ được tính lại.") {
+                               message: "Số dư hai tài khoản sẽ được tính lại.") {
                 store.delete(editingTransfer)
                 dismiss()
             }
@@ -356,11 +350,9 @@ struct AddTransactionView: View {
             if editingTransfer == nil { store.add(transfer) } else { store.update(transfer) }
         } else {
             guard let kind = mode.kind else { return }
-            // No name of its own: a new one shows its category. An old one keeps the name it had
-            // until its category is changed; from then on it shows the category too.
-            var transaction = editing ?? FinanceTransaction(title: "", amount: 0, categoryID: categoryID, kind: kind,
+            // No name of its own: it shows its category.
+            var transaction = editing ?? FinanceTransaction(amount: 0, categoryID: categoryID, kind: kind,
                                                             accountID: accountID, date: date)
-            if categoryID != editing?.categoryID { transaction.title = "" }
             transaction.amount = amount
             transaction.isExcluded = isExcluded && !keepsSystemCategory
             transaction.categoryID = categoryID
@@ -375,19 +367,12 @@ struct AddTransactionView: View {
     }
 }
 
-/// The form for a tapped transaction: a transfer's fee opens its transfer, anything else the
-/// transaction itself.
+/// The form for a transaction opened to change it (the pencil of its view sheet, the assistant).
 struct TransactionEditSheet: View {
     let transaction: FinanceTransaction
 
-    @Environment(FinanceStore.self) private var store
-
     var body: some View {
-        if transaction.isTransferFee, let transfer = store.accountTransfer(id: AccountTransfer.id(ofFee: transaction.id)) {
-            AddTransactionView(editingTransfer: transfer)
-        } else {
-            AddTransactionView(editing: transaction)
-        }
+        AddTransactionView(editing: transaction)
     }
 }
 

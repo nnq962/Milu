@@ -125,8 +125,9 @@ struct TransactionsView: View {
     }
 
     private var summaryCard: some View {
-        let expenses = monthTransactions.reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .expense }
-        let incomes = monthTransactions.reportable(excluding: store.lockedAccountIDs).filter { $0.kind == .income }
+        let reported = store.reportableTransactions(inMonthOf: displayedMonth)
+        let expenses = reported.filter { $0.kind == .expense }
+        let incomes = reported.filter { $0.kind == .income }
         let spent = expenses.reduce(0) { $0 + $1.amount }
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -134,7 +135,9 @@ struct TransactionsView: View {
                 MonthMenu(month: $displayedMonth)
             }
             HStack(spacing: 0) {
-                flowTotal("Đã chi · \(expenses.count)", amount: spent)
+                // The count is of rows in the list: a transfer fee adds to the sum, not the count.
+                flowTotal("Đã chi · \(expenses.filter { $0.categoryID != TransactionCategory.transferFee.rawValue }.count)",
+                          amount: spent)
                     .padding(.trailing, 16)
                     .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
                 flowTotal("Đã thu · \(incomes.count)", amount: incomes.reduce(0) { $0 + $1.amount })
@@ -193,7 +196,6 @@ struct TransactionsView: View {
         let transactions = filter == .transfer ? [] : monthTransactions.filter { transaction in
             filter.matches(transaction)
                 && (searchText.isEmpty
-                    || transaction.title.localizedCaseInsensitiveContains(searchText)
                     || transaction.note.localizedCaseInsensitiveContains(searchText)
                     || store.categoryName(transaction.categoryID).localizedCaseInsensitiveContains(searchText))
         }
@@ -223,8 +225,13 @@ struct TransactionsView: View {
             ForEach(groups, id: \.day) { group in
                 VStack(alignment: .leading, spacing: Spacing.headerGap) {
                     SectionHeader(title: group.day.transactionDayTitle) {
+                        // A transfer's fee is spending of that day too.
                         DayTotals(items: group.items.compactMap {
-                            if case .transaction(let transaction) = $0 { transaction } else { nil }
+                            switch $0 {
+                            case .transaction(let transaction): transaction
+                            case .accountTransfer(let transfer) where transfer.fee > 0: transfer.feeExpense
+                            default: nil
+                            }
                         })
                     }
                     VStack(spacing: 0) {

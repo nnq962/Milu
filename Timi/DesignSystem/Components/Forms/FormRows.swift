@@ -6,15 +6,17 @@ struct FormPickerRow<Value: Hashable>: View {
     var icon: String? = nil
     @Binding var selection: Value
     let options: [Value]
-    /// Icon beside each choice in the sheet (categories, accounts).
+    /// Icon beside each choice in the sheet (categories, accounts), and beside the chosen one on
+    /// the row.
     var optionIcon: ((Value) -> String)? = nil
     let label: (Value) -> String
 
     @State private var isPicking = false
 
     var body: some View {
+        // The chosen option shows with the icon or logo it has in the sheet, as "Hạng mục" does.
         Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: icon, value: label(selection))
+            FormValueLabel(title: title, icon: icon, value: label(selection), valueIcon: optionIcon?(selection))
         }
         .buttonStyle(.row)
         .accessibilityValue(label(selection))
@@ -42,6 +44,7 @@ struct FormToggleRow: View {
 }
 
 /// Label, grey value and › on one row: the look shared by every row that opens a picker sheet.
+/// Without the › (`showsChevron: false`) it only shows a value, as on a detail sheet.
 struct FormValueLabel: View {
     let title: String
     let icon: String?
@@ -49,6 +52,7 @@ struct FormValueLabel: View {
     /// An icon or bank logo before the value ("Ngân hàng  [logo] Vietcombank ›").
     var valueIcon: String? = nil
     var isInvalid = false
+    var showsChevron = true
 
     var body: some View {
         HStack(spacing: Spacing.s) {
@@ -64,10 +68,24 @@ struct FormValueLabel: View {
                 .lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.3), value: value)
-            TimiIcon("hugeicons-arrow-right-01", size: 16)
-                .foregroundStyle(Palette.secondary)
+            if showsChevron {
+                TimiIcon("hugeicons-arrow-right-01", size: 16)
+                    .foregroundStyle(Palette.secondary)
+            }
         }
         .formRowFrame()
+    }
+}
+
+/// A row that only shows a value (a detail sheet): label, grey value with its icon or logo, no ›.
+struct FormInfoRow: View {
+    let title: String
+    let value: String
+    var valueIcon: String? = nil
+
+    var body: some View {
+        FormValueLabel(title: title, icon: nil, value: value, valueIcon: valueIcon, showsChevron: false)
+            .accessibilityElement(children: .combine)
     }
 }
 
