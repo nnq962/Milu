@@ -61,7 +61,8 @@ struct ContactPickerSheet: View {
         .timiSheetStyle()
         .sheet(isPresented: $isAdding) {
             // The person just added is the one picked.
-            ContactEditorView(target: .new(name: query)) { person in
+            // The name searched, unless someone already has it (the form would open on "Danh bạ đã có").
+            ContactEditorView(target: .new(name: store.contact(named: Contact.clean(query)) == nil ? query : "")) { person in
                 selection = person.id
                 dismiss()
             }

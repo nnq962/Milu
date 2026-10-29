@@ -40,7 +40,13 @@ struct GoalEditorView: View {
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var canSave: Bool { !trimmedName.isEmpty && targetText.vndInputAmount > 0 }
+    /// "Mục tiêu mới" on a goal that reached its target: the new one is above what it holds.
+    private var targetError: String? {
+        guard focusesTarget, let saved = original.flatMap({ store.goal(id: $0.id) })?.saved,
+              targetText.vndInputAmount > 0, targetText.vndInputAmount <= saved else { return nil }
+        return "Mục tiêu mới phải lớn hơn số đã để dành (\(saved.vnd))."
+    }
+    private var canSave: Bool { !trimmedName.isEmpty && targetText.vndInputAmount > 0 && targetError == nil }
 
     /// "Cần để dành 2.500.000đ mỗi tháng trong 6 tháng."; nil without a deadline or a target.
     private var monthlyNote: String? {
@@ -61,6 +67,9 @@ struct GoalEditorView: View {
                 TimiAmountField(text: $targetText, showsSuggestions: original?.isClosed != true,
                                 focusesOnAppear: original == nil || focusesTarget)
                     .disabled(original?.isClosed == true)
+                if let targetError {
+                    FormErrorText(text: targetError)
+                }
             }
         } content: {
             FormGroup(title: "Thông tin") {

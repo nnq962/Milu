@@ -282,11 +282,11 @@ final class FinanceStore {
         database?.save(savingsGoals[index])
     }
 
-    /// "Dùng tiền": spends from the goal (an expense recorded on the goal itself, so it counts in
+    /// "Mua ngay": spends from the goal (an expense recorded on the goal itself, so it counts in
     /// reports), sends whatever is left to `leftoverAccount`, then closes the goal. Like any
     /// transaction it has no name; the closing note says the category ("Đã dùng: Mua xe máy").
     func spend(from goal: SavingsGoal, categoryID: String, amount: Double,
-               date: Date, leftoverAccount: Account.ID?) {
+               date: Date, note: String = "", isExcluded: Bool = false, leftoverAccount: Account.ID?) {
         persist {
             // Spend no more than the goal holds, and leave nothing behind in a closed goal.
             guard let saved = self.goal(id: goal.id)?.saved, amount > 0, amount <= saved else { return }
@@ -294,19 +294,22 @@ final class FinanceStore {
                 guard let leftoverAccount, acceptsMoney(leftoverAccount) else { return }
             }
             add(FinanceTransaction(amount: amount, categoryID: categoryID, kind: .expense,
-                                   accountID: goal.id, date: date))
+                                   accountID: goal.id, date: date, note: note, isExcluded: isExcluded))
             let left = (self.goal(id: goal.id)?.saved ?? 0)
             var note = "Đã dùng: \(categoryName(categoryID))"
             if left >= 1, let leftoverAccount {
+                // A second later, so the goal's history (newest first) lists it above the purchase.
+                let endOfDay = Calendar.current.date(byAdding: DateComponents(day: 1, second: -1),
+                                                     to: Calendar.current.startOfDay(for: date)) ?? date
                 add(GoalTransfer(goalID: goal.id, accountID: leftoverAccount, direction: .withdrawal,
-                                 amount: left, date: date))
+                                 amount: left, date: min(date.addingTimeInterval(1), max(endOfDay, date))))
                 note += " · \(left.vndCompact) về \(account(id: leftoverAccount)?.name ?? "tài khoản")"
             }
             close(goal.id, note: note)
         }
     }
 
-    /// Transactions recorded on a goal ("Dùng tiền").
+    /// Transactions recorded on a goal ("Mua ngay").
     func goalTransactions(_ goal: SavingsGoal) -> [FinanceTransaction] {
         transactions.filter { $0.accountID == goal.id }
     }
@@ -556,6 +559,10 @@ final class FinanceStore {
     /// or into its account; changing it undoes the old move first.
     func save(_ loan: Loan) {
         let old = loans.first { $0.id == loan.id }
+        // Money on an archived account stays as it is: only who and when may change.
+        if let old, readOnlyReason(old) != nil,
+           old.principal != loan.principal || old.direction != loan.direction
+            || old.movedAccountID != loan.movedAccountID || old.outstanding != loan.outstanding { return }
         persist {
             let loan = link(loan)
             if let old { moveMoney(of: old, sign: -1) }
@@ -603,6 +610,9 @@ final class FinanceStore {
     /// left of the loan; principal and interest both come into the account (lent) or leave it
     /// (borrowed).
     func save(_ payment: LoanPayment) {
+        // Money on an archived account stays as it is.
+        if let old = loanPayments.first(where: { $0.id == payment.id }), readOnlyReason(old) != nil { return }
+        guard account(id: payment.accountID)?.isArchived != true else { return }
         persist {
             if let index = loanPayments.firstIndex(where: { $0.id == payment.id }) {
                 apply(loanPayments[index], sign: -1)
@@ -618,7 +628,7 @@ final class FinanceStore {
 
     func delete(_ payment: LoanPayment) {
         persist {
-            guard let saved = loanPayments.first(where: { $0.id == payment.id }) else { return }
+            guard let saved = loanPayments.first(where: { $0.id == payment.id }), readOnlyReason(saved) == nil else { return }
             apply(saved, sign: -1)
             loanPayments.removeAll { $0.id == payment.id }
             database?.deleteLoanPayment(id: payment.id)
@@ -634,6 +644,22 @@ final class FinanceStore {
         database?.save(loans[index])
         let lent = loan.direction == .lent
         adjustBalance(of: payment.accountID, by: (lent ? payment.total : -payment.total) * sign)
+    }
+
+    /// Why a loan's money cannot change: its account, or one of its repayments' accounts, is
+    /// archived (as transactions and transfers there are frozen).
+    func readOnlyReason(_ loan: Loan) -> String? {
+        let ids = [loan.movedAccountID].compactMap { $0 } + payments(of: loan).map(\.accountID)
+        return ids.contains { account(id: $0)?.isArchived == true } ? Self.archivedReason : nil
+    }
+
+    func readOnlyReason(_ payment: LoanPayment) -> String? {
+        account(id: payment.accountID)?.isArchived == true ? Self.archivedReason : nil
+    }
+
+    /// When a loan was settled: its last repayment, else the day it was made.
+    func settledDate(of loan: Loan) -> Date {
+        payments(of: loan).map(\.date).max() ?? loan.date
     }
 
     /// Principal repaid through the app ("Thu nợ" / "Trả nợ"), for the loan form's limits.
@@ -718,6 +744,7 @@ final class FinanceStore {
 
     /// Also undoes its repayments on their accounts, as the loan's own money is.
     func delete(_ loan: Loan) {
+        guard readOnlyReason(loan) == nil else { return }
         persist {
             for payment in payments(of: loan) {
                 let lent = loan.direction == .lent

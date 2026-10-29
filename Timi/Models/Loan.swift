@@ -40,6 +40,14 @@ struct Loan: Identifiable, Hashable {
     var monthlyInterestRate: Double = 0
 
     var isSettled: Bool { outstanding <= 0 }
+
+    /// "Đã trả 40%", never "100%" while something is left nor "0%" once something came back.
+    var paidText: String {
+        if isSettled { return "Đã trả đủ" }
+        guard paidRatio > 0 else { return "Chưa trả" }
+        let percent = min(max((paidRatio * 100).rounded(.down), 1), 99)
+        return "Đã trả \(Int(percent))%"
+    }
     /// Interest each month, on the principal.
     var monthlyInterest: Double { principal * monthlyInterestRate / 100 }
     /// The account the money moved with, a new loan only.

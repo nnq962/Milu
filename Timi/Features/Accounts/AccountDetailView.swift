@@ -309,7 +309,7 @@ struct LoanPaymentRow: View {
 }
 
 /// What opens for a tapped history row: a transaction's or a transfer's details (their pencil
-/// opens the form), the deposit/withdrawal sheet, or a loan's money (read only).
+/// opens the form), the deposit/withdrawal sheet, or the loan a loan's money or repayment is of.
 struct ActivityEditor: View {
     let item: AccountDetailView.Activity
 
@@ -325,8 +325,9 @@ struct ActivityEditor: View {
             if let goal = store.goal(id: transfer.goalID) {
                 GoalTransferSheet(editing: transfer, goal: goal)
             }
+        // Both a loan's money and its repayments open the loan (history, then the form).
         case .loan(let loan):
-            LoanMoveSheet(loanID: loan.id)
+            LoanDetailSheet(loanID: loan.id)
         case .loanPayment(let payment):
             LoanDetailSheet(loanID: payment.loanID)
         }

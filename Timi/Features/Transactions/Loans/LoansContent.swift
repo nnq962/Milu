@@ -37,7 +37,8 @@ struct LoansSummaryCard: View {
 
     var body: some View {
         let active = store.loans.filter { !$0.isSettled }
-        let lenders = active.filter { $0.direction == .lent }.count
+        // People, not loans: two open loans to Minh Trần are one person.
+        let lenders = Set(active.filter { $0.direction == .lent }.map { $0.contactID?.uuidString ?? $0.name }).count
         let debts = active.filter { $0.direction == .borrowed }.count
         let lent = store.totalLent
         let owed = store.totalBorrowed
@@ -100,8 +101,9 @@ private struct SplitBar: View {
             } else if lent <= 0 || owed <= 0 {
                 Capsule().fill(lent > 0 ? Palette.green : Palette.red)
             } else {
-                let room = width - Self.gap
-                let lentWidth = min(max(room * lent / total, Self.sliver), room - Self.sliver)
+                let room = max(width - Self.gap, 0)
+                // Not wider than the room left for the other side's sliver, even before layout.
+                let lentWidth = max(min(max(room * lent / total, Self.sliver), room - Self.sliver), 0)
                 HStack(spacing: Self.gap) {
                     Capsule().fill(Palette.green).frame(width: lentWidth)
                     Capsule().fill(Palette.red)
@@ -125,6 +127,8 @@ struct LoansContent: View {
     @Environment(FinanceStore.self) private var store
     var filter: LoanFilter = .all
     var searchText = ""
+    /// The day the badges and the order are for; the page moves it on overnight.
+    var today = Date.now
     var isSearching = false
     let onEdit: (Loan) -> Void
 
@@ -149,9 +153,12 @@ struct LoansContent: View {
     }
 
     /// Most urgent first: overdue, then the nearest deadline (user request 2026-10-29).
-    private var lentLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .lent }.byUrgency }
-    private var borrowedLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .borrowed }.byUrgency }
-    private var settledLoans: [Loan] { shownLoans.filter(\.isSettled) }
+    private var lentLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .lent }.byUrgency(today: today) }
+    private var borrowedLoans: [Loan] { shownLoans.filter { !$0.isSettled && $0.direction == .borrowed }.byUrgency(today: today) }
+    /// The most recently settled first, as on "Khoản vay đã tất toán".
+    private var settledLoans: [Loan] {
+        shownLoans.filter(\.isSettled).sorted { store.settledDate(of: $0) > store.settledDate(of: $1) }
+    }
 
     var body: some View {
         if isSearching {
@@ -211,7 +218,7 @@ struct LoansContent: View {
                                message: "Nhấn + để ghi lại số tiền bạn cho người khác vay.")
             }
             ForEach(lentLoans) { loan in
-                Button { onEdit(loan) } label: { LoanCard(loan: loan) }
+                Button { onEdit(loan) } label: { LoanCard(loan: loan, today: today) }
                     .buttonStyle(.card)
             }
         }
@@ -226,7 +233,7 @@ struct LoansContent: View {
                                message: "Khoản bạn vay của người khác sẽ hiện ở đây.")
             }
             ForEach(borrowedLoans) { loan in
-                Button { onEdit(loan) } label: { LoanCard(loan: loan) }
+                Button { onEdit(loan) } label: { LoanCard(loan: loan, today: today) }
                     .buttonStyle(.card)
             }
         }
@@ -238,7 +245,7 @@ struct LoansContent: View {
             SectionHeader(title: "Đã tất toán")
                 .padding(.bottom, Spacing.headerGap - Spacing.m)
             ForEach(settledLoans) { loan in
-                Button { onEdit(loan) } label: { LoanCard(loan: loan) }
+                Button { onEdit(loan) } label: { LoanCard(loan: loan, today: today) }
                     .buttonStyle(.card)
             }
         }
@@ -252,14 +259,14 @@ struct LoansContent: View {
     }
 }
 
-/// "Khoản vay đã tất toán": loans repaid in full, newest first, as on the page; tapping one opens
-/// its form (to read, reopen by changing what is left, or delete). Laid out as "Hũ đã hoàn thành".
+/// "Khoản vay đã tất toán": loans repaid in full, the most recently settled first; tapping one opens
+/// its sheet (history, then the form). Laid out as "Hũ đã hoàn thành".
 struct SettledLoansView: View {
     @Environment(FinanceStore.self) private var store
     @State private var editingLoan: Loan?
 
     var body: some View {
-        let loans = store.loans.filter(\.isSettled).sorted { $0.date > $1.date }
+        let loans = store.loans.filter(\.isSettled).sorted { store.settledDate(of: $0) > store.settledDate(of: $1) }
         ScrollView {
             if loans.isEmpty {
                 // Reopening the last one empties this list while the screen is open.

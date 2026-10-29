@@ -26,8 +26,8 @@ struct LoanEditorView: View {
     @State private var isPickingPerson = false
     /// Set by the first ✓: from then on what is missing shows in red.
     @State private var showsErrors = false
-    /// Repaid so far: the saved loan's, or what "Còn lại" said when "Khoản có sẵn" was turned off,
-    /// so a figure just typed is not lost.
+    /// Repaid so far on a new loan: through "Thu nợ" / "Trả nợ", or (saved before that rule) what
+    /// the loan already said.
     @State private var repaid: Double
 
     init(loan: Loan?) {
@@ -96,6 +96,9 @@ struct LoanEditorView: View {
     /// Its repayments moved money one way: whether it was there before Timi cannot change under
     /// them (as the side cannot), so what is left always agrees with them (user choice 2026-10-29).
     private var hasPayments: Bool { original.map { !store.payments(of: $0).isEmpty } ?? false }
+    /// Its money is on an archived account: who, when and the rate may change, the amounts not.
+    private var moneyLockReason: String? { original.flatMap(store.readOnlyReason) }
+    private var isMoneyLocked: Bool { moneyLockReason != nil }
     private var rateError: String? {
         rate > 100 ? "Lãi suất tối đa 100% mỗi tháng." : nil
     }
@@ -132,12 +135,19 @@ struct LoanEditorView: View {
             .pickerStyle(.segmented)
             .controlSize(.large)
             // Its repayments moved money one way: the side cannot flip under them.
-            .disabled(hasPayments)
+            .disabled(hasPayments || isMoneyLocked)
 
             SheetAmountHeader(caption: "Số tiền gốc", fieldSaysCaption: true) {
-                TimiAmountField(text: $principalText, focusesOnAppear: original == nil, label: "Số tiền gốc")
+                TimiAmountField(text: $principalText, showsSuggestions: !isMoneyLocked,
+                                focusesOnAppear: original == nil, label: "Số tiền gốc")
+                    .disabled(isMoneyLocked)
                 if let error = principalError ?? (showsErrors ? amountError : nil) {
                     FormErrorText(text: error)
+                } else if let moneyLockReason {
+                    Text(moneyLockReason)
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                        .multilineTextAlignment(.center)
                 }
             }
         } content: {
@@ -148,7 +158,7 @@ struct LoanEditorView: View {
                               subtitle: hasPayments ? "Đã có lần \(direction == .lent ? "thu" : "trả") nợ, không đổi được"
                                   : "Có từ trước khi dùng Timi, không đổi số dư",
                               isOn: Binding { isExisting } set: { setExisting($0) })
-                    .disabled(hasPayments)
+                    .disabled(hasPayments || isMoneyLocked)
             }
 
             if isExisting {
@@ -156,6 +166,7 @@ struct LoanEditorView: View {
                           error: outstandingError) {
                     FormAmountRow(title: "Còn lại", text: $outstandingText, isInvalid: outstandingError != nil)
                 }
+                .disabled(isMoneyLocked)
                 .transition(.opacity)
             } else {
                 FormGroup(title: direction == .lent ? "Tiền đi" : "Tiền về", error: accountError) {
@@ -172,6 +183,7 @@ struct LoanEditorView: View {
                     FormDateRow(title: direction == .lent ? "Ngày cho vay" : "Ngày vay", date: $date,
                                 latest: original.flatMap(store.firstPaymentDate).map { min($0, .now) } ?? .now)
                 }
+                .disabled(isMoneyLocked)
                 .transition(.opacity)
             }
 
@@ -195,7 +207,8 @@ struct LoanEditorView: View {
                 }
             }
 
-            if let original {
+            // Deleting would take money back out of the archived account.
+            if let original, !isMoneyLocked {
                 actions(original)
             }
         }
@@ -214,8 +227,9 @@ struct LoanEditorView: View {
         }
     }
 
-    /// Switches between a loan from before the app and a new one, carrying what is left across:
-    /// "Còn lại" typed becomes what a new loan has had back, and back again.
+    /// Switches between a loan from before the app and a new one: what a new loan has had back is
+    /// what came back through Timi (or, on a new loan saved before that rule, what it already said);
+    /// a figure typed in "Còn lại" does not carry over.
     private func setExisting(_ value: Bool) {
         withAnimation(.smooth(duration: 0.25)) {
             if value {
@@ -224,8 +238,13 @@ struct LoanEditorView: View {
                     outstandingText = String(Int(max(principal - repaid, 0))).groupedVNDInput
                 }
             } else {
-                // Empty "Còn lại" means nothing came back yet.
-                repaid = outstandingText.isEmpty ? 0 : max(principal - outstandingText.vndInputAmount, 0)
+                // A new loan is repaid only through "Thu nợ" / "Trả nợ" (none yet: the switch is
+                // locked once there are some), so what was typed in "Còn lại" does not carry over.
+                if let original, !original.isExisting {
+                    repaid = original.principal - original.outstanding
+                } else {
+                    repaid = repaidInApp
+                }
             }
             isExisting = value
         }

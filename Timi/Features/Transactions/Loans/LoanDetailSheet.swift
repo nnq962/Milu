@@ -27,6 +27,7 @@ struct LoanDetailSheet: View {
     var body: some View {
         let loan = store.loan(id: loanID)
         NavigationStack {
+            // Money on an archived account is frozen: the form keeps who, when and the rate.
             DetailScaffold(title: loan?.name ?? "Khoản vay", showsClose: true, canEdit: loan != nil,
                            onEdit: { isEditing = true }) {
                 if let loan {
@@ -77,7 +78,7 @@ struct LoanDetailSheet: View {
             ProgressBar(value: loan.paidRatio, color: LoanCard.progressColor(for: loan, urgency: urgency))
                 .padding(.top, Spacing.l)
             HStack {
-                Text(loan.isSettled ? "Đã trả đủ" : loan.paidRatio > 0 ? "Đã trả \(loan.paidRatio.percentText)" : "Chưa trả")
+                Text(loan.paidText)
                 Spacer()
                 Text("Gốc \(loan.principal.vnd)")
             }
@@ -93,7 +94,8 @@ struct LoanDetailSheet: View {
         let lent = loan.direction == .lent
         let paid = store.payments(of: loan).reduce(0) { $0 + $1.interest }
         return FormGroup(title: "Lãi") {
-            if loan.monthlyInterestRate > 0 {
+            // Settled: what came in is what matters, not what each month would be.
+            if loan.monthlyInterestRate > 0, !loan.isSettled {
                 FormInfoRow(title: "Mỗi tháng",
                             value: "\(loan.monthlyInterest.vnd) (\(LoanEditorView.percent(loan.monthlyInterestRate))%)")
                 FormDivider(hasIcon: false)
@@ -131,7 +133,7 @@ struct LoanDetailSheet: View {
         let payments = store.payments(of: loan)
         let lent = loan.direction == .lent
         FormGroup(title: lent ? "Lịch sử thu nợ" : "Lịch sử trả nợ",
-                  footer: payments.isEmpty ? (lent ? "Chưa có lần thu nào." : "Chưa có lần trả nào.") : nil) {
+                  footer: historyFooter(loan, isEmpty: payments.isEmpty)) {
             ForEach(Array(payments.enumerated()), id: \.element.id) { index, payment in
                 Button { paying = .edit(payment) } label: {
                     ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
@@ -141,9 +143,19 @@ struct LoanDetailSheet: View {
                             amountTone: lent ? .signedIncome : .plain, showsChevron: false)
                 }
                 .buttonStyle(.row)
+                // On an archived account: shown, not changed (the footer says why).
+                .disabled(store.readOnlyReason(payment) != nil)
                 .overlay(alignment: .top) { if index > 0 { RowDivider() } }
             }
         }
+    }
+
+    /// None yet, and why the money cannot change (an archived account), whichever apply.
+    private func historyFooter(_ loan: Loan, isEmpty: Bool) -> String? {
+        let lent = loan.direction == .lent
+        let parts = [isEmpty ? (lent ? "Chưa có lần thu nào." : "Chưa có lần trả nào.") : nil, store.readOnlyReason(loan)]
+            .compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     /// "Gốc 5tr · Lãi 375k · Vietcombank".

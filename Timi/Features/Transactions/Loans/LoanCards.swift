@@ -59,9 +59,9 @@ enum LoanUrgency: Comparable {
 
 extension Array where Element == Loan {
     /// Urgent first (see `LoanUrgency.rank`); the same deadline, the larger amount left first.
-    var byUrgency: [Loan] {
+    func byUrgency(today: Date = .now) -> [Loan] {
         sorted { lhs, rhs in
-            let left = LoanUrgency(lhs), right = LoanUrgency(rhs)
+            let left = LoanUrgency(lhs, today: today), right = LoanUrgency(rhs, today: today)
             if left.rank != right.rank { return left < right }
             return lhs.outstanding > rhs.outstanding
         }
@@ -72,11 +72,13 @@ extension Array where Element == Loan {
 /// left out of the principal; repayment progress. An overdue loan gets a thin red outline.
 struct LoanCard: View {
     let loan: Loan
+    /// Passed in so the badge moves on overnight with the page.
+    var today = Date.now
 
     @Environment(FinanceStore.self) private var store
 
     var body: some View {
-        let urgency = LoanUrgency(loan)
+        let urgency = LoanUrgency(loan, today: today)
         let borrowed = loan.direction == .borrowed
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: RowMetrics.gap) {
@@ -122,7 +124,11 @@ struct LoanCard: View {
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
-        .accessibilityElement(children: .combine)
+        // In words: "Minh Trần, còn 8 ngày, còn 45.000.000 đồng trên 75.000.000 đồng, đã trả 40%".
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([loan.name, subtitle, urgency.text,
+                             loan.isSettled ? loan.principal.vnd : "còn \(loan.outstanding.vnd) trên \(loan.principal.vnd)",
+                             paidText].joined(separator: ", "))
         .accessibilityHint("Xem khoản vay")
     }
 
@@ -136,10 +142,7 @@ struct LoanCard: View {
         return parts.isEmpty ? (relationship ?? loan.direction.title) : parts.joined(separator: " · ")
     }
 
-    private var paidText: String {
-        if loan.isSettled { return "Đã trả đủ" }
-        return loan.paidRatio > 0 ? "Đã trả \(loan.paidRatio.percentText)" : "Chưa trả"
-    }
+    private var paidText: String { loan.paidText }
 
     /// The bar takes the badge's colour when the deadline is close, else the side's; the same on
     /// the card and the loan's sheet.

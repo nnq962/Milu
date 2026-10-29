@@ -13,7 +13,7 @@ struct CompletedGoalsView: View {
             if goals.isEmpty {
                 // Reopening the last goal empties this list while the screen is open.
                 EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa có hũ nào hoàn thành",
-                               message: "Hũ đã dùng tiền hoặc rút hết sau khi đủ mục tiêu sẽ nằm ở đây.")
+                               message: "Hũ đã mua ngay hoặc rút hết sau khi đủ mục tiêu sẽ nằm ở đây.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in

@@ -162,6 +162,8 @@ struct AddAccountView: View {
                     question: "Lưu trữ “\(account.name)”?",
                     message: "Tài khoản ẩn khỏi danh sách và tổng số dư, lịch sử vẫn giữ. Khôi phục được trong “Tài khoản đã lưu trữ”."
                 ) {
+                    // A name left empty: say so instead of archiving without what was typed.
+                    guard validate() else { return }
                     applyEdits()
                     dismiss()
                     onLeave?(.archive)

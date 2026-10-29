@@ -61,7 +61,8 @@ struct MonthPickerSheet: View {
     private var thisYear: Int { calendar.component(.year, from: .now) }
     /// Back no further than the oldest thing recorded (or last year, on a new install).
     private var firstYear: Int {
-        let oldest = (store.transactions.map(\.date) + store.accountTransfers.map(\.date)).min() ?? .now
+        let oldest = (store.transactions.map(\.date) + store.accountTransfers.map(\.date)
+            + store.loanMoves.map(\.date) + store.listedLoanPayments.map(\.date)).min() ?? .now
         return min(calendar.component(.year, from: oldest), thisYear - 1)
     }
     private var thisMonth: Int { calendar.component(.month, from: .now) }

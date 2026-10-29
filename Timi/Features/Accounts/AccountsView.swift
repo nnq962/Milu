@@ -122,7 +122,8 @@ struct AccountsView: View {
     private var totalCard: some View {
         let locked = store.lockedPaymentAccounts
         return SummaryCard(label: "Tổng số dư", amount: store.paymentBalance) {
-            Text(Self.holdings(accounts: store.paymentAccounts.count - locked.count, goals: store.activeGoals.count))
+            Text(Self.holdings(accounts: store.paymentAccounts.count - locked.count, goals: store.activeGoals.count,
+                               locked: locked.count))
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
                 .padding(.top, Spacing.xs)
@@ -185,14 +186,14 @@ struct AccountsView: View {
                 if completed > 0 {
                     NavigationLink(value: CompletedGoalsRoute()) {
                         NavigationRowLabel(title: "Hũ đã hoàn thành", icon: "hugeicons-checkmark-badge-01",
-                                           value: "\(completed)")
+                                           value: "\(completed)", spokenValue: "\(completed) hũ")
                     }
                     .buttonStyle(.row)
                 }
                 if archived > 0 {
                     NavigationLink(value: ArchivedAccountsRoute()) {
                         NavigationRowLabel(title: "Tài khoản đã lưu trữ", icon: "hugeicons-archive-02",
-                                           value: "\(archived)")
+                                           value: "\(archived)", spokenValue: "\(archived) tài khoản")
                     }
                     .buttonStyle(.row)
                     .overlay(alignment: .top) { if completed > 0 { FormDivider() } }
@@ -226,9 +227,10 @@ struct AccountsView: View {
 
 extension AccountsView {
     /// "3 tài khoản · 1 hũ", leaving out what there is none of.
-    static func holdings(accounts: Int, goals: Int) -> String {
+    /// Nothing counted but some locked: "1 tài khoản đang khoá", not "Chưa có tài khoản nào".
+    static func holdings(accounts: Int, goals: Int, locked: Int = 0) -> String {
         switch (accounts, goals) {
-        case (0, 0): "Chưa có tài khoản nào"
+        case (0, 0): locked > 0 ? "\(locked) tài khoản đang khoá" : "Chưa có tài khoản nào"
         case (_, 0): "\(accounts) tài khoản"
         case (0, _): "\(goals) hũ"
         default: "\(accounts) tài khoản · \(goals) hũ"

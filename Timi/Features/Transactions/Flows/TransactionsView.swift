@@ -58,7 +58,7 @@ struct TransactionsView: View {
                         case .loans:
                             LoansSummaryCard()
                             chipsRow { ChipRow(options: LoanFilter.allCases, selection: $loanFilter) { $0.title } }
-                            listContainer { LoansContent(filter: loanFilter) { editingLoan = $0 } }
+                            listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                         }
                     }
                     .animation(.smooth(duration: 0.3), value: listIdentity)
@@ -298,10 +298,16 @@ struct TransactionsView: View {
         return sameYear ? "Tháng \(number)" : "Tháng \(number)/\(calendar.component(.year, from: displayedMonth))"
     }
 
+    /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.
+    private var hasNothingRecorded: Bool {
+        store.transactions.isEmpty && store.accountTransfers.isEmpty && store.loanMoves.isEmpty
+            && store.listedLoanPayments.isEmpty
+    }
+
     /// The empty list in the words of its chip and month; the first-run invitation only when the
     /// app has nothing recorded yet.
     private var emptyTitle: String {
-        if store.transactions.isEmpty && store.accountTransfers.isEmpty { return "Chưa có giao dịch" }
+        if hasNothingRecorded { return "Chưa có giao dịch" }
         return switch filter {
         case .all: "\(monthName) chưa có giao dịch"
         case .income: "\(monthName) chưa có khoản thu"
@@ -311,7 +317,7 @@ struct TransactionsView: View {
     }
 
     private var emptyMessage: String {
-        if store.transactions.isEmpty && store.accountTransfers.isEmpty {
+        if hasNothingRecorded {
             return "Thêm giao dịch đầu tiên bằng nút + cạnh thanh tab."
         }
         if filter == .transfer { return "Chuyển tiền giữa hai tài khoản bằng nút + cạnh thanh tab." }

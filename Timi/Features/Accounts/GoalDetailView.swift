@@ -2,7 +2,8 @@ import SwiftUI
 
 /// One savings goal, in one of three states (lifecycle, user request 2026-10-29):
 /// - saving: how far along, "Rút tiền" / "Nạp tiền";
-/// - reached the target: "Dùng tiền" (spend it, then close), "Rút hết" (take it out, then close)
+/// - reached the target: "Mua ngay" (spend it in the add-transaction sheet, then close), "Rút hết"
+///   (take it out, then close)
 ///   or "Mục tiêu mới" (aim higher in the goal form); reaching it says so once, with a haptic;
 /// - closed: how it ended, no actions; it lives on "Hũ đã hoàn thành".
 /// Under it, the history: deposits, withdrawals and what was spent, newest first. The pencil opens
@@ -25,6 +26,7 @@ struct GoalDetailView: View {
     @State private var isCelebrating = false
     /// A history row tapped to change or delete it (not on a closed goal).
     @State private var editingItem: AccountDetailView.Activity?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     enum Sheet: Identifiable {
         case deposit, withdraw, withdrawAll, spend
@@ -70,12 +72,19 @@ struct GoalDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     EditToolbarButton {
                         editsTarget = false
+                        wasReached = goal.isReached
                         isEditing = true
                     }
                 }
             }
             .sheet(isPresented: $isEditing, onDismiss: {
-                guard deletesOnDismiss else { return }
+                guard deletesOnDismiss else {
+                    // A lower target can make it reached: say so once, as a deposit does.
+                    if !wasReached, store.goal(id: goalID).map({ $0.isReached && !$0.isClosed }) == true {
+                        isCelebrating = true
+                    }
+                    return
+                }
                 dismiss()
                 store.delete(goal, returningTo: returnAccount)
             }) {
@@ -95,7 +104,8 @@ struct GoalDetailView: View {
                 case .deposit: GoalTransferSheet(goal: goal, direction: .deposit)
                 case .withdraw: GoalTransferSheet(goal: goal, direction: .withdrawal)
                 case .withdrawAll: GoalTransferSheet(goal: goal, direction: .withdrawal, closesGoal: true)
-                case .spend: GoalSpendSheet(goal: goal)
+                // The add-transaction sheet, spending from the goal (user choice 2026-10-29).
+                case .spend: AddTransactionView(buying: goal)
                 }
             }
             .sheet(item: $editingItem) { item in
@@ -104,7 +114,7 @@ struct GoalDetailView: View {
             .alert("Đã đủ mục tiêu", isPresented: $isCelebrating) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Hũ “\(goal.name)” đã đủ \(goal.target.vnd). Giờ bạn có thể dùng tiền, rút về tài khoản hoặc đặt mục tiêu mới.")
+                Text("Hũ “\(goal.name)” đã đủ \(goal.target.vnd). Giờ bạn có thể mua ngay, rút về tài khoản hoặc đặt mục tiêu mới.")
             }
         } else {
             EmptyStateCard(icon: "hugeicons-alert-02", title: "Không tìm thấy hũ",
@@ -161,26 +171,39 @@ struct GoalDetailView: View {
         .monospacedDigit()
     }
 
-    /// "Đã dùng: Mua xe · 29/10/2026".
+    /// "Đã dùng: Mua xe · 36tr về Ví tiền mặt · 29/10": wraps rather than cutting off where the
+    /// rest of the money went.
     private func closedLine(_ goal: SavingsGoal) -> some View {
-        StatusBadge(text: [goal.closingNote, goal.closedAt.map(TransactionListRow.dayMonth)].compactMap { $0 }
-                        .filter { !$0.isEmpty }.joined(separator: " · "),
-                    icon: "hugeicons-checkmark-badge-01")
+        Label {
+            Text([goal.closingNote, goal.closedAt.map(TransactionListRow.dayMonth)].compactMap { $0 }
+                    .filter { !$0.isEmpty }.joined(separator: " · "))
+                .textRole(.captionStrong)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            TimiIcon("hugeicons-checkmark-badge-01", size: StatusBadge.icon)
+        }
+        .foregroundStyle(Palette.ink)
+        .padding(.horizontal, StatusBadge.horizontalPadding)
+        .padding(.vertical, Spacing.xs)
+        .background(Palette.fill2, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
     }
 
     @ViewBuilder
     private func actions(_ goal: SavingsGoal) -> some View {
         if goal.isReached {
             VStack(spacing: Spacing.m) {
-                TimiButton("Dùng tiền", icon: "hugeicons-shopping-bag-01", role: .primary, fullWidth: true) {
+                TimiButton("Mua ngay", icon: "hugeicons-shopping-bag-01", role: .primary, fullWidth: true) {
                     open(.spend, for: goal)
                 }
-                HStack(spacing: Spacing.m) {
+                // Side by side, one above the other at the largest text sizes.
+                AnyLayout(dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: Spacing.m))
+                          : AnyLayout(HStackLayout(spacing: Spacing.m))) {
                     TimiButton("Rút hết", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
                         open(.withdrawAll, for: goal)
                     }
                     TimiButton("Mục tiêu mới", icon: "hugeicons-target-02", role: .secondary, fullWidth: true) {
                         editsTarget = true
+                        wasReached = goal.isReached
                         isEditing = true
                     }
                 }

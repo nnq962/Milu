@@ -915,12 +915,12 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Đang để dành: Rút tiền / Nạp tiền như cũ.
   - Đã đủ mục tiêu: dòng dưới thanh tiến độ ghi "Đã đủ mục tiêu"; nút chính "Dùng tiền", hai nút phụ "Rút hết" và "Mục tiêu mới" (mở form hũ để tăng mục tiêu). Lần nạp làm hũ vừa đủ hiện alert "Đã đủ mục tiêu" kèm rung thành công. Hũ đủ tiền vẫn nằm trong dãy thẻ (ghi "Đã đủ · mục tiêu 40tr") và vẫn tính vào tổng.
   - Đã đóng: thẻ đầu ghi "Mục tiêu 40.000.000đ" và "Đã dùng: … · ngày", không còn nút; hũ rời dãy thẻ và tổng số dư, nằm ở "Hũ đã hoàn thành" (mới đóng lên trước, dòng phụ "Đã dùng: … · 29/10").
-- "Dùng tiền" (`GoalSpendSheet`): số tiền mặc định là toàn bộ hũ, hạng mục chi (không có ô tên, từ 2026-10-29), ngày, giờ. Ghi thành khoản chi từ hũ (tính vào báo cáo); chi ít hơn thì hiện "Phần còn lại về [tài khoản]" và số còn lại được rút về. Lưu xong thì hũ đóng.
+- ~~"Dùng tiền" (`GoalSpendSheet`)~~ — nay là "Mua ngay" mở `AddTransactionView(buying:)`: số tiền mặc định là toàn bộ hũ, hạng mục chi (không có ô tên, từ 2026-10-29), ngày, giờ. Ghi thành khoản chi từ hũ (tính vào báo cáo); chi ít hơn thì hiện "Phần còn lại về [tài khoản]" và số còn lại được rút về. Lưu xong thì hũ đóng.
 - "Rút hết" dùng sheet rút với số tiền điền sẵn bằng cả hũ; rút hết thì hũ đóng với ghi chú "Đã rút về …".
 - Lịch sử màn hũ gồm cả khoản chi từ hũ.
 - Gợi ý khi nạp (`TimiAmountField(presets:)`): trước khi gõ, hiện chip "Mỗi tháng 167k" (hũ có thời hạn) và "Còn thiếu 1tr"; bấm là điền ngay. Gõ số thì thay bằng gợi ý thường.
 
-## VIỆC ĐỂ SAU — "Dùng tiền" mở sheet tạo giao dịch
+## ~~VIỆC ĐỂ SAU — "Dùng tiền" mở sheet tạo giao dịch~~ — đã làm (xem "Hũ: Mua ngay mở sheet thêm giao dịch")
 
 - Ý người dùng (2026-10-29): bấm "Dùng tiền" trên hũ đã đủ mục tiêu thì mở **sheet tạo giao dịch** (`AddTransactionView`), điền sẵn từ hũ: loại chi tiêu, số tiền = cả hũ, tài khoản = hũ, tên = tên hũ. Lưu xong thì xử lý phần còn lại (nếu có) và đóng hũ như `FinanceStore.spend(from:…)`.
 - Chưa làm vì sheet tạo giao dịch còn đang làm dở. Tạm thời dùng `GoalSpendSheet` (có ghi TODO trong file). Khi xong sheet giao dịch: thêm chế độ "từ hũ" cho nó, bỏ `GoalSpendSheet`.
@@ -1248,6 +1248,37 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Số gốc không nhỏ hơn phần đã thu/trả (khoản có sẵn: phần qua Timi); số còn lại không âm.
   - Sửa một lần thu/trả: tiền gốc tối đa là gốc trừ các lần khác.
 - Rà soát trang Vay nợ lần 3 (agent, 2026-10-29): sẵn sàng commit. Sửa thêm: khoản có sẵn chỉ được thu/trả qua Timi mở form với "Còn lại" trống (số đó do app tính, không phải người dùng gõ); "Lần này thu hết khoản vay." khi cho vay; hộp xoá khoản mới chưa có lần thu/trả chỉ nói "Số dư tài khoản sẽ được tính lại."
+
+## Hũ: "Mua ngay" mở sheet thêm giao dịch — 2026-10-29
+
+- Hũ đủ mục tiêu: nút "Dùng tiền" đổi thành "Mua ngay" (người dùng chọn), mở sheet thêm giao dịch thường (`AddTransactionView(buying:)`) thay cho `GoalSpendSheet` (đã bỏ; xong TODO cũ).
+- Trong sheet: chỉ có chi tiêu (không có segment), tài khoản là chính hũ (dòng chỉ hiển thị, không ›), số tiền điền sẵn bằng tiền trong hũ; hạng mục, ngày, giờ, ghi chú, "Không tính vào báo cáo" như mọi giao dịch. Mua ít hơn số trong hũ: nhóm "Phần còn lại" chọn tài khoản nhận lại, chân nhóm "36.000.000đ sẽ về tài khoản này, rồi hũ được đóng." (người dùng chọn). Lưu thì ghi chi tiêu từ hũ, rút phần còn lại, đóng hũ ("Đã dùng: Đi chợ · 36tr về Ví tiền mặt").
+- `FinanceStore.spend` nhận thêm ghi chú và "không tính vào báo cáo".
+
+## Rà soát xuyên 3 trang Tài khoản · Thu chi · Vay nợ (3 agent, 2026-10-29), đã sửa:
+
+- Vay nợ:
+  - Khoản mới chỉ tính đã trả từ các lần thu/trả thật: bật "Khoản có sẵn", gõ "Còn lại", tắt lại không còn sinh một lần trả ảo.
+  - Tài khoản đã lưu trữ: không đổi được tiền của khoản vay hay lần thu/trả gắn với nó; store cũng chặn (`readOnlyReason(_ loan:)`, `readOnlyReason(_ payment:)`). Bút chì vẫn mở form để đổi người, hạn trả, lãi suất; form khoá loại, số gốc, "Khoản có sẵn", tài khoản, ngày, "Còn lại" và nút xoá, ghi lý do dưới số tiền. Sheet khoản vay khoá dòng lịch sử và luôn ghi lý do ở chân nhóm.
+  - "Cho vay · N người" đếm người, không đếm khoản.
+  - Phần trăm đã trả không bao giờ "100%" khi còn nợ hay "0%" khi đã trả một ít (`Loan.paidText`).
+  - Khoản đã tất toán xếp theo ngày tất toán (lần thu/trả cuối), ở màn riêng lẫn màn tìm.
+  - Badge hạn và thứ tự theo `today` của trang, nên qua nửa đêm tự đổi.
+  - VoiceOver đọc thẻ thành câu ("Minh Trần, còn 8 ngày, còn 45.000.000 đ trên 75.000.000 đ, đã trả 40%").
+  - Tìm "Lan" khi đã có Lan: "Thêm người mới" mở form trống, không báo trùng ngay.
+  - Khoản đã tất toán không hiện "Mỗi tháng" ở nhóm Lãi. Thanh chia hai màu không lỗi khi rất hẹp.
+- Mua ngay: tiêu đề "Mua ngay", dòng "Hũ" thay "Tài khoản", chân "Vẫn trừ vào hũ." khi không tính báo cáo; sheet giữ số tiền trong hũ lúc mở nên không nháy "Hũ chỉ có 0 đ." khi đóng; lần rút phần còn lại ghi sau 1 giây nên lịch sử hũ xếp đúng.
+- Tài khoản:
+  - "Mục tiêu mới" phải lớn hơn số đã để dành (báo đỏ). Hạ mục tiêu xuống dưới số đã có thì hiện alert "Đã đủ mục tiêu".
+  - Dòng trạng thái hũ đã đóng xuống dòng thay vì cắt. Hai nút "Rút hết" / "Mục tiêu mới" xếp dọc ở cỡ chữ rất lớn.
+  - Thẻ tổng khi mọi tài khoản đều khoá: "1 tài khoản đang khoá".
+  - "Lưu trữ tài khoản" khi tên trống báo lỗi thay vì lặng lẽ bỏ phần sửa.
+  - VoiceOver đọc "2 hũ", "1 tài khoản" ở hai dòng lối vào.
+- Thu chi:
+  - Chọn tháng lùi được tới năm chỉ có khoản vay. Người chỉ có khoản vay không bị mời "Thêm giao dịch đầu tiên".
+  - Dòng tiền khoản vay mở sheet khoản vay như dòng thu/trả (bỏ `LoanMoveSheet`).
+  - Bộ lọc tài khoản trong màn tìm có cả hũ đã có giao dịch "Mua ngay".
+- Rà soát lại (agent): sẵn sàng commit. Sửa thêm: khoản mới lưu từ bản trước với số đã trả nhưng không có lần thu/trả giữ số đó khi bật/tắt "Khoản có sẵn"; VoiceOver đọc cả dòng phụ của thẻ khoản vay (cho vay/đi vay, hạn, lãi); lần rút phần còn lại của "Mua ngay" không lùi sang ngày hôm sau.
 
 ## Danh bạ — 2026-10-29
 

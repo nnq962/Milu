@@ -169,7 +169,7 @@ struct TransactionSearchFilter: Equatable {
         default: break
         }
         if accountIDs.count == 1, let id = accountIDs.first {
-            chips.append(Chip(part: .accounts, title: store.account(id: id)?.name ?? "1 tài khoản"))
+            chips.append(Chip(part: .accounts, title: store.account(id: id)?.name ?? store.goal(id: id)?.name ?? "1 tài khoản"))
         } else if accountIDs.count > 1 {
             chips.append(Chip(part: .accounts, title: "\(accountIDs.count) tài khoản"))
         }
@@ -224,7 +224,11 @@ struct TransactionFilterSheet: View {
         }
     }
 
-    private var accounts: [Account] { store.accounts + store.archivedAccounts }
+    /// Where money is recorded: accounts (archived too), then goals a "Mua ngay" purchase is on.
+    private var sources: [(id: UUID, name: String, icon: String)] {
+        (store.accounts + store.archivedAccounts).map { ($0.id, $0.name, $0.iconName) }
+            + store.savingsGoals.filter { !store.goalTransactions($0).isEmpty }.map { ($0.id, $0.name, $0.icon) }
+    }
 
     var body: some View {
         SheetScaffold(title: "Bộ lọc", canConfirm: amountError == nil && dateError == nil, onConfirm: apply) {
@@ -252,10 +256,9 @@ struct TransactionFilterSheet: View {
             }
 
             FormGroup(title: "Tài khoản", footer: "Không chọn là mọi tài khoản.") {
-                ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
-                    toggleRow(icon: account.iconName, title: account.name,
-                              isOn: draft.accountIDs.contains(account.id)) {
-                        draft.accountIDs.formSymmetricDifference([account.id])
+                ForEach(Array(sources.enumerated()), id: \.element.id) { index, source in
+                    toggleRow(icon: source.icon, title: source.name, isOn: draft.accountIDs.contains(source.id)) {
+                        draft.accountIDs.formSymmetricDifference([source.id])
                     }
                     .overlay(alignment: .top) { if index > 0 { FormDivider() } }
                 }
