@@ -34,7 +34,9 @@ struct AddTransactionView: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("transactions.lastAccountID") private var lastAccountID = ""
+    @AppStorage(StorageKey.lastAccountID) private var lastAccountID = ""
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
 
     /// Giao dịch đang sửa; nil khi thêm mới.
     private let editing: FinanceTransaction?
@@ -246,6 +248,12 @@ struct AddTransactionView: View {
             }
             // Read-only (closed goal, archived account): shown, not typed into.
             .disabled(isReadOnly)
+            // What this spending leaves of its limit, as it is typed (user choice 2026-10-30).
+            if let budgetNotice {
+                BudgetNoticeRow(notice: budgetNotice)
+                    .padding(.top, -Spacing.l)
+                    .transition(.opacity)
+            }
 
             // "Mua ngay" for less than the goal holds: the rest goes back to an account.
             if buyingGoal != nil, leftover >= 1, let leftoverAccount {
@@ -292,7 +300,18 @@ struct AddTransactionView: View {
             categoryID = pickedByKind[kind] ?? ""
         }
         .animation(.smooth(duration: 0.3), value: leftover >= 1)
+        .animation(.smooth(duration: 0.3), value: budgetNotice == nil)
         .onAppear(perform: fillDefaults)
+    }
+
+    /// The limit note: a counted spending only, not in a goal (its money was set aside already)
+    /// and not on a read-only one.
+    private var budgetNotice: BudgetNotice? {
+        guard mode == .expense, !isReadOnly, !keepsSystemCategory, buyingGoal == nil,
+              accountID.flatMap(store.goal(id:)) == nil else { return nil }
+        return store.budgetNotice(amount: amount, categoryID: categoryID, accountID: accountID, date: date,
+                                  isExcluded: isExcluded, replacing: editing, monthLimit: monthlyBudget,
+                                  groupLimits: categoryBudgets.keeping(store.budgetGroupIDs))
     }
 
     private func title(for isEditing: Bool) -> String {
@@ -453,4 +472,33 @@ struct TransactionEditSheet: View {
     AddTransactionView()
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
+}
+
+/// One line under the details: the limit's state after this spending, grey, amber or red.
+private struct BudgetNoticeRow: View {
+    let notice: BudgetNotice
+
+    private var color: Color {
+        switch notice.level {
+        case .fine: Palette.secondaryText
+        case .nearing: Palette.warningText
+        case .over: Palette.red
+        }
+    }
+
+    var body: some View {
+        Label {
+            Text(notice.text)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+        } icon: {
+            TimiIcon(notice.level == .fine ? "hugeicons-chart-increase" : "hugeicons-alert-circle", size: 16)
+        }
+        .textRole(.caption)
+        .foregroundStyle(color)
+        .padding(.horizontal, RowMetrics.horizontal)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.snappy, value: notice)
+        .accessibilityElement(children: .combine)
+    }
 }

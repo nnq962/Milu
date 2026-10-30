@@ -43,7 +43,7 @@ struct SheetHeader: View {
 
     @ViewBuilder
     private func confirmButton(_ action: @escaping () -> Void) -> some View {
-        let button = Button(action: action) { glyph("checkmark", color: .white) }
+        let button = Button(action: action) { glyph("checkmark", color: Palette.onPrimary) }
             .accessibilityLabel("Xong")
         if #available(iOS 26.0, *) {
             button

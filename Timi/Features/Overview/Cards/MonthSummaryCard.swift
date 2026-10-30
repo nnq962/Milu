@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// This month's money in and out, and the spending limit; tapping the limit edits it.
+/// This month's money in and out, and the spending limit. The totals open Báo cáo; the limit opens
+/// Hạn mức chi tiêu.
 struct MonthSummaryCard: View {
     let monthlyBudget: Double
     let onEditBudget: () -> Void
+    let onOpenReport: () -> Void
 
     @Environment(FinanceStore.self) private var store
 
@@ -14,19 +16,30 @@ struct MonthSummaryCard: View {
         let month = calendar.component(.month, from: .now)
         let daysLeft = (calendar.range(of: .day, in: .month, for: .now)?.count ?? 0) - calendar.component(.day, from: .now)
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center) {
-                Text("Tháng \(month) tổng quan")
-                    .textRole(.title)
-                    .frame(minHeight: 24)
-                Spacer(minLength: 4)
-                Text("Còn \(daysLeft) ngày")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
+            // The title and the two totals open Báo cáo (user choice 2026-10-30); › says so.
+            Button(action: onOpenReport) {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .center, spacing: Spacing.xs) {
+                        Text("Tháng \(month) tổng quan")
+                            .textRole(.title)
+                            .frame(minHeight: 24)
+                        TimiIcon("hugeicons-arrow-right-01", size: 16)
+                            .foregroundStyle(Palette.secondary)
+                        Spacer(minLength: 4)
+                        Text("Còn \(daysLeft) ngày")
+                            .textRole(.captionStrong)
+                            .foregroundStyle(Palette.secondaryText)
+                    }
+                    HStack(spacing: 12) {
+                        flowStat("Tiền vào", amount: store.total(.income), income: true)
+                        flowStat("Tiền ra", amount: expense, income: false)
+                    }
+                }
+                .foregroundStyle(Palette.ink)
+                .contentShape(Rectangle())
             }
-            HStack(spacing: 12) {
-                flowStat("Tiền vào", amount: store.total(.income), income: true)
-                flowStat("Tiền ra", amount: expense, income: false)
-            }
+            .buttonStyle(.automatic)
+            .accessibilityHint("Mở báo cáo")
             Button(action: onEditBudget) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -48,7 +61,7 @@ struct MonthSummaryCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.automatic)
-            .accessibilityHint("Chỉnh hạn mức chi tiêu hàng tháng")
+            .accessibilityHint("Mở hạn mức chi tiêu")
         }
         .overviewCard()
     }

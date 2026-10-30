@@ -102,7 +102,7 @@ struct LockBadge: View {
 
     var body: some View {
         TimiIcon("hugeicons-square-lock-02", size: Self.glyph)
-            .foregroundStyle(.white)
+            .foregroundStyle(Palette.onPrimary)
             .frame(width: Self.size, height: Self.size)
             .background(Palette.primary, in: Circle())
             .padding(Self.ring)

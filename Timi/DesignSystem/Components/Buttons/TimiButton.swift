@@ -49,8 +49,10 @@ enum TimiButtonRole: CaseIterable, Identifiable {
 
     fileprivate var foreground: Color {
         switch self {
-        case .primary, .destructiveSolid: .white
-        case .secondary, .accent: Palette.ink
+        case .primary: Palette.onPrimary
+        case .destructiveSolid: .white
+        case .secondary: Palette.ink
+        case .accent: Palette.onLime
         case .destructive: Palette.red
         }
     }

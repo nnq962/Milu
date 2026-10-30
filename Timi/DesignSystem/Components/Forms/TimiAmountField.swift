@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A ready amount offered before anything is typed ("Mỗi tháng 167k" on a goal deposit).
+/// A ready amount offered before anything is typed ("Mỗi tháng 167k" on a goal deposit); with no
+/// label, the amount alone ("10tr").
 struct AmountPreset: Hashable {
     let label: String
     let value: Double
@@ -184,14 +185,15 @@ struct TimiAmountField: View {
                     text = String(Int(preset.value)).groupedVNDInput
                     picks += 1
                 } label: {
-                    Text("\(preset.label) \(preset.value.vndCompact)")
+                    // An empty label shows the amount alone ("10tr").
+                    Text(preset.label.isEmpty ? preset.value.vndCompact : "\(preset.label) \(preset.value.vndCompact)")
                         .textRole(.captionStrong)
                         .foregroundStyle(picked ? .white : Palette.ink)
                         .fixedSize()
                 }
                 .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
                 .buttonBorderShape(.capsule)
-                .accessibilityLabel("\(preset.label) \(preset.value.vnd)")
+                .accessibilityLabel(preset.label.isEmpty ? preset.value.vnd : "\(preset.label) \(preset.value.vnd)")
             }
             ForEach(suggestions, id: \.self) { value in
                 let picked = value == amount

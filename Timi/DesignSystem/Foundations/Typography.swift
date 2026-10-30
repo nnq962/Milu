@@ -87,8 +87,8 @@ enum Typography {
         // Sleek segmented control: selected SemiBold ink, others Medium muted; iOS owns the shape.
         let segmented = UISegmentedControl.appearance()
         if let medium = UIFont(name: instance(for: .medium), size: 14), let semibold = UIFont(name: instance(for: .semibold), size: 14) {
-            segmented.setTitleTextAttributes([.font: medium, .foregroundColor: UIColor(red: 89/255, green: 97/255, blue: 113/255, alpha: 1)], for: .normal)
-            segmented.setTitleTextAttributes([.font: semibold, .foregroundColor: UIColor(red: 17/255, green: 24/255, blue: 39/255, alpha: 1)], for: .selected)
+            segmented.setTitleTextAttributes([.font: medium, .foregroundColor: UIColor(Palette.secondaryText)], for: .normal)
+            segmented.setTitleTextAttributes([.font: semibold, .foregroundColor: UIColor(Palette.ink)], for: .selected)
         }
 
         let navigation = UINavigationBar.appearance()

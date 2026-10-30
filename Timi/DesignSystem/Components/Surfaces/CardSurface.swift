@@ -2,7 +2,7 @@ import SwiftUI
 
 extension View {
     /// Solid design color with Apple's continuous corners. Glass belongs to buttons only.
-    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = .white, elevated: Bool = false) -> some View {
+    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.card, elevated: Bool = false) -> some View {
         // Clip the content (not the shadow) so a pressed row's grey follows the card's corners.
         clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .background {

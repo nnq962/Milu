@@ -3,11 +3,15 @@ import SwiftUI
 /// Home tab: greeting, then the overview cards (one file each in `Cards/`), with the sheets they open.
 struct OverviewView: View {
     @Binding var selectedTab: AppTab
-    @AppStorage("overview.monthlyBudget") private var monthlyBudget = SampleData.monthlyBudget
-    @State private var isEditingBudget = false
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+    @State private var isShowingBudget = false
+    @State private var isShowingReport = false
     @State private var information: Information?
     @State private var isShowingSettings = false
     @State private var selectedDay: CalendarDay?
+    @Environment(FinanceStore.self) private var store
+    @Environment(AIQuota.self) private var quota
+    @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
 
     private struct Information: Identifiable {
         let id = UUID()
@@ -28,8 +32,9 @@ struct OverviewView: View {
                     ProUpgradeCard {
                         information = Information(title: "Timi Pro · Sắp ra mắt", message: "Gói Pro đang được chuẩn bị. Hiện chưa mở đăng ký hoặc thanh toán; trợ lý trong app vẫn dùng dữ liệu giả lập.")
                     }
-                    OnboardingCard()
-                    MonthSummaryCard(monthlyBudget: monthlyBudget) { isEditingBudget = true }
+                    OnboardingCard(selectedTab: $selectedTab)
+                    MonthSummaryCard(monthlyBudget: monthlyBudget, onEditBudget: { isShowingBudget = true },
+                                     onOpenReport: { isShowingReport = true })
                     AttentionCard()
                     MoneyCalendarCard { selectedDay = CalendarDay(date: $0) }
                 }
@@ -57,7 +62,13 @@ struct OverviewView: View {
                     ToolbarItem(placement: .topBarTrailing) { notificationButton }
                 }
             }
-            .sheet(isPresented: $isEditingBudget) { BudgetEditorSheet(monthlyBudget: $monthlyBudget) }
+            // Here, not on the card: the card goes away as its last step is done.
+            .onChange(of: OnboardingCard.completedSteps(store, askedAI: hasAskedAI), initial: true) { _, steps in
+                steps.forEach(quota.claim)
+            }
+            // The whole Hạn mức chi tiêu page, not only the amount (user choice 2026-10-30).
+            .navigationDestination(isPresented: $isShowingBudget) { BudgetView() }
+            .navigationDestination(isPresented: $isShowingReport) { ReportView() }
             .sheet(item: $information) { info in
                 NavigationStack {
                     VStack(alignment: .leading, spacing: 16) {
@@ -133,6 +144,7 @@ extension View {
 #Preview {
     OverviewView(selectedTab: .constant(.overview))
         .environment(FinanceStore())
+        .environment(AIQuota())
         .environment(\.locale, .vietnam)
         .textRole(.body)
 }

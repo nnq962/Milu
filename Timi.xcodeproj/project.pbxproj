@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		A1C0FFEE0000000000000008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 568C7C71308E036200F4B02D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 568C7C78308E036200F4B02D;
+			remoteInfo = Timi;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		568C7C79308E036200F4B02D /* Timi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Timi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1C0FFEE0000000000000001 /* TimiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TimiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +27,22 @@
 			path = Timi;
 			sourceTree = "<group>";
 		};
+		A1C0FFEE0000000000000002 /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		568C7C76308E036200F4B02D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				568C7C7B308E036200F4B02D /* Timi */,
+				A1C0FFEE0000000000000002 /* Tests */,
 				568C7C7A308E036200F4B02D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				568C7C79308E036200F4B02D /* Timi.app */,
+				A1C0FFEE0000000000000001 /* TimiTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = 568C7C79308E036200F4B02D /* Timi.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A1C0FFEE0000000000000003 /* TimiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000000009 /* Build configuration list for PBXNativeTarget "TimiTests" */;
+			buildPhases = (
+				A1C0FFEE0000000000000004 /* Sources */,
+				A1C0FFEE0000000000000005 /* Frameworks */,
+				A1C0FFEE0000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1C0FFEE0000000000000007 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A1C0FFEE0000000000000002 /* Tests */,
+			);
+			name = TimiTests;
+			packageProductDependencies = (
+			);
+			productName = TimiTests;
+			productReference = A1C0FFEE0000000000000001 /* TimiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					568C7C78308E036200F4B02D = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					A1C0FFEE0000000000000003 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 568C7C78308E036200F4B02D;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				568C7C78308E036200F4B02D /* Timi */,
+				A1C0FFEE0000000000000003 /* TimiTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		568C7C77308E036200F4B02D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1C0FFEE0000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1C0FFEE0000000000000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 568C7C78308E036200F4B02D /* Timi */;
+			targetProxy = A1C0FFEE0000000000000008 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		568C7C82308E036300F4B02D /* Debug */ = {
@@ -324,6 +399,52 @@
 			};
 			name = Release;
 		};
+		A1C0FFEE000000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BFD7HJ6N92;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quyetnguyen.TimiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Timi.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Timi";
+			};
+			name = Debug;
+		};
+		A1C0FFEE000000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BFD7HJ6N92;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quyetnguyen.TimiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Timi.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Timi";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -341,6 +462,15 @@
 			buildConfigurations = (
 				568C7C85308E036300F4B02D /* Debug */,
 				568C7C86308E036300F4B02D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1C0FFEE0000000000000009 /* Build configuration list for PBXNativeTarget "TimiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE000000000000000A /* Debug */,
+				A1C0FFEE000000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

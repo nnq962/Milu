@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Meaning of a badge; colour is used sparingly, red only for real warnings.
+/// Meaning of a badge; colour is used sparingly, red only for real warnings. "Thông tin" was dropped
+/// (2026-10-29): its grey could not be told from Trung tính, and no screen used it.
 enum BadgeTone: CaseIterable, Identifiable {
-    case neutral, positive, accent, info, caution, warning
+    case neutral, positive, accent, caution, warning
 
     var id: Self { self }
 
@@ -11,7 +12,6 @@ enum BadgeTone: CaseIterable, Identifiable {
         case .neutral: "Trung tính"
         case .positive: "Đã thu"
         case .accent: "Pro"
-        case .info: "Thông tin"
         case .caution: "Sắp đến hạn"
         case .warning: "Quá hạn"
         }
@@ -22,7 +22,6 @@ enum BadgeTone: CaseIterable, Identifiable {
         case .neutral: Palette.fill2
         case .positive: Palette.green.opacity(0.12)
         case .accent: Palette.lime
-        case .info: Palette.secondarySurface
         case .caution: Palette.warning.opacity(0.16)
         case .warning: Palette.red.opacity(0.10)
         }
@@ -32,14 +31,15 @@ enum BadgeTone: CaseIterable, Identifiable {
         switch self {
         case .warning: Palette.red
         // Amber text on amber is too light to read: a deep amber.
-        case .caution: Color(red: 146/255, green: 64/255, blue: 14/255)
+        case .caution: Palette.warningText
+        case .accent: Palette.onLime
         default: Palette.ink
         }
     }
 
     fileprivate var dot: Color {
         switch self {
-        case .neutral, .info: Palette.secondary
+        case .neutral: Palette.secondary
         case .positive: Palette.green
         case .accent: Palette.ink
         case .caution: Palette.warning

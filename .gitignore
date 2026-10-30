@@ -22,3 +22,6 @@ build/
 *.p12
 *.mobileprovision
 *.p8
+
+# Brand and logo source images kept locally, not part of the app (user choice 2026-10-29)
+docs/design/

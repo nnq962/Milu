@@ -3,7 +3,7 @@ import SwiftUI
 struct AssistantAvatar: View {
     var body: some View {
         TimiIcon("hugeicons-ai-magic", size: 14)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.onLime)
             .frame(width: 32, height: 32)
             .background(Palette.lime, in: Circle())
             .accessibilityHidden(true)

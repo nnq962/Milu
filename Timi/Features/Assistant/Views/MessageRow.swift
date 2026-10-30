@@ -14,10 +14,10 @@ struct MessageRow: View {
                 Text(message.text)
                     .textRole(.body)
                     .lineSpacing(5)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onPrimary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(Palette.ink, in: UnevenRoundedRectangle(
+                    .background(Palette.primary, in: UnevenRoundedRectangle(
                         topLeadingRadius: Bubble.radius, bottomLeadingRadius: Bubble.radius,
                         bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.tail, style: .continuous))
                     .containerRelativeFrame(.horizontal, alignment: .trailing) { width, _ in width * Bubble.maxWidth }

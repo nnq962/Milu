@@ -25,7 +25,8 @@ struct MoneyCalendarCard: View {
                     .textRole(.title)
                     .frame(minHeight: 24)
                 Spacer(minLength: 4)
-                monthMenu
+                // The same month button and "Chọn tháng" sheet as Giao dịch (user request 2026-10-29).
+                MonthMenu(month: $displayedMonth)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 4), count: 7), spacing: 4) {
                 ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
@@ -52,63 +53,28 @@ struct MoneyCalendarCard: View {
         .overviewCard()
     }
 
-    private var monthMenu: some View {
-        let calendar = Calendar.current
-        let year = calendar.component(.year, from: displayedMonth)
-        let month = calendar.component(.month, from: displayedMonth)
-        let isCurrentYear = year == calendar.component(.year, from: .now)
-        return Menu {
-            Button("Tháng trước") { changeMonth(-1) }
-            Button("Tháng hiện tại") { displayedMonth = .now }
-            Button("Tháng sau") { changeMonth(1) }
-            Divider()
-            ForEach((year - 1)...(year + 1), id: \.self) { targetYear in
-                Menu(String(targetYear)) {
-                    ForEach(1...12, id: \.self) { targetMonth in
-                        Button("Tháng \(targetMonth)") {
-                            if let date = calendar.date(from: DateComponents(year: targetYear, month: targetMonth, day: 1)) {
-                                displayedMonth = date
-                            }
-                        }
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                TimiIcon("hugeicons-calendar-03", size: 14)
-                Text(isCurrentYear ? "Tháng \(month)" : "T\(month)/\(year.formatted(.number.grouping(.never)))")
-                    .textRole(.captionStrong)
-                    .monospacedDigit()
-                TimiIcon("hugeicons-arrow-down-01", size: 12)
-                    .foregroundStyle(Palette.secondaryText)
-            }
-            .foregroundStyle(Palette.ink)
-        }
-        .menuIndicator(.hidden)
-        .nativeGlassButton(tint: Palette.muted)
-        .buttonBorderShape(.capsule)
-        .controlSize(.small)
-        .accessibilityLabel("Chọn tháng, tháng \(month) năm \(String(year))")
-    }
-
     private func day(_ date: Date, income: Double, expense: Double) -> some View {
         let calendar = Calendar.current
         let today = calendar.isDateInToday(date)
-        let total = income + expense
-        // Three neutral activity levels from the mockup; today overrides the heat map.
+        // Days still ahead: faint and not tappable, nothing can be on them yet.
+        let isAhead = date > calendar.startOfDay(for: .now) && !today
+        // Green where more came in than went out, red where more went out, deeper the bigger the
+        // gap (user choice 2026-10-29, after the greys); today stays lime.
+        let net = income - expense
+        let strength = abs(net) >= 3_000_000 ? 0.24 : abs(net) >= 1_000_000 ? 0.15 : 0.08
         let fill = today ? Palette.lime
-            : total >= 3_000_000 ? Palette.secondary.opacity(0.25)
-            : total >= 1_000_000 ? Palette.muted
-            : Palette.muted.opacity(0.4)
+            : net > 0 ? Palette.green.opacity(strength)
+            : net < 0 ? Palette.red.opacity(strength)
+            : Palette.fill1
         return Button { onSelectDay(date) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(calendar.component(.day, from: date))")
                     .textRole(.captionStrong)
-                    .foregroundStyle(today ? Palette.ink : Palette.secondaryText)
+                    .foregroundStyle(today ? Palette.onLime : Palette.secondaryText)
                     .frame(minHeight: 16.5, alignment: .topLeading)
                 VStack(alignment: .leading, spacing: 0) {
                     if income > 0 {
-                        amount("+\(income.vndCompact)", color: Palette.ink)
+                        amount("+\(income.vndCompact)", color: today ? Palette.onLime : Palette.ink)
                     }
                     if expense > 0 {
                         amount("-\(expense.vndCompact)", color: Palette.red)
@@ -122,17 +88,21 @@ struct MoneyCalendarCard: View {
         }
         // Calendar cells are flat data tiles in the design; only the month control uses glass.
         .buttonStyle(.card)
+        .disabled(isAhead)
+        .opacity(isAhead ? 0.4 : 1)
         .accessibilityLabel("\(today ? "Hôm nay, " : "")\(date.formatted(.dateTime.weekday(.wide).day().month().year().locale(.vietnam))), thu \(income.vnd), chi \(expense.vnd)")
         .accessibilityHint("Xem giao dịch trong ngày")
     }
 
     private func amount(_ text: String, color: Color) -> some View {
+        // One size for every day: 13pt only fit short figures, so "-85k" and "-430k" came out at
+        // different sizes. Shrinks only for a rare long one ("-12,5tr").
         Text(text)
-            .textRole(.footnote)
+            .font(Typography.font(.caption2, size: 10, weight: .medium))
             .monospacedDigit()
             .foregroundStyle(color)
-            .lineLimit(1).minimumScaleFactor(0.7)
-            .frame(maxWidth: .infinity, minHeight: 11.25, alignment: .leading)
+            .lineLimit(1).minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func changeMonth(_ delta: Int) {

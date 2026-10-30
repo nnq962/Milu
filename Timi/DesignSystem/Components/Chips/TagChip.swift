@@ -23,7 +23,7 @@ struct TagChip: View {
                         .monospacedDigit()
                         .lineLimit(1)
                 }
-                .foregroundStyle(isProminent ? Color.white : isSuggestion ? Palette.secondaryText : Palette.ink)
+                .foregroundStyle(isProminent ? Palette.onPrimary : isSuggestion ? Palette.secondaryText : Palette.ink)
                 .padding(.leading, Spacing.m)
                 .padding(.trailing, onRemove == nil ? Spacing.m : Spacing.xxs)
                 // At least 36, taller with larger text (Dynamic Type).

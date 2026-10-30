@@ -2,10 +2,13 @@ import SwiftUI
 
 struct AssistantView: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(AIQuota.self) private var quota
     @State private var conversations = [Conversation.new(name: "Quyet")]
     @State private var currentID: Conversation.ID?
     @State private var draft = ""
     @State private var isThinking = false
+    /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
+    @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
     @State private var editingTransaction: FinanceTransaction?
     @State private var dictation = SpeechDictation()
     @FocusState private var isInputFocused: Bool
@@ -45,7 +48,9 @@ struct AssistantView: View {
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
-            .safeAreaInset(edge: .bottom) { inputBar }
+            .safeAreaInset(edge: .bottom) {
+                if quota.isEmpty { outOfQuestions } else { inputBar }
+            }
             .navigationTitle("Timi")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
@@ -165,7 +170,7 @@ struct AssistantView: View {
                 send(draft)
             } label: {
                 TimiIcon("hugeicons-arrow-up-02", size: 18)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onPrimary)
             }
             .nativeFloatingButton(diameter: 40, tint: Palette.primary)
             .disabled(!canSend)
@@ -178,6 +183,30 @@ struct AssistantView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         // Solid page color, not a self-made blur: iOS owns translucency around system bars.
+        .background(Palette.background)
+    }
+
+    /// In place of the input once this month's questions and the bonus are used up.
+    private var outOfQuestions: some View {
+        HStack(alignment: .top, spacing: 12) {
+            TimiIcon("hugeicons-ai-magic", size: 20)
+                .foregroundStyle(Palette.onLime)
+                .frame(width: 36, height: 36)
+                .background(Palette.lime, in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Đã dùng hết lượt AI")
+                    .textRole(.bodyStrong)
+                Text("Lượt mới vào \(quota.renewsOn.formatted(.dateTime.day().month(.defaultDigits).locale(.vietnam))). Timi Pro có \(AIQuota.monthlyPro) lượt mỗi tháng, sắp ra mắt.")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(Palette.card, in: RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Palette.background)
     }
 
@@ -199,12 +228,13 @@ struct AssistantView: View {
 
     private func send(_ text: String) {
         let question = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, !isThinking else { return }
+        guard !question.isEmpty, !isThinking, quota.spend() else { return }
         dictation.stop()
         let index = currentIndex
         conversations[index].messages.append(ChatMessage(role: .user, text: question))
         draft = ""
         isThinking = true
+        hasAskedAI = true
 
         Task {
             // Giả lập thời gian "suy nghĩ" của AI
@@ -244,6 +274,7 @@ struct AssistantView: View {
 #Preview {
     AssistantView()
         .environment(FinanceStore())
+        .environment(AIQuota())
         .environment(\.locale, .vietnam)
         .textRole(.body)
 }

@@ -16,7 +16,7 @@ enum TransactionSegment: String, CaseIterable, Identifiable {
 
 struct TransactionsView: View {
     @Environment(FinanceStore.self) private var store
-    @AppStorage("overview.monthlyBudget") private var monthlyBudget = SampleData.monthlyBudget
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
     @State private var segment: TransactionSegment = .flows
     @State private var filter: TransactionFilter = .all
     @State private var loanFilter: LoanFilter = .all
@@ -198,7 +198,7 @@ struct TransactionsView: View {
     }
 
     /// The two totals, a shorter chart and the budget on one line with its bar (user choice
-    /// 2026-10-29); the month is picked in the toolbar.
+    /// 2026-10-29), then "Xem báo cáo"; the month is picked in the toolbar.
     private var summaryCard: some View {
         let reported = store.reportableTransactions(inMonthOf: displayedMonth)
         let expenses = reported.filter { $0.kind == .expense }
@@ -224,6 +224,25 @@ struct TransactionsView: View {
                     .padding(.top, Spacing.m)
                     .overlay(alignment: .top) { Palette.border.frame(height: 1) }
             }
+            // The month in detail: by group, against last month, per account (user choice 2026-10-30).
+            NavigationLink {
+                ReportView(period: ReportPeriod(.month, containing: displayedMonth))
+            } label: {
+                HStack(spacing: Spacing.s) {
+                    TimiIcon("hugeicons-pie-chart", size: 18)
+                    Text("Xem báo cáo")
+                        .textRole(.captionStrong)
+                    Spacer(minLength: Spacing.s)
+                    TimiIcon("hugeicons-arrow-right-01", size: 16)
+                        .foregroundStyle(Palette.secondary)
+                }
+                .foregroundStyle(Palette.ink)
+                .frame(minHeight: ControlHeight.small)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.automatic)
+            .padding(.top, Spacing.s)
+            .overlay(alignment: .top) { Palette.border.frame(height: 1) }
         }
         .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
     }

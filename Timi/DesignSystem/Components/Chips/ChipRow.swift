@@ -41,7 +41,7 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
                     Button { selection = option } label: {
                         Text(title(option))
                             .textRole(.captionStrong)
-                            .foregroundStyle(selected ? Color.white : Palette.ink)
+                            .foregroundStyle(selected ? Palette.onPrimary : Palette.ink)
                     }
                     .nativeGlassButton(prominent: selected, tint: selected ? Palette.primary : nil)
                     .buttonBorderShape(.capsule)

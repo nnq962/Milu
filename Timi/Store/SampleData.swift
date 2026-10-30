@@ -19,6 +19,9 @@ enum SampleData {
 
     /// Prototype fixtures for the design; not real payment schedules or notifications.
     static let monthlyBudget = 30_000_000.0
+    static let categoryBudgets = CategoryBudgets(limits: [TransactionCategory.food.rawValue: 6_000_000,
+                                                          TransactionCategory.shopping.rawValue: 4_000_000,
+                                                          TransactionCategory.entertainment.rawValue: 2_000_000])
     static let paymentReminders = [
         PaymentReminder(title: "Trả nợ thẻ tín dụng", amount: abs(creditCard.balance), isIncome: false,
                         dueDate: daysFromNow(4), detail: "Đi vay · \(creditCard.name)", avatar: .icon("hugeicons-credit-card")),

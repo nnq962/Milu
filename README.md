@@ -17,13 +17,19 @@
 
 Deployment target hiện tại là iOS 17.6. Project không dùng thư viện bên ngoài.
 
+Chạy test: `⌘U` trong Xcode (scheme `Timi`), hoặc:
+
+```bash
+xcodebuild test -project Timi.xcodeproj -scheme Timi -destination 'platform=iOS Simulator,name=iPhone 17'
+```
+
 ## Cấu trúc
 
 Mỗi file chứa một thành phần chính; file mới trong `Timi/` được Xcode tự nhận (thư mục đồng bộ).
 
-- `Timi/App`: điểm vào app, thanh tab.
+- `Timi/App`: điểm vào app, thanh tab, giao diện sáng/tối (`AppAppearance`), các khoá lưu cài đặt (`StorageKey`).
 - `Timi/Models`: kiểu dữ liệu (tài khoản, hũ, giao dịch, vay nợ, lịch thanh toán).
-- `Timi/Store`: `FinanceStore` (trạng thái dùng chung) và dữ liệu mẫu.
+- `Timi/Store`: `FinanceStore` (trạng thái dùng chung), chia file theo mảng (`FinanceStore+Accounts`, `+Goals`, `+Transfers`, `+Loans`, `+Contacts`, `+Transactions`, `+Categories`, `+Reports`); `AIQuota` (lượt AI); dữ liệu mẫu.
 - `Timi/Persistence`: database SwiftData trên máy (schema, chuyển đổi, đọc/ghi). Xem [docs/DATABASE.md](docs/DATABASE.md).
 - `Timi/Utilities`: định dạng tiền, ngày.
 - `Timi/DesignSystem`: hệ thống thiết kế.
@@ -31,6 +37,7 @@ Mỗi file chứa một thành phần chính; file mới trong `Timi/` được 
   - `Components`: nút, form, sheet, chip, danh sách, biểu đồ, thẻ.
   - `Interaction`: bàn phím, rung.
   - `Legacy`: component đời đầu, bỏ dần khi các màn chuyển sang design system.
+- `Tests`: test Swift Testing cho logic tiền (số dư, chuyển khoản, vay nợ, khoá/lưu trữ) và lượt AI.
 - `Timi/Features`: mỗi tab một thư mục (Overview, Accounts, Transactions, Assistant) và `UILibrary` (màn Thư viện UI, mở từ avatar). Màn lớn chia thư mục con: `Cards`, `Sheets`, `Views`, `Services`…
 
 ## Trạng thái

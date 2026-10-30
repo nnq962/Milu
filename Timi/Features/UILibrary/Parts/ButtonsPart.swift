@@ -46,7 +46,7 @@ struct ButtonsPart: View {
                     .nativeCircleButton(diameter: 44)
                     Spacer()
                     Button {} label: {
-                        TimiIcon("hugeicons-add-01", size: 26).foregroundStyle(.white)
+                        TimiIcon("hugeicons-add-01", size: 26).foregroundStyle(Palette.onPrimary)
                     }
                     .nativeFloatingButton(diameter: ControlHeight.floating, tint: Palette.primary)
                 }

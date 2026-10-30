@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Month button from the design: "Tháng 5" + chevron on a lime capsule (`LimeCapsule`). It opens
+/// Month button: "Tháng 5" + chevron on a plain glass capsule (`GlassCapsule`). It opens
 /// `MonthPickerSheet` (user choice 2026-10-29), not a menu: a menu read as "earlier / later"
 /// rather than picking a month, and its glass button took a moment to settle after it closed.
 struct MonthMenu: View {
@@ -31,8 +31,8 @@ struct MonthMenu: View {
             .frame(minHeight: ControlHeight.regular)
             .contentShape(Capsule())
         }
-        // The app's accent, so the month reads as the card's control (user choice 2026-10-29).
-        .modifier(LimeCapsule())
+        // The same plain glass as the search circle beside it (user choice 2026-10-29, after lime).
+        .modifier(GlassCapsule())
         .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
         .sheet(isPresented: $isPicking) {
             MonthPickerSheet(month: $month)
@@ -49,6 +49,9 @@ struct MonthPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(FinanceStore.self) private var store
     @State private var year: Int
+    /// Whether "Tháng này" shows, decided as the sheet opens: picking a month changes `month` and
+    /// closes the sheet, and the button must not pop in (and the sheet grow) while it slides away.
+    @State private var showsThisMonth: Bool
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: 4)
@@ -56,6 +59,7 @@ struct MonthPickerSheet: View {
     init(month: Binding<Date>) {
         _month = month
         _year = State(initialValue: Calendar.current.component(.year, from: month.wrappedValue))
+        _showsThisMonth = State(initialValue: !Calendar.current.isDate(month.wrappedValue, equalTo: .now, toGranularity: .month))
     }
 
     private var thisYear: Int { calendar.component(.year, from: .now) }
@@ -91,7 +95,7 @@ struct MonthPickerSheet: View {
                 }
             }
 
-            if chosen != (thisYear, thisMonth) {
+            if showsThisMonth {
                 Button("Tháng này") { pick(year: thisYear, month: thisMonth) }
                     .textRole(.bodyStrong)
                     .tint(Palette.ink)
@@ -125,7 +129,7 @@ struct MonthPickerSheet: View {
             Text("T\(number)")
                 .textRole(.bodyStrong)
                 .monospacedDigit()
-                .foregroundStyle(isChosen ? Color.white : isAhead ? Palette.secondaryText : Palette.ink)
+                .foregroundStyle(isChosen ? Palette.onPrimary : isAhead ? Palette.secondaryText : Palette.ink)
                 .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
                 .background(isChosen ? Palette.primary : Palette.card, in: Capsule())
         }
@@ -143,20 +147,19 @@ struct MonthPickerSheet: View {
     }
 }
 
-/// The month button's look: lime, 44pt tall like the toolbar's glass circles (the system button
-/// beside it). A glass button style there takes the toolbar's smaller height, so the capsule is
-/// drawn here; earlier iOS has no glass and takes a plain lime capsule (a bordered style there used
-/// the app's black tint, black on black).
-private struct LimeCapsule: ViewModifier {
+/// The month button's look: the iOS default glass, as the search circle beside it, 44pt tall
+/// like it. A glass button style there takes the toolbar's smaller height, so the capsule is
+/// drawn here; earlier iOS has no glass and takes the light grey fill a bordered button has.
+private struct GlassCapsule: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
                 .buttonStyle(.plain)
-                .glassEffect(.regular.tint(Palette.lime).interactive(), in: Capsule())
+                .glassEffect(.regular.interactive(), in: Capsule())
         } else {
             content
                 .buttonStyle(.plain)
-                .background(Palette.lime, in: Capsule())
+                .background(Palette.fill3, in: Capsule())
         }
     }
 }
