@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// How near a loan's deadline is, for its badge and its place in the list (user request
-/// 2026-10-29): overdue red, within a week amber, within a month grey, further green.
+/// 2026-10-29): overdue red, within a week orange, within a month grey, further green.
 enum LoanUrgency: Comparable {
     case overdue(days: Int)
     case soon(days: Int)
@@ -116,7 +116,7 @@ struct LoanCard: View {
             ProgressBar(value: loan.paidRatio, color: Self.progressColor(for: loan, urgency: urgency))
                 .padding(.top, Spacing.s)
         }
-        .sleekCard(padding: Spacing.l)
+        .sleekCard()
         .overlay {
             if case .overdue = urgency {
                 RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)

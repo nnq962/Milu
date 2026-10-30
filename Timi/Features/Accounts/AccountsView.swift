@@ -114,7 +114,7 @@ struct AccountsView: View {
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel("Thêm tài khoản hoặc hũ")
     }
 

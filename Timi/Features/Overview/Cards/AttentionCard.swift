@@ -6,7 +6,7 @@ struct AttentionCard: View {
 
     var body: some View {
         let reminders = store.paymentReminders.sorted { $0.dueDate < $1.dueDate }
-        VStack(alignment: .leading, spacing: Spacing.m) {
+        VStack(alignment: .leading, spacing: Spacing.l) {
             HStack {
                 Text("Cần chú ý")
                     .textRole(.title)
@@ -29,10 +29,12 @@ struct AttentionCard: View {
                             .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                     }
                 }
-                // Rows carry their own 16pt margin; line their icons up with the card's 20pt edge.
+                // Rows carry their own 16pt margin and 10pt above and below; line their icons up with
+                // the card's 20pt edge and let the last row end on the card's bottom margin.
                 .padding(.horizontal, -RowMetrics.horizontal)
+                .padding(.vertical, -RowMetrics.vertical)
             }
         }
-        .overviewCard()
+        .sleekCard()
     }
 }

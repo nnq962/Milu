@@ -6,7 +6,7 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     case primary
     /// Secondary actions inside content.
     case secondary
-    /// Pro and AI (Nâng cấp).
+    /// Amber, for Pro only.
     case accent
     /// Delete next to Save in a sheet footer: light, so Save stays the main action.
     case destructive

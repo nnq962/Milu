@@ -170,7 +170,7 @@ struct TransactionsView: View {
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel(segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay")
     }
 
@@ -180,7 +180,7 @@ struct TransactionsView: View {
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel("Thêm khoản vay")
     }
 
@@ -208,11 +208,12 @@ struct TransactionsView: View {
         let listed = monthTransactions
         return VStack(alignment: .leading, spacing: Spacing.m) {
             HStack(spacing: 0) {
-                flowTotal("Đã chi", count: listed.count(where: TransactionFilter.expense.matches), amount: spent)
+                flowTotal("Đã chi", count: listed.count(where: TransactionFilter.expense.matches), amount: spent,
+                          color: Palette.red)
                     .padding(.trailing, Spacing.l)
                     .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
                 flowTotal("Đã thu", count: listed.count(where: TransactionFilter.income.matches),
-                          amount: incomes.reduce(0) { $0 + $1.amount })
+                          amount: incomes.reduce(0) { $0 + $1.amount }, color: Palette.green)
                     .padding(.leading, Spacing.l)
             }
             DailySpendingChart(month: displayedMonth,
@@ -237,17 +238,20 @@ struct TransactionsView: View {
                         .foregroundStyle(Palette.secondary)
                 }
                 .foregroundStyle(Palette.ink)
-                .frame(minHeight: ControlHeight.small)
+                .frame(minHeight: ControlHeight.regular)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.automatic)
-            .padding(.top, Spacing.s)
+            // The 44pt row has ~12pt of air above and below its text: let that air stand in for the
+            // gap under the line (12pt, as the budget row's) and for the card's bottom margin.
+            .padding(.vertical, -(ControlHeight.regular - 20) / 2)
+            .padding(.top, Spacing.m)
             .overlay(alignment: .top) { Palette.border.frame(height: 1) }
         }
-        .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
+        .sleekCard(padding: Spacing.xl)
     }
 
-    private func flowTotal(_ title: String, count: Int, amount: Double) -> some View {
+    private func flowTotal(_ title: String, count: Int, amount: Double, color: Color) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("\(title) · \(count)")
                 .textRole(.captionStrong)
@@ -255,6 +259,7 @@ struct TransactionsView: View {
             // Exact line height + minimumScaleFactor shrinks text unexpectedly on iOS; use min-height.
             Text(amount.vnd)
                 .textRole(.amountLarge)
+                .foregroundStyle(color)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
                 .frame(minHeight: 32)
         }

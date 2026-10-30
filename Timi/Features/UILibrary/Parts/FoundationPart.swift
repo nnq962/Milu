@@ -2,26 +2,30 @@ import SwiftUI
 
 struct FoundationPart: View {
     private let colors: [(name: String, hex: String, color: Color)] = [
-        ("background", "#FAFAF7", Palette.background),
+        ("background", "#FAF7F2", Palette.background),
         ("card", "#FFFFFF", Palette.card),
-        ("ink", "#111827", Palette.ink),
-        ("secondaryText", "#596171", Palette.secondaryText),
-        ("muted", "#F1F1EC", Palette.muted),
-        ("border", "#E5E5E0", Palette.border),
-        ("input", "#F3F3EF", Palette.input),
-        ("lime", "#C6F432", Palette.lime),
-        ("incomeTile", "#E8F6ED", Palette.incomeTile),
-        ("rowPressed", "#F3FCD6", Palette.rowPressed),
-        ("red", "#DC2626", Palette.red),
-        ("green", "#16A34A", Palette.green),
-        ("secondarySurface", "#EEF0F3", Palette.secondarySurface),
+        ("ink", "#1F2A22", Palette.ink),
+        ("primary", "#3E5B3F", Palette.primary),
+        ("green (tiền vào)", "#1E5A48", Palette.green),
+        ("red (tiền ra)", "#B5543F", Palette.red),
+        ("lime (vàng)", "#E0A840", Palette.lime),
+        ("sky", "#5FB89A", Palette.sky),
+        ("warning", "#E8890C", Palette.warning),
+        ("chartCoral", "#E8917A", Palette.chartCoral),
+        ("chartRest", "#A9B9A0", Palette.chartRest),
+        ("secondaryText", "#6F675B", Palette.secondaryText),
+        ("muted", "#F1EEE6", Palette.muted),
+        ("border", "#ECE7DC", Palette.border),
+        ("input", "#F4F1EA", Palette.input),
+        ("incomeTile", "green 12%", Palette.incomeTile),
+        ("rowPressed", "primary 10%", Palette.rowPressed),
         ("fill1", "mực 4%", Palette.fill1),
         ("fill2", "mực 6%", Palette.fill2),
         ("fill3", "mực 10%", Palette.fill3),
     ]
 
     private let radii: [(name: String, value: CGFloat)] = [
-        ("extraLarge", CardCorners.extraLarge), ("sheet", CardCorners.sheet), ("large", CardCorners.large),
+        ("sheet", CardCorners.sheet), ("large", CardCorners.large),
         ("inset", CardCorners.inset), ("flow", CardCorners.flow), ("field", CardCorners.field),
         ("icon", CardCorners.icon), ("calendarDay", CardCorners.calendarDay),
     ]

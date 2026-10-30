@@ -17,7 +17,8 @@ struct ContentView: View {
         // Hugeicons free has no filled style: a tab keeps its outline icon when selected and the
         // tab bar's own highlight marks it.
         tabs
-            .tint(.primary)
+            // The chosen tab in the brand teal (Sleek theme, 2026-10-30).
+            .tint(Palette.primary)
             .background {
                 InstantTabSwitch { isAddingTransaction = true }.frame(width: 0, height: 0)
             }

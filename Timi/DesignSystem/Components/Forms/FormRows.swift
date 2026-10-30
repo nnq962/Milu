@@ -27,7 +27,7 @@ struct FormPickerRow<Value: Hashable>: View {
     }
 }
 
-/// On/off with Apple's switch: on iOS 26 its knob turns to Liquid Glass while dragged. Black when on.
+/// On/off with Apple's switch: on iOS 26 its knob turns to Liquid Glass while dragged. Teal when on.
 struct FormToggleRow: View {
     let title: String
     var subtitle: String? = nil

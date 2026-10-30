@@ -16,7 +16,6 @@ struct SheetScaffold<Header: View, Content: View>: View {
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
 
-    @Environment(\.dismiss) private var dismiss
     /// Set by the first ✓: a second tap while the sheet slides away saves nothing twice.
     @State private var hasConfirmed = false
 
@@ -52,7 +51,7 @@ struct SheetScaffold<Header: View, Content: View>: View {
 
     private var closeButton: some View { SheetCloseButton() }
 
-    /// iOS 26 draws ✓ on a filled glass circle in the tint (black); it greys itself out when disabled.
+    /// iOS 26 draws ✓ on a filled glass circle in the tint (teal); it greys itself out when disabled.
     @ViewBuilder
     private func confirmButton(_ confirm: @escaping () -> Void) -> some View {
         let action = {

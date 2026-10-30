@@ -1,89 +1,84 @@
 import SwiftUI
 
-/// Timi Pro promotion (redone 2026-10-29, user choice): dark card with a faint lime glow and a lime
-/// edge that slowly runs round it, a PRO badge, three benefits, and "Nâng cấp ngay".
+/// Timi Pro promotion (redone 2026-10-30 from the user's Sleek theme): a white card with an amber
+/// PRO badge, three benefits each with a plain teal tick, a teal "Tìm hiểu Timi Pro", and an amber
+/// edge that runs round it once when the card appears (UI review 2026-10-30: a loop never let the
+/// eye rest).
 struct ProUpgradeCard: View {
     let onUpgrade: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var lapStart = Date.now
+    @State private var lapDone = false
+    private let lap: TimeInterval = 2.4
 
     private let benefits = ["300 lượt AI mỗi tháng", "Xuất báo cáo PDF, Excel", "Đồng bộ trên mọi thiết bị"]
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.l) {
-            // Lime is kept for the crown, the button and the edge (user note 2026-10-29: too green).
-            HStack(spacing: Spacing.s) {
+            HStack(spacing: Spacing.xs) {
                 TimiIcon("hugeicons-crown", size: 14)
-                    .foregroundStyle(Palette.lime)
                 Text("PRO")
                     .textRole(.captionStrong)
                     .tracking(1.2)
-                    .foregroundStyle(.white)
             }
+            .foregroundStyle(Palette.onLime)
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(.white.opacity(0.12), in: Capsule())
+            .padding(.vertical, 5)
+            .background(Palette.lime, in: Capsule())
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Timi Pro")
                     .textRole(.pageTitle)
+                    .foregroundStyle(Palette.ink)
                 Text("Mở khoá mọi tính năng của Timi.")
                     .textRole(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Palette.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .foregroundStyle(.white)
 
-            VStack(alignment: .leading, spacing: Spacing.s) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 ForEach(benefits, id: \.self) { benefit in
-                    HStack(spacing: Spacing.s) {
-                        TimiIcon("hugeicons-checkmark-circle-02", size: 16)
-                            .foregroundStyle(.white.opacity(0.6))
+                    HStack(spacing: Spacing.m) {
+                        TimiIcon("hugeicons-tick-02", size: 18)
+                            .foregroundStyle(Palette.primary)
                         Text(benefit)
                             .textRole(.captionStrong)
-                            .foregroundStyle(.white.opacity(0.92))
+                            .foregroundStyle(Palette.ink)
                     }
                 }
             }
             .accessibilityElement(children: .combine)
 
             Button(action: onUpgrade) {
-                Text("Nâng cấp ngay")
-                    .textRole(.captionStrong)
-                    .foregroundColor(Palette.onLime)
-                    .frame(maxWidth: .infinity, minHeight: 20)
-            }
-            .nativeGlassButton(tint: Palette.lime)
-            .buttonBorderShape(.capsule)
-            // Regular, not large: the large one outweighed the card (user note 2026-10-29).
-            .controlSize(.regular)
-            .tint(Palette.lime)
-            .foregroundStyle(Palette.onLime)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            Color.clear
-                .cardSurface(color: Palette.proCard)
-                .overlay(alignment: .topTrailing) {
-                    Circle()
-                        .fill(Palette.lime.opacity(0.16))
-                        .frame(width: 180, height: 180)
-                        .blur(radius: 50)
-                        .offset(x: 50, y: -50)
+                HStack(spacing: Spacing.s) {
+                    TimiIcon("hugeicons-crown", size: 16)
+                    Text("Tìm hiểu Timi Pro")
+                        .textRole(.captionStrong)
                 }
-                .clipShape(shape)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+                .foregroundStyle(Palette.onPrimary)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(Palette.primary, in: Capsule())
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.card)
         }
-        .overlay { runningEdge }
+        .padding(Spacing.card)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(radius: CardCorners.large, color: Palette.card, elevated: true)
+        .overlay { if !lapDone { runningEdge } }
+        .task {
+            lapStart = .now
+            try? await Task.sleep(for: .seconds(lap))
+            lapDone = true
+        }
     }
 
-    /// A lime highlight going round the edge once every 6 seconds; still when Reduce Motion is on.
+    /// An amber highlight going round the edge once; still when Reduce Motion is on.
     private var runningEdge: some View {
         TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { context in
-            let turn = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 6) / 6
+            let turn = min(context.date.timeIntervalSince(lapStart) / lap, 1)
             shape.strokeBorder(
                 AngularGradient(stops: [.init(color: Palette.lime.opacity(0.05), location: 0),
                                         .init(color: Palette.lime.opacity(0.05), location: 0.62),

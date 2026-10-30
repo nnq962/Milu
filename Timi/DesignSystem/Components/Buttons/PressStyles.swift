@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A tappable row: the row takes a pale lime wash while pressed and fades back on release, like a
+/// A tappable row: the row takes a faint teal wash while pressed and fades back on release, like a
 /// cell in an iOS list. The card around the rows clips it to its corners (see `cardSurface`).
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

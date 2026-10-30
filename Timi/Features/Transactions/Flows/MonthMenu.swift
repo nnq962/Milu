@@ -41,7 +41,7 @@ struct MonthMenu: View {
 }
 
 /// Picks a month: the year with ‹ › on top, then the twelve months in a grid; the chosen one is
-/// black, months still ahead are faint and cannot be picked. Picking closes the sheet. "Tháng này"
+/// teal, months still ahead are faint and cannot be picked. Picking closes the sheet. "Tháng này"
 /// goes back to the current month.
 struct MonthPickerSheet: View {
     @Binding var month: Date

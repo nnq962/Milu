@@ -48,7 +48,7 @@ struct LoansSummaryCard: View {
                 .padding(.top, Spacing.m)
             HStack(spacing: Spacing.m) {
                 tile("Cho vay", amount: lent, detail: "\(lenders) người", dot: Palette.green,
-                     color: Palette.ink, background: Palette.incomeTile)
+                     color: Palette.green, background: Palette.incomeTile)
                 // Red only while something is owed.
                 tile("Đang nợ", amount: owed, detail: "\(debts) người", dot: Palette.red,
                      color: owed > 0 ? Palette.red : Palette.ink, background: Palette.muted)

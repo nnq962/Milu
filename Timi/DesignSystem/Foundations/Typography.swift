@@ -57,15 +57,6 @@ enum Typography {
     }
 
     static var body: Font { font(.body, size: 17) }
-    static var headline: Font { font(.headline, size: 17, weight: .semibold) }
-    static var subheadline: Font { font(.subheadline, size: 15) }
-    static var callout: Font { font(.callout, size: 16) }
-    static var footnote: Font { font(.footnote, size: 13) }
-    static var caption: Font { font(.caption, size: 12) }
-    static var caption2: Font { font(.caption2, size: 11) }
-    static var title: Font { font(.title, size: 28) }
-    static var title2: Font { font(.title2, size: 22) }
-    static var title3: Font { font(.title3, size: 20) }
 
     static func configureNativeAppearance() {
         _ = registered

@@ -133,6 +133,32 @@ struct FinanceStoreTests {
         #expect(store.totalLent == 4_000_000)
     }
 
+    // MARK: - Tài sản ròng theo tháng
+
+    @Test func netWorthHistoryTakesBackLaterIncomeAndSpending() {
+        let calendar = Calendar.current
+        let lastMonth = calendar.date(byAdding: .month, value: -1, to: .now)!
+        let store = makeStore()
+        store.add(FinanceTransaction(amount: 3_000_000, category: .salary, accountID: bank.id, date: lastMonth))
+        store.add(expense(500_000, on: wallet))
+        let history = store.netWorthHistory(months: 3)
+        #expect(history.count == 3)
+        #expect(history[2].value == 8_500_000)
+        // Last month closed before today's 500k went out.
+        #expect(history[1].value == 9_000_000)
+        // Before the salary came in.
+        #expect(history[0].value == 6_000_000)
+    }
+
+    @Test func transfersAndExistingLoansDoNotMoveTheHistory() {
+        let store = makeStore()
+        store.add(AccountTransfer(fromAccountID: bank.id, toAccountID: wallet.id, amount: 1_000_000, date: .now))
+        store.save(Loan(name: "Lan", direction: .lent, principal: 2_000_000, outstanding: 2_000_000,
+                        dueDate: nil, isExisting: true))
+        let history = store.netWorthHistory(months: 2)
+        #expect(history[0].value == history[1].value)
+    }
+
     // MARK: - Khoá và lưu trữ
 
     @Test func lockedAccountsStayOutOfTotalsAndReports() {

@@ -8,6 +8,9 @@ struct OverviewView: View {
     @State private var isShowingReport = false
     @State private var information: Information?
     @State private var isShowingSettings = false
+    /// Tài sản ròng and what it opens go by value (pushing a value onto a page opened with
+    /// `isPresented` popped straight back).
+    @State private var path = NavigationPath()
     @State private var selectedDay: CalendarDay?
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
@@ -24,25 +27,38 @@ struct OverviewView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Spacing.section) {
                     greetingHeader
-                    BalanceCard()
+                    // One solid teal lead card, then the rest; the Pro offer goes last.
+                    HeroCard { path.append(NetWorthRoute()) }
+                    OnboardingCard(selectedTab: $selectedTab)
+                    AttentionCard()
+                    MonthSummaryCard(monthlyBudget: monthlyBudget, onOpenReport: { isShowingReport = true },
+                                     onOpenBudget: { isShowingBudget = true })
+                    MoneyCalendarCard { selectedDay = CalendarDay(date: $0) }
                     ProUpgradeCard {
                         information = Information(title: "Timi Pro · Sắp ra mắt", message: "Gói Pro đang được chuẩn bị. Hiện chưa mở đăng ký hoặc thanh toán; trợ lý trong app vẫn dùng dữ liệu giả lập.")
                     }
-                    OnboardingCard(selectedTab: $selectedTab)
-                    MonthSummaryCard(monthlyBudget: monthlyBudget, onEditBudget: { isShowingBudget = true },
-                                     onOpenReport: { isShowingReport = true })
-                    AttentionCard()
-                    MoneyCalendarCard { selectedDay = CalendarDay(date: $0) }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
                 .padding(.bottom, 24)
             }
-            .background(Palette.background)
+            .background(alignment: .top) {
+                // Two faint colour blobs, as in the user's Sleek theme (2026-10-30); the amber one
+                // went in the UI review, amber is kept for the few things that ask for attention.
+                ZStack {
+                    Palette.background
+                    Circle().fill(Palette.primary.opacity(0.10)).frame(width: 260).blur(radius: 80)
+                        .offset(x: -150, y: -60)
+                    Circle().fill(Palette.sky.opacity(0.14)).frame(width: 260).blur(radius: 80)
+                        .offset(x: 170, y: 260)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
+            }
             .foregroundStyle(Palette.ink)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
@@ -69,6 +85,10 @@ struct OverviewView: View {
             // The whole Hạn mức chi tiêu page, not only the amount (user choice 2026-10-30).
             .navigationDestination(isPresented: $isShowingBudget) { BudgetView() }
             .navigationDestination(isPresented: $isShowingReport) { ReportView() }
+            .navigationDestination(for: NetWorthRoute.self) { _ in NetWorthView() }
+            .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
+            .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
+            .navigationDestination(for: GoalRoute.self) { GoalDetailView(goalID: $0.id) }
             .sheet(item: $information) { info in
                 NavigationStack {
                     VStack(alignment: .leading, spacing: 16) {
@@ -96,7 +116,7 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel("Hồ sơ của Quyet")
         .accessibilityHint("Mở cài đặt")
     }
@@ -109,7 +129,7 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel("Thông báo")
     }
 
@@ -117,8 +137,9 @@ struct OverviewView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)).capitalizedFirstLetter)
                 .textRole(.captionStrong).foregroundStyle(Palette.secondaryText)
-            Text("\(greeting), Quyet")
-                .textRole(.pageTitle)
+            // Large, on two lines (user choice 2026-10-30).
+            Text("\(greeting),\nQuyet")
+                .textRole(.display)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -129,15 +150,6 @@ struct OverviewView: View {
         case 12..<18: "Chào buổi chiều"
         default: "Chào buổi tối"
         }
-    }
-}
-
-extension View {
-    /// White card used by every Overview card.
-    func overviewCard() -> some View {
-        self.padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(color: Palette.card, elevated: true)
     }
 }
 

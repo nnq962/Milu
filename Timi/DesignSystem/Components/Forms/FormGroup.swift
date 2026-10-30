@@ -72,8 +72,6 @@ enum FormMetrics {
     static let plainGlyph = RowMetrics.iconGlyph
     static let plainColumn = RowMetrics.iconColumn
     static let gap = RowMetrics.gap
-    static let verticalPadding = RowMetrics.vertical
-    static let rowHeight = RowMetrics.minHeight
 }
 
 /// Hairline between form rows, lined up with the title after the icon tile.

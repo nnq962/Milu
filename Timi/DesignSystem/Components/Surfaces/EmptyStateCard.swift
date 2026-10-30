@@ -22,7 +22,7 @@ struct EmptyStateCard: View {
                 .padding(.top, Spacing.xs)
         }
         .frame(maxWidth: .infinity)
-        .sleekCard(padding: 24, radius: CardCorners.extraLarge)
+        .sleekCard(padding: 24)
         .accessibilityElement(children: .combine)
     }
 }

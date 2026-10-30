@@ -125,7 +125,7 @@ struct TransactionSearchView: View {
 
     // MARK: - Bộ lọc
 
-    /// "Bộ lọc" (black with a count when something is on), one chip per thing that is on (× drops
+    /// "Bộ lọc" (teal with a count when something is on), one chip per thing that is on (× drops
     /// it), then quick picks for what is not set yet, so the button never stands alone.
     private var filterChips: some View {
         // Scroll only when the chips overflow: a horizontal ScrollView behind glass draws a lighter

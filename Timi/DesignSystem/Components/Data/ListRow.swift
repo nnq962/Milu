@@ -94,7 +94,7 @@ struct ListRow: View {
     }
 }
 
-/// A small black lock on a white ring, pinned to the corner of a row's icon.
+/// A small white lock on a teal circle, ringed in white, pinned to the corner of a row's icon.
 struct LockBadge: View {
     static let size: CGFloat = 15
     static let glyph: CGFloat = 9

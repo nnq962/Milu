@@ -1,24 +1,23 @@
 import SwiftUI
 
-/// This month's money in and out, and the spending limit. The totals open Báo cáo; the limit opens
-/// Hạn mức chi tiêu.
+/// This month's money in and out (tapping it opens Báo cáo), then the month's limit as a bar
+/// coloured by `ProgressBar.budgetColor` (tapping it opens Hạn mức chi tiêu). Tiles tinted teal and red as in the user's Sleek theme
+/// (2026-10-30).
 struct MonthSummaryCard: View {
     let monthlyBudget: Double
-    let onEditBudget: () -> Void
     let onOpenReport: () -> Void
+    let onOpenBudget: () -> Void
 
     @Environment(FinanceStore.self) private var store
 
     var body: some View {
         let expense = store.total(.expense)
-        let ratio = monthlyBudget > 0 ? expense / monthlyBudget : 0
         let calendar = Calendar.current
         let month = calendar.component(.month, from: .now)
         let daysLeft = (calendar.range(of: .day, in: .month, for: .now)?.count ?? 0) - calendar.component(.day, from: .now)
-        VStack(alignment: .leading, spacing: 16) {
-            // The title and the two totals open Báo cáo (user choice 2026-10-30); › says so.
+        VStack(alignment: .leading, spacing: Spacing.l) {
             Button(action: onOpenReport) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     HStack(alignment: .center, spacing: Spacing.xs) {
                         Text("Tháng \(month) tổng quan")
                             .textRole(.title)
@@ -30,7 +29,7 @@ struct MonthSummaryCard: View {
                             .textRole(.captionStrong)
                             .foregroundStyle(Palette.secondaryText)
                     }
-                    HStack(spacing: 12) {
+                    HStack(spacing: Spacing.m) {
                         flowStat("Tiền vào", amount: store.total(.income), income: true)
                         flowStat("Tiền ra", amount: expense, income: false)
                     }
@@ -40,45 +39,46 @@ struct MonthSummaryCard: View {
             }
             .buttonStyle(.automatic)
             .accessibilityHint("Mở báo cáo")
-            Button(action: onEditBudget) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Hạn mức chi tiêu")
-                        Spacer()
-                        Text(monthlyBudget > 0 ? ratio.percentText : "Thiết lập")
-                            .monospacedDigit()
+
+            if monthlyBudget > 0 {
+                let ratio = expense / monthlyBudget
+                Button(action: onOpenBudget) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
+                        HStack {
+                            Text("Hạn mức \(monthlyBudget.vndCompact)")
+                            Spacer(minLength: Spacing.s)
+                            Text(ratio.percentText)
+                                .monospacedDigit()
+                        }
+                        .textRole(.captionStrong)
+                        .foregroundStyle(Palette.secondaryText)
+                        // The one limit rule of the app: teal, orange from 80%, red when over.
+                        ProgressBar(value: ratio, color: ProgressBar.budgetColor(ratio))
                     }
-                    .textRole(.captionStrong)
-                    .frame(minHeight: 16.5)
-                    ProgressBar(value: ratio, color: ProgressBar.budgetColor(ratio))
-                    .accessibilityHidden(true)
-                    Text(monthlyBudget > 0 ? "Đã dùng \(expense.vndCompact) / \(monthlyBudget.vndCompact)" : "Đặt hạn mức để theo dõi chi tiêu")
-                        .textRole(.caption)
-                        .monospacedDigit()
-                        .frame(minHeight: 16.5)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
-                .foregroundStyle(Palette.secondaryText)
-                .contentShape(Rectangle())
+                .buttonStyle(.automatic)
+                .accessibilityLabel("Hạn mức chi tiêu, đã dùng \(ratio.percentText)")
+                .accessibilityHint("Mở hạn mức chi tiêu")
             }
-            .buttonStyle(.automatic)
-            .accessibilityHint("Mở hạn mức chi tiêu")
         }
-        .overviewCard()
+        .sleekCard()
     }
 
     private func flowStat(_ title: String, amount: Double, income: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Text(title)
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-                .frame(minHeight: 16.5)
             Text("\(income ? "+" : "-")\(amount.vndCompact)")
-                .textRole(.bodyStrong).monospacedDigit()
-                .foregroundStyle(income ? Palette.ink : Palette.red)
+                .textRole(.heading).monospacedDigit()
+                .foregroundStyle(income ? Palette.green : Palette.red)
                 .lineLimit(1).minimumScaleFactor(0.65)
-                .frame(minHeight: 24)
         }
-        .frame(maxWidth: .infinity, alignment: .leading).padding(12)
-        .cardSurface(radius: CardCorners.flow, color: income ? Palette.incomeTile : Palette.muted)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.l)
+        .background(income ? Palette.incomeTile : Palette.red.opacity(0.10),
+                    in: RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
     }
 }

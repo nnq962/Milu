@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ButtonsPart: View {
-    @State private var isPressedSample = false
 
     var body: some View {
         PartSection(part: .buttons) {

@@ -29,7 +29,7 @@ struct CategoryReportView: View {
         let transactions = store.expenses(inGroup: groupID, in: interval)
 
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 ReportPeriodBar(period: $period)
                 summary(spent: spent, allSpent: store.total(.expense, in: interval),
                         before: store.expenses(inGroup: groupID, in: period.comparison()).reduce(0) { $0 + $1.amount })
@@ -125,7 +125,7 @@ struct CategoryReportView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
+        .sleekCard(padding: Spacing.xl)
     }
 
     /// An item: name, share and amount, ›, and a bar of its share of the group.
@@ -170,7 +170,7 @@ struct ItemTransactionsView: View {
         let total = transactions.reduce(0) { $0 + $1.amount }
 
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 HStack(spacing: Spacing.m) {
                     RowIcon(name: store.categoryIcon(itemID), size: 28)
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -183,7 +183,7 @@ struct ItemTransactionsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
+                .sleekCard(padding: Spacing.xl)
                 .accessibilityElement(children: .combine)
 
                 if transactions.isEmpty {

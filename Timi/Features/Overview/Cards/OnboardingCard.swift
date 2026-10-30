@@ -37,7 +37,12 @@ struct OnboardingCard: View {
                             .foregroundStyle(Palette.secondaryText)
                     }
                     Spacer()
-                    StatusBadge(text: "\(completed)/4", showsDot: false)
+                    Text("\(completed)/4")
+                        .textRole(.captionStrong)
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.ink)
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(Palette.fill2, in: Capsule())
                 }
                 ProgressBar(value: Double(completed) / 4)
                     .padding(.top, 4)
@@ -47,9 +52,12 @@ struct OnboardingCard: View {
                     row("Ghi một khoản cho vay", completed: hasLoan) { step = .loan }
                     row("Hỏi AI một câu hỏi", completed: hasAskedAI) { selectedTab = .assistant }
                 }
+                // Each 44pt row has ~10pt of air under its 24pt content: the last one's stands in for
+                // part of the card's bottom margin, so it ends 20pt from the edge like the top.
+                .padding(.bottom, -10)
                 .accessibilityElement(children: .contain)
             }
-            .overviewCard()
+            .sleekCard()
             .sheet(item: $step) { step in
                 switch step {
                 case .account: AddAccountView(type: .bank)
@@ -62,7 +70,7 @@ struct OnboardingCard: View {
 
     /// A step: ticked and greyed when done; otherwise a row with a chevron that starts it.
     private func row(_ title: String, completed: Bool, action: @escaping () -> Void) -> some View {
-        // Not `disabled`: that would grey the black tick too.
+        // Not `disabled`: that would grey the teal tick too.
         Button { if !completed { action() } } label: {
             HStack(spacing: 10) {
                 ZStack {
@@ -83,13 +91,13 @@ struct OnboardingCard: View {
                     .textRole(.footnote)
                     .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
                     .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(completed ? Palette.fill1 : Palette.fill2, in: Capsule())
+                    .background(completed ? Palette.fill1 : Palette.lime, in: Capsule())
                 if !completed {
                     TimiIcon("hugeicons-arrow-right-01", size: 14)
                         .foregroundStyle(Palette.secondaryText)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

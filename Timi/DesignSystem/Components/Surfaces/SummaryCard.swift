@@ -28,7 +28,7 @@ struct SummaryCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sleekCard(radius: CardCorners.extraLarge)
+        .sleekCard()
     }
 }
 

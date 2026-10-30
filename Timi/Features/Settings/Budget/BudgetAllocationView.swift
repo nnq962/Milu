@@ -42,7 +42,7 @@ struct BudgetAllocationView: View {
         let monthPeriod = ReportPeriod(.month, containing: month)
 
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 overview(parts: parts, assigned: assigned, unassigned: unassigned)
 
                 FormGroup(title: "Phân bổ") {
@@ -138,7 +138,7 @@ struct BudgetAllocationView: View {
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
         }
-        .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
+        .sleekCard(padding: Spacing.xl)
         .accessibilityElement(children: .combine)
     }
 }

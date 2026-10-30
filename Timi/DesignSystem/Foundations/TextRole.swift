@@ -5,7 +5,7 @@ import SwiftUI
 /// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 13 · 12 · 11.
 /// Use `.textRole(_:)` instead of raw sizes. Manrope renders one weight heavier (see Typography).
 enum TextRole: CaseIterable, Identifiable {
-    /// The screen's lead figure (Tổng tài sản). 34
+    /// The screen's lead figure (Tài sản ròng). 34
     case display
     /// The amount being typed in a form. 40
     case hero
@@ -56,11 +56,10 @@ enum TextRole: CaseIterable, Identifiable {
 
     var weight: Font.Weight {
         switch self {
-        case .display, .amountLarge: .heavy
-        case .hero: .bold
-        case .pageTitle, .heading, .title, .bodyStrong: .semibold
-        case .label, .amount, .captionStrong, .overline: .medium
-        case .body, .caption, .footnote, .input: .regular
+        // As the user's Sleek examples (2026-10-30): titles and figures ExtraBold ("font-black"),
+        // every other text Bold ("font-bold"); the thin Regular read as faded.
+        case .display, .hero, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .heavy
+        case .body, .label, .caption, .captionStrong, .footnote, .input: .semibold
         }
     }
 

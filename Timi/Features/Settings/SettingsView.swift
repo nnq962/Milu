@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// Cài đặt, opened from the avatar on Tổng quan as a full sheet (like the account sheet in Apple's
-/// own apps). Redone 2026-10-29: the profile card, this month's lượt AI, a Timi Pro invite, the
-/// look picked right there (three tiles, no list), then Chung, Thông báo, Hỗ trợ and Nhà phát
-/// triển, where the UI library lives. Rows the app cannot do yet open a short note.
+/// own apps). Redone 2026-10-29: the profile card, this month's lượt AI, a Timi Pro invite, then
+/// Chung, Thông báo, Hỗ trợ and Nhà phát triển, where the UI library lives. Rows the app cannot do yet open a short note.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -14,7 +13,6 @@ struct SettingsView: View {
     @AppStorage(StorageKey.dailyReminder) private var dailyReminder = true
     @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = true
     @AppStorage(StorageKey.news) private var news = false
-    @AppStorage(StorageKey.appearance) private var appearance = AppAppearance.system.rawValue
 
     @State private var note: Note?
 
@@ -37,16 +35,11 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.xxl) {
-                    VStack(spacing: Spacing.m) {
+                VStack(alignment: .leading, spacing: Spacing.section) {
+                    VStack(spacing: Spacing.l) {
                         profile
                         aiQuotaCard
                         proInvite
-                    }
-
-                    FormGroup(title: "Giao diện") {
-                        AppearancePicker(selection: Binding { AppAppearance(rawValue: appearance) ?? .system }
-                                             set: { appearance = $0.rawValue })
                     }
 
                     FormGroup(title: "Chung") {
@@ -192,9 +185,9 @@ struct SettingsView: View {
         HStack(spacing: Spacing.m) {
             Text("Q")
                 .textRole(.heading)
-                .foregroundStyle(Palette.onLime)
+                .foregroundStyle(Palette.primary)
                 .frame(width: 56, height: 56)
-                .background(Palette.lime, in: Circle())
+                .background(Palette.primary.opacity(0.10), in: Circle())
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Quyet")
@@ -206,7 +199,7 @@ struct SettingsView: View {
             Spacer(minLength: Spacing.s)
             StatusBadge(text: "Miễn phí", tone: .neutral, showsDot: false)
         }
-        .padding(Spacing.l)
+        .padding(Spacing.card)
         .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
         .accessibilityElement(children: .combine)
     }
@@ -249,49 +242,38 @@ struct SettingsView: View {
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
         }
-        .padding(Spacing.l)
+        .padding(Spacing.card)
         .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
         .accessibilityElement(children: .combine)
     }
 
-    /// A short Timi Pro invite, the same dark and lime as the card on Tổng quan.
+    /// A short Timi Pro invite: a white card like the Timi Pro card on Tổng quan, with a plain amber
+    /// crown (UI review 2026-10-30: only Tài sản ròng is a solid teal card).
     private var proInvite: some View {
         Button {
             note = Note(title: "Timi Pro · Sắp ra mắt",
                         message: "Timi Pro có \(AIQuota.monthlyPro) lượt AI mỗi tháng, xuất báo cáo PDF, Excel và đồng bộ trên mọi thiết bị. Gói đang được chuẩn bị, chưa mở đăng ký hoặc thanh toán.")
         } label: {
             HStack(spacing: Spacing.m) {
-                TimiIcon("hugeicons-crown", size: 20)
-                    .foregroundStyle(Palette.onLime)
-                    .frame(width: 40, height: 40)
-                    .background(Palette.lime, in: RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous))
+                TimiIcon("hugeicons-crown", size: 24)
+                    .foregroundStyle(Palette.lime)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Nâng cấp Timi Pro")
                         .textRole(.bodyStrong)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.ink)
                     Text("\(AIQuota.monthlyPro) lượt AI mỗi tháng, báo cáo, đồng bộ")
                         .textRole(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Palette.secondaryText)
                         .lineLimit(2)
                 }
                 Spacer(minLength: Spacing.s)
                 TimiIcon("hugeicons-arrow-right-01", size: 16)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Palette.secondaryText)
             }
-            .padding(Spacing.l)
+            .padding(Spacing.card)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                Color.clear
-                    .cardSurface(radius: CardCorners.inset, color: Palette.proCard)
-                    .overlay(alignment: .topTrailing) {
-                        Circle()
-                            .fill(Palette.lime.opacity(0.14))
-                            .frame(width: 120, height: 120)
-                            .blur(radius: 40)
-                            .offset(x: 30, y: -40)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
-            }
+            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
         }
         .buttonStyle(.card)

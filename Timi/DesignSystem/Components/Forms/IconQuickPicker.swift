@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A form card of likely icons, two rows of six, the last place a "more" button that opens the
 /// full `IconPickerSheet` (Reminders-style, user choice 2026-10-28): most people pick here and never
-/// open the sheet. Icons stand alone, without a tile; only the chosen one sits on a black circle.
+/// open the sheet. Icons stand alone, without a tile; only the chosen one sits on a teal circle.
 /// An icon chosen in the sheet that is not among the suggestions takes the first place, so the
 /// choice always shows here.
 struct IconQuickPicker: View {
@@ -43,7 +43,7 @@ struct IconQuickPicker: View {
     }
 }
 
-/// One icon to choose, standing alone; a black circle behind it when chosen. Shared by the quick row
+/// One icon to choose, standing alone; a teal circle behind it when chosen. Shared by the quick row
 /// and `IconPickerSheet`.
 struct IconChoice: View {
     let name: String

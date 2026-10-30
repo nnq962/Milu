@@ -2,7 +2,7 @@ import SwiftUI
 
 /// "Hạn mức chi tiêu" (Cài đặt), built 2026-10-30 from the user's choices: the month's limit with
 /// what is left and what can be spent each day until the month ends, then a limit per group of
-/// "Hạng mục" for those that have one, and the other groups to give one. Bars turn amber from 80%
+/// "Hạng mục" for those that have one, and the other groups to give one. Bars turn orange from 80%
 /// and red when over. Any past month can be looked at; the limits are the same for every month.
 ///
 /// Look first, then change (user choice 2026-10-30): the month's card opens Phân bổ hạn mức and a
@@ -32,7 +32,7 @@ struct BudgetView: View {
         let monthPeriod = ReportPeriod(.month, containing: month)
 
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 VStack(alignment: .leading, spacing: Spacing.m) {
                     MonthMenu(month: $month)
                     if monthlyBudget > 0 {
@@ -144,7 +144,7 @@ struct BudgetView: View {
                 .accessibilityElement(children: .combine)
             }
         }
-        .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
+        .sleekCard(padding: Spacing.xl)
         .accessibilityElement(children: .combine)
     }
 

@@ -126,7 +126,7 @@ struct AssistantView: View {
         }
         .menuStyle(.button)
         .buttonBorderShape(.circle)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel("Lịch sử trò chuyện")
     }
 
@@ -189,10 +189,9 @@ struct AssistantView: View {
     /// In place of the input once this month's questions and the bonus are used up.
     private var outOfQuestions: some View {
         HStack(alignment: .top, spacing: 12) {
-            TimiIcon("hugeicons-ai-magic", size: 20)
-                .foregroundStyle(Palette.onLime)
-                .frame(width: 36, height: 36)
-                .background(Palette.lime, in: Circle())
+            TimiIcon("hugeicons-ai-magic", size: 22)
+                .foregroundStyle(Palette.primary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Đã dùng hết lượt AI")
                     .textRole(.bodyStrong)

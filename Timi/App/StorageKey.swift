@@ -8,8 +8,6 @@ enum StorageKey {
     static let monthlyBudget = "overview.monthlyBudget"
     /// Hạn mức của từng nhóm hạng mục (`CategoryBudgets`).
     static let categoryBudgets = "budget.categoryLimits"
-    /// Cài đặt → Giao diện (`AppAppearance`).
-    static let appearance = "settings.appearance"
     static let dailyReminder = "settings.dailyReminder"
     static let budgetAlerts = "settings.budgetAlerts"
     static let news = "settings.news"

@@ -24,7 +24,9 @@ struct MoneyText: View {
         switch tone {
         case .signedExpense: Palette.red
         case .negativeRed: amount < 0 ? Palette.red : Palette.ink
-        case .plain, .signedIncome: Palette.ink
+        // Money in green, money out red, everywhere (user rule 2026-10-30).
+        case .signedIncome: Palette.green
+        case .plain: Palette.ink
         case .muted: Palette.secondaryText
         }
     }

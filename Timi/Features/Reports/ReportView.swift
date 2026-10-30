@@ -24,7 +24,7 @@ struct ReportView: View {
         let before = Dictionary(uniqueKeysWithValues: store.expensesByCategory(in: previous).map { ($0.groupID, $0.amount) })
 
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 ReportPeriodBar(period: $period)
                 totals(spent: spent, received: received,
                        spentBefore: store.total(.expense, in: previous),
@@ -80,7 +80,7 @@ struct ReportView: View {
                     .overlay(alignment: .top) { Palette.border.frame(height: 1) }
             }
         }
-        .sleekCard(padding: Spacing.l, radius: CardCorners.extraLarge)
+        .sleekCard(padding: Spacing.xl)
     }
 
     /// Per day so far, and the largest single spending of the period (review fix 2026-10-30).
@@ -147,6 +147,7 @@ struct ReportView: View {
                 .foregroundStyle(Palette.secondaryText)
             Text(amount.vnd)
                 .textRole(.amountLarge)
+                .foregroundStyle(risingIsBad ? Palette.red : Palette.green)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
                 .frame(minHeight: 32)
             ChangeLabel(now: amount, before: before, period: period, risingIsBad: risingIsBad)

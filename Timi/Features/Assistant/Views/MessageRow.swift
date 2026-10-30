@@ -67,7 +67,9 @@ struct MessageRow: View {
             UnevenRoundedRectangle(topLeadingRadius: Bubble.tail, bottomLeadingRadius: Bubble.radius,
                                    bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.radius, style: .continuous)
                 .fill(Palette.card)
-                .shadow(color: Color(red: 28/255, green: 36/255, blue: 48/255).opacity(0.05), radius: 8, x: 0, y: 2)
+                // The same short shadow as the cards.
+                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
         }
     }
 
@@ -167,7 +169,7 @@ private struct TransactionCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(transaction.signedAmountText)
                 .textRole(.amount)
-                .foregroundStyle(transaction.kind == .income ? Palette.ink : Palette.red)
+                .foregroundStyle(transaction.kind == .income ? Palette.green : Palette.red)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

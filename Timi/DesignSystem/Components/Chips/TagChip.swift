@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A plain chip (not glass: in a scrolling row glass draws a halo): white capsule, thin outline.
 /// With `onRemove` it is a filter that is on ("Chi ×"): the chip opens it, × drops it. Without, a
-/// suggestion in grey that one tap turns on. `isProminent` is the black "Bộ lọc · 2".
+/// suggestion in grey that one tap turns on. `isProminent` is the teal "Bộ lọc · 2".
 struct TagChip: View {
     let title: String
     var icon: String? = nil

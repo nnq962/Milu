@@ -38,7 +38,7 @@ struct ReportPeriodBar: View {
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .nativeCircleButton(diameter: ControlHeight.regular)
-        .tint(Palette.ink)
+        .tint(Palette.primary)
         .accessibilityLabel(label)
     }
 }
@@ -78,20 +78,19 @@ struct ChangeLabel: View {
     }
 }
 
-/// The chart colours of Báo cáo and Phân bổ hạn mức (redone 2026-10-30, the light ones were hard to
-/// see): steps of ink, largest first, each clearly apart; the rest share one light grey ("Khác").
-/// One colour family like the rest of the app, not a rainbow. What is not split (Chưa phân bổ) is
-/// the empty track, marked by a hollow dot.
+/// The chart colours of Báo cáo and Phân bổ hạn mức, from the user's "TổngQuan" theme
+/// (2026-10-30): the four largest groups in moss, mint, gold and coral, the rest share sage
+/// ("Khác"). Taken from `Palette`, so they follow a change of colours. What is not split (Chưa
+/// phân bổ) is the empty track, marked by a hollow dot.
 enum ChartShades {
-    static let steps: [Double] = [1, 0.72, 0.52, 0.36, 0.24]
-    /// Lighter than the last step, still seen on a card in light and dark (14% was lost, 2026-10-30).
-    static let rest = Palette.ink.opacity(0.18)
+    static let steps: [Color] = [Palette.primary, Palette.sky, Palette.lime, Palette.chartCoral]
+    static let rest = Palette.chartRest
 
     /// Whether a colour is the shared "Khác" one, whose dot gets an edge so it stays visible.
     static func isRest(at index: Int) -> Bool { index >= steps.count }
 
     static func color(at index: Int) -> Color {
-        index < steps.count ? Palette.ink.opacity(steps[index]) : rest
+        index < steps.count ? steps[index] : rest
     }
 }
 

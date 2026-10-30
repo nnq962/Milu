@@ -12,13 +12,13 @@ struct DayTotals: View {
         let expense = counted.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
         HStack(spacing: Spacing.m) {
             if income > 0 && expense > 0 {
-                Text("+\(income.formatted(.number.locale(.vietnam)))")
-                // The same grey as a day of spending alone, so 55k reads the same on every day.
-                Text("-\(expense.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.secondaryText)
+                // Money in green, money out red (user rule 2026-10-30).
+                Text("+\(income.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.green)
+                Text("-\(expense.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.red)
             } else if income > 0 {
-                Text("+\(income.vndCompact)")
+                Text("+\(income.vndCompact)").foregroundStyle(Palette.green)
             } else if expense > 0 {
-                Text("-\(expense.vndCompact)").foregroundStyle(Palette.secondaryText)
+                Text("-\(expense.vndCompact)").foregroundStyle(Palette.red)
             }
         }
         .textRole(.captionStrong)

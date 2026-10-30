@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Header of a short sheet, laid out like a native sheet's bar: ✕ on the left, title centred and,
-/// when there is something to confirm, ✓ on the right (black, like the form sheet's).
+/// when there is something to confirm, ✓ on the right (teal, like the form sheet's).
 /// Its ✕ and ✓ are the system's own glyphs, as `SheetCloseButton` and the native close/confirm
 /// buttons are: it stands in for a navigation bar where a sheet has none.
 struct SheetHeader: View {

@@ -474,7 +474,7 @@ struct TransactionEditSheet: View {
         .environment(\.locale, .vietnam)
 }
 
-/// One line under the details: the limit's state after this spending, grey, amber or red.
+/// One line under the details: the limit's state after this spending, grey, orange or red.
 private struct BudgetNoticeRow: View {
     let notice: BudgetNotice
 

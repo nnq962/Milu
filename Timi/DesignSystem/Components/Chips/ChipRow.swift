@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Horizontally scrolling filter chips; the selected chip uses dark prominent glass.
+/// Horizontally scrolling filter chips; the selected chip uses teal prominent glass.
 struct ChipRow<Option: Hashable & Identifiable>: View {
     let options: [Option]
     @Binding var selection: Option

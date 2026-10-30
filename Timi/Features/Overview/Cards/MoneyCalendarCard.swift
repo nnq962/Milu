@@ -7,7 +7,9 @@ struct MoneyCalendarCard: View {
 
     @Environment(FinanceStore.self) private var store
     @State private var displayedMonth = Date.now
-    @ScaledMetric(relativeTo: .caption2) private var dayHeight = 52
+    /// Every day the same height, tall enough for the day and two figures (money in and out):
+    /// a day with both used to stretch its whole row (user report 2026-10-30).
+    @ScaledMetric(relativeTo: .caption2) private var dayHeight = 58
 
     var body: some View {
         let calendar = Calendar.current
@@ -26,7 +28,10 @@ struct MoneyCalendarCard: View {
                     .frame(minHeight: 24)
                 Spacer(minLength: 4)
                 // The same month button and "Chọn tháng" sheet as Giao dịch (user request 2026-10-29).
+                // Its 44pt reaches into the card's margin rather than pushing the title down, so the
+                // title sits 20pt from the top like every other card's.
                 MonthMenu(month: $displayedMonth)
+                    .padding(.vertical, -10)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 4), count: 7), spacing: 4) {
                 ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
@@ -50,7 +55,7 @@ struct MoneyCalendarCard: View {
                 }
             }
         }
-        .overviewCard()
+        .sleekCard()
     }
 
     private func day(_ date: Date, income: Double, expense: Double) -> some View {
@@ -58,23 +63,22 @@ struct MoneyCalendarCard: View {
         let today = calendar.isDateInToday(date)
         // Days still ahead: faint and not tappable, nothing can be on them yet.
         let isAhead = date > calendar.startOfDay(for: .now) && !today
-        // Green where more came in than went out, red where more went out, deeper the bigger the
-        // gap (user choice 2026-10-29, after the greys); today stays lime.
-        let net = income - expense
-        let strength = abs(net) >= 3_000_000 ? 0.24 : abs(net) >= 1_000_000 ? 0.15 : 0.08
-        let fill = today ? Palette.lime
-            : net > 0 ? Palette.green.opacity(strength)
-            : net < 0 ? Palette.red.opacity(strength)
+        // Shaded by how much went out, deeper the more (user choice 2026-10-30): money in does not
+        // colour a day. Today is ringed in teal on top of its shade (UI review 2026-10-30: a solid
+        // amber today hid how much went out on it).
+        let strength = expense >= 3_000_000 ? 0.20 : expense >= 1_000_000 ? 0.14 : 0.08
+        let fill = expense > 0 ? Palette.red.opacity(strength)
+            : today ? Palette.primary.opacity(0.12)
             : Palette.fill1
         return Button { onSelectDay(date) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(calendar.component(.day, from: date))")
                     .textRole(.captionStrong)
-                    .foregroundStyle(today ? Palette.onLime : Palette.secondaryText)
+                    .foregroundStyle(today ? Palette.primary : Palette.secondaryText)
                     .frame(minHeight: 16.5, alignment: .topLeading)
                 VStack(alignment: .leading, spacing: 0) {
                     if income > 0 {
-                        amount("+\(income.vndCompact)", color: today ? Palette.onLime : Palette.ink)
+                        amount("+\(income.vndCompact)", color: Palette.green)
                     }
                     if expense > 0 {
                         amount("-\(expense.vndCompact)", color: Palette.red)
@@ -82,8 +86,14 @@ struct MoneyCalendarCard: View {
                 }
             }
             .padding(4)
-            .frame(maxWidth: .infinity, minHeight: dayHeight, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: dayHeight, maxHeight: dayHeight, alignment: .topLeading)
             .background(fill, in: RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
+            .overlay {
+                if today {
+                    RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
+                        .strokeBorder(Palette.primary, lineWidth: 1.5)
+                }
+            }
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
         }
         // Calendar cells are flat data tiles in the design; only the month control uses glass.
@@ -98,16 +108,10 @@ struct MoneyCalendarCard: View {
         // One size for every day: 13pt only fit short figures, so "-85k" and "-430k" came out at
         // different sizes. Shrinks only for a rare long one ("-12,5tr").
         Text(text)
-            .font(Typography.font(.caption2, size: 10, weight: .medium))
+            .font(Typography.font(.caption2, size: 11, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(color)
             .lineLimit(1).minimumScaleFactor(0.8)
             .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func changeMonth(_ delta: Int) {
-        let calendar = Calendar.current
-        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: displayedMonth))!
-        displayedMonth = calendar.date(byAdding: .month, value: delta, to: start) ?? start
     }
 }

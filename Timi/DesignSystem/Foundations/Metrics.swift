@@ -14,7 +14,7 @@ enum Spacing {
     /// Left/right margin of every screen.
     static let page: CGFloat = 20
     /// Between the parts of a screen.
-    static let section: CGFloat = 20
+    static let section: CGFloat = 28
     /// From a section heading to the card under it, on every screen and in forms.
     static let headerGap: CGFloat = 8
     /// Inside a regular card.
@@ -63,17 +63,15 @@ enum ControlHeight {
     static let floating: CGFloat = 56
 }
 
-/// Corner radii, closer to Apple's own apps than the web's (user request 2026-10-28): cards 22,
-/// like a widget; smaller things round less, so every corner looks in proportion.
+/// Corner radii. Every card one radius, 28 (UI review 2026-10-30: cards were 22, 26 and 32 side
+/// by side); tiles inside a card round less (20), so the inner corner never bulges past the outer.
 enum CardCorners {
     /// Cards and lists on a page, savings goal tiles, overview cards.
-    static let large: CGFloat = 22
-    /// The page's lead card (Tổng số dư, the month summary on Giao dịch).
-    static let extraLarge: CGFloat = 26
+    static let large: CGFloat = 28
     /// A form group or the card in a short sheet.
-    static let inset: CGFloat = 22
+    static let inset: CGFloat = 24
     /// Tiles inside a card (Số dư / Cho vay / Nợ, Tiền vào / Tiền ra), chat cards.
-    static let flow: CGFloat = 16
+    static let flow: CGFloat = 20
     /// Text fields and inline pickers, 44pt tall.
     static let field: CGFloat = 12
     static let icon: CGFloat = 10

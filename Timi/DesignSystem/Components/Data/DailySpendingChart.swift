@@ -1,9 +1,9 @@
 import Charts
 import SwiftUI
 
-/// Spending per day of a month, drawn with Swift Charts: one bar per day, today in lime, days still
+/// Spending per day of a month, drawn with Swift Charts: one bar per day, today in teal, days still
 /// ahead faint. Tap a bar (or drag sideways across them) to read a day's total under the chart; the
-/// selected bar turns black and the phone ticks. The pick stays after the finger lifts; tapping it
+/// selected bar turns teal and the phone ticks. The pick stays after the finger lifts; tapping it
 /// again clears it. A tap answers at once: Charts' own selection waited for a long press inside the
 /// scrolling page and lit the bars up before it took. VoiceOver reads every day through Charts'
 /// own audio graph.
@@ -118,7 +118,7 @@ struct DailySpendingChart: View {
 
     private func color(for day: Day, selected: Day?) -> Color {
         if let selected { return day.id == selected.id ? Palette.primary : Palette.secondary.opacity(0.2) }
-        if day.isToday { return Palette.lime }
+        if day.isToday { return Palette.primary }
         return day.isFuture && day.amount == 0 ? Palette.muted : Palette.secondary.opacity(0.3)
     }
 }

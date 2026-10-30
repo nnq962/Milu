@@ -8,10 +8,11 @@ extension View {
         .background {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(color)
-                // Sleek: 0 2px 16px rgba(28,36,48,.05). Shadow only the surface,
-                // so text and nested tiles don't acquire their own shadows.
-                .shadow(color: Color(red: 28/255, green: 36/255, blue: 48/255).opacity(elevated ? 0.05 : 0),
-                        radius: 8, x: 0, y: 2)
+                // A short shadow close under the card and no border, as in the user's reference
+                // (2026-10-30): a tight contact line plus a faint spread. Shadow only the surface,
+                // so text and nested tiles don't acquire their own.
+                .shadow(color: .black.opacity(elevated ? 0.06 : 0), radius: 1.5, x: 0, y: 1)
+                .shadow(color: .black.opacity(elevated ? 0.05 : 0), radius: 6, x: 0, y: 3)
         }
     }
 }
@@ -25,7 +26,7 @@ extension View {
     }
 
     /// White Sleek card: p-5, large continuous corners and the soft shadow.
-    func sleekCard(padding: CGFloat = 20, radius: CGFloat = CardCorners.large) -> some View {
+    func sleekCard(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.large) -> some View {
         self.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .cardSurface(radius: radius, color: Palette.card, elevated: true)
