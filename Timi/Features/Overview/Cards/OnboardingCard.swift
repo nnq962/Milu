@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// "Làm quen với Timi": four first steps, ticked from what is really in the app. Each step not done
-/// yet is a row that starts it (user request 2026-10-29): add an account, a transaction or a loan,
-/// or go to Trợ lý AI. The card goes away once all four are done.
+/// "Làm quen với Timi": four first steps, ticked from what is really in the app, as one slim row
+/// on a warm block (user request 2026-10-30: fewer words, no mint): a ring with how many are done,
+/// the next step not done yet, and +5 lượt AI. Tapping it starts that step: add an account, a
+/// transaction or a loan, or open Trợ lý AI. It goes away once all four are done.
 struct OnboardingCard: View {
-    @Binding var selectedTab: AppTab
+    let onAskAI: () -> Void
 
     @Environment(FinanceStore.self) private var store
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
@@ -22,42 +23,45 @@ struct OnboardingCard: View {
     }
 
     var body: some View {
-        let hasAccount = !store.accounts.isEmpty
-        let hasTransaction = !store.transactions.isEmpty
-        let hasLoan = !store.loans.isEmpty
-        let completed = [hasAccount, hasTransaction, hasLoan, hasAskedAI].filter { $0 }.count
-        if completed < 4 {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
+        let steps: [(title: String, done: Bool, start: () -> Void)] = [
+            ("Thêm ví đầu tiên", !store.accounts.isEmpty, { step = .account }),
+            ("Ghi một khoản thu chi", !store.transactions.isEmpty, { step = .transaction }),
+            ("Ghi một khoản cho vay", !store.loans.isEmpty, { step = .loan }),
+            ("Hỏi AI một câu hỏi", hasAskedAI, onAskAI),
+        ]
+        let completed = steps.filter(\.done).count
+        if let next = steps.first(where: { !$0.done }) {
+            let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
+            Button(action: next.start) {
+                HStack(spacing: Spacing.m) {
+                    progressRing(completed: completed, total: steps.count)
+                    VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                         Text("Làm quen với Timi")
-                            .textRole(.title)
-                        Text("Hoàn thành để nhận thêm lượt AI")
+                            .textRole(.label)
+                            .foregroundStyle(Palette.ink)
+                        Text(next.title)
                             .textRole(.caption)
                             .foregroundStyle(Palette.secondaryText)
+                            .lineLimit(1)
                     }
-                    Spacer()
-                    Text("\(completed)/4")
-                        .textRole(.captionStrong)
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.ink)
-                        .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(Palette.fill2, in: Capsule())
+                    Spacer(minLength: Spacing.s)
+                    Text("+5 AI")
+                        .textRole(.footnote)
+                        .foregroundStyle(Palette.onLime)
+                        .padding(.horizontal, Spacing.s).padding(.vertical, 3)
+                        .background(Palette.lime, in: Capsule())
+                    TimiIcon("hugeicons-arrow-right-01", size: 14)
+                        .foregroundStyle(Palette.secondary)
                 }
-                ProgressBar(value: Double(completed) / 4)
-                    .padding(.top, 4)
-                VStack(spacing: 0) {
-                    row("Thêm ví đầu tiên", completed: hasAccount) { step = .account }
-                    row("Ghi một khoản thu chi", completed: hasTransaction) { step = .transaction }
-                    row("Ghi một khoản cho vay", completed: hasLoan) { step = .loan }
-                    row("Hỏi AI một câu hỏi", completed: hasAskedAI) { selectedTab = .assistant }
-                }
-                // Each 44pt row has ~10pt of air under its 24pt content: the last one's stands in for
-                // part of the card's bottom margin, so it ends 20pt from the edge like the top.
-                .padding(.bottom, -10)
-                .accessibilityElement(children: .contain)
+                .padding(Spacing.l)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Palette.muted, in: shape)
+                .contentShape(shape)
             }
-            .sleekCard()
+            .buttonStyle(.card)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Làm quen với Timi, xong \(completed) trên \(steps.count) bước")
+            .accessibilityHint("Bước tiếp theo: \(next.title), thêm 5 lượt AI")
             .sheet(item: $step) { step in
                 switch step {
                 case .account: AddAccountView(type: .bank)
@@ -68,42 +72,18 @@ struct OnboardingCard: View {
         }
     }
 
-    /// A step: ticked and greyed when done; otherwise a row with a chevron that starts it.
-    private func row(_ title: String, completed: Bool, action: @escaping () -> Void) -> some View {
-        // Not `disabled`: that would grey the teal tick too.
-        Button { if !completed { action() } } label: {
-            HStack(spacing: 10) {
-                ZStack {
-                    if completed {
-                        Circle().fill(Palette.primary)
-                        TimiIcon("hugeicons-checkmark-circle-02", size: 12).foregroundStyle(Palette.onPrimary)
-                    } else {
-                        Circle().strokeBorder(Palette.border, lineWidth: 2)
-                    }
-                }
-                .frame(width: 20, height: 20)
-                Text(title)
-                    .textRole(completed ? .caption : .captionStrong)
-                    .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
-                    .strikethrough(completed, color: Palette.secondaryText)
-                Spacer(minLength: 4)
-                Text("+5")
-                    .textRole(.footnote)
-                    .foregroundStyle(completed ? Palette.secondaryText : Palette.ink)
-                    .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(completed ? Palette.fill1 : Palette.lime, in: Capsule())
-                if !completed {
-                    TimiIcon("hugeicons-arrow-right-01", size: 14)
-                        .foregroundStyle(Palette.secondaryText)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(Rectangle())
+    /// How many steps are done, "3/4" inside a moss ring.
+    private func progressRing(completed: Int, total: Int) -> some View {
+        ZStack {
+            Circle().stroke(Palette.primary.opacity(0.15), lineWidth: 4)
+            Circle().trim(from: 0, to: Double(completed) / Double(total))
+                .stroke(Palette.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text("\(completed)/\(total)")
+                .textRole(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(Palette.primary)
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title), +5")
-        .accessibilityValue(completed ? "Đã hoàn thành" : "Chưa hoàn thành")
-        .accessibilityAddTraits(completed ? [] : .isButton)
+        .frame(width: 44, height: 44)
     }
 }

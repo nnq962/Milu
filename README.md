@@ -37,7 +37,7 @@ Mỗi file chứa một thành phần chính; file mới trong `Timi/` được 
   - `Components`: nút, form, sheet, chip, danh sách, biểu đồ, thẻ.
   - `Interaction`: bàn phím, rung.
 - `Tests`: test Swift Testing cho logic tiền (số dư, chuyển khoản, vay nợ, khoá/lưu trữ) và lượt AI.
-- `Timi/Features`: mỗi tab một thư mục (Overview, Accounts, Transactions, Assistant), cùng Reports, Settings, Shared và `UILibrary` (màn Thư viện UI, mở từ Cài đặt → Nhà phát triển). Màn lớn chia thư mục con: `Cards`, `Sheets`, `Views`, `Services`…
+- `Timi/Features`: mỗi tab một thư mục (Overview, Accounts, Transactions), Assistant (trang Trợ lý AI mở từ Tổng quan), cùng Reports, Settings, Shared và `UILibrary` (màn Thư viện UI, mở từ Cài đặt → Nhà phát triển). Màn lớn chia thư mục con: `Cards`, `Sheets`, `Views`, `Services`…
 
 ## Trạng thái
 

@@ -16,9 +16,9 @@ enum Palette {
     static let card = rgb(255, 255, 255)
     static let ink = rgb(31, 42, 34)
     /// Solid fills of primary actions (main button, selected chip, switch on, chosen tab), the
-    /// lead card on Tổng quan, header icons.
+    /// header icons.
     static let primary = rgb(62, 91, 63)
-    /// Money in and the tiles behind it.
+    /// Good signs (growth, a limit well within, settled) and the tiles behind money lent.
     static let green = rgb(30, 90, 72)
     /// Money out, over a limit, delete. Coral like the theme, deepened so text on white reaches
     /// 4.5:1 (the theme's #D9725B is 3.2:1).
@@ -48,14 +48,16 @@ enum Palette {
 
     // MARK: Derived: follow the base colours
 
+    /// Money in: ink, with its "+" (user choice 2026-10-30, as Wallet and Cake do). The deep
+    /// green read too close to the moss of buttons and tabs; only money out keeps a colour.
+    /// `green` stays for good signs: growth, a limit well within, a loan settled.
+    static let income = ink
     /// Text and glyphs on `primary`.
     static let onPrimary = Color.white
     /// Text and glyphs on the accent: the dark ink.
     static let onLime = ink
     /// Switches turned on and the chosen day in a calendar.
     static let controlTint = primary
-    /// The lead card on Tổng quan.
-    static let heroCard = primary
     /// Tile behind money coming in (Đang cho vay): the money-in colour, thin.
     static let incomeTile = green.opacity(0.12)
 

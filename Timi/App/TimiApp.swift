@@ -13,6 +13,7 @@ struct TimiApp: App {
     private let container: ModelContainer
     @State private var store: FinanceStore
     @State private var quota = AIQuota()
+    @State private var chats = AssistantChats()
 
     init() {
         Typography.configureNativeAppearance()
@@ -28,6 +29,7 @@ struct TimiApp: App {
                 .scrollIndicators(.hidden, axes: .vertical)
                 .environment(store)
                 .environment(quota)
+                .environment(chats)
                 .modelContainer(container)
                 .environment(\.locale, .vietnam)
         }

@@ -1,15 +1,14 @@
 import SwiftUI
 
-/// Home tab: greeting, then the overview cards (one file each in `Cards/`), with the sheets they open.
+/// Home tab: a moss band with the greeting and the net worth card over its edge, then shortcuts
+/// and plain sections (one file each in `Cards/`), with the sheets they open.
 struct OverviewView: View {
-    @Binding var selectedTab: AppTab
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
-    @State private var isShowingBudget = false
-    @State private var isShowingReport = false
+    /// How far the net worth card reaches up into the moss band.
+    private static let cardOverlap: CGFloat = 72
+
     @State private var information: Information?
     @State private var isShowingSettings = false
-    /// Tài sản ròng and what it opens go by value (pushing a value onto a page opened with
-    /// `isPresented` popped straight back).
+    /// Every page Tổng quan opens goes by value: Tài sản ròng and its parts, Trợ lý AI.
     @State private var path = NavigationPath()
     @State private var selectedDay: CalendarDay?
     @Environment(FinanceStore.self) private var store
@@ -29,40 +28,48 @@ struct OverviewView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.section) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // A wallet-app layout (user request 2026-10-30: fewer cards): a moss band with
+                    // the greeting, the one floating card over its edge, then shortcuts and plain
+                    // sections straight on the page.
                     greetingHeader
-                    // One solid teal lead card, then the rest; the Pro offer goes last.
+                        .padding(.horizontal, Spacing.page)
+                        .padding(.top, Spacing.xs)
+                        .padding(.bottom, Spacing.xxl + Self.cardOverlap)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(alignment: .bottom) {
+                            // Reaches far up so pulling the page down shows moss, not a gap.
+                            UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32, style: .continuous)
+                                .fill(Palette.primary)
+                                .padding(.top, -1000)
+                        }
                     HeroCard { path.append(NetWorthRoute()) }
-                    OnboardingCard(selectedTab: $selectedTab)
-                    AttentionCard()
-                    MonthSummaryCard(monthlyBudget: monthlyBudget, onOpenReport: { isShowingReport = true },
-                                     onOpenBudget: { isShowingBudget = true })
-                    MoneyCalendarCard { selectedDay = CalendarDay(date: $0) }
-                    ProUpgradeCard {
-                        information = Information(title: "Timi Pro · Sắp ra mắt", message: "Gói Pro đang được chuẩn bị. Hiện chưa mở đăng ký hoặc thanh toán; trợ lý trong app vẫn dùng dữ liệu giả lập.")
+                        .padding(.horizontal, Spacing.page)
+                        .padding(.top, -Self.cardOverlap)
+                    // More air than other pages: with no cards, space is what keeps sections apart.
+                    VStack(alignment: .leading, spacing: Spacing.xxxl + Spacing.xs) {
+                        QuickActions { path.append(AssistantRoute()) }
+                        OnboardingCard { path.append(AssistantRoute()) }
+                        AttentionCard()
+                        MoneyCalendarCard { selectedDay = CalendarDay(date: $0) }
+                        ProUpgradeCard {
+                            information = Information(title: "Timi Pro · Sắp ra mắt", message: "Gói Pro đang được chuẩn bị. Hiện chưa mở đăng ký hoặc thanh toán; trợ lý trong app vẫn dùng dữ liệu giả lập.")
+                        }
                     }
+                    .padding(.horizontal, Spacing.page)
+                    .padding(.top, Spacing.xxl)
+                    .padding(.bottom, Spacing.xxl)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 24)
             }
-            .background(alignment: .top) {
-                // Two faint colour blobs, as in the user's Sleek theme (2026-10-30); the amber one
-                // went in the UI review, amber is kept for the few things that ask for attention.
-                ZStack {
-                    Palette.background
-                    Circle().fill(Palette.primary.opacity(0.10)).frame(width: 260).blur(radius: 80)
-                        .offset(x: -150, y: -60)
-                    Circle().fill(Palette.sky.opacity(0.14)).frame(width: 260).blur(radius: 80)
-                        .offset(x: 170, y: 260)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .ignoresSafeArea()
-            }
+            .background(Palette.background)
             .foregroundStyle(Palette.ink)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
+            // The bar is moss like the band under it, with light status-bar text.
+            .toolbarBackground(Palette.primary, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 if #available(iOS 26.0, *) {
                     ToolbarItem(placement: .topBarLeading) {
@@ -82,10 +89,8 @@ struct OverviewView: View {
             .onChange(of: OnboardingCard.completedSteps(store, askedAI: hasAskedAI), initial: true) { _, steps in
                 steps.forEach(quota.claim)
             }
-            // The whole Hạn mức chi tiêu page, not only the amount (user choice 2026-10-30).
-            .navigationDestination(isPresented: $isShowingBudget) { BudgetView() }
-            .navigationDestination(isPresented: $isShowingReport) { ReportView() }
             .navigationDestination(for: NetWorthRoute.self) { _ in NetWorthView() }
+            .navigationDestination(for: AssistantRoute.self) { _ in AssistantView() }
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
             .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
             .navigationDestination(for: GoalRoute.self) { GoalDetailView(goalID: $0.id) }
@@ -116,7 +121,8 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.primary)
+        // Deep moss on the pale glass: white on it was too faint (UI review 2026-10-30).
+        .foregroundStyle(Palette.primary)
         .accessibilityLabel("Hồ sơ của Quyet")
         .accessibilityHint("Mở cài đặt")
     }
@@ -129,17 +135,17 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.primary)
+        .foregroundStyle(Palette.primary)
         .accessibilityLabel("Thông báo")
     }
 
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)).capitalizedFirstLetter)
-                .textRole(.captionStrong).foregroundStyle(Palette.secondaryText)
-            // Large, on two lines (user choice 2026-10-30).
-            Text("\(greeting),\nQuyet")
-                .textRole(.display)
+                .textRole(.captionStrong).foregroundStyle(.white.opacity(0.75))
+            Text("\(greeting), Quyet")
+                .textRole(.pageTitle)
+                .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -153,10 +159,14 @@ struct OverviewView: View {
     }
 }
 
+/// Pushes Trợ lý AI from Tổng quan (the last shortcut, or "Hỏi AI một câu hỏi").
+struct AssistantRoute: Hashable {}
+
 #Preview {
-    OverviewView(selectedTab: .constant(.overview))
+    OverviewView()
         .environment(FinanceStore())
         .environment(AIQuota())
+        .environment(AssistantChats())
         .environment(\.locale, .vietnam)
         .textRole(.body)
 }

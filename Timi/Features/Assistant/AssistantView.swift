@@ -1,10 +1,11 @@
 import SwiftUI
 
+/// Trợ lý AI: a page of its own pushed from Tổng quan, with no tab bar, so the input bar is the
+/// only thing at the bottom (user request 2026-10-30: tab bar and input together looked crowded).
 struct AssistantView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
-    @State private var conversations = [Conversation.new(name: "Quyet")]
-    @State private var currentID: Conversation.ID?
+    @Environment(AssistantChats.self) private var chats
     @State private var draft = ""
     @State private var isThinking = false
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
@@ -14,74 +15,73 @@ struct AssistantView: View {
     @FocusState private var isInputFocused: Bool
 
     private var currentIndex: Int {
-        conversations.firstIndex { $0.id == currentID } ?? conversations.count - 1
+        chats.conversations.firstIndex { $0.id == chats.currentID } ?? chats.conversations.count - 1
     }
 
-    private var messages: [ChatMessage] { conversations[currentIndex].messages }
+    private var messages: [ChatMessage] { chats.conversations[currentIndex].messages }
 
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        dateChip
-                        ForEach(messages) { message in
-                            MessageRow(message: message, onSuggestion: send, onAction: handle)
-                                .id(message.id)
-                        }
-                        if isThinking {
-                            TypingIndicator().id("typing")
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    dateChip
+                    ForEach(messages) { message in
+                        MessageRow(message: message, onSuggestion: send, onAction: handle)
+                            .id(message.id)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 20)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: messages) { _, newMessages in
-                    guard let lastID = newMessages.last?.id else { return }
-                    withAnimation { proxy.scrollTo(lastID, anchor: .bottom) }
-                }
-                .onChange(of: isThinking) { _, thinking in
-                    if thinking { withAnimation { proxy.scrollTo("typing", anchor: .bottom) } }
-                }
-            }
-            .background(Palette.background)
-            .foregroundStyle(Palette.ink)
-            .safeAreaInset(edge: .bottom) {
-                if quota.isEmpty { outOfQuestions } else { inputBar }
-            }
-            .navigationTitle("Timi")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.visible, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
-                if #available(iOS 26.0, *) {
-                    ToolbarItem(placement: .topBarLeading) { heading }
-                        .sharedBackgroundVisibility(.hidden)
-                    ToolbarItem(placement: .topBarTrailing) {
-                        historyMenu.nativeCircleButton(diameter: 44)
+                    if isThinking {
+                        TypingIndicator().id("typing")
                     }
-                    .sharedBackgroundVisibility(.hidden)
-                } else {
-                    ToolbarItem(placement: .topBarLeading) { heading }
-                    ToolbarItem(placement: .topBarTrailing) { historyMenu }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
             }
-            .sheet(item: $editingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
-            .onChange(of: dictation.transcript) { _, text in
-                if dictation.isRecording { draft = text }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: messages) { _, newMessages in
+                guard let lastID = newMessages.last?.id else { return }
+                withAnimation { proxy.scrollTo(lastID, anchor: .bottom) }
             }
-            .alert("Không dùng được micro", isPresented: Binding(
-                get: { dictation.failure != nil },
-                set: { if !$0 { dictation.failure = nil } }
-            )) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(dictationMessage)
+            .onChange(of: isThinking) { _, thinking in
+                if thinking { withAnimation { proxy.scrollTo("typing", anchor: .bottom) } }
             }
-            .onDisappear { dictation.stop() }
         }
+        .background(Palette.background)
+        .foregroundStyle(Palette.ink)
+        .safeAreaInset(edge: .bottom) {
+            if quota.isEmpty { outOfQuestions } else { inputBar }
+        }
+        .navigationTitle("Timi")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
+            if #available(iOS 26.0, *) {
+                ToolbarItem(placement: .topBarLeading) { heading }
+                    .sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .topBarTrailing) {
+                    historyMenu.nativeCircleButton(diameter: 44)
+                }
+                .sharedBackgroundVisibility(.hidden)
+            } else {
+                ToolbarItem(placement: .topBarLeading) { heading }
+                ToolbarItem(placement: .topBarTrailing) { historyMenu }
+            }
+        }
+        .sheet(item: $editingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
+        .onChange(of: dictation.transcript) { _, text in
+            if dictation.isRecording { draft = text }
+        }
+        .alert("Không dùng được micro", isPresented: Binding(
+            get: { dictation.failure != nil },
+            set: { if !$0 { dictation.failure = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(dictationMessage)
+        }
+        .onDisappear { dictation.stop() }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     // MARK: - Đầu trang
@@ -107,12 +107,12 @@ struct AssistantView: View {
                 Label("Cuộc trò chuyện mới", image: "hugeicons-pencil-edit-02")
             }
             .disabled(messages.count <= 1)
-            let earlier = conversations.filter { $0.id != conversations[currentIndex].id && $0.messages.count > 1 }
+            let earlier = chats.conversations.filter { $0.id != chats.conversations[currentIndex].id && $0.messages.count > 1 }
             if !earlier.isEmpty {
                 Section("Trước đó") {
                     ForEach(earlier.reversed()) { conversation in
                         Button {
-                            currentID = conversation.id
+                            chats.currentID = conversation.id
                         } label: {
                             Text(conversation.title)
                             Text(conversation.startedAt.formatted(.dateTime.hour().minute().locale(.vietnam)))
@@ -131,7 +131,7 @@ struct AssistantView: View {
     }
 
     private var dateChip: some View {
-        Text(conversations[currentIndex].startedAt.transactionDayTitle)
+        Text(chats.conversations[currentIndex].startedAt.transactionDayTitle)
             .textRole(.captionStrong)
             .foregroundStyle(Palette.secondaryText)
             .padding(.horizontal, 12)
@@ -220,8 +220,8 @@ struct AssistantView: View {
     // MARK: - Hành động
 
     private func startNewConversation() {
-        conversations.append(.new(name: "Quyet"))
-        currentID = conversations.last?.id
+        chats.conversations.append(.new(name: "Quyet"))
+        chats.currentID = chats.conversations.last?.id
         draft = ""
     }
 
@@ -230,7 +230,7 @@ struct AssistantView: View {
         guard !question.isEmpty, !isThinking, quota.spend() else { return }
         dictation.stop()
         let index = currentIndex
-        conversations[index].messages.append(ChatMessage(role: .user, text: question))
+        chats.conversations[index].messages.append(ChatMessage(role: .user, text: question))
         draft = ""
         isThinking = true
         hasAskedAI = true
@@ -244,26 +244,26 @@ struct AssistantView: View {
             case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
             case nil: nil
             }
-            conversations[index].messages.append(ChatMessage(role: .assistant, text: reply.text, card: card))
+            chats.conversations[index].messages.append(ChatMessage(role: .assistant, text: reply.text, card: card))
             isThinking = false
         }
     }
 
     private func handle(_ action: CardAction, in message: ChatMessage) {
         let index = currentIndex
-        guard let row = conversations[index].messages.firstIndex(where: { $0.id == message.id }),
+        guard let row = chats.conversations[index].messages.firstIndex(where: { $0.id == message.id }),
               let card = message.card else { return }
         switch (action, card) {
         case (.edit, .recorded(let snapshot, _)):
             editingTransaction = store.transaction(id: snapshot.id)
         case (.remove, .recorded(let snapshot, _)):
             store.delete(snapshot)
-            conversations[index].messages[row].card = .recorded(snapshot, removed: true)
+            chats.conversations[index].messages[row].card = .recorded(snapshot, removed: true)
         case (.confirm, .confirmDelete(let snapshot, .pending)):
             store.delete(snapshot)
-            conversations[index].messages[row].card = .confirmDelete(snapshot, state: .deleted)
+            chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .deleted)
         case (.cancel, .confirmDelete(let snapshot, .pending)):
-            conversations[index].messages[row].card = .confirmDelete(snapshot, state: .cancelled)
+            chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .cancelled)
         default:
             break
         }
@@ -271,8 +271,9 @@ struct AssistantView: View {
 }
 
 #Preview {
-    AssistantView()
+    NavigationStack { AssistantView() }
         .environment(FinanceStore())
+        .environment(AssistantChats())
         .environment(AIQuota())
         .environment(\.locale, .vietnam)
         .textRole(.body)

@@ -50,7 +50,7 @@ struct TimiAmountField: View {
     private var color: Color {
         if isNegative { return Palette.red }
         switch kind {
-        case .income: return Palette.green
+        case .income: return Palette.income
         case .expense: return Palette.red
         case nil: return Palette.ink
         }

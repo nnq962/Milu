@@ -169,7 +169,7 @@ private struct TransactionCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(transaction.signedAmountText)
                 .textRole(.amount)
-                .foregroundStyle(transaction.kind == .income ? Palette.green : Palette.red)
+                .foregroundStyle(transaction.kind == .income ? Palette.income : Palette.red)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

@@ -2,7 +2,7 @@
 
 > Bản rút gọn, chỉ giữ quyết định mới nhất. Nhật ký đầy đủ theo ngày (lý do, các bản thử, số đo): [`docs/design-history.md`](docs/design-history.md). Quyết định mới: sửa thẳng mục tương ứng ở đây, rồi ghi một mục có ngày vào cuối file lưu trữ.
 
-App iPhone SwiftUI, tiếng Việt, tiền VND. 4 tab: Tổng quan, Tài khoản, Giao dịch (Thu chi · Vay nợ), Trợ lý AI; Cài đặt mở từ avatar. Dữ liệu lưu trên máy (SwiftData), có dữ liệu mẫu. Mẫu nguồn: HTML Sleek trong `examples/`, design system của bản web (`finance-tracker-v2/docs/design`).
+App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản, Giao dịch (Thu chi · Vay nợ), icon SF Symbols: tab đang chọn dạng đặc (người dùng 2026-10-30), tab khác dạng nét (đặc cả thì tab chưa chọn đen nặng hơn tab chọn; iOS 26 không nhận màu xám cho tab chưa chọn), + nút "+" tròn cạnh thanh tab. Trợ lý AI không còn là tab: Tổng quan đẩy sang trang riêng không có thanh tab (thanh tab cạnh ô nhập chữ trông rối); lịch sử chat giữ trong `AssistantChats` suốt phiên. Cài đặt mở từ avatar. Dữ liệu lưu trên máy (SwiftData), có dữ liệu mẫu. Mẫu nguồn: HTML Sleek trong `examples/`, design system của bản web (`finance-tracker-v2/docs/design`).
 
 ## Nguyên tắc chung
 
@@ -26,27 +26,27 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 4 tab: Tổng quan, Tài khoản
 ## Giao diện: một theme sáng (2026-10-30)
 
 - **Chỉ một giao diện sáng**: bỏ chế độ tối và mục "Giao diện" trong Cài đặt; app khoá sáng bằng `UIUserInterfaceStyle = Light`. Token trong `Palette` là màu thường, không còn cặp sáng/tối.
-- **Bảng màu "TổngQuan"** (người dùng gửi và chốt 2026-10-30; thay bảng Sleek xanh ngọc): xanh rêu #3E5B3F (`primary`: nút chính, tab, chip chọn, switch, tiến độ, thẻ chính Tổng quan), xanh đậm #1E5A48 (`green`: tiền vào), đỏ san hô #B5543F (`red`: tiền ra; bản mẫu #D9725B chỉ 3.2:1 nên làm đậm cho đạt 4.5:1), vàng #E0A840 (`lime` — giữ tên token), xanh lá nhạt #5FB89A (`sky`), cam `warning` cho hạn mức sắp hết, nền ấm #FAF7F2, chữ #1F2A22, chữ phụ #6F675B (mẫu #7A7266, đậm hơn một bậc), viền #ECE7DC.
-- **Đổi màu**: chỉ sửa nhóm "Base colours" đầu `Palette.swift`; `heroCard`, `incomeTile` (= `green` 12%), `controlTint`, `onLime`, `rowPressed`, `fill1/2/3` tự theo. Riêng `AccentColor` trong Assets (nút hộp thoại hệ thống) phải sửa tay cho bằng `primary`. Màu đồ thị (`ChartShades`) lấy từ `Palette` nên cũng đổi theo.
-- **Vàng rất ít**: chỉ badge PRO, vương miện, "+5" ở bước Làm quen chưa làm, viền chạy thẻ Pro.
-- **Tiền vào luôn `green`, tiền ra luôn `red`** ở mọi nơi (dòng giao dịch, tổng, Báo cáo, lịch, Trợ lý AI, ô nhập tiền, Cho vay ở Vay nợ).
+- **Bảng màu "TổngQuan"** (người dùng gửi và chốt 2026-10-30; thay bảng Sleek xanh ngọc): xanh rêu #3E5B3F (`primary`: nút chính, tab, chip chọn, switch, tiến độ, thẻ chính Tổng quan), xanh đậm #1E5A48 (`green`: dấu hiệu tốt — tăng trưởng, hạn mức còn xa, đã tất toán, cho vay), đỏ san hô #B5543F (`red`: tiền ra; bản mẫu #D9725B chỉ 3.2:1 nên làm đậm cho đạt 4.5:1), vàng #E0A840 (`lime` — giữ tên token), xanh lá nhạt #5FB89A (`sky`), cam `warning` cho hạn mức sắp hết, nền ấm #FAF7F2, chữ #1F2A22, chữ phụ #6F675B (mẫu #7A7266, đậm hơn một bậc), viền #ECE7DC.
+- **Đổi màu**: chỉ sửa nhóm "Base colours" đầu `Palette.swift`; `incomeTile` (= `green` 12%), `controlTint`, `onLime`, `rowPressed`, `fill1/2/3` tự theo. Riêng `AccentColor` trong Assets (nút hộp thoại hệ thống) phải sửa tay cho bằng `primary`. Màu đồ thị (`ChartShades`) lấy từ `Palette` nên cũng đổi theo.
+- **Vàng rất ít**: badge PRO, vương miện và banner Timi Pro.
+- **Tiền vào màu mực có dấu "+" (`income` = `ink`), tiền ra luôn `red`** ở mọi nơi (dòng giao dịch, tổng, lịch, Cần chú ý, Trợ lý AI, ô nhập tiền). Người dùng chọn 2026-10-30: xanh đậm cũ lẫn với rêu của nút/tab. Cột "Thu" trong biểu đồ Báo cáo vẫn xanh để phân biệt cột.
 - **Biểu tượng không có nền** ở mọi nơi (kể cả avatar Trợ lý AI: glyph xanh trơn); chỉ tô màu nét. Biểu tượng trên header (avatar, chuông, tìm, +, ‹ ›) màu chính.
-- **Chữ**: tiêu đề, số tiền, chữ hoa nhỏ = Manrope ExtraBold (`.heavy`); chữ khác = Manrope Bold (`.semibold`) theo mẫu trong `examples/` (Regular trông mờ).
+- **Chữ**: tiêu đề, số tiền, chữ hoa nhỏ = Manrope Bold (`.bold`); chữ khác = Manrope SemiBold (`.semibold`). Nhẹ hơn mẫu `examples/` một bậc (user 2026-10-30: ExtraBold/Bold trông quá đậm; Regular thì mờ).
 - **Bo góc**: mọi thẻ 28 (`CardCorners.large`), nhóm form và thẻ trong Cài đặt 24 (`inset`), ô trong thẻ 20 (`flow`). Đệm thẻ 20 (`Spacing.card`), thẻ đầu trang 24. Khoảng cách giữa các khối 28 (`Spacing.section`). Vùng chạm ≥ 44.
-- **Bóng**: thẻ trắng không viền, bóng ngắn sát mép dưới (đen 6% r1,5 y1 + đen 5% r6 y3, theo ảnh mẫu người dùng) qua `cardSurface(elevated:)`, `sleekCard()`; thẻ màu (`HeroBackground`) = bóng đen 10%, r12, y8.
-- **Chỉ thẻ chính Tổng quan nền xanh đặc**; thẻ đầu các tab khác giữ nền trắng (thử nền đậm cho mọi tab: người dùng thấy lố).
+- **Bóng**: thẻ trắng không viền, bóng ngắn sát mép dưới (đen 6% r1,5 y1 + đen 5% r6 y3, theo ảnh mẫu người dùng) qua `cardSurface(elevated:)`, `sleekCard()`.
+- **Bớt card** (người dùng chọn 2026-10-30, kiểu Cake/MoMo/ZaloPay): mỗi trang chỉ một thẻ trắng nổi; còn lại là section phẳng trên nền (tiêu đề + dòng kẻ mảnh), khối nền nhạt không bóng, hoặc banner nền màu nhạt. Đang áp ở Tổng quan; các tab khác chưa đổi.
 - **Đồ thị** (`ChartShades`, theo mẫu "TổngQuan"): 4 nhóm lớn nhất rêu `primary` / bạc hà `sky` / vàng `lime` / san hô `chartCoral`, "Khác" xanh xám `chartRest`; biểu đồ chi theo ngày: hôm nay và cột chọn màu chính.
 - Bấm dòng: `.row` (màu chính 10%); bấm thẻ: `.card`.
 
 ## Màu
 
 - Mọi màu lấy từ `Palette`; không viết cứng `.white` / `.black` (trừ chữ trắng trên thẻ xanh).
-- `onPrimary` trắng; `controlTint` = `heroCard` = `primary`; `onLime` = `ink`; `incomeTile` = `green` 12%; `fill1/2/3` = mực 4/6/10%.
+- `onPrimary` trắng; `controlTint` = `primary`; `onLime` = `ink`; `incomeTile` = `green` 12%; `fill1/2/3` = mực 4/6/10%.
 - `ProgressBar` mặc định màu `primary`. Thanh hạn mức (`budgetColor`): xanh < 80%, cam từ 80%, đỏ khi chạm/vượt 100%.
 
 ## Chữ & tiền tệ
 
-- **Font Manrope** toàn app (cả tab bar, segmented, tiêu đề thanh). Manrope vẽ mảnh nên mọi độ đậm hiển thị nặng hơn một bậc như web (`Typography.instance(for:)`); code vẫn ghi độ đậm theo ý nghĩa.
+- **Font Manrope** toàn app (cả tab bar, segmented, tiêu đề thanh). Mỗi độ đậm trong code là đúng instance cùng tên của Manrope (`Typography.instance(for:)`), không còn đẩy lên một bậc.
 - **Thang `TextRole`** (chốt 2026-10-28, nội dung 16), co giãn theo Dynamic Type; không đặt cỡ tay trong `Features/`:
   - hero 40 (số đang nhập) · display 34 (số dẫn đầu) · amountLarge 24 · pageTitle 24 · heading 20
   - title 17 SemiBold (tiêu đề phần trên màn chính, thẻ, sheet, hộp thoại)
@@ -81,22 +81,23 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 4 tab: Tổng quan, Tài khoản
 - **Chip:** chip lọc trên trang đổi bằng `ChipRow` (chip chọn màu `primary`, danh sách mờ sang nội dung mới, giữ tối thiểu một màn hình cao). Chip trong màn tìm là `TagChip` thường, không kính (thường / gợi ý / có × / nổi xanh). Hàng chip chỉ cuộn ngang khi tràn (`NoScrollEdgeEffect` + `GlassEffectContainer`).
 - **Badge (`StatusBadge`):** trung tính / đã thu (xanh lá 12%) / Pro / thông tin / caution (cam nhạt) / warning "Quá hạn" (đỏ nhạt); có biến thể icon.
 - **Trạng thái trống (`EmptyStateCard`):** icon trơn 44 màu mực, một câu ngắn, **không nút** (thêm mới đi qua nút + của trang).
-- **Nút tháng (`MonthMenu`):** viên kính mặc định iOS "Tháng 10 ⌄" cao 44 (`GlassCapsule`), cả viên nhận chạm; mở `MonthPickerSheet` (năm ‹ ›, lưới T1–T12, tháng chưa tới mờ, "Tháng này"). Dùng ở thanh trên Thu chi và Lịch thu chi.
+- **Nút tháng (`MonthMenu`):** viên kính mặc định iOS "Tháng 10 ⌄" cao 44 (`GlassCapsule`), cả viên nhận chạm; mở `MonthPickerSheet` (người dùng 2026-10-30: bớt nút): không ✕, không tiêu đề, có thanh kéo (vuốt xuống / chạm ngoài để đóng); dòng đầu "‹ 2026 ›" mũi tên rêu trơn không kính; lưới "Tháng 1…12" chữ trơn không nền, tháng đang chọn viên rêu, tháng này chữ rêu, tháng chưa tới mờ; "Tháng này" khi đang xem tháng khác. Dùng ở thanh trên Thu chi. Lịch thu chi dùng dạng `compact`: chữ rêu 16 "Tháng 10 ⌄" (13 thì quá nhỏ), không viên kính (người dùng 2026-10-30: viên to hơn cả tiêu đề), vùng chạm vẫn 44.
 - **Biểu đồ chi theo ngày (`DailySpendingChart`, Swift Charts):** chạm cột là chọn, kéo ngang để dò, vuốt dọc vẫn cuộn trang; hôm nay màu chính, ngày chưa tới nhạt; cột chọn màu chính.
 - **Ô tìm tự vẽ (`SearchField`)** cho màn tìm toàn màn hình.
 
 ## Tổng quan
 
-- **Thẻ chính** (`HeroCard`, 2026-10-30): nền màu chính đặc, chỉ "TÀI SẢN RÒNG ›", số to trắng và biểu đồ tăng trưởng 6 tháng (đường trắng + vùng mờ, không trục). Bấm cả thẻ mở trang **Tài sản ròng** (`NetWorthView`): số hiện tại + "↑ x so với cuối tháng N", biểu đồ 6 tháng có tên tháng (kéo ngón để xem "Cuối tháng 8"); mục "Gồm": Tài khoản (số dư dương) / Hũ tiết kiệm / Cho vay / Nợ (thẻ âm + đi vay), mỗi dòng trượt sang trang con (`NetWorthPartView`: danh sách tài khoản → chi tiết tài khoản, các hũ → chi tiết hũ, các khoản cho vay → sheet khoản vay), Nợ mở `DebtSheet`. Không nhảy sang tab khác (người dùng thấy giật). Tài sản ròng = số dư (gồm hũ) + cho vay − nợ (có nợ thẻ tín dụng); không tính tài khoản khoá.
+- **Dải rêu đầu trang** (2026-10-30): thanh điều hướng và khối lời chào cùng nền `primary`, bo dưới 32, chữ trắng, thanh trạng thái sáng; kéo quá đầu trang vẫn thấy rêu. Thẻ Tài sản ròng nổi đè lên mép dưới dải (72pt).
+- **Thẻ chính** (`HeroCard`, 2026-10-30): thẻ trắng duy nhất trang, gọn (người dùng chọn 2026-10-30): "Tài sản ròng" chữ thường xám + mũi tên ở góc phải, số to màu mực, dòng chữ nhỏ "↑ 15,6tr trong 6 tháng" (xanh; đỏ ↓ nếu giảm, không viên nền), đường tăng trưởng 6 tháng màu rêu cao 48 trên vùng tô rất nhạt (12%), không chấm, không trục. Bấm cả thẻ mở trang **Tài sản ròng** (`NetWorthView`): số hiện tại + "↑ x so với cuối tháng N", biểu đồ 6 tháng có tên tháng (kéo ngón để xem "Cuối tháng 8"); mục "Gồm": Tài khoản (số dư dương) / Hũ tiết kiệm / Cho vay / Nợ (thẻ âm + đi vay), mỗi dòng trượt sang trang con (`NetWorthPartView`: danh sách tài khoản → chi tiết tài khoản, các hũ → chi tiết hũ, các khoản cho vay → sheet khoản vay), Nợ mở `DebtSheet`. Không nhảy sang tab khác (người dùng thấy giật). Tài sản ròng = số dư (gồm hũ) + cho vay − nợ (có nợ thẻ tín dụng); không tính tài khoản khoá.
 - **Lịch sử tài sản ròng** (`netWorthHistory`): không lưu theo ngày; giá trị cuối mỗi tháng = hiện tại trừ ngược mọi khoản thu/chi sau đó (gồm điều chỉnh số dư, khoản không tính báo cáo, phí chuyển khoản, lãi vay; bỏ tài khoản khoá). Chuyển khoản, nạp/rút hũ, gốc khoản vay không đổi tài sản ròng. Tài khoản và khoản vay coi như luôn có, nên thêm ví có sẵn tiền không thành "tăng trưởng".
-- Lời chào to (display), hai dòng "Chào buổi sáng,\nQuyet". Toolbar: avatar và chuông tròn 44pt Liquid Glass; avatar mở Cài đặt. Nền trang có 2 đốm màu mờ (`primary`, `sky`).
-- Thứ tự: thẻ chính → Làm quen → Cần chú ý → Tháng tổng quan → Lịch → Timi Pro (cuối).
-- **Tháng X tổng quan**: ô Tiền vào / Tiền ra nền xanh/đỏ nhạt (bấm mở Báo cáo), thanh hạn mức theo `budgetColor` (bấm mở Hạn mức chi tiêu).
-- **Timi Pro**: thẻ trắng, badge PRO vàng, 3 quyền lợi tick xanh trơn, nút "Tìm hiểu Timi Pro"; viền vàng chạy 1 vòng (2,4s) khi thẻ hiện rồi dừng (không chạy khi Giảm chuyển động). Bấm mở "Sắp ra mắt".
-- **Làm quen với Timi:** 4 việc (Thêm ví, Ghi thu chi, Ghi cho vay, Hỏi AI), việc chưa xong là dòng bấm được có › dẫn tới form/tab tương ứng; xong thì tick trắng trên vòng xanh, gạch ngang; xong cả 4 thì ẩn thẻ. Mỗi việc +5 lượt AI thật.
-- Tổng quan tháng + hạn mức: hạn mức do người dùng đặt (`AppStorage`, cùng mức mỗi tháng, dùng chung với Giao dịch và Cài đặt); không lấy thu nhập làm hạn mức.
-- Cần chú ý: nhắc trả/thu khoản vay (dữ liệu mẫu, chưa gửi thông báo thật).
-- **Lịch thu chi:** nút tháng `MonthMenu`; lưới bắt đầu T2; ô ngày phẳng bo 8, không kính. Số tiền trong ô cùng cỡ 11pt. Màu ô chỉ theo mức chi (người dùng chọn): đỏ 8% / 14% / 20% (<1tr, 1–3tr, ≥3tr); tiền thu không tô ô, chỉ hiện số xanh; không có gì → `fill1`; hôm nay viền xanh 1,5pt + số xanh; ngày chưa tới mờ 40%, không bấm được. Chạm ngày mở sheet giao dịch trong ngày.
+- Lời chào một dòng (`pageTitle`) trắng trên dải rêu, ngày phía trên. Toolbar: avatar và chuông tròn 44pt Liquid Glass, chữ/icon rêu đậm (chữ trắng trên kính nhạt quá mờ); avatar mở Cài đặt. Nền trang phẳng `background` (bỏ 2 đốm màu).
+- Thứ tự: thẻ chính → hàng nút nhanh → Làm quen → Cần chú ý → Lịch → Timi Pro (cuối). Khối "Tháng N" đã bỏ (người dùng 2026-10-30); Hạn mức mở từ Cài đặt, Báo cáo từ Giao dịch và Cài đặt.
+- **Nút nhanh** (`QuickActions`): 4 nút tròn trắng 56 có bóng nhẹ như thẻ, icon rêu, chữ 13 thường, không card (người dùng 2026-10-30: nền xanh bạc hà trông xỉn): Ghi chi, Ghi thu, Chuyển tiền mở sheet thêm giao dịch đúng chế độ; Trợ lý AI trượt sang trang AI.
+- **Timi Pro**: banner nền vàng nhạt (`lime` 16%) cuối trang, "Nâng cấp Timi Pro", 3 quyền lợi mỗi cái một dòng có tick nâu, "Tìm hiểu thêm ›" chữ nâu, vương miện trên ô vàng 44 bên phải; cả banner một tông ấm (vàng, nâu). Bấm mở "Sắp ra mắt".
+- **Làm quen với Timi:** một dòng gọn trên khối nền `muted` bo 20 (người dùng 2026-10-30: bớt chữ, bỏ xanh bạc hà): vòng rêu 44 có "3/4" bên trong, "Làm quen với Timi" + bước kế tiếp ("Hỏi AI một câu hỏi"), viên vàng "+5 AI", ›. Bấm để làm bước đó (form tương ứng, hoặc trang Trợ lý AI). Xong cả 4 thì ẩn. Mỗi việc +5 lượt AI thật.
+- **Cần chú ý:** section phẳng, ít chữ (người dùng 2026-10-30): tiêu đề không kèm đếm; mỗi dòng là tờ lịch nhỏ 44 nền `muted` ("2" / "Th11") thay icon và "Hạn 2/11", tên + "Còn 3 ngày" (nâu khi ≤ 3 ngày, đỏ "Quá hạn x ngày"), số tiền rút gọn (vào màu mực, ra đỏ); các dòng cách nhau 16, không kẻ. Nhắc trả/thu khoản vay (dữ liệu mẫu, chưa gửi thông báo thật).
+- Các section Tổng quan cách nhau 36 (rộng hơn trang khác vì không có card ngăn).
+- **Lịch thu chi:** section phẳng, lưới nằm thẳng trên nền; nút tháng `MonthMenu`; lưới bắt đầu T2. Ô ngày cao 44 chỉ có số ngày (người dùng chọn 2026-10-30: số tiền trong ô rối mắt) + chấm màu mực nếu có tiền vào. Màu ô theo mức chi: đỏ 8% / 14% / 20% (<1tr, 1–3tr, ≥3tr); không chi → trong suốt; hôm nay viền rêu 1,5pt + số rêu, không tô nền nếu không chi (nền rêu nhạt trên kem thành xám); ngày chưa tới mờ 40%, không bấm được. Dưới lưới có chú thích nhỏ ("Chi càng nhiều càng đậm", "Có tiền vào"). Chạm ngày mở sheet giao dịch trong ngày (xem số tiền ở đó).
 
 ## Tài khoản & Hũ
 

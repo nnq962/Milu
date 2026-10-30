@@ -13,10 +13,10 @@ struct DayTotals: View {
         HStack(spacing: Spacing.m) {
             if income > 0 && expense > 0 {
                 // Money in green, money out red (user rule 2026-10-30).
-                Text("+\(income.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.green)
+                Text("+\(income.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.income)
                 Text("-\(expense.formatted(.number.locale(.vietnam)))").foregroundStyle(Palette.red)
             } else if income > 0 {
-                Text("+\(income.vndCompact)").foregroundStyle(Palette.green)
+                Text("+\(income.vndCompact)").foregroundStyle(Palette.income)
             } else if expense > 0 {
                 Text("-\(expense.vndCompact)").foregroundStyle(Palette.red)
             }

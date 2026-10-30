@@ -2,7 +2,7 @@ import Charts
 import SwiftUI
 
 /// Tài sản ròng at the end of each month as a soft line over a faded area (user request
-/// 2026-10-30). `compact` is the sparkline on the Tổng quan card: no axes, white on the card.
+/// 2026-10-30). `compact` is the sparkline on the Tổng quan card: a fainter wash, no axes, no point.
 /// The full chart names the months and lets a finger pick one (`selection`).
 struct NetWorthChart: View {
     let points: [NetWorthPoint]
@@ -24,18 +24,18 @@ struct NetWorthChart: View {
                 AreaMark(x: .value("Tháng", point.month),
                          yStart: .value("Đáy", floor), yEnd: .value("Tài sản ròng", point.value))
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(LinearGradient(colors: [tint.opacity(compact ? 0.28 : 0.22), tint.opacity(0)],
+                    .foregroundStyle(LinearGradient(colors: [tint.opacity(compact ? 0.12 : 0.22), tint.opacity(0)],
                                                     startPoint: .top, endPoint: .bottom))
                 LineMark(x: .value("Tháng", point.month),
                          y: .value("Tài sản ròng", point.value))
                     .interpolationMethod(.monotone)
                     .foregroundStyle(tint)
-                    .lineStyle(StrokeStyle(lineWidth: compact ? 2.5 : 3, lineCap: .round, lineJoin: .round))
+                    .lineStyle(StrokeStyle(lineWidth: compact ? 2 : 3, lineCap: .round, lineJoin: .round))
             }
-            if let marked = picked ?? (compact ? points.last : nil) {
-                PointMark(x: .value("Tháng", marked.month),
-                          y: .value("Tài sản ròng", marked.value))
-                    .symbolSize(compact ? 50 : 90)
+            if let picked {
+                PointMark(x: .value("Tháng", picked.month),
+                          y: .value("Tài sản ròng", picked.value))
+                    .symbolSize(90)
                     .foregroundStyle(tint)
             }
             if let picked {

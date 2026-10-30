@@ -1,15 +1,16 @@
 import SwiftUI
 
-/// "Lịch thu chi": a month grid with each day's income and spending, shaded by how busy it was.
-/// Tapping a day hands its date to `onSelectDay`.
+/// "Lịch thu chi": a month grid straight on the page, no card (user request 2026-10-30: fewer
+/// cards). Each day shows only its number, shaded by how much went out and with a green dot if
+/// money came in; tapping a day hands its date to `onSelectDay`, where the figures are.
 struct MoneyCalendarCard: View {
     let onSelectDay: (Date) -> Void
 
     @Environment(FinanceStore.self) private var store
     @State private var displayedMonth = Date.now
-    /// Every day the same height, tall enough for the day and two figures (money in and out):
-    /// a day with both used to stretch its whole row (user report 2026-10-30).
-    @ScaledMetric(relativeTo: .caption2) private var dayHeight = 58
+    /// Every day the same height: the day and a dot for money in (user choice 2026-10-30: the
+    /// figures in each day read as clutter; tap a day for them).
+    @ScaledMetric(relativeTo: .caption) private var dayHeight = 44
 
     var body: some View {
         let calendar = Calendar.current
@@ -27,10 +28,9 @@ struct MoneyCalendarCard: View {
                     .textRole(.title)
                     .frame(minHeight: 24)
                 Spacer(minLength: 4)
-                // The same month button and "Chọn tháng" sheet as Giao dịch (user request 2026-10-29).
-                // Its 44pt reaches into the card's margin rather than pushing the title down, so the
-                // title sits 20pt from the top like every other card's.
-                MonthMenu(month: $displayedMonth)
+                // The "Chọn tháng" sheet of Giao dịch, behind the quiet compact button (user request 2026-10-30).
+                // Its 44pt reaches above and below the title rather than pushing the grid down.
+                MonthMenu(month: $displayedMonth, compact: true)
                     .padding(.vertical, -10)
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 4), count: 7), spacing: 4) {
@@ -54,8 +54,29 @@ struct MoneyCalendarCard: View {
                     }
                 }
             }
+            legend
         }
-        .sleekCard()
+    }
+
+    /// What the shades and the dot mean, small and quiet under the grid.
+    private var legend: some View {
+        HStack(spacing: Spacing.l) {
+            HStack(spacing: Spacing.xs) {
+                ForEach([0.08, 0.14, 0.20], id: \.self) { strength in
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(Palette.red.opacity(strength))
+                        .frame(width: 12, height: 12)
+                }
+                Text("Chi càng nhiều càng đậm")
+            }
+            HStack(spacing: Spacing.xs) {
+                Circle().fill(Palette.income).frame(width: 6, height: 6)
+                Text("Có tiền vào")
+            }
+        }
+        .textRole(.footnote)
+        .foregroundStyle(Palette.secondaryText)
+        .accessibilityHidden(true)
     }
 
     private func day(_ date: Date, income: Double, expense: Double) -> some View {
@@ -64,29 +85,25 @@ struct MoneyCalendarCard: View {
         // Days still ahead: faint and not tappable, nothing can be on them yet.
         let isAhead = date > calendar.startOfDay(for: .now) && !today
         // Shaded by how much went out, deeper the more (user choice 2026-10-30): money in does not
-        // colour a day. Today is ringed in teal on top of its shade (UI review 2026-10-30: a solid
-        // amber today hid how much went out on it).
+        // colour a day. Today is ringed in moss on top of its shade (UI review 2026-10-30: a solid
+        // fill on today hid how much went out on it).
         let strength = expense >= 3_000_000 ? 0.20 : expense >= 1_000_000 ? 0.14 : 0.08
-        let fill = expense > 0 ? Palette.red.opacity(strength)
-            : today ? Palette.primary.opacity(0.12)
-            : Palette.fill1
+        // Today without spending keeps a clear cell: a moss wash on the cream read as grey
+        // (UI review 2026-10-30); its ring and moss number mark it.
+        let fill = expense > 0 ? Palette.red.opacity(strength) : .clear
         return Button { onSelectDay(date) } label: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(spacing: 3) {
                 Text("\(calendar.component(.day, from: date))")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(today ? Palette.primary : Palette.secondaryText)
-                    .frame(minHeight: 16.5, alignment: .topLeading)
-                VStack(alignment: .leading, spacing: 0) {
-                    if income > 0 {
-                        amount("+\(income.vndCompact)", color: Palette.green)
-                    }
-                    if expense > 0 {
-                        amount("-\(expense.vndCompact)", color: Palette.red)
-                    }
-                }
+                    .textRole(today ? .captionStrong : .caption)
+                    .monospacedDigit()
+                    .foregroundStyle(today ? Palette.primary : Palette.ink)
+                Circle()
+                    .fill(Palette.income)
+                    .frame(width: 5, height: 5)
+                    .opacity(income > 0 ? 1 : 0)
             }
-            .padding(4)
-            .frame(maxWidth: .infinity, minHeight: dayHeight, maxHeight: dayHeight, alignment: .topLeading)
+            .padding(.top, 5)
+            .frame(maxWidth: .infinity, minHeight: dayHeight, maxHeight: dayHeight)
             .background(fill, in: RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
             .overlay {
                 if today {
@@ -102,16 +119,5 @@ struct MoneyCalendarCard: View {
         .opacity(isAhead ? 0.4 : 1)
         .accessibilityLabel("\(today ? "Hôm nay, " : "")\(date.formatted(.dateTime.weekday(.wide).day().month().year().locale(.vietnam))), thu \(income.vnd), chi \(expense.vnd)")
         .accessibilityHint("Xem giao dịch trong ngày")
-    }
-
-    private func amount(_ text: String, color: Color) -> some View {
-        // One size for every day: 13pt only fit short figures, so "-85k" and "-430k" came out at
-        // different sizes. Shrinks only for a rare long one ("-12,5tr").
-        Text(text)
-            .font(Typography.font(.caption2, size: 11, weight: .semibold))
-            .monospacedDigit()
-            .foregroundStyle(color)
-            .lineLimit(1).minimumScaleFactor(0.8)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

@@ -213,7 +213,7 @@ struct TransactionsView: View {
                     .padding(.trailing, Spacing.l)
                     .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
                 flowTotal("Đã thu", count: listed.count(where: TransactionFilter.income.matches),
-                          amount: incomes.reduce(0) { $0 + $1.amount }, color: Palette.green)
+                          amount: incomes.reduce(0) { $0 + $1.amount }, color: Palette.income)
                     .padding(.leading, Spacing.l)
             }
             DailySpendingChart(month: displayedMonth,

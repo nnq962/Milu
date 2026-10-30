@@ -36,3 +36,11 @@ struct Conversation: Identifiable {
 }
 
 enum CardAction { case edit, remove, confirm, cancel }
+
+/// The chats of this run, kept by the app rather than the page: Trợ lý AI is pushed from Tổng
+/// quan now (user request 2026-10-30), and a page opened anew would start empty each time.
+@Observable
+final class AssistantChats {
+    var conversations = [Conversation.new(name: "Quyet")]
+    var currentID: Conversation.ID?
+}

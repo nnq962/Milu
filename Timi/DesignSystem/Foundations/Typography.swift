@@ -41,18 +41,18 @@ enum Typography {
         return .custom(instance(for: weight), size: size, relativeTo: style)
     }
 
-    /// Manrope draws thin, so every weight renders one step heavier, as on the web design system
-    /// (`font-normal` 500, `medium` 600, `semibold` 700, `bold` 800). Code keeps naming the intended
-    /// weight; only this mapping knows about the shift. User request 2026-10-28.
+    /// Each weight is its own Manrope instance (regular 400, medium 500, semibold 600, bold 700).
+    /// It used to render one step heavier (user request 2026-10-28); that read too heavy, so it was
+    /// taken back (user request 2026-10-30). Only `.heavy` and `.black` reach ExtraBold.
     /// Selects the font's named instance rather than asking SwiftUI to synthesize a weight.
     static func instance(for weight: Font.Weight) -> String {
         switch weight {
-        case .ultraLight, .thin: "Manrope-Light"
-        case .light: "Manrope-Regular"
-        case .medium: "Manrope-SemiBold"
-        case .semibold: "Manrope-Bold"
-        case .bold, .heavy, .black: "Manrope-ExtraBold"
-        default: "Manrope-Medium"
+        case .ultraLight, .thin, .light: "Manrope-Light"
+        case .medium: "Manrope-Medium"
+        case .semibold: "Manrope-SemiBold"
+        case .bold: "Manrope-Bold"
+        case .heavy, .black: "Manrope-ExtraBold"
+        default: "Manrope-Regular"
         }
     }
 

@@ -14,10 +14,11 @@ struct ContentView: View {
     }
 
     var body: some View {
-        // Hugeicons free has no filled style: a tab keeps its outline icon when selected and the
-        // tab bar's own highlight marks it.
+        // SF Symbols, filled for the chosen tab (user request 2026-10-30: solid tab icons) and
+        // outlined for the others, which in solid ink outweighed it (UI review 2026-10-30); iOS 26
+        // ignores a grey for tabs not chosen. Hugeicons free has no filled style.
         tabs
-            // The chosen tab in the brand teal (Sleek theme, 2026-10-30).
+            // The chosen tab in the brand moss.
             .tint(Palette.primary)
             .background {
                 InstantTabSwitch { isAddingTransaction = true }.frame(width: 0, height: 0)
@@ -32,49 +33,50 @@ struct ContentView: View {
     private var tabs: some View {
         if #available(iOS 18.0, *) {
             TabView(selection: tabSelection) {
-                Tab("Tổng quan", image: "hugeicons-home-01", value: AppTab.overview) {
-                    OverviewView(selectedTab: $selectedTab)
-                }
-                Tab("Tài khoản", image: "hugeicons-credit-card", value: AppTab.accounts) {
+                Tab(value: AppTab.overview) {
+                    OverviewView()
+                } label: { tabLabel("Tổng quan", symbol: "house", tab: .overview) }
+                Tab(value: AppTab.accounts) {
                     AccountsView()
-                }
-                Tab("Giao dịch", image: "hugeicons-arrow-data-transfer-horizontal", value: AppTab.transactions) {
+                } label: { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
+                Tab(value: AppTab.transactions) {
                     TransactionsView()
-                }
-                Tab("Trợ lý AI", image: "hugeicons-ai-magic", value: AppTab.assistant) {
-                    AssistantView()
-                }
+                } label: { tabLabel("Giao dịch", symbol: "arrow.left.arrow.right.circle", tab: .transactions) }
                 // On iOS 26 a search-role tab sits apart in its own circle beside the bar, as Search
                 // does in App Store: there, by the thumb on every tab, it adds a transaction
                 // (user choice 2026-10-29). Earlier iOS shows it as a fifth tab.
-                Tab("Thêm giao dịch", image: "hugeicons-add-01", value: AppTab.add, role: .search) {
+                Tab("Thêm giao dịch", systemImage: "plus", value: AppTab.add, role: .search) {
                     Color.clear
                 }
             }
         } else {
             TabView(selection: tabSelection) {
-                OverviewView(selectedTab: $selectedTab)
-                    .tabItem { Label("Tổng quan", image: "hugeicons-home-01") }
+                OverviewView()
+                    .tabItem { tabLabel("Tổng quan", symbol: "house", tab: .overview) }
                     .tag(AppTab.overview)
                 AccountsView()
-                    .tabItem { Label("Tài khoản", image: "hugeicons-credit-card") }
+                    .tabItem { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
                     .tag(AppTab.accounts)
                 TransactionsView()
-                    .tabItem { Label("Giao dịch", image: "hugeicons-arrow-data-transfer-horizontal") }
+                    .tabItem { tabLabel("Giao dịch", symbol: "arrow.left.arrow.right.circle", tab: .transactions) }
                     .tag(AppTab.transactions)
-                AssistantView()
-                    .tabItem { Label("Trợ lý AI", image: "hugeicons-ai-magic") }
-                    .tag(AppTab.assistant)
                 Color.clear
-                    .tabItem { Label("Thêm", image: "hugeicons-add-01") }
+                    .tabItem { Label("Thêm", systemImage: "plus") }
                     .tag(AppTab.add)
             }
         }
+    }
+
+    private func tabLabel(_ title: String, symbol: String, tab: AppTab) -> some View {
+        Label(title, systemImage: selectedTab == tab ? "\(symbol).fill" : symbol)
+            .environment(\.symbolVariants, selectedTab == tab ? .fill : .none)
     }
 }
 
 #Preview {
     ContentView()
         .environment(FinanceStore())
+        .environment(AIQuota())
+        .environment(AssistantChats())
         .environment(\.locale, .vietnam)
 }

@@ -56,9 +56,9 @@ enum TextRole: CaseIterable, Identifiable {
 
     var weight: Font.Weight {
         switch self {
-        // As the user's Sleek examples (2026-10-30): titles and figures ExtraBold ("font-black"),
-        // every other text Bold ("font-bold"); the thin Regular read as faded.
-        case .display, .hero, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .heavy
+        // Titles and figures Bold, every other text SemiBold: one step under the Sleek examples'
+        // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
+        case .display, .hero, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
         case .body, .label, .caption, .captionStrong, .footnote, .input: .semibold
         }
     }

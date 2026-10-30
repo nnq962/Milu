@@ -80,6 +80,12 @@ struct AddTransactionView: View {
         _note = State(initialValue: editing?.note ?? "")
     }
 
+    /// A new one starting on `mode`: the quick actions on Tổng quan (Ghi chi, Ghi thu, Chuyển tiền).
+    init(mode: Mode) {
+        self.init()
+        _mode = State(initialValue: mode)
+    }
+
     /// "Mua ngay" on a goal that reached its target.
     init(buying goal: SavingsGoal) {
         self.init()

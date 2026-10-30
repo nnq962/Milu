@@ -17,5 +17,4 @@ struct PaymentReminder: Identifiable {
     var detail: String = ""
     var avatar: Avatar = .icon("hugeicons-calendar-03")
 
-    var dueDescription: String { dueDate.dueDescription }
 }

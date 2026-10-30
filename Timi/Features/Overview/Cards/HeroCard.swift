@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The lead card of Tổng quan: a solid card in the primary colour with net worth in large type and
-/// how it grew over six months, nothing else (user request 2026-10-30). Tapping it opens
-/// "Tài sản ròng", where the figure is taken apart.
+/// The lead card of Tổng quan, the one white card on the page: "Tài sản ròng" and a chevron at
+/// the far right, net worth in large type, how much it moved over six months in small green
+/// words, and the growth line over a faint wash (user choice 2026-10-30: cleaner, no pill). Tapping it opens "Tài sản ròng", where the figure is taken
+/// apart.
 struct HeroCard: View {
     let onOpen: () -> Void
 
@@ -13,29 +14,39 @@ struct HeroCard: View {
         Button(action: onOpen) {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    HStack(spacing: Spacing.xs) {
-                        Text("TÀI SẢN RÒNG")
-                            .textRole(.overline)
-                            .tracking(1.3)
+                    HStack {
+                        Text("Tài sản ròng")
+                            .textRole(.caption)
+                        Spacer()
                         TimiIcon("hugeicons-arrow-right-01", size: 14)
                     }
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(Palette.secondaryText)
                     Text(store.netWorth.vnd)
                         .textRole(.display)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.ink)
                         .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
+                    if let first = history.first {
+                        growth(store.netWorth - first.value)
+                    }
                 }
-                NetWorthChart(points: history, compact: true, tint: .white)
-                    .frame(height: 64)
+                NetWorthChart(points: history, compact: true)
+                    .frame(height: 48)
                     .accessibilityHidden(true)
             }
-            .padding(Spacing.card)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background { HeroBackground(radius: CardCorners.large) }
+            .sleekCard()
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         }
         .buttonStyle(.card)
         .accessibilityElement(children: .combine)
         .accessibilityHint("Xem tài sản ròng gồm những gì")
+    }
+
+    /// How much it moved over the chart's months, as plain small words: green up, red down.
+    private func growth(_ change: Double) -> some View {
+        let up = change >= 0
+        return Text("\(up ? "↑" : "↓") \(abs(change).vndCompact) trong 6 tháng")
+            .textRole(.captionStrong)
+            .monospacedDigit()
+            .foregroundStyle(up ? Palette.green : Palette.red)
     }
 }

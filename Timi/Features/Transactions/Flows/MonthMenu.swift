@@ -3,8 +3,13 @@ import SwiftUI
 /// Month button: "Tháng 5" + chevron on a plain glass capsule (`GlassCapsule`). It opens
 /// `MonthPickerSheet` (user choice 2026-10-29), not a menu: a menu read as "earlier / later"
 /// rather than picking a month, and its glass button took a moment to settle after it closed.
+///
+/// `compact` is the quiet form for a section heading (Lịch thu chi on Tổng quan): moss words
+/// (16) and chevron with no capsule, still 44pt to tap (user request 2026-10-30: the capsule
+/// stood taller than the heading).
 struct MonthMenu: View {
     @Binding var month: Date
+    var compact = false
 
     @State private var isPicking = false
 
@@ -13,9 +18,39 @@ struct MonthMenu: View {
         let year = calendar.component(.year, from: month)
         let number = calendar.component(.month, from: month)
         let isCurrentYear = year == calendar.component(.year, from: .now)
+        let title = isCurrentYear ? "Tháng \(number)" : "T\(number)/\(year.formatted(.number.grouping(.never)))"
+        Group {
+            if compact {
+                Button { isPicking = true } label: {
+                    HStack(spacing: Spacing.xs) {
+                        // 16, one step under the 17 heading beside it: 13 read as too small
+                        // (user 2026-10-30).
+                        Text(title)
+                            .textRole(.label)
+                            .monospacedDigit()
+                            .fixedSize()
+                            .contentTransition(.numericText())
+                        TimiIcon("hugeicons-arrow-down-01", size: 14)
+                    }
+                    .foregroundStyle(Palette.primary)
+                    .frame(minHeight: ControlHeight.regular)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } else {
+                capsule(title)
+            }
+        }
+        .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
+        .sheet(isPresented: $isPicking) {
+            MonthPickerSheet(month: $month)
+        }
+    }
+
+    private func capsule(_ title: String) -> some View {
         Button { isPicking = true } label: {
             HStack(spacing: Spacing.xs) {
-                Text(isCurrentYear ? "Tháng \(number)" : "T\(number)/\(year.formatted(.number.grouping(.never)))")
+                Text(title)
                     .textRole(.body)
                     .monospacedDigit()
                     .lineLimit(1)
@@ -33,16 +68,14 @@ struct MonthMenu: View {
         }
         // The same plain glass as the search circle beside it (user choice 2026-10-29, after lime).
         .modifier(GlassCapsule())
-        .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
-        .sheet(isPresented: $isPicking) {
-            MonthPickerSheet(month: $month)
-        }
     }
 }
 
-/// Picks a month: the year with ‹ › on top, then the twelve months in a grid; the chosen one is
-/// teal, months still ahead are faint and cannot be picked. Picking closes the sheet. "Tháng này"
-/// goes back to the current month.
+/// Picks a month: "‹ 2026 ›" on top as the sheet's only heading, then the twelve months as plain
+/// figures; the chosen one on a moss capsule, this month in moss, months still ahead faint and not
+/// pickable. No ✕ and no glass circles (user request 2026-10-30: too many buttons in one corner):
+/// the grabber, a swipe down or a tap outside closes it, as does picking. "Tháng này" goes back to
+/// the current month.
 struct MonthPickerSheet: View {
     @Binding var month: Date
 
@@ -76,18 +109,17 @@ struct MonthPickerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.l) {
-            SheetHeader(title: "Chọn tháng")
-
-            HStack {
+            HStack(spacing: Spacing.l) {
                 yearButton("hugeicons-arrow-left-01", label: "Năm trước", delta: -1, isEnabled: year > firstYear)
-                Spacer()
                 Text(String(year))
-                    .textRole(.title)
+                    .textRole(.heading)
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Spacer()
+                    .accessibilityAddTraits(.isHeader)
                 yearButton("hugeicons-arrow-right-01", label: "Năm sau", delta: 1, isEnabled: year < thisYear)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.top, Spacing.xxl)
 
             LazyVGrid(columns: columns, spacing: Spacing.s) {
                 ForEach(1...12, id: \.self) { number in
@@ -107,17 +139,18 @@ struct MonthPickerSheet: View {
         .padding(.bottom, Spacing.xxl)
         .animation(.snappy(duration: 0.25), value: year)
         .timiFittedSheet()
+        .presentationDragIndicator(.visible)
     }
 
-    /// The glass circle draws its glyph itself, so a year that cannot be reached greys the glyph
-    /// here (`disabled` alone leaves it black).
+    /// A plain chevron, 44pt to tap; a year that cannot be reached is faint.
     private func yearButton(_ icon: String, label: String, delta: Int, isEnabled: Bool) -> some View {
         Button { year += delta } label: {
-            TimiIcon(icon, size: 20)
-                .foregroundStyle(isEnabled ? Palette.ink : Palette.secondary.opacity(0.4))
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            TimiIcon(icon, size: 18)
+                .foregroundStyle(isEnabled ? Palette.primary : Palette.secondary.opacity(0.4))
+                .frame(width: ControlHeight.regular, height: ControlHeight.regular)
+                .contentShape(Rectangle())
         }
-        .nativeCircleButton(diameter: 44)
+        .buttonStyle(.plain)
         .disabled(!isEnabled)
         .accessibilityLabel(label)
     }
@@ -125,13 +158,17 @@ struct MonthPickerSheet: View {
     private func monthCell(_ number: Int) -> some View {
         let isChosen = chosen == (year, number)
         let isAhead = year > thisYear || (year == thisYear && number > thisMonth)
+        let isThisMonth = year == thisYear && number == thisMonth
         return Button { pick(year: year, month: number) } label: {
-            Text("T\(number)")
-                .textRole(.bodyStrong)
+            Text("Tháng \(number)")
+                .textRole(isChosen || isThisMonth ? .bodyStrong : .body)
                 .monospacedDigit()
-                .foregroundStyle(isChosen ? Palette.onPrimary : isAhead ? Palette.secondaryText : Palette.ink)
+                .foregroundStyle(isChosen ? Palette.onPrimary
+                                 : isAhead ? Palette.secondary.opacity(0.6)
+                                 : isThisMonth ? Palette.primary : Palette.ink)
                 .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
-                .background(isChosen ? Palette.primary : Palette.card, in: Capsule())
+                .background(isChosen ? Palette.primary : .clear, in: Capsule())
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .disabled(isAhead)
