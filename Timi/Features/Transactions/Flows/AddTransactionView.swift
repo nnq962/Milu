@@ -240,17 +240,21 @@ struct AddTransactionView: View {
             .padding(.vertical, Spacing.s)
             .disabled(isReadOnly)
         } content: {
-            FormGroup(title: "Chi tiết", footer: readOnlyReason ?? footer, error: detailsError) {
+            // A new spending or income: the items most used, one tap away (user request 2026-10-30).
+            if !isEditing, buyingGoal == nil, let kind = mode.kind {
+                QuickCategoryGrid(kind: kind, selection: $categoryID)
+                    .id(kind)
+            }
+            FormGroup(footer: readOnlyReason ?? footer, error: detailsError) {
                 if mode == .transfer {
                     transferRows
                 } else {
                     transactionRows
                 }
                 FormDivider(hasIcon: false)
-                // Money already moved: no day after today (user choice 2026-10-29).
-                FormDateRow(title: "Ngày", date: $date, latest: .now)
-                FormDivider(hasIcon: false)
-                FormTimeRow(title: "Giờ", date: $date)
+                // Day and time on one row (user request 2026-10-30); money already moved: no day
+                // after today (user choice 2026-10-29).
+                FormDateTimeRow(title: "Thời gian", date: $date, latest: .now)
             }
             // Read-only (closed goal, archived account): shown, not typed into.
             .disabled(isReadOnly)
@@ -274,22 +278,21 @@ struct AddTransactionView: View {
                 .transition(.opacity)
             }
 
-            FormGroup(title: "Ghi chú") {
-                FormNoteRow(text: $note, prompt: "Thêm ghi chú")
-            }
-            .disabled(isReadOnly)
-
-            // A balance adjustment is never counted, a transfer neither: the choice is for spending
+            // The note and "Không tính vào báo cáo" in one group (user request 2026-10-30). A
+            // balance adjustment is never counted, a transfer neither: the switch is for spending
             // and income.
-            if mode != .transfer, !keepsSystemCategory {
-                FormGroup(footer: !isExcluded ? nil
-                          : buyingGoal != nil ? "Vẫn trừ vào hũ."
-                          : accountID.flatMap(store.goal(id:)) != nil ? "Vẫn tính vào số tiền trong hũ."
-                          : "Vẫn tính vào số dư tài khoản.") {
+            let offersExclude = mode != .transfer && !keepsSystemCategory
+            FormGroup(footer: !offersExclude || !isExcluded ? nil
+                      : buyingGoal != nil ? "Vẫn trừ vào hũ."
+                      : accountID.flatMap(store.goal(id:)) != nil ? "Vẫn tính vào số tiền trong hũ."
+                      : "Vẫn tính vào số dư tài khoản.") {
+                FormNoteRow(text: $note, prompt: "Thêm ghi chú")
+                if offersExclude {
+                    FormDivider(hasIcon: false)
                     FormToggleRow(title: "Không tính vào báo cáo", isOn: $isExcluded)
                 }
-                .disabled(isReadOnly)
             }
+            .disabled(isReadOnly)
 
             if isEditing, !isReadOnly {
                 FormGroup { deleteRow }

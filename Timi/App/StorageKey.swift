@@ -15,4 +15,8 @@ enum StorageKey {
     static let lastAccountID = "transactions.lastAccountID"
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
     static let askedAI = "onboarding.askedAI"
+    /// The colour combo being tried (`AccentTrial`), Cài đặt → Nhà phát triển.
+    static let accentTrial = "developer.accentTrial"
+    /// The Tài khoản layout being tried (`AccountsLayout`), Cài đặt → Nhà phát triển.
+    static let accountsLayout = "developer.accountsLayout"
 }

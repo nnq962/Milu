@@ -10,6 +10,10 @@ struct OnboardingCard: View {
     @Environment(FinanceStore.self) private var store
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
     @State private var step: Step?
+    /// The ring grows with the "3/4" inside it, which spilled out of a fixed 44 at large sizes (HIG
+    /// review 2026-10-30).
+    @ScaledMetric(relativeTo: .caption2) private var ringSize: CGFloat = 44
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// The steps done, by name; each pays its +5 lượt AI once (`AIQuota.claim`).
     static func completedSteps(_ store: FinanceStore, askedAI: Bool) -> [String] {
@@ -33,25 +37,26 @@ struct OnboardingCard: View {
         if let next = steps.first(where: { !$0.done }) {
             let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
             Button(action: next.start) {
-                HStack(spacing: Spacing.m) {
-                    progressRing(completed: completed, total: steps.count)
-                    VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                        Text("Làm quen với Timi")
-                            .textRole(.label)
-                            .foregroundStyle(Palette.ink)
-                        Text(next.title)
-                            .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryText)
-                            .lineLimit(1)
+                Group {
+                    // At the accessibility sizes the words go under the ring and the reward, which
+                    // squeezed them into a narrow column in one row (HIG review 2026-10-30).
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: Spacing.m) {
+                            HStack(spacing: Spacing.m) {
+                                progressRing(completed: completed, total: steps.count)
+                                Spacer(minLength: Spacing.s)
+                                reward
+                            }
+                            words(next.title)
+                        }
+                    } else {
+                        HStack(spacing: Spacing.m) {
+                            progressRing(completed: completed, total: steps.count)
+                            words(next.title)
+                            Spacer(minLength: Spacing.s)
+                            reward
+                        }
                     }
-                    Spacer(minLength: Spacing.s)
-                    Text("+5 AI")
-                        .textRole(.footnote)
-                        .foregroundStyle(Palette.onLime)
-                        .padding(.horizontal, Spacing.s).padding(.vertical, 3)
-                        .background(Palette.lime, in: Capsule())
-                    TimiIcon("hugeicons-arrow-right-01", size: 14)
-                        .foregroundStyle(Palette.secondary)
                 }
                 .padding(Spacing.l)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,6 +77,31 @@ struct OnboardingCard: View {
         }
     }
 
+    private func words(_ nextStep: String) -> some View {
+        VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+            Text("Làm quen với Timi")
+                .textRole(.label)
+                .foregroundStyle(Palette.ink)
+            Text(nextStep)
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
+                .lineLimit(2)
+        }
+    }
+
+    /// "+5 AI" and the chevron.
+    private var reward: some View {
+        HStack(spacing: Spacing.m) {
+            Text("+5 AI")
+                .textRole(.footnote)
+                .foregroundStyle(Palette.onLime)
+                .padding(.horizontal, Spacing.s).padding(.vertical, 3)
+                .background(Palette.lime, in: Capsule())
+            TimiIcon("hugeicons-arrow-right-01", size: 14)
+                .foregroundStyle(Palette.secondary)
+        }
+    }
+
     /// How many steps are done, "3/4" inside a moss ring.
     private func progressRing(completed: Int, total: Int) -> some View {
         ZStack {
@@ -84,6 +114,6 @@ struct OnboardingCard: View {
                 .monospacedDigit()
                 .foregroundStyle(Palette.primary)
         }
-        .frame(width: 44, height: 44)
+        .frame(width: ringSize, height: ringSize)
     }
 }

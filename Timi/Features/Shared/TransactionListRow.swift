@@ -26,16 +26,16 @@ struct TransactionListRow: View {
     }
 
     /// The second line, under the category: its note (first line), or else the item's group ("Ăn
-    /// uống"). Then, when it is not counted (left out by the user, or on a locked account),
-    /// "Không tính".
+    /// uống"), or else the account, never the title again ("Tiền nước / Tiền nước" said nothing;
+    /// HIG review 2026-10-30). Then, when it is not counted (left out by the user, or on a locked
+    /// account), "Không tính".
     private var categoryText: String {
         if transaction.isAdjustment { return "Không tính vào báo cáo" }
-        let base: String
-        if !transaction.note.isEmpty {
-            base = transaction.note.components(separatedBy: .newlines).first ?? ""
-        } else {
-            base = store.category(id: transaction.categoryID)?.parentID.map(store.categoryName) ?? ""
-        }
+        let title = store.title(of: transaction)
+        let note = transaction.note.components(separatedBy: .newlines).first ?? ""
+        let group = store.category(id: transaction.categoryID)?.parentID.map(store.categoryName) ?? ""
+        let account = store.account(id: transaction.accountID)?.name ?? store.goal(id: transaction.accountID)?.name ?? ""
+        let base = [note, group, account].first { !$0.isEmpty && $0.compare(title, options: .caseInsensitive) != .orderedSame } ?? ""
         guard !store.isReportable(transaction) else { return base }
         return base.isEmpty ? "Không tính" : "\(base) · Không tính"
     }

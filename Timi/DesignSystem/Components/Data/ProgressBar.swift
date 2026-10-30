@@ -7,10 +7,12 @@ struct ProgressBar: View {
     let value: Double
     var color: Color = Palette.primary
 
-    /// Spending against a limit: teal below 80%, orange (`warning`) from 80%, red once it is used up.
+    /// Spending against a limit: ink below 80%, orange (`warning`) from 80%, red once it is used up.
     static func budgetColor(_ ratio: Double) -> Color {
         switch ratio {
-        case ..<0.8: Palette.green
+        // Ink while well within: green read as the app's moss though it means nothing to tap
+        // (user request 2026-10-30); colour is kept for the warnings.
+        case ..<0.8: Palette.ink
         case ..<1: Palette.warning
         default: Palette.red
         }

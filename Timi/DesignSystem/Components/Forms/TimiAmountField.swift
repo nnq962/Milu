@@ -33,9 +33,10 @@ struct TimiAmountField: View {
 
     private var heroSize: CGFloat {
         switch text.count {
-        case ..<11: 40
-        case ..<14: 30
-        default: 22
+        // Larger than before (user request 2026-10-30): the amount is what the form is for.
+        case ..<11: 52
+        case ..<14: 38
+        default: 28
         }
     }
 

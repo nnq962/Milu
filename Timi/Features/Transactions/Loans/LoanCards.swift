@@ -68,84 +68,86 @@ extension Array where Element == Loan {
     }
 }
 
-/// Loan card (user request 2026-10-29): who, with a badge for how near the deadline is; what is
-/// left out of the principal; repayment progress. An overdue loan gets a thin red outline.
-struct LoanCard: View {
+/// A loan as a row in its section's white block, like the accounts on Tài khoản (user request
+/// 2026-10-30: a big card per loan, each with a badge and a bar, read as clutter). The person's
+/// initial, their name with the deadline and how much is repaid under it; on the right what is
+/// left, with how near the deadline is in its colour (red overdue, orange within a week).
+struct LoanRow: View {
     let loan: Loan
-    /// Passed in so the badge moves on overnight with the page.
+    /// Passed in so the deadline moves on overnight with the page.
     var today = Date.now
 
     @Environment(FinanceStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
         let borrowed = loan.direction == .borrowed
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: RowMetrics.gap) {
-                InitialsAvatar(name: loan.name)
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.s))
+        HStack(spacing: RowMetrics.gap) {
+            InitialsAvatar(name: loan.name)
+            layout {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text(loan.name)
                         .textRole(.body)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                     Text(subtitle)
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
-                        .lineLimit(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                StatusBadge(text: urgency.text, tone: urgency.tone)
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                Text(loan.isSettled ? loan.principal.vndCompact : "Còn \(loan.outstanding.vndCompact)")
-                    .textRole(.bodyStrong)
-                    .foregroundStyle(borrowed && !loan.isSettled ? Palette.red : Palette.ink)
-                if !loan.isSettled {
-                    Text("/ \(loan.principal.vndCompact)")
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
+                VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: RowMetrics.lineGap) {
+                    Text(loan.isSettled ? loan.principal.vndCompact : loan.outstanding.vndCompact)
+                        .textRole(.amount)
+                        .monospacedDigit()
+                        .foregroundStyle(borrowed && !loan.isSettled ? Palette.red : Palette.ink)
+                    Text(urgency.text)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Self.urgencyColor(urgency))
                 }
-                Spacer(minLength: Spacing.s)
-                Text(paidText)
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
             }
-            .monospacedDigit()
-            .padding(.top, Spacing.l)
-
-            ProgressBar(value: loan.paidRatio, color: Self.progressColor(for: loan, urgency: urgency))
-                .padding(.top, Spacing.s)
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
+            TimiIcon("hugeicons-arrow-right-01", size: 14)
+                .foregroundStyle(Palette.secondary)
         }
-        .sleekCard()
-        .overlay {
-            if case .overdue = urgency {
-                RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
-                    .strokeBorder(Palette.red.opacity(0.35), lineWidth: 1)
-            }
-        }
-        .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
-        // In words: "Minh Trần, còn 8 ngày, còn 45.000.000 đồng trên 75.000.000 đồng, đã trả 40%".
+        .padding(.horizontal, RowMetrics.horizontal)
+        .padding(.vertical, Spacing.m)
+        .frame(minHeight: 68)
+        .contentShape(Rectangle())
+        // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đ, còn 7 ngày".
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([loan.name, subtitle, urgency.text,
-                             loan.isSettled ? loan.principal.vnd : "còn \(loan.outstanding.vnd) trên \(loan.principal.vnd)",
-                             paidText].joined(separator: ", "))
+        .accessibilityLabel([loan.name, subtitle,
+                             loan.isSettled ? loan.principal.vnd : "còn \(loan.outstanding.vnd)",
+                             urgency.text].joined(separator: ", "))
         .accessibilityHint("Xem khoản vay")
     }
 
-    /// The deadline's day, the relationship, and the monthly interest when there is one.
+    /// The deadline's day and how much is repaid once something is ("Hạn 6/11 · Đã trả 40%"); the
+    /// relationship when there is no deadline; "Lãi 1tr" too when it bears interest.
     private var subtitle: String {
         let relationship = loan.contactID.flatMap { store.contact(id: $0) }
             .map { store.relationship(id: $0.relationshipID).name }
-        let due = loan.isSettled ? nil : loan.dueDate.map { "Hạn \($0.dayMonth)" }
-        let interest = loan.monthlyInterestRate > 0 && !loan.isSettled ? "Lãi \(loan.monthlyInterest.vndCompact)" : nil
-        let parts = [due, interest].compactMap { $0 }
-        return parts.isEmpty ? (relationship ?? loan.direction.title) : parts.joined(separator: " · ")
+        if loan.isSettled { return relationship ?? loan.direction.title }
+        let due = loan.dueDate.map { "Hạn \($0.dayMonth)" } ?? relationship
+        let interest = loan.monthlyInterestRate > 0 ? "Lãi \(loan.monthlyInterest.vndCompact)" : nil
+        // How much is repaid only once something is: "Chưa trả" made the line wrap for little.
+        let paid = loan.paidRatio > 0 ? loan.paidText : nil
+        return [due, interest, paid].compactMap { $0 }.joined(separator: " · ")
     }
 
-    private var paidText: String { loan.paidText }
+    /// The deadline in words takes the urgency's colour: red overdue, orange within a week,
+    /// grey otherwise.
+    static func urgencyColor(_ urgency: LoanUrgency) -> Color {
+        switch urgency {
+        case .overdue: Palette.red
+        case .soon: Palette.warningText
+        default: Palette.secondaryText
+        }
+    }
 
-    /// The bar takes the badge's colour when the deadline is close, else the side's; the same on
-    /// the card and the loan's sheet.
+    /// The bar on the loan's sheet takes the deadline's colour when it is close, else the side's.
     static func progressColor(for loan: Loan, urgency: LoanUrgency) -> Color {
         switch urgency {
         case .overdue: Palette.red
@@ -153,5 +155,28 @@ struct LoanCard: View {
         case .settled: Palette.green
         default: loan.direction == .borrowed ? Palette.red : Palette.primary
         }
+    }
+}
+
+/// Loans as rows in one white block, hairlines between them; tapping one hands it back.
+struct LoanRowList: View {
+    let loans: [Loan]
+    var today = Date.now
+    let onOpen: (Loan) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(loans.enumerated()), id: \.element.id) { index, loan in
+                Button { onOpen(loan) } label: { LoanRow(loan: loan, today: today) }
+                    .buttonStyle(.row)
+                    .overlay(alignment: .top) {
+                        if index > 0 {
+                            Palette.border.frame(height: 1)
+                                .padding(.leading, RowMetrics.circleDividerInset)
+                        }
+                    }
+            }
+        }
+        .listCard()
     }
 }

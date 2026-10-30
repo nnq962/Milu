@@ -1,15 +1,19 @@
 import SwiftUI
 
 /// The row of shortcuts under the lead card, straight on the page like a wallet app's (user
-/// request 2026-10-30: fewer cards), all alike, white circles: Ghi chi, Ghi thu, Chuyển tiền open the
-/// add sheet on that mode; Trợ lý AI opens the assistant's page.
+/// request 2026-10-30: fewer cards), all alike, glass circles: Ghi chi, Ghi thu, Chuyển tiền open the
+/// add sheet on that mode; Trợ lý AI opens the assistant's page. At the accessibility text sizes
+/// they go two by two, as four in a row ran into each other (HIG review 2026-10-30).
 struct QuickActions: View {
     let onOpenAssistant: () -> Void
 
     @State private var mode: AddTransactionView.Mode?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
+        let columns = dynamicTypeSize.isAccessibilitySize ? 2 : 4
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 0), spacing: 0), count: columns),
+                  alignment: .center, spacing: Spacing.l) {
             action("Ghi chi", icon: "hugeicons-pencil-edit-02") { mode = .expense }
             action("Ghi thu", icon: "hugeicons-add-circle") { mode = .income }
             action("Chuyển tiền", icon: "hugeicons-arrow-data-transfer-horizontal") { mode = .transfer }
@@ -19,24 +23,29 @@ struct QuickActions: View {
     }
 
     private func action(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: Spacing.s) {
-                // White on the cream page with a soft shadow, like the card above them (user
-                // request 2026-10-30: the mint read as dull).
+        VStack(spacing: Spacing.s) {
+            // Apple's Liquid Glass circle (user request 2026-10-30, over the white circles with a
+            // shadow); the system draws the press, so no custom style.
+            Button(action: action) {
+                // The glass hugs its label plus its own padding, so the label sets the circle's
+                // size: 40 here makes the 56 circle, as 28 does the 44 ones.
                 TimiIcon(icon, size: 24)
                     .foregroundStyle(Palette.primary)
-                    .frame(width: 56, height: 56)
-                    .background(Palette.card, in: Circle())
-                    .shadow(color: .black.opacity(0.06), radius: 1.5, y: 1)
-                    .shadow(color: .black.opacity(0.05), radius: 6, y: 3)
-                Text(title)
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .frame(width: 40, height: 40)
             }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            .nativeCircleButton(diameter: 56)
+            .accessibilityLabel(title)
+            Text(title)
+                .textRole(.caption)
+                .foregroundStyle(Palette.ink)
+                // Two lines rather than cut off when the text is large.
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                // The name below the circle opens the same thing.
+                .onTapGesture(perform: action)
+                .accessibilityHidden(true)
         }
-        .buttonStyle(.card)
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 }

@@ -31,13 +31,18 @@ struct ListRow: View {
     var isLocked = false
 
     @Environment(\.formIconStyle) private var iconStyle
+    /// The icon grows with the text beside it (HIG review 2026-10-30: 24 by large text looked lost).
+    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.iconColumn
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Titles take a second line at the accessibility text sizes, where one cut "Cho vay" to "Ch…".
+    private var titleLines: Int { dynamicTypeSize.isAccessibilitySize ? 2 : 1 }
 
     var body: some View {
         HStack(spacing: RowMetrics.gap) {
             // Plain style (default) drops every tile, coloured ones too; amounts carry the meaning.
             Group {
                 if iconStyle == .plain {
-                    RowIcon(name: icon)
+                    RowIcon(name: icon, size: iconSize)
                 } else {
                     IconCircle(icon: icon, background: iconBackground)
                 }
@@ -50,7 +55,7 @@ struct ListRow: View {
                     HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                         Text(title)
                             .textRole(.body)
-                            .lineLimit(1)
+                            .lineLimit(titleLines)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         // Full size: the title gives way first.
                         MoneyText(amount: amount, tone: isLocked ? .muted : amountTone)
@@ -70,7 +75,7 @@ struct ListRow: View {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text(title)
                         .textRole(.body)
-                        .lineLimit(1)
+                        .lineLimit(titleLines)
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
                             .textRole(.caption)

@@ -40,11 +40,9 @@ struct TransactionsView: View {
             ScrollViewReader { scroller in
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.section) {
-                        Picker("Loại", selection: $segment) {
-                            ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        .controlSize(.large)
+                        ScaledSegmentedPicker(title: "Loại", selection: $segment,
+                                              options: TransactionSegment.allCases) { $0.title }
+                            .controlSize(.large)
 
                         // Both segments: the card, the chips, then the list. A new chip or month:
                         // the list fades over to what it shows now. It keeps at least a screen's
@@ -76,37 +74,29 @@ struct TransactionsView: View {
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
-            // The title names the back button of pushed screens; the leading heading is the visible title.
+            // The visible title on iOS 26 (`TabHeading`), which shrinks to the middle of the bar as
+            // the page scrolls, as on Tài khoản; earlier iOS shows `heading` instead.
             .navigationTitle("Giao dịch")
-            .navigationBarTitleDisplayMode(.inline)
+            .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                 // A new transaction comes from the + beside the tab bar (every tab); a new loan from
                 // the + here, shown on "Vay nợ" (user choice 2026-10-29).
-                // The month is picked here, beside search (user choice 2026-10-29), on "Thu chi".
+                // The month is picked on the page, beside "Đã chi" (user choice 2026-10-30): out of
+                // the bar, the title has room to shrink to the middle as on Tài khoản.
                 // Search opens a screen of its own (TransactionSearchView).
                 if #available(iOS 26.0, *) {
-                    ToolbarItem(placement: .topBarLeading) { heading }
-                        .sharedBackgroundVisibility(.hidden)
-                    // One item, so the month (or the loan +) sits 8pt from search, not the bar's wider
-                    // gap between separate items.
-                    ToolbarItem(placement: .topBarTrailing) {
-                        HStack(spacing: Spacing.s) {
-                            if segment == .flows {
-                                MonthMenu(month: $displayedMonth)
-                            } else {
-                                addLoanButton.nativeCircleButton(diameter: ControlHeight.regular)
-                            }
-                            searchButton.nativeCircleButton(diameter: ControlHeight.regular)
-                        }
+                    // Plain items: the bar draws their glass, which then takes part in push and pop
+                    // (glass drawn inside the item showed as a square mid-transition). The spacer
+                    // gives each its own glass rather than one shared pill.
+                    if segment == .loans {
+                        ToolbarItem(placement: .topBarTrailing) { addLoanButton }
+                        ToolbarSpacer(.fixed, placement: .topBarTrailing)
                     }
-                    .sharedBackgroundVisibility(.hidden)
+                    ToolbarItem(placement: .topBarTrailing) { searchButton }
                 } else {
+                    ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                     ToolbarItem(placement: .topBarLeading) { heading }
-                    if segment == .flows {
-                        ToolbarItem(placement: .topBarTrailing) { MonthMenu(month: $displayedMonth) }
-                    }
                     if segment == .loans {
                         ToolbarItem(placement: .topBarTrailing) { addLoanButton }
                     }
@@ -197,98 +187,61 @@ struct TransactionsView: View {
         return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
-    /// The two totals, a shorter chart and the budget on one line with its bar (user choice
-    /// 2026-10-29), then "Xem báo cáo"; the month is picked in the toolbar.
+    /// The month in a white card right under the segments, balanced (user request 2026-10-30: a big
+    /// spending figure over a small income line read lopsided). A top row of two controls the same
+    /// height: the month as a glass capsule, and a glass circle opening the month's report. Under
+    /// it what went out and what came in side by side at one size, as on Báo cáo. The limit shows
+    /// only when it needs a look: from 80% used, orange, red once over.
     private var summaryCard: some View {
         let reported = store.reportableTransactions(inMonthOf: displayedMonth)
-        let expenses = reported.filter { $0.kind == .expense }
-        let incomes = reported.filter { $0.kind == .income }
-        let spent = expenses.reduce(0) { $0 + $1.amount }
-        // The counts are of the rows the "Chi" and "Thu" chips list (those not counted in the sum too).
-        let listed = monthTransactions
-        return VStack(alignment: .leading, spacing: Spacing.m) {
-            HStack(spacing: 0) {
-                flowTotal("Đã chi", count: listed.count(where: TransactionFilter.expense.matches), amount: spent,
-                          color: Palette.red)
+        let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
+        let earned = reported.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
+        return VStack(alignment: .leading, spacing: Spacing.l) {
+            HStack {
+                MonthMenu(month: $displayedMonth)
+                Spacer(minLength: Spacing.s)
+                // The month in detail: by group, against last month, per account.
+                NavigationLink {
+                    ReportView(period: ReportPeriod(.month, containing: displayedMonth))
+                } label: {
+                    TimiIcon("hugeicons-pie-chart", size: 20)
+                        .foregroundStyle(Palette.primary)
+                        .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+                }
+                .nativeCircleButton(diameter: ControlHeight.regular)
+                .accessibilityLabel("Báo cáo tháng")
+            }
+            HStack(alignment: .top, spacing: 0) {
+                monthTotal("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain)
                     .padding(.trailing, Spacing.l)
                     .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
-                flowTotal("Đã thu", count: listed.count(where: TransactionFilter.income.matches),
-                          amount: incomes.reduce(0) { $0 + $1.amount }, color: Palette.income)
+                monthTotal("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .plain)
                     .padding(.leading, Spacing.l)
             }
-            DailySpendingChart(month: displayedMonth,
-                               totals: Dictionary(grouping: expenses) { Calendar.current.component(.day, from: $0.date) }
-                                   .mapValues { $0.reduce(0) { $0 + $1.amount } },
-                               today: today, height: 44)
-            if monthlyBudget > 0 {
-                budgetRow(spent: spent)
-                    .padding(.top, Spacing.m)
-                    .overlay(alignment: .top) { Palette.border.frame(height: 1) }
-            }
-            // The month in detail: by group, against last month, per account (user choice 2026-10-30).
-            NavigationLink {
-                ReportView(period: ReportPeriod(.month, containing: displayedMonth))
-            } label: {
-                HStack(spacing: Spacing.s) {
-                    TimiIcon("hugeicons-pie-chart", size: 18)
-                    Text("Xem báo cáo")
-                        .textRole(.captionStrong)
-                    Spacer(minLength: Spacing.s)
-                    TimiIcon("hugeicons-arrow-right-01", size: 16)
-                        .foregroundStyle(Palette.secondary)
+            if monthlyBudget > 0, spent / monthlyBudget >= 0.8 {
+                let over = spent > monthlyBudget
+                HStack(spacing: Spacing.xs) {
+                    TimiIcon("hugeicons-alert-circle", size: 14)
+                    Text(over ? "Vượt hạn mức \((spent - monthlyBudget).vndCompact)"
+                         : "Đã dùng \((spent / monthlyBudget).percentText) hạn mức, còn \((monthlyBudget - spent).vndCompact)")
                 }
-                .foregroundStyle(Palette.ink)
-                .frame(minHeight: ControlHeight.regular)
-                .contentShape(Rectangle())
+                .textRole(.captionStrong)
+                .foregroundStyle(over ? Palette.red : Palette.warningText)
             }
-            .buttonStyle(.automatic)
-            // The 44pt row has ~12pt of air above and below its text: let that air stand in for the
-            // gap under the line (12pt, as the budget row's) and for the card's bottom margin.
-            .padding(.vertical, -(ControlHeight.regular - 20) / 2)
-            .padding(.top, Spacing.m)
-            .overlay(alignment: .top) { Palette.border.frame(height: 1) }
         }
-        .sleekCard(padding: Spacing.xl)
+        .sleekCard()
     }
 
-    private func flowTotal(_ title: String, count: Int, amount: Double, color: Color) -> some View {
+    /// One side of the month: its name and the amount, signed in the app's colours.
+    private func monthTotal(_ title: String, amount: Double, tone: MoneyText.Tone) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("\(title) · \(count)")
+            Text(title)
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-            // Exact line height + minimumScaleFactor shrinks text unexpectedly on iOS; use min-height.
-            Text(amount.vnd)
-                .textRole(.amountLarge)
-                .foregroundStyle(color)
-                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
-                .frame(minHeight: 32)
+            MoneyText(amount: amount, size: .large, tone: tone)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Read as words: "Đã chi 14.128.000 đồng, 22 giao dịch", not the "·" and a bare number.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) \(amount.vnd), \(count) giao dịch")
-    }
-
-    private func budgetRow(spent: Double) -> some View {
-        let ratio = spent / monthlyBudget
-        let over = spent > monthlyBudget
-        return VStack(alignment: .leading, spacing: Spacing.s) {
-            HStack {
-                Text("Đã dùng \(ratio.percentText) hạn mức")
-                    .textRole(.caption)
-                Spacer(minLength: Spacing.s)
-                Text(over ? "vượt \((spent - monthlyBudget).vndCompact)" : "còn \((monthlyBudget - spent).vndCompact)")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(over ? Palette.red : Palette.secondaryText)
-                    .monospacedDigit()
-            }
-            // Same colors as the Overview limit bar: green within budget, red when over.
-            ProgressBar(value: ratio, color: ProgressBar.budgetColor(ratio))
-        }
-        // In full: "Đã dùng 85% hạn mức, còn 2.100.000 đ", not "còn 2,1tr".
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Đã dùng \(ratio.percentText) hạn mức, "
-            + (over ? "vượt \((spent - monthlyBudget).vnd)" : "còn \((monthlyBudget - spent).vnd)"))
+        .accessibilityElement(children: .combine)
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"

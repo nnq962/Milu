@@ -119,7 +119,10 @@ struct DailySpendingChart: View {
     private func color(for day: Day, selected: Day?) -> Color {
         if let selected { return day.id == selected.id ? Palette.primary : Palette.secondary.opacity(0.2) }
         if day.isToday { return Palette.primary }
-        return day.isFuture && day.amount == 0 ? Palette.muted : Palette.secondary.opacity(0.3)
+        // Days gone by in a pale moss, so the chart reads as the month's spending and not as
+        // switched off (HIG review 2026-10-30, after grey); days ahead stay grey.
+        if day.isFuture { return day.amount == 0 ? Palette.muted : Palette.secondary.opacity(0.3) }
+        return Palette.primary.opacity(0.35)
     }
 }
 

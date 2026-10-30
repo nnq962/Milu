@@ -8,12 +8,16 @@ extension View {
         .background {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .fill(color)
-                // A short shadow close under the card and no border, as in the user's reference
-                // (2026-10-30): a tight contact line plus a faint spread. Shadow only the surface,
-                // so text and nested tiles don't acquire their own.
-                .shadow(color: .black.opacity(elevated ? 0.06 : 0), radius: 1.5, x: 0, y: 1)
-                .shadow(color: .black.opacity(elevated ? 0.05 : 0), radius: 6, x: 0, y: 3)
+                // Shadow only the surface, so text and nested tiles don't acquire their own.
+                .softCardShadow(elevated)
         }
+    }
+
+    /// The one card shadow of the app, kept gentle (user request 2026-10-30, after a tighter,
+    /// darker pair): a barely-there contact line and a wide faint spread, no border.
+    func softCardShadow(_ isOn: Bool = true) -> some View {
+        shadow(color: .black.opacity(isOn ? 0.025 : 0), radius: 1, x: 0, y: 0.5)
+            .shadow(color: .black.opacity(isOn ? 0.04 : 0), radius: 12, x: 0, y: 4)
     }
 }
 

@@ -19,8 +19,9 @@ struct SectionHeader<Trailing: View>: View {
                 Text(title)
                     .textRole(.title)
             case .group:
+                // Sentence case, not small capitals (user request 2026-10-30), as the rest of the app.
                 Text(title)
-                    .textRole(.overline)
+                    .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
             }
             Spacer(minLength: Spacing.s)

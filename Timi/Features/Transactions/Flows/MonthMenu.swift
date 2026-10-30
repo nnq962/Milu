@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Month button: "Tháng 5" + chevron on a plain glass capsule (`GlassCapsule`). It opens
-/// `MonthPickerSheet` (user choice 2026-10-29), not a menu: a menu read as "earlier / later"
-/// rather than picking a month, and its glass button took a moment to settle after it closed.
+/// Month button: "Tháng 5 ⌄", a native menu (user choice 2026-10-30): on iOS 26 it opens out of the
+/// button as a glass panel with no arrow, the last six months to pick in one tap (the chosen
+/// one ticked), then "Tháng khác…" for the month-and-year wheels in a small sheet. The popover the
+/// wheels used to open in pointed an arrow at the button, which read as dated.
 ///
-/// `compact` is the quiet form for a section heading (Lịch thu chi on Tổng quan): moss words
-/// (16) and chevron with no capsule, still 44pt to tap (user request 2026-10-30: the capsule
-/// stood taller than the heading).
+/// The capsule is plain glass (`GlassCapsule`); `compact` is the quiet form for a section heading
+/// (Lịch thu chi on Tổng quan): moss words (14) and chevron with no capsule, still 44pt to tap.
 struct MonthMenu: View {
     @Binding var month: Date
     var compact = false
@@ -19,168 +19,199 @@ struct MonthMenu: View {
         let number = calendar.component(.month, from: month)
         let isCurrentYear = year == calendar.component(.year, from: .now)
         let title = isCurrentYear ? "Tháng \(number)" : "T\(number)/\(year.formatted(.number.grouping(.never)))"
-        Group {
-            if compact {
-                Button { isPicking = true } label: {
-                    HStack(spacing: Spacing.xs) {
-                        // 16, one step under the 17 heading beside it: 13 read as too small
-                        // (user 2026-10-30).
-                        Text(title)
-                            .textRole(.label)
-                            .monospacedDigit()
-                            .fixedSize()
-                            .contentTransition(.numericText())
-                        TimiIcon("hugeicons-arrow-down-01", size: 14)
-                    }
-                    .foregroundStyle(Palette.primary)
-                    .frame(minHeight: ControlHeight.regular)
-                    .contentShape(Rectangle())
+        Menu {
+            Picker("Tháng", selection: chosenMonth) {
+                ForEach(recentMonths, id: \.self) { start in
+                    Text(Self.name(of: start)).tag(start)
                 }
-                .buttonStyle(.plain)
-            } else {
-                capsule(title)
             }
+            Divider()
+            Button("Tháng khác…") { isPicking = true }
+        } label: {
+            if compact { compactLabel(title) } else { capsuleLabel(title) }
         }
+        .menuOrder(.fixed)
+        .modifier(MonthMenuStyle(compact: compact))
         .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
         .sheet(isPresented: $isPicking) {
-            MonthPickerSheet(month: $month)
+            MonthPickerPopover(month: $month)
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
         }
     }
 
-    private func capsule(_ title: String) -> some View {
-        Button { isPicking = true } label: {
-            HStack(spacing: Spacing.xs) {
-                Text(title)
-                    .textRole(.body)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize()
-                    .contentTransition(.numericText())
-                TimiIcon("hugeicons-arrow-down-01", size: 14)
-            }
-            .foregroundStyle(Palette.ink)
-            // Inside the label, so the whole capsule takes the tap, not only the words.
-            .padding(.horizontal, Spacing.l)
-            // At least the 44 of the search circle beside it, taller with larger text.
-            .padding(.vertical, Spacing.xs)
-            .frame(minHeight: ControlHeight.regular)
-            .contentShape(Capsule())
+    /// The month shown, as the first of it; picking one moves the page there.
+    private var chosenMonth: Binding<Date> {
+        Binding {
+            month.startOfMonth
+        } set: { start in
+            Haptics.selection()
+            withAnimation(.smooth(duration: 0.3)) { month = start }
         }
-        // The same plain glass as the search circle beside it (user choice 2026-10-29, after lime).
-        .modifier(GlassCapsule())
+    }
+
+    /// This month and the five before it, newest first (twelve made the menu scroll and hid
+    /// "Tháng khác…"); an older month being shown is added at
+    /// the end so it still shows ticked.
+    private var recentMonths: [Date] {
+        let calendar = Calendar.current
+        let now = Date.now.startOfMonth
+        var months = (0..<6).compactMap { calendar.date(byAdding: .month, value: -$0, to: now) }
+        if !months.contains(month.startOfMonth) { months.append(month.startOfMonth) }
+        return months
+    }
+
+    /// "Tháng 9" this year, "Tháng 9/2025" another.
+    private static func name(of start: Date) -> String {
+        let calendar = Calendar.current
+        let number = calendar.component(.month, from: start)
+        let year = calendar.component(.year, from: start)
+        return year == calendar.component(.year, from: .now) ? "Tháng \(number)" : "Tháng \(number)/\(String(year))"
+    }
+
+    private func compactLabel(_ title: String) -> some View {
+        HStack(spacing: Spacing.xs) {
+            // 14, clearly under the 17 heading beside it: 16 read as large as the heading, 13 as
+            // too small (user 2026-10-30).
+            Text(title)
+                .textRole(.accessory)
+                .monospacedDigit()
+                .fixedSize()
+                .contentTransition(.numericText())
+            TimiIcon("hugeicons-arrow-down-01", size: 12)
+        }
+        .foregroundStyle(Palette.primary)
+        .frame(minHeight: ControlHeight.regular)
+        .contentShape(Rectangle())
+    }
+
+    private func capsuleLabel(_ title: String) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Text(title)
+                .textRole(.body)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .contentTransition(.numericText())
+            TimiIcon("hugeicons-arrow-down-01", size: 14)
+        }
+        .foregroundStyle(Palette.ink)
+        // Inside the label, so the whole capsule takes the tap, not only the words.
+        .padding(.horizontal, Spacing.l)
+        // At least the 44 of the circles beside it, taller with larger text.
+        .padding(.vertical, Spacing.xs)
+        .frame(minHeight: ControlHeight.regular)
+        .contentShape(Capsule())
     }
 }
 
-/// Picks a month: "‹ 2026 ›" on top as the sheet's only heading, then the twelve months as plain
-/// figures; the chosen one on a moss capsule, this month in moss, months still ahead faint and not
-/// pickable. No ✕ and no glass circles (user request 2026-10-30: too many buttons in one corner):
-/// the grabber, a swipe down or a tap outside closes it, as does picking. "Tháng này" goes back to
-/// the current month.
-struct MonthPickerSheet: View {
+/// The menu's button: plain words for `compact`, else the glass capsule.
+private struct MonthMenuStyle: ViewModifier {
+    let compact: Bool
+
+    func body(content: Content) -> some View {
+        if compact {
+            content.buttonStyle(.plain)
+        } else {
+            // The same plain glass as the circles beside it (user choice 2026-10-29, after lime).
+            content.modifier(GlassCapsule())
+        }
+    }
+}
+
+/// Picks a month on the iOS month-and-year wheels (user choice 2026-10-30: native, over the drawn
+/// grid of twelve months), in a small sheet from "Tháng khác…" of `MonthMenu`. The page follows
+/// the wheels as they turn; a swipe down or a tap outside closes it. Months still ahead
+/// cannot be reached. "Tháng này" goes back to the current month.
+struct MonthPickerPopover: View {
     @Binding var month: Date
 
     @Environment(\.dismiss) private var dismiss
     @Environment(FinanceStore.self) private var store
-    @State private var year: Int
-    /// Whether "Tháng này" shows, decided as the sheet opens: picking a month changes `month` and
-    /// closes the sheet, and the button must not pop in (and the sheet grow) while it slides away.
+    /// Whether "Tháng này" shows, decided as it opens: turning the wheels changes `month`, and the
+    /// button must not pop in and out (and the popover resize) while they turn.
     @State private var showsThisMonth: Bool
 
     private let calendar = Calendar.current
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: 4)
 
     init(month: Binding<Date>) {
         _month = month
-        _year = State(initialValue: Calendar.current.component(.year, from: month.wrappedValue))
         _showsThisMonth = State(initialValue: !Calendar.current.isDate(month.wrappedValue, equalTo: .now, toGranularity: .month))
     }
 
-    private var thisYear: Int { calendar.component(.year, from: .now) }
-    /// Back no further than the oldest thing recorded (or last year, on a new install).
-    private var firstYear: Int {
+    private var earliest: Date { Self.earliest(in: store) }
+
+    /// Back no further than January of the oldest thing recorded (or last year, on a new install).
+    static func earliest(in store: FinanceStore) -> Date {
+        let calendar = Calendar.current
         let oldest = (store.transactions.map(\.date) + store.accountTransfers.map(\.date)
             + store.loanMoves.map(\.date) + store.listedLoanPayments.map(\.date)).min() ?? .now
-        return min(calendar.component(.year, from: oldest), thisYear - 1)
-    }
-    private var thisMonth: Int { calendar.component(.month, from: .now) }
-    private var chosen: (year: Int, month: Int) {
-        (calendar.component(.year, from: month), calendar.component(.month, from: month))
+        let year = min(calendar.component(.year, from: oldest), calendar.component(.year, from: .now) - 1)
+        return calendar.date(from: DateComponents(year: year, month: 1, day: 1)) ?? oldest
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.l) {
-            HStack(spacing: Spacing.l) {
-                yearButton("hugeicons-arrow-left-01", label: "Năm trước", delta: -1, isEnabled: year > firstYear)
-                Text(String(year))
-                    .textRole(.heading)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .accessibilityAddTraits(.isHeader)
-                yearButton("hugeicons-arrow-right-01", label: "Năm sau", delta: 1, isEnabled: year < thisYear)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, Spacing.xxl)
-
-            LazyVGrid(columns: columns, spacing: Spacing.s) {
-                ForEach(1...12, id: \.self) { number in
-                    monthCell(number)
-                }
-            }
-
+        VStack(spacing: Spacing.s) {
+            MonthYearWheels(month: $month, range: earliest...Date.now)
+                .frame(width: 300, height: 216)
             if showsThisMonth {
-                Button("Tháng này") { pick(year: thisYear, month: thisMonth) }
-                    .textRole(.bodyStrong)
-                    .tint(Palette.ink)
-                    .frame(maxWidth: .infinity)
+                Button("Tháng này") {
+                    Haptics.selection()
+                    withAnimation(.smooth(duration: 0.3)) { month = .now.startOfMonth }
+                    dismiss()
+                }
+                .textRole(.bodyStrong)
+                .tint(Palette.primary)
+                .frame(minHeight: ControlHeight.regular)
             }
         }
-        .foregroundStyle(Palette.ink)
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.xxl)
-        .animation(.snappy(duration: 0.25), value: year)
-        .timiFittedSheet()
-        .presentationDragIndicator(.visible)
+        .padding(.vertical, Spacing.s)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// `UIDatePicker` in its month-and-year wheels (iOS 17.4), which SwiftUI's `DatePicker` does not
+/// offer. Sets `month` to the first of the month shown.
+private struct MonthYearWheels: UIViewRepresentable {
+    @Binding var month: Date
+    let range: ClosedRange<Date>
+
+    func makeUIView(context: Context) -> UIDatePicker {
+        let picker = UIDatePicker()
+        picker.datePickerMode = .yearAndMonth
+        picker.preferredDatePickerStyle = .wheels
+        picker.locale = .vietnam
+        picker.addTarget(context.coordinator, action: #selector(Coordinator.changed(_:)), for: .valueChanged)
+        return picker
     }
 
-    /// A plain chevron, 44pt to tap; a year that cannot be reached is faint.
-    private func yearButton(_ icon: String, label: String, delta: Int, isEnabled: Bool) -> some View {
-        Button { year += delta } label: {
-            TimiIcon(icon, size: 18)
-                .foregroundStyle(isEnabled ? Palette.primary : Palette.secondary.opacity(0.4))
-                .frame(width: ControlHeight.regular, height: ControlHeight.regular)
-                .contentShape(Rectangle())
+    func updateUIView(_ picker: UIDatePicker, context: Context) {
+        context.coordinator.month = $month
+        picker.minimumDate = range.lowerBound
+        picker.maximumDate = range.upperBound
+        // Only when it differs, so a redraw does not fight the wheels mid-turn.
+        if !Calendar.current.isDate(picker.date, equalTo: month, toGranularity: .month) {
+            picker.setDate(month, animated: false)
         }
-        .buttonStyle(.plain)
-        .disabled(!isEnabled)
-        .accessibilityLabel(label)
     }
 
-    private func monthCell(_ number: Int) -> some View {
-        let isChosen = chosen == (year, number)
-        let isAhead = year > thisYear || (year == thisYear && number > thisMonth)
-        let isThisMonth = year == thisYear && number == thisMonth
-        return Button { pick(year: year, month: number) } label: {
-            Text("Tháng \(number)")
-                .textRole(isChosen || isThisMonth ? .bodyStrong : .body)
-                .monospacedDigit()
-                .foregroundStyle(isChosen ? Palette.onPrimary
-                                 : isAhead ? Palette.secondary.opacity(0.6)
-                                 : isThisMonth ? Palette.primary : Palette.ink)
-                .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
-                .background(isChosen ? Palette.primary : .clear, in: Capsule())
-                .contentShape(Capsule())
+    func makeCoordinator() -> Coordinator { Coordinator(month: $month) }
+
+    final class Coordinator: NSObject {
+        var month: Binding<Date>
+
+        init(month: Binding<Date>) { self.month = month }
+
+        // The wheels tick on their own, so no haptic here.
+        @objc func changed(_ picker: UIDatePicker) {
+            withAnimation(.smooth(duration: 0.3)) { month.wrappedValue = picker.date.startOfMonth }
         }
-        .buttonStyle(.plain)
-        .disabled(isAhead)
-        .accessibilityLabel("Tháng \(number) năm \(String(year))")
-        .accessibilityAddTraits(isChosen ? .isSelected : [])
     }
+}
 
-    private func pick(year: Int, month number: Int) {
-        guard let date = calendar.date(from: DateComponents(year: year, month: number, day: 1)) else { return }
-        Haptics.selection()
-        withAnimation(.smooth(duration: 0.3)) { month = date }
-        dismiss()
+private extension Date {
+    var startOfMonth: Date {
+        Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: self)) ?? self
     }
 }
 

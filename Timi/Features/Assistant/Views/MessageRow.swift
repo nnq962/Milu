@@ -68,8 +68,7 @@ struct MessageRow: View {
                                    bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.radius, style: .continuous)
                 .fill(Palette.card)
                 // The same short shadow as the cards.
-                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                .softCardShadow()
         }
     }
 

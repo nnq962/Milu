@@ -5,12 +5,19 @@ import SwiftUI
 struct OverviewView: View {
     /// How far the net worth card reaches up into the moss band.
     private static let cardOverlap: CGFloat = 72
+    /// How far the page scrolls before the band's foot passes under the status bar.
+    private static let bandScrollAway: CGFloat = 200
+    /// Q and the bell on their pale glass over the band: the primary colour, or ink when a light
+    /// one is being tried (`AccentTrial`), as primary on primary disappeared.
+    private static var bandGlyph: Color { AccentTrial.shared.choice.isLight ? Palette.ink : Palette.primary }
 
     @State private var information: Information?
     @State private var isShowingSettings = false
     /// Every page Tổng quan opens goes by value: Tài sản ròng and its parts, Trợ lý AI.
     @State private var path = NavigationPath()
     @State private var selectedDay: CalendarDay?
+    /// The moss band has scrolled up out from under the bar: the status bar goes back to dark text.
+    @State private var isPastBand = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
@@ -66,24 +73,13 @@ struct OverviewView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.visible, for: .navigationBar)
-            // The bar is moss like the band under it, with light status-bar text.
-            .toolbarBackground(Palette.primary, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .modifier(ClearBarOverBand(isPastBand: $isPastBand, scrollAway: Self.bandScrollAway))
+            // Plain buttons: the bar draws their glass circles, so they take part in its push and pop
+            // (Q turns into the back button). A glass button drawn inside the item did not, and
+            // showed as a square mid-transition (user report 2026-10-30).
             .toolbar {
-                if #available(iOS 26.0, *) {
-                    ToolbarItem(placement: .topBarLeading) {
-                        profileButton.nativeCircleButton(diameter: 44)
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                    ToolbarItem(placement: .topBarTrailing) {
-                        notificationButton.nativeCircleButton(diameter: 44)
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                } else {
-                    ToolbarItem(placement: .topBarLeading) { profileButton }
-                    ToolbarItem(placement: .topBarTrailing) { notificationButton }
-                }
+                ToolbarItem(placement: .topBarLeading) { profileButton }
+                ToolbarItem(placement: .topBarTrailing) { notificationButton }
             }
             // Here, not on the card: the card goes away as its last step is done.
             .onChange(of: OnboardingCard.completedSteps(store, askedAI: hasAskedAI), initial: true) { _, steps in
@@ -116,13 +112,16 @@ struct OverviewView: View {
         Button {
             isShowingSettings = true
         } label: {
-            Text("Q")
-                .textRole(.heading)
-                .frame(width: 28, height: 28)
+            // The initial drawn as an image: the bar sets an image in a circle like the bell, but
+            // text (even an icon-only label) in a pill.
+            Image(size: CGSize(width: 28, height: 28)) { context in
+                context.draw(Text("Q").font(TextRole.heading.font).foregroundStyle(Self.bandGlyph),
+                             at: CGPoint(x: 14, y: 14))
+            }
         }
         .buttonBorderShape(.circle)
         // Deep moss on the pale glass: white on it was too faint (UI review 2026-10-30).
-        .foregroundStyle(Palette.primary)
+        .foregroundStyle(Self.bandGlyph)
         .accessibilityLabel("Hồ sơ của Quyet")
         .accessibilityHint("Mở cài đặt")
     }
@@ -135,17 +134,17 @@ struct OverviewView: View {
                 .frame(width: 28, height: 28)
         }
         .buttonBorderShape(.circle)
-        .foregroundStyle(Palette.primary)
+        .foregroundStyle(Self.bandGlyph)
         .accessibilityLabel("Thông báo")
     }
 
     private var greetingHeader: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)).capitalizedFirstLetter)
-                .textRole(.captionStrong).foregroundStyle(.white.opacity(0.75))
+                .textRole(.captionStrong).foregroundStyle(Palette.onPrimary.opacity(0.75))
             Text("\(greeting), Quyet")
                 .textRole(.pageTitle)
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -155,6 +154,49 @@ struct OverviewView: View {
         case 5..<12: "Chào buổi sáng"
         case 12..<18: "Chào buổi chiều"
         default: "Chào buổi tối"
+        }
+    }
+}
+
+/// The bar draws no colour of its own: the band scrolls away under it and iOS lays its scroll-edge
+/// effect over the page, as Liquid Glass bars should (HIG review 2026-10-30: a solid moss bar cut
+/// the page off with a hard edge). Status-bar text is light on the band, dark once the cream page
+/// is under it. iOS 17 cannot follow the scroll, so it keeps the moss bar with light text.
+private struct ClearBarOverBand: ViewModifier {
+    @Binding var isPastBand: Bool
+    let scrollAway: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top > scrollAway
+                } action: { _, isPast in
+                    isPastBand = isPast
+                }
+                .toolbarBackground(.hidden, for: .navigationBar)
+                // Dark status-bar text over a light band being tried too.
+                .toolbarColorScheme(isPastBand || AccentTrial.shared.choice.isLight ? .light : .dark, for: .navigationBar)
+                .modifier(TopEdgeEffectOnlyPastBand(isPastBand: isPastBand))
+        } else {
+            content
+                .toolbarBackground(Palette.primary, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+    }
+}
+
+/// With light status-bar text the scroll-edge effect turns dark and laid a grey smear over the
+/// white card passing under it, so it shows only once the cream page is under the bar.
+private struct TopEdgeEffectOnlyPastBand: ViewModifier {
+    let isPastBand: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectHidden(!isPastBand, for: .top)
+        } else {
+            content
         }
     }
 }

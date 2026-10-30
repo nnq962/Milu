@@ -74,11 +74,6 @@ struct NetWorthPartView: View {
     /// Loans still to be paid back, as on Vay nợ; tapping one opens its sheet.
     private var lent: some View {
         let loans = store.loans.filter { $0.direction == .lent && $0.outstanding > 0 }
-        return VStack(spacing: Spacing.m) {
-            ForEach(loans) { loan in
-                Button { viewingLoan = loan } label: { LoanCard(loan: loan) }
-                    .buttonStyle(.card)
-            }
-        }
+        return LoanRowList(loans: loans) { viewingLoan = $0 }
     }
 }

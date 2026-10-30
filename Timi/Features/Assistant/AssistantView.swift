@@ -51,22 +51,18 @@ struct AssistantView: View {
         .safeAreaInset(edge: .bottom) {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
+        // iOS 26 draws the title and its subtitle natively (`TabHeading`), so they slide with the back
+        // button rather than showing as a glass rectangle (user report 2026-10-30).
         .navigationTitle("Timi")
-        .navigationBarTitleDisplayMode(.inline)
+        .modifier(TabHeading(subtitle: "Trợ lý tài chính · Bản thử nghiệm"))
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
-            if #available(iOS 26.0, *) {
+            if #unavailable(iOS 26.0) {
+                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
                 ToolbarItem(placement: .topBarLeading) { heading }
-                    .sharedBackgroundVisibility(.hidden)
-                ToolbarItem(placement: .topBarTrailing) {
-                    historyMenu.nativeCircleButton(diameter: 44)
-                }
-                .sharedBackgroundVisibility(.hidden)
-            } else {
-                ToolbarItem(placement: .topBarLeading) { heading }
-                ToolbarItem(placement: .topBarTrailing) { historyMenu }
             }
+            // A plain menu: the bar draws its glass, which then takes part in push and pop.
+            ToolbarItem(placement: .topBarTrailing) { historyMenu }
         }
         .sheet(item: $editingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
         .onChange(of: dictation.transcript) { _, text in

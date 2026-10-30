@@ -86,7 +86,7 @@ struct LoanDetailSheet: View {
                            icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02", tone: .plain) {
             StatusBadge(text: urgency.text, tone: urgency.tone)
                 .padding(.top, Spacing.s)
-            ProgressBar(value: loan.paidRatio, color: LoanCard.progressColor(for: loan, urgency: urgency))
+            ProgressBar(value: loan.paidRatio, color: LoanRow.progressColor(for: loan, urgency: urgency))
                 .padding(.top, Spacing.l)
             HStack {
                 Text(loan.paidText)

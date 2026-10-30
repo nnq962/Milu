@@ -41,10 +41,11 @@ enum Typography {
         return .custom(instance(for: weight), size: size, relativeTo: style)
     }
 
-    /// Each weight is its own Manrope instance (regular 400, medium 500, semibold 600, bold 700).
-    /// It used to render one step heavier (user request 2026-10-28); that read too heavy, so it was
-    /// taken back (user request 2026-10-30). Only `.heavy` and `.black` reach ExtraBold.
-    /// Selects the font's named instance rather than asking SwiftUI to synthesize a weight.
+    /// Each weight is the Manrope instance of its name (regular 400, medium 500, semibold 600,
+    /// bold 700, heavy/black ExtraBold 800). It rendered one step lighter for a while; that read
+    /// thin and fragile, and the weights went back to their names after trying other typefaces
+    /// side by side (user choice 2026-10-30, over Be Vietnam Pro, Plus Jakarta Sans, Inter and
+    /// SF Pro). Selects the font's named instance rather than asking SwiftUI to synthesize a weight.
     static func instance(for weight: Font.Weight) -> String {
         switch weight {
         case .ultraLight, .thin, .light: "Manrope-Light"
@@ -58,32 +59,72 @@ enum Typography {
 
     static var body: Font { font(.body, size: 17) }
 
+    /// Segmented controls: selected SemiBold ink, others Medium muted, 14 scaled to `size`; iOS
+    /// owns the shape. UIKit takes the font when a control is made, so a screen sets this for its
+    /// own text size before making one (`ScaledSegmentedPicker`); set once at launch it stayed 14
+    /// at every size (HIG review 2026-10-30).
+    static func configureSegmentedControls(for size: DynamicTypeSize) {
+        _ = registered
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
+        let metrics = UIFontMetrics(forTextStyle: .subheadline)
+        guard let medium = UIFont(name: instance(for: .medium), size: 14),
+              let semibold = UIFont(name: instance(for: .semibold), size: 14) else { return }
+        let segmented = UISegmentedControl.appearance()
+        segmented.setTitleTextAttributes([.font: metrics.scaledFont(for: medium, compatibleWith: traits),
+                                          .foregroundColor: UIColor(Palette.secondaryText)], for: .normal)
+        segmented.setTitleTextAttributes([.font: metrics.scaledFont(for: semibold, compatibleWith: traits),
+                                          .foregroundColor: UIColor(Palette.ink)], for: .selected)
+    }
+
     static func configureNativeAppearance() {
         _ = registered
         guard let regular = UIFont(name: instance(for: .regular), size: 10) else {
             assertionFailure("Manrope registration failed")
             return
         }
-        // Only text attributes: iOS owns the tab bar's material, geometry and icons.
+        // Only text attributes: iOS owns the tab bar's material, geometry and icons. SemiBold:
+        // Regular read too thin under the filled icons (user request 2026-10-30). Named directly so
+        // the lighter app-wide weights leave it as it is.
+        let tabFont = UIFont(name: "Manrope-SemiBold", size: 10) ?? regular
         let appearance = UITabBarAppearance()
         for layout in [appearance.stackedLayoutAppearance,
                        appearance.inlineLayoutAppearance,
                        appearance.compactInlineLayoutAppearance] {
-            layout.normal.titleTextAttributes = [.font: regular]
-            layout.selected.titleTextAttributes = [.font: regular]
+            layout.normal.titleTextAttributes = [.font: tabFont]
+            layout.selected.titleTextAttributes = [.font: tabFont]
         }
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
 
-        // Sleek segmented control: selected SemiBold ink, others Medium muted; iOS owns the shape.
-        let segmented = UISegmentedControl.appearance()
-        if let medium = UIFont(name: instance(for: .medium), size: 14), let semibold = UIFont(name: instance(for: .semibold), size: 14) {
-            segmented.setTitleTextAttributes([.font: medium, .foregroundColor: UIColor(Palette.secondaryText)], for: .normal)
-            segmented.setTitleTextAttributes([.font: semibold, .foregroundColor: UIColor(Palette.ink)], for: .selected)
-        }
+        configureSegmentedControls(for: .large)
 
         let navigation = UINavigationBar.appearance()
         navigation.titleTextAttributes = [.font: UIFont(name: instance(for: .semibold), size: 17) ?? regular.withSize(17)]
-        navigation.largeTitleTextAttributes = [.font: UIFont(name: instance(for: .bold), size: 34) ?? regular.withSize(34)]
+        // The tabs' own titles (`TabHeading`, inline large): the `pageTitle` role, 24, scaled with
+        // Dynamic Type like the rest.
+        let pageTitle = UIFont(name: instance(for: TextRole.pageTitle.weight), size: TextRole.pageTitle.size) ?? regular.withSize(TextRole.pageTitle.size)
+        navigation.largeTitleTextAttributes = [
+            .font: UIFontMetrics(forTextStyle: .title2).scaledFont(for: pageTitle),
+            .foregroundColor: UIColor(Palette.ink),
+        ]
+        // The line under a native title (Trợ lý AI): the `caption` role, muted. Only an appearance
+        // carries it; a transparent one, as iOS 26 bars have no background of their own, with the
+        // same title fonts as above.
+        if #available(iOS 26.0, *) {
+            let caption = UIFont(name: instance(for: TextRole.caption.weight), size: TextRole.caption.size) ?? regular.withSize(TextRole.caption.size)
+            let subtitle: [NSAttributedString.Key: Any] = [
+                .font: UIFontMetrics(forTextStyle: .caption1).scaledFont(for: caption),
+                .foregroundColor: UIColor(Palette.secondaryText),
+            ]
+            let bar = UINavigationBarAppearance()
+            bar.configureWithTransparentBackground()
+            bar.titleTextAttributes = navigation.titleTextAttributes ?? [:]
+            bar.largeTitleTextAttributes = navigation.largeTitleTextAttributes ?? [:]
+            bar.subtitleTextAttributes = subtitle
+            bar.largeSubtitleTextAttributes = subtitle
+            navigation.standardAppearance = bar
+            navigation.scrollEdgeAppearance = bar
+            navigation.compactAppearance = bar
+        }
     }
 }

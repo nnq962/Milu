@@ -28,10 +28,9 @@ enum LoanFilter: String, CaseIterable, Identifiable {
 /// Opens "Khoản vay đã tất toán".
 struct SettledLoansRoute: Hashable {}
 
-/// The lead card of "Vay nợ" (user choice 2026-10-29): "Chênh lệch", what is lent minus what is
-/// owed; a bar splitting the two (green lent, red owed); then the two sides in short ("80tr · 2
-/// người"), each with its bar color as a dot. Loans with people only: a credit card's debt stays
-/// on Tài khoản.
+/// The head of "Vay nợ", a white card like Thu chi's (user request 2026-10-30): what others owe you
+/// and what you owe, side by side at one size, with how many people under each. Loans with people
+/// only: a credit card's debt stays on Tài khoản.
 struct LoansSummaryCard: View {
     @Environment(FinanceStore.self) private var store
 
@@ -40,83 +39,35 @@ struct LoansSummaryCard: View {
         // People, not loans: two open loans to Minh Trần are one person.
         let lenders = Set(active.filter { $0.direction == .lent }.map { $0.contactID?.uuidString ?? $0.name }).count
         let debts = Set(active.filter { $0.direction == .borrowed }.map { $0.contactID?.uuidString ?? $0.name }).count
-        let lent = store.totalLent
         let owed = store.totalBorrowed
-        // The same `SummaryCard` as "Tổng số dư" on Tài khoản.
-        SummaryCard(label: "Chênh lệch", amount: lent - owed, tone: .plain) {
-            SplitBar(lent: lent, owed: owed)
-                .padding(.top, Spacing.m)
-            HStack(spacing: Spacing.m) {
-                tile("Cho vay", amount: lent, detail: "\(lenders) người", dot: Palette.green,
-                     color: Palette.green, background: Palette.incomeTile)
-                // Red only while something is owed.
-                tile("Đang nợ", amount: owed, detail: "\(debts) người", dot: Palette.red,
-                     color: owed > 0 ? Palette.red : Palette.ink, background: Palette.muted)
-            }
-            .padding(.top, Spacing.m)
+        HStack(alignment: .top, spacing: 0) {
+            side("Cho vay", amount: store.totalLent, people: lenders, color: Palette.ink)
+                .padding(.trailing, Spacing.l)
+                .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
+            // Red only while something is owed.
+            side("Đang nợ", amount: owed, people: debts, color: owed > 0 ? Palette.red : Palette.ink)
+                .padding(.leading, Spacing.l)
         }
+        .sleekCard()
     }
 
-    private func tile(_ title: String, amount: Double, detail: String, dot: Color, color: Color,
-                      background: Color) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(spacing: Spacing.xs) {
-                Circle().fill(dot).frame(width: 8, height: 8)
-                Text(title)
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
-            }
-            (Text(amount.vndCompact).foregroundStyle(color)
-                + Text(" · \(detail)").foregroundStyle(Palette.secondaryText))
-                .textRole(.bodyStrong)
+    private func side(_ title: String, amount: Double, people: Int, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(title)
+                .textRole(.captionStrong)
+                .foregroundStyle(Palette.secondaryText)
+            Text(amount.vnd)
+                .textRole(.amountLarge)
                 .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .foregroundStyle(color)
+                .lineLimit(1).minimumScaleFactor(0.5)
+            Text(people == 0 ? "Không có ai" : "\(people) người")
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.m)
-        .cardSurface(radius: CardCorners.flow, color: background)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) \(amount.vnd), \(detail)")
-    }
-}
-
-/// How lent and owed split, side by side on one bar (user request 2026-10-29). A side with
-/// money keeps a sliver even when tiny; nothing at all is one grey bar.
-private struct SplitBar: View {
-    let lent: Double
-    let owed: Double
-
-    private static let height: CGFloat = 8
-    private static let gap: CGFloat = 3
-    /// The thinnest a side with money is drawn, so a small debt still shows.
-    private static let sliver: CGFloat = 8
-
-    var body: some View {
-        let total = lent + owed
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            if total <= 0 {
-                Capsule().fill(Palette.fill2)
-            } else if lent <= 0 || owed <= 0 {
-                Capsule().fill(lent > 0 ? Palette.green : Palette.red)
-            } else {
-                let room = max(width - Self.gap, 0)
-                // Not wider than the room left for the other side's sliver, even before layout.
-                let lentWidth = max(min(max(room * lent / total, Self.sliver), room - Self.sliver), 0)
-                HStack(spacing: Self.gap) {
-                    Capsule().fill(Palette.green).frame(width: lentWidth)
-                    Capsule().fill(Palette.red)
-                }
-            }
-        }
-        .frame(height: Self.height)
-        .animation(.smooth(duration: 0.3), value: lent)
-        .animation(.smooth(duration: 0.3), value: owed)
-        .accessibilityElement()
-        .accessibilityLabel(total > 0
-            ? "Cho vay \((lent / total).percentText), đang nợ \((owed / total).percentText)"
-            : "Chưa có khoản vay")
+        .accessibilityLabel("\(title) \(amount.vnd), \(people) người")
     }
 }
 
@@ -217,9 +168,8 @@ struct LoansContent: View {
                 EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có khoản cho vay",
                                message: "Nhấn + để ghi lại số tiền bạn cho người khác vay.")
             }
-            ForEach(lentLoans) { loan in
-                Button { onEdit(loan) } label: { LoanCard(loan: loan, today: today) }
-                    .buttonStyle(.card)
+            if !lentLoans.isEmpty {
+                LoanRowList(loans: lentLoans, today: today, onOpen: onEdit)
             }
         }
     }
@@ -232,9 +182,8 @@ struct LoansContent: View {
                 EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa có khoản đi vay",
                                message: "Khoản bạn vay của người khác sẽ hiện ở đây.")
             }
-            ForEach(borrowedLoans) { loan in
-                Button { onEdit(loan) } label: { LoanCard(loan: loan, today: today) }
-                    .buttonStyle(.card)
+            if !borrowedLoans.isEmpty {
+                LoanRowList(loans: borrowedLoans, today: today, onOpen: onEdit)
             }
         }
     }
@@ -244,10 +193,7 @@ struct LoansContent: View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             SectionHeader(title: "Đã tất toán")
                 .padding(.bottom, Spacing.headerGap - Spacing.m)
-            ForEach(settledLoans) { loan in
-                Button { onEdit(loan) } label: { LoanCard(loan: loan, today: today) }
-                    .buttonStyle(.card)
-            }
+            LoanRowList(loans: settledLoans, today: today, onOpen: onEdit)
         }
     }
 
@@ -273,12 +219,7 @@ struct SettledLoansView: View {
                 EmptyStateCard(icon: "hugeicons-checkmark-badge-01", title: "Chưa có khoản nào tất toán",
                                message: "Khoản vay đã thu hoặc trả đủ sẽ nằm ở đây.")
             } else {
-                VStack(spacing: Spacing.m) {
-                    ForEach(loans) { loan in
-                        Button { editingLoan = loan } label: { LoanCard(loan: loan) }
-                            .buttonStyle(.card)
-                    }
-                }
+                LoanRowList(loans: loans) { editingLoan = $0 }
             }
         }
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)

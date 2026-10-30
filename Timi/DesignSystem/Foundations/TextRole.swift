@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Named text roles: one scale for the whole app, built around a 16pt body (user choice 2026-10-28,
 /// after trying 17 and 14). Manrope is wide, so 16 reads close to SF Pro's 17 Body. Each step is
-/// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 13 · 12 · 11.
-/// Use `.textRole(_:)` instead of raw sizes. Manrope renders one weight heavier (see Typography).
+/// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 14 · 13 · 12 · 11.
+/// Use `.textRole(_:)` instead of raw sizes. Manrope at the weight named (see Typography).
 enum TextRole: CaseIterable, Identifiable {
     /// The screen's lead figure (Tài sản ròng). 34
     case display
@@ -26,6 +26,9 @@ enum TextRole: CaseIterable, Identifiable {
     case bodyStrong
     /// Amounts at the end of a row: same size as the title, a touch heavier, tabular. 16 Medium
     case amount
+    /// A control beside a section heading (the month of Lịch thu chi): clearly under the 17 title
+    /// it sits by, its colour marks it (user choice 2026-10-30: 16 read as large as the title). 14
+    case accessory
     /// Row subtitles, notes, errors and descriptions. 13
     case caption
     /// Chips, badges, small labels above figures. 13 Medium
@@ -48,6 +51,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .heading: 20
         case .title: 17
         case .body, .label, .bodyStrong, .amount, .input: 16
+        case .accessory: 14
         case .caption, .captionStrong: 13
         case .overline: 12
         case .footnote: 11
@@ -59,7 +63,7 @@ enum TextRole: CaseIterable, Identifiable {
         // Titles and figures Bold, every other text SemiBold: one step under the Sleek examples'
         // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
         case .display, .hero, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
-        case .body, .label, .caption, .captionStrong, .footnote, .input: .semibold
+        case .body, .label, .accessory, .caption, .captionStrong, .footnote, .input: .semibold
         }
     }
 
@@ -71,6 +75,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .heading: 26
         case .title: 24
         case .body, .label, .bodyStrong, .amount: 22
+        case .accessory: 20
         case .caption, .captionStrong: 18
         case .overline: 16
         case .footnote: 14
@@ -84,6 +89,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .heading: .title3
         case .title: .headline
         case .body, .label, .bodyStrong, .amount, .input: .body
+        case .accessory: .subheadline
         case .caption, .captionStrong, .overline: .caption
         case .footnote: .caption2
         }
@@ -107,6 +113,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .label: "Nhãn ô nhập"
         case .bodyStrong: "Nhấn mạnh"
         case .amount: "Số tiền dòng"
+        case .accessory: "Nút cạnh tiêu đề"
         case .caption: "Phụ đề · chú thích"
         case .captionStrong: "Chip · badge"
         case .footnote: "Chữ rất nhỏ"

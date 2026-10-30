@@ -41,7 +41,7 @@ struct ContentView: View {
                 } label: { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
                 Tab(value: AppTab.transactions) {
                     TransactionsView()
-                } label: { tabLabel("Giao dịch", symbol: "arrow.left.arrow.right.circle", tab: .transactions) }
+                } label: { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
                 // On iOS 26 a search-role tab sits apart in its own circle beside the bar, as Search
                 // does in App Store: there, by the thumb on every tab, it adds a transaction
                 // (user choice 2026-10-29). Earlier iOS shows it as a fifth tab.
@@ -58,7 +58,7 @@ struct ContentView: View {
                     .tabItem { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
                     .tag(AppTab.accounts)
                 TransactionsView()
-                    .tabItem { tabLabel("Giao dịch", symbol: "arrow.left.arrow.right.circle", tab: .transactions) }
+                    .tabItem { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
                     .tag(AppTab.transactions)
                 Color.clear
                     .tabItem { Label("Thêm", systemImage: "plus") }

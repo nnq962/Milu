@@ -34,6 +34,35 @@ struct FormDateRow: View {
     }
 }
 
+/// The day and the time on one row ("Hôm nay, 17:07" and ›); tapping it opens the calendar with
+/// the time under it (user request 2026-10-30: two rows for one moment).
+struct FormDateTimeRow: View {
+    let title: String
+    @Binding var date: Date
+    var latest: Date? = nil
+
+    @State private var isPicking = false
+
+    private var valueText: String {
+        let calendar = Calendar.current
+        let day = calendar.isDateInToday(date) ? "Hôm nay"
+            : calendar.isDateInYesterday(date) ? "Hôm qua"
+            : date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
+        return "\(day), \(date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam)))"
+    }
+
+    var body: some View {
+        Button { isPicking = true } label: {
+            FormValueLabel(title: title, icon: nil, value: valueText)
+        }
+        .buttonStyle(.row)
+        .accessibilityValue(valueText)
+        .sheet(isPresented: $isPicking) {
+            DateTimeSheet(title: title, date: $date, component: [.date, .hourAndMinute], latest: latest)
+        }
+    }
+}
+
 /// A time of day, shown like a picker row ("13:28" and ›); tapping it opens a short sheet with the
 /// time wheel. Changes only the hour and minute of `date`.
 struct FormTimeRow: View {
@@ -80,7 +109,7 @@ private struct DateTimeSheet: View {
         // A day now outside the range (a due date before a later loan date) starts on the nearest
         // one allowed, so ✓ without a tap fixes it rather than writing the old day back.
         var start = date.wrappedValue
-        if component == .date {
+        if component.contains(.date) {
             let calendar = Calendar.current
             if let earliest, start < calendar.startOfDay(for: earliest) {
                 start = calendar.date(bySettingHour: calendar.component(.hour, from: start),
@@ -109,9 +138,9 @@ private struct DateTimeSheet: View {
                 dismiss()
             }
             Group {
-                if component == .date {
+                if component.contains(.date) {
                     DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
-                               displayedComponents: .date)
+                               displayedComponents: component)
                         .datePickerStyle(.graphical)
                 } else {
                     DatePicker(title, selection: $draft, displayedComponents: .hourAndMinute)

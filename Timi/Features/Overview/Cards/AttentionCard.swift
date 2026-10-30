@@ -5,6 +5,9 @@ import SwiftUI
 /// many days are left, the amount in short form; air between rows rather than hairlines.
 struct AttentionCard: View {
     @Environment(FinanceStore.self) private var store
+    /// The date leaf grows with the text in it, which a fixed 44 cut to "T…" at large sizes (HIG
+    /// review 2026-10-30).
+    @ScaledMetric(relativeTo: .body) private var leafSize: CGFloat = 44
 
     var body: some View {
         let reminders = store.paymentReminders.sorted { $0.dueDate < $1.dueDate }
@@ -39,12 +42,12 @@ struct AttentionCard: View {
                     .textRole(.footnote)
                     .foregroundStyle(Palette.secondaryText)
             }
-            .frame(width: 44, height: 44)
+            .frame(minWidth: leafSize, minHeight: leafSize)
             .background(Palette.muted, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(reminder.title)
                     .textRole(.label)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text(reminder.dueDate.dueCountdown)
                     .textRole(.caption)
                     // Red once past due, brown within three days.
