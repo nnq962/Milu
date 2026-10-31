@@ -5,13 +5,17 @@ struct MoneyText: View {
     /// `caption`: a total beside a heading (a day's +/-).
     /// `heading`: a total inside a chart (Tổng chi in the ring).
     enum Size { case caption, row, heading, large, display }
-    /// `muted`: grey, for money that does not count (a locked account). `signedNet`: a change
-    /// either way, "+" in ink above zero and "-" in red below (Dư ra, a day's total).
-    enum Tone { case plain, signedIncome, signedExpense, signedNet, negativeRed, muted }
+    /// Named by what the figure is (review 2026-10-31: `negativeRed` named a colour):
+    /// `balance` is a sum that may go below zero, red with "-" when it does (the default: a
+    /// balance, net worth, a limit left); `neutral` never turns red (a transfer between accounts,
+    /// a loan's principal); `signedIncome` "+" in ink, `signedExpense` "-" in red; `signedNet` a
+    /// change either way, "+" in ink above zero and "-" in red below (Dư ra, a day's total);
+    /// `muted` grey, for money that does not count (a locked account).
+    enum Tone { case balance, neutral, signedIncome, signedExpense, signedNet, muted }
 
     let amount: Double
     var size: Size = .row
-    var tone: Tone = .plain
+    var tone: Tone = .balance
     var compact = false
 
     private var text: String {
@@ -20,16 +24,16 @@ struct MoneyText: View {
         case .signedIncome: return "+" + value
         case .signedExpense: return "-" + value
         case .signedNet: return (amount > 0 ? "+" : amount < 0 ? "-" : "") + value
-        case .plain, .negativeRed, .muted: return (amount < 0 ? "-" : "") + value
+        case .neutral, .balance, .muted: return (amount < 0 ? "-" : "") + value
         }
     }
 
     private var color: Color {
         switch tone {
         case .signedExpense: Palette.negative
-        case .negativeRed, .signedNet: amount < 0 ? Palette.negative : Palette.label
+        case .balance, .signedNet: amount < 0 ? Palette.negative : Palette.label
         // Money in ink with its "+", money out red, everywhere (user choice 2026-10-30).
-        case .signedIncome, .plain: Palette.label
+        case .signedIncome, .neutral: Palette.label
         case .muted: Palette.secondaryLabel
         }
     }
@@ -42,7 +46,7 @@ struct MoneyText: View {
         switch tone {
         case .signedIncome: sign = "cộng "
         case .signedExpense: sign = "trừ "
-        case .signedNet, .plain, .negativeRed, .muted: sign = amount < 0 ? "trừ " : (tone == .signedNet && amount > 0 ? "cộng " : "")
+        case .signedNet, .neutral, .balance, .muted: sign = amount < 0 ? "trừ " : (tone == .signedNet && amount > 0 ? "cộng " : "")
         }
         return "\(sign)\(figure) đồng"
     }

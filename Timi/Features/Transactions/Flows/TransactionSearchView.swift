@@ -56,7 +56,7 @@ struct TransactionSearchView: View {
             }
             .scrollDismissesKeyboard(.immediately)
             // No bar above it: iOS 26's soft top edge drew a light band behind the chips.
-            .modifier(NoScrollEdgeEffect())
+            .scrollEdgeEffectHidden(true, for: .all)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.label)
@@ -136,7 +136,7 @@ struct TransactionSearchView: View {
                 chipStack.padding(.horizontal, Spacing.page)
             }
             .scrollIndicators(.hidden)
-            .modifier(NoScrollEdgeEffect())
+            .scrollEdgeEffectHidden(true, for: .all)
             .padding(.horizontal, -Spacing.page)
         }
     }

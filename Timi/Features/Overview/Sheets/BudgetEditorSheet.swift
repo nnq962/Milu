@@ -43,7 +43,7 @@ struct BudgetEditorSheet: View {
                 // suggestions from the digits (5 → 5tr, 50tr…).
                 TimiAmountField(text: $input, focusesOnAppear: true, presets: presets)
                 if let error {
-                    FormErrorText(text: error)
+                    FormErrorText(message: error)
                         .multilineTextAlignment(.center)
                         .padding(.top, Spacing.s)
                 } else if let note {
@@ -91,7 +91,7 @@ struct MonthBudgetEditor: View {
                               ? "Tối thiểu \(groups.total.vndCompact), bằng tổng các hạng mục."
                               : nil,
                           // Common monthly limits, none below what the groups already hold.
-                          presets: [5, 10, 15, 20, 30].map { AmountPreset(label: "", value: Double($0) * 1_000_000) }
+                          presets: [5, 10, 15, 20, 30].map { AmountPreset(title: "", value: Double($0) * 1_000_000) }
                               .filter { $0.value >= groups.total }) { BudgetRules.monthError($0, groups: groups) }
     }
 }
@@ -104,9 +104,9 @@ struct GroupBudgetEditor: View {
         guard room > 0 else { return [] }
         let shares = [(0.1, "10%"), (0.25, "25%"), (0.5, "50%")].compactMap { share, label -> AmountPreset? in
             let value = (room * share / 100_000).rounded(.down) * 100_000
-            return value > 0 && value < room ? AmountPreset(label: label, value: value) : nil
+            return value > 0 && value < room ? AmountPreset(title: label, value: value) : nil
         }
-        return shares + [AmountPreset(label: "Hết", value: room)]
+        return shares + [AmountPreset(title: "Hết", value: room)]
     }
 
     let groupID: String

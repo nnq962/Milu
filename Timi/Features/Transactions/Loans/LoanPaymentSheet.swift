@@ -62,7 +62,7 @@ struct LoanPaymentSheet: View {
 
     /// "Hết 45tr" (the chip adds the figure): pays off everything left.
     private var presets: [AmountPreset] {
-        left > 0 ? [AmountPreset(label: "Hết", value: left)] : []
+        left > 0 ? [AmountPreset(title: "Hết", value: left)] : []
     }
 
     /// The principal is all paid: only interest is left to record (a settled loan's late interest).
@@ -78,17 +78,17 @@ struct LoanPaymentSheet: View {
 
     var body: some View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
-            SheetAmountHeader(caption: "Tiền gốc", fieldSaysCaption: true) {
+            SheetAmountHeader(title: "Tiền gốc", fieldSaysCaption: true) {
                 TimiAmountField(text: $principalText, showsSuggestions: !interestOnly,
-                                focusesOnAppear: original == nil && !interestOnly, presets: presets, label: "Tiền gốc")
+                                focusesOnAppear: original == nil && !interestOnly, presets: presets, accessibilityLabel: "Tiền gốc")
                     .disabled(interestOnly)
                 // Interest only: the greyed field and the title say so, no caption (sheet review).
                 if interestOnly {
                     if showsErrors, interest <= 0 {
-                        FormErrorText(text: "Nhập tiền lãi.")
+                        FormErrorText(message: "Nhập tiền lãi.")
                     }
                 } else if let amountError {
-                    FormErrorText(text: amountError)
+                    FormErrorText(message: amountError)
                 }
             }
         } content: {

@@ -25,8 +25,8 @@ struct MonthCard: View {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 // The two totals, as on Thu chi's month card.
                 SplitTotals(items: [
-                    .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .plain),
-                    .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain),
+                    .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .neutral),
+                    .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .neutral),
                 ])
                 if spent > 0 {
                     VStack(alignment: .leading, spacing: Spacing.s) {

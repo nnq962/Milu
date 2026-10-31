@@ -82,7 +82,7 @@ struct GoalTransferSheet: View {
 
     var body: some View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
-            SheetAmountHeader(caption: goal.name) {
+            SheetAmountHeader(title: goal.name) {
                 // "Rút hết" takes everything: the amount is shown, not typed.
                 TimiAmountField(text: $amountText, showsSuggestions: !closesGoal,
                                 focusesOnAppear: !closesGoal && editing == nil,
@@ -133,11 +133,11 @@ struct GoalTransferSheet: View {
         guard goal.remaining > 0 else { return [] }
         var chips: [AmountPreset] = []
         if let dueDate = goal.dueDate, !goal.isOverdue {
-            chips.append(AmountPreset(label: "Mỗi tháng",
+            chips.append(AmountPreset(title: "Mỗi tháng",
                                       value: SavingsGoal.monthlySaving(remaining: goal.remaining, until: dueDate)))
         }
         if !chips.contains(where: { $0.value == goal.remaining }) {
-            chips.append(AmountPreset(label: "Còn thiếu", value: goal.remaining))
+            chips.append(AmountPreset(title: "Còn thiếu", value: goal.remaining))
         }
         return chips
     }

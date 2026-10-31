@@ -85,7 +85,7 @@ struct GoalCarouselTile: View {
             GoalRing(goal: goal, size: GoalCarouselTile.ring)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(goal.name)
-                    .textRole(.label)
+                    .textRole(.body)
                     .lineLimit(2, reservesSpace: true)
                 // Every amount a `MoneyText`, the target the small grey one (re-review 2026-10-31:
                 // a hand-made " / 50tr" that shrank to fit).
@@ -106,7 +106,7 @@ struct GoalCarouselTile: View {
         .frame(width: width, alignment: .leading)
         // The goal tile's corners and the one card surface (strict review 2026-10-31: 20 and a
         // shadow put on by hand).
-        .cardSurface(radius: CardCorners.large, outlined: true)
+        .cardSurface(radius: CardCorners.large)
         .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
@@ -125,7 +125,7 @@ struct NewGoalTile: View {
         VStack(spacing: Spacing.s) {
             TimiIcon("hugeicons-add-01", size: RowMetrics.iconGlyph)
             Text("Hũ mới")
-                .textRole(.label)
+                .textRole(.body)
         }
         .foregroundStyle(Palette.primary)
         .frame(width: width)

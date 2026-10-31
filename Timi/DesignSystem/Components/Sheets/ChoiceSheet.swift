@@ -6,8 +6,8 @@ struct ChoiceSheet<Value: Hashable>: View {
     let title: String
     @Binding var selection: Value
     let options: [Value]
-    var icon: ((Value) -> String)? = nil
-    let label: (Value) -> String
+    var optionIcon: ((Value) -> String)? = nil
+    let optionTitle: (Value) -> String
 
     @Environment(\.dismiss) private var dismiss
 
@@ -20,12 +20,12 @@ struct ChoiceSheet<Value: Hashable>: View {
                         selection = option
                         dismiss()
                     } label: {
-                        PickerRowLabel(icon: icon?(option), title: label(option),
-                                       isSelected: option == selection)
+                        PickerRowContent(icon: optionIcon?(option), title: optionTitle(option),
+                                         isSelected: option == selection)
                     }
                     .buttonStyle(.row)
                     .accessibilityAddTraits(option == selection ? .isSelected : [])
-                    .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: icon != nil) } }
+                    .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: optionIcon != nil) } }
                 }
             }
         }

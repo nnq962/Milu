@@ -210,7 +210,7 @@ struct AssistantView: View {
         }
         // A white card like every other, with the shared shadow (strict review 2026-10-31).
         .padding(RowMetrics.horizontal)
-        .cardSurface(radius: CardCorners.inset, outlined: true)
+        .cardSurface(radius: CardCorners.inset)
         .padding(.horizontal, Spacing.page)
         .padding(.vertical, Spacing.m)
         .background(Palette.background)

@@ -47,7 +47,7 @@ struct LoansSummaryCard: View {
         // screen, "Không có ai" included.
         SplitTotals(items: [
             .init("Cho vay", amount: store.totalLent, accessibilityLabel: "Cho vay \(store.totalLent.vnd), \(lentWho)"),
-            .init("Đi vay", amount: owed, tone: owed > 0 ? .signedExpense : .plain,
+            .init("Đi vay", amount: owed, tone: owed > 0 ? .signedExpense : .neutral,
                   accessibilityLabel: "Đi vay \(owed > 0 ? "-" : "")\(owed.vnd), \(owedWho)"),
         ]) { item in
             Text(item.title == "Cho vay" ? lentWho : owedWho)
@@ -133,7 +133,7 @@ struct LoansContent: View {
         let count = store.loans.count(where: \.isSettled)
         if count > 0 {
             NavigationLink(value: SettledLoansRoute()) {
-                NavigationRowLabel(title: "Khoản vay đã tất toán", icon: "hugeicons-checkmark-badge-01",
+                NavigationRowContent(title: "Khoản vay đã tất toán", icon: "hugeicons-checkmark-badge-01",
                                    value: "\(count)", spokenValue: "\(count) khoản")
             }
             .buttonStyle(.row)
@@ -155,7 +155,7 @@ struct LoansContent: View {
         VStack(alignment: .leading, spacing: Spacing.headerGap) {
             // What is left beside the heading once there is a loan: no "Còn 0đ" over the empty card.
             SectionHeader(title: "Cho vay") {
-                if !lentLoans.isEmpty { remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .plain) }
+                if !lentLoans.isEmpty { remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .neutral) }
             }
             if lentLoans.isEmpty {
                 // One short sentence, no button named (strict review 2026-10-31).

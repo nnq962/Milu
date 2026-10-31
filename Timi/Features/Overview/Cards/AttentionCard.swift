@@ -37,7 +37,7 @@ struct AttentionCard: View {
             // The due date as a small calendar leaf, in place of an icon and "Hạn 2/11".
             VStack(spacing: 0) {
                 Text("\(calendar.component(.day, from: reminder.dueDate))")
-                    .textRole(.label)
+                    .textRole(.body)
                     .monospacedDigit()
                     .foregroundStyle(Palette.label)
                 Text("Th\(calendar.component(.month, from: reminder.dueDate))")
@@ -48,7 +48,7 @@ struct AttentionCard: View {
             .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(reminder.title)
-                    .textRole(.label)
+                    .textRole(.body)
                     .lineLimit(2)
                 Text(reminder.dueDate.dueCountdown)
                     .textRole(.caption)

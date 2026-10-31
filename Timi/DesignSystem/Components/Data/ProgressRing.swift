@@ -4,13 +4,12 @@ import SwiftUI
 struct ProgressRing: View {
     let progress: Double
     var color: Color = Palette.primary
-    /// The empty part: thin primary by default, a grey for a ring in another colour.
-    var track: Color = Palette.primaryTint
     var lineWidth: CGFloat = RowMetrics.ringStroke
 
     var body: some View {
         ZStack {
-            Circle().stroke(track, lineWidth: lineWidth)
+            // The empty part: the primary colour laid thin.
+            Circle().stroke(Palette.primaryTint, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: min(max(progress, 0), 1))
                 .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))

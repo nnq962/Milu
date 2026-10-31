@@ -10,8 +10,6 @@ import SwiftUI
 struct MonthMenu: View {
     @Binding var month: Date
     var compact = false
-    /// The colour of the compact words.
-    var tint: Color = Palette.primary
 
     @State private var isPicking = false
 
@@ -30,7 +28,7 @@ struct MonthMenu: View {
             Divider()
             Button("Tháng khác…") { isPicking = true }
         } label: {
-            if compact { HeaderLink(title: title, opensMenu: true, color: tint) } else { capsuleLabel(title) }
+            if compact { HeaderLink(title: title, opensMenu: true) } else { capsuleLabel(title) }
         }
         .menuOrder(.fixed)
         .modifier(MonthMenuStyle(compact: compact))

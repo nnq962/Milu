@@ -23,7 +23,7 @@ struct AccountRow: View {
                     if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
                 }
         } trailing: {
-            ListRowAmount(amount: account.balance, tone: account.isLocked || isMuted ? .muted : .negativeRed, compact: true)
+            ListRowAmount(amount: account.balance, tone: account.isLocked || isMuted ? .muted : .balance, compact: true)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([account.name, account.balance.vnd, account.isLocked ? "đã khoá" : nil, subtitle]

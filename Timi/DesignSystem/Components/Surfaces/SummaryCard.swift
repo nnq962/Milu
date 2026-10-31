@@ -1,20 +1,20 @@
 import SwiftUI
 
-/// The lead card of a screen: a small label, the big amount, an optional icon or logo on the
+/// The lead card of a screen: a small title, the big amount, an optional icon or logo on the
 /// right, then whatever the screen adds below (a line, a bar, buttons). Used by "Tổng số dư", an
 /// account's and a goal's screen, so they all read the same (user choice 2026-10-29: left-aligned).
 struct SummaryCard<Content: View>: View {
-    let label: String
+    let title: String
     let amount: Double
     var icon: String? = nil
-    var tone: MoneyText.Tone = .negativeRed
+    var tone: MoneyText.Tone = .balance
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: Spacing.m) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(label)
+                    Text(title)
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryLabel)
                     MoneyText(amount: amount, size: .display, tone: tone)
@@ -33,7 +33,7 @@ struct SummaryCard<Content: View>: View {
 }
 
 extension SummaryCard where Content == EmptyView {
-    init(label: String, amount: Double, icon: String? = nil, tone: MoneyText.Tone = .negativeRed) {
-        self.init(label: label, amount: amount, icon: icon, tone: tone) { EmptyView() }
+    init(title: String, amount: Double, icon: String? = nil, tone: MoneyText.Tone = .balance) {
+        self.init(title: title, amount: amount, icon: icon, tone: tone) { EmptyView() }
     }
 }

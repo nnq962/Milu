@@ -21,8 +21,6 @@ enum TextRole: CaseIterable, Identifiable {
     case title
     /// Everything read in a row: row titles, values, body text, typed text, button labels. 16
     case body
-    /// Field labels above a field. 16 SemiBold
-    case label
     /// Rare emphasis inside body text. 16 SemiBold
     case bodyStrong
     /// Amounts at the end of a row: the title's size and weight, tabular (user 2026-10-31: no
@@ -50,7 +48,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .amountLarge, .pageTitle: 24
         case .heading: 20
         case .title: 17
-        case .body, .label, .bodyStrong, .amount: 16
+        case .body, .bodyStrong, .amount: 16
         case .accessory: 14
         case .caption, .captionStrong: 13
         case .overline: 12
@@ -63,7 +61,7 @@ enum TextRole: CaseIterable, Identifiable {
         // Titles and figures Bold, every other text SemiBold: one step under the first mock-ups'
         // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
         case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .overline: .bold
-        case .body, .label, .accessory, .caption, .captionStrong, .footnote, .amount: .semibold
+        case .body, .accessory, .caption, .captionStrong, .footnote, .amount: .semibold
         }
     }
 
@@ -77,7 +75,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .pageTitle: 32
         case .heading: 26
         case .title: 24
-        case .body, .label, .bodyStrong, .amount: 22
+        case .body, .bodyStrong, .amount: 22
         case .accessory: 20
         case .caption, .captionStrong: 18
         case .overline: 16
@@ -91,7 +89,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .amountLarge, .pageTitle: .title2
         case .heading: .title3
         case .title: .headline
-        case .body, .label, .bodyStrong, .amount: .body
+        case .body, .bodyStrong, .amount: .body
         case .accessory: .subheadline
         case .caption, .captionStrong, .overline: .caption
         case .footnote: .caption2
@@ -124,7 +122,6 @@ enum TextRole: CaseIterable, Identifiable {
         case .heading: "Tiêu đề phần"
         case .title: "Tiêu đề phần · thẻ · sheet"
         case .body: "Nội dung · tên dòng"
-        case .label: "Nhãn ô nhập"
         case .bodyStrong: "Nhấn mạnh"
         case .amount: "Số tiền dòng"
         case .accessory: "Nút cạnh tiêu đề"

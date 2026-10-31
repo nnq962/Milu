@@ -9,20 +9,20 @@ struct FormPickerRow<Value: Hashable>: View {
     /// Icon beside each choice in the sheet (categories, accounts), and beside the chosen one on
     /// the row.
     var optionIcon: ((Value) -> String)? = nil
-    let label: (Value) -> String
+    let optionTitle: (Value) -> String
 
     @State private var isPicking = false
 
     var body: some View {
         // The chosen option shows with the icon or logo it has in the sheet, as "Hạng mục" does.
         Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: icon, value: label(selection), valueIcon: optionIcon?(selection))
+            FormValueRowContent(title: title, icon: icon, value: optionTitle(selection), valueIcon: optionIcon?(selection))
         }
         .buttonStyle(.row)
-        .accessibilityValue(label(selection))
+        .accessibilityValue(optionTitle(selection))
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isPicking) {
-            ChoiceSheet(title: title, selection: $selection, options: options, icon: optionIcon, label: label)
+            ChoiceSheet(title: title, selection: $selection, options: options, optionIcon: optionIcon, optionTitle: optionTitle)
         }
     }
 }
@@ -45,9 +45,9 @@ struct FormToggleRow: View {
 
 /// Label, grey value and › on one row: the look shared by every row that opens a picker sheet.
 /// Without the › (`showsChevron: false`) it only shows a value, as on a detail sheet.
-struct FormValueLabel: View {
+struct FormValueRowContent: View {
     let title: String
-    let icon: String?
+    var icon: String? = nil
     let value: String
     /// An icon or bank logo before the value ("Ngân hàng  [logo] Vietcombank ›").
     var valueIcon: String? = nil
@@ -94,7 +94,7 @@ struct FormInfoRow: View {
     var valueIcon: String? = nil
 
     var body: some View {
-        FormValueLabel(title: title, icon: nil, value: value, valueIcon: valueIcon, showsChevron: false)
+        FormValueRowContent(title: title, icon: nil, value: value, valueIcon: valueIcon, showsChevron: false)
             .accessibilityElement(children: .combine)
     }
 }
@@ -104,7 +104,7 @@ struct FormInfoRow: View {
 struct FormAmountInfoRow: View {
     let title: String
     let amount: Double
-    var tone: MoneyText.Tone = .plain
+    var tone: MoneyText.Tone = .neutral
 
     var body: some View {
         HStack(spacing: Spacing.s) {
@@ -120,7 +120,7 @@ struct FormAmountInfoRow: View {
 
 /// The label of a row that pushes a screen (a `NavigationLink`): icon, title, optional subtitle and
 /// value, and ›. Put it in a `NavigationLink` with `.buttonStyle(.row)`.
-struct NavigationRowLabel: View {
+struct NavigationRowContent: View {
     let title: String
     var subtitle: String? = nil
     var icon: String? = nil

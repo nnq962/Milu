@@ -24,7 +24,7 @@ struct FormDateRow: View {
 
     var body: some View {
         Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: icon, value: valueText, isInvalid: isInvalid)
+            FormValueRowContent(title: title, icon: icon, value: valueText, isInvalid: isInvalid)
         }
         .buttonStyle(.row)
         .accessibilityValue(valueText)
@@ -53,7 +53,7 @@ struct FormDateTimeRow: View {
 
     var body: some View {
         Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: nil, value: valueText)
+            FormValueRowContent(title: title, icon: nil, value: valueText)
         }
         .buttonStyle(.row)
         .accessibilityValue(valueText)
@@ -107,22 +107,15 @@ private struct DateTimeSheet: View {
 
     var body: some View {
         SheetScaffold(title: title, onConfirm: { date = draft; dismiss() }, fitsContent: true) {
-            Group {
-                if component.contains(.date) {
-                    DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
-                               displayedComponents: component)
-                        .datePickerStyle(.graphical)
-                } else {
-                    DatePicker(title, selection: $draft, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.wheel)
-                        .frame(maxWidth: .infinity)
-                }
-            }
+            // Apple's calendar, with the time under it when asked for (`component`).
+            DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
+                       displayedComponents: component)
+            .datePickerStyle(.graphical)
             .labelsHidden()
             .padding(Spacing.m)
             .environment(\.locale, .vietnam)
             .tint(Palette.primary)
-            .cardSurface(radius: CardCorners.inset, outlined: true)
+            .cardSurface(radius: CardCorners.inset)
         }
     }
 }

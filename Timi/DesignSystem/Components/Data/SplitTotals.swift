@@ -76,11 +76,11 @@ struct SplitTotalItem: Identifiable {
     var id: String { title }
     let title: String
     let amount: Double
-    var tone: MoneyText.Tone = .plain
+    var tone: MoneyText.Tone = .balance
     /// What VoiceOver says for the column; the words on screen when nil.
     var accessibilityLabel: String? = nil
 
-    init(_ title: String, amount: Double, tone: MoneyText.Tone = .plain, accessibilityLabel: String? = nil) {
+    init(_ title: String, amount: Double, tone: MoneyText.Tone = .balance, accessibilityLabel: String? = nil) {
         self.title = title
         self.amount = amount
         self.tone = tone

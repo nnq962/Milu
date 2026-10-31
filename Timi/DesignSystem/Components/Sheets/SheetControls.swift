@@ -23,7 +23,7 @@ struct SelectionCheck: View {
 
 /// One choice in a picking sheet: icon or logo (optional), title, an optional second line, and the
 /// tick when it is the current one. Put it in a `Button` with `.buttonStyle(.row)`.
-struct PickerRowLabel: View {
+struct PickerRowContent: View {
     var icon: String? = nil
     let title: String
     var subtitle: String? = nil

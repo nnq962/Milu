@@ -89,7 +89,7 @@ extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
     /// is the short line under the amount (a date "28/10", a time "08:15"). `compactAmount` shows
     /// "10,3tr" instead of "10.300.000đ", as every list of accounts and goals does.
     init(icon: String, title: String, subtitle: String? = nil, trailingSubtitle: String? = nil,
-         amount: Double, amountTone: MoneyText.Tone = .negativeRed, showsChevron: Bool = true,
+         amount: Double, amountTone: MoneyText.Tone = .balance, showsChevron: Bool = true,
          compactAmount: Bool = false) {
         self.init(title: title, subtitle: subtitle, showsChevron: showsChevron) {
             // No tile, coloured ones neither; amounts carry the meaning.
@@ -131,7 +131,7 @@ struct ListRowTrailing<Figure: View>: View {
 /// `ListRowTrailing` with one amount as the figure.
 struct ListRowAmount: View {
     let amount: Double
-    var tone: MoneyText.Tone = .negativeRed
+    var tone: MoneyText.Tone = .balance
     var compact = false
     var note: String? = nil
     var noteColor: Color = Palette.secondaryLabel

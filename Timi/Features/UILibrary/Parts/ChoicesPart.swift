@@ -33,7 +33,7 @@ struct ChoicesPart: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Palette.background)
                 } label: {
-                    NavigationRowLabel(title: "Hạng mục", icon: "hugeicons-tag-01", value: "12", spokenValue: "12 hạng mục")
+                    NavigationRowContent(title: "Hạng mục", icon: "hugeicons-tag-01", value: "12", spokenValue: "12 hạng mục")
                 }
                 .buttonStyle(.row)
                 FormDivider()
@@ -52,9 +52,9 @@ struct ChoicesPart: View {
             }
 
             // A row that opens a picker sheet: label, grey value, ›.
-            FormGroup(title: "Giá trị · FormValueLabel") {
+            FormGroup(title: "Giá trị · FormValueRowContent") {
                 Button {} label: {
-                    FormValueLabel(title: "Ngân hàng", icon: nil, value: "Vietcombank",
+                    FormValueRowContent(title: "Ngân hàng", icon: nil, value: "Vietcombank",
                                    valueIcon: "Institutions/vietcombank")
                 }
                 .buttonStyle(.row)

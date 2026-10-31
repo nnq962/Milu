@@ -102,7 +102,7 @@ struct ReportSection<Content: View>: View {
             VStack(spacing: 0) { content }
                 .listCard()
             if let footer {
-                FormFooter(text: footer)
+                FormFooter(message: footer)
             }
         }
     }
@@ -120,7 +120,7 @@ struct BreakdownRowLabel: View {
     let title: String
     let detail: String
     let amount: Double
-    var tone: MoneyText.Tone = .plain
+    var tone: MoneyText.Tone = .neutral
     var compact = true
     var dot: Color? = nil
     /// A ring instead of a filled dot: the empty part of a chart.

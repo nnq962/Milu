@@ -6,7 +6,6 @@ struct SheetOption: Identifiable {
     let icon: String
     let title: String
     var subtitle: String? = nil
-    var accent = false
 }
 
 /// A short sheet of choices (web "Thêm mới"); picking one closes it, then runs the action.
@@ -26,7 +25,7 @@ struct OptionSheet: View {
                         dismiss()
                         onSelect(option)
                     } label: {
-                        NavigationRowLabel(title: option.title, subtitle: option.subtitle, icon: option.icon)
+                        NavigationRowContent(title: option.title, subtitle: option.subtitle, icon: option.icon)
                     }
                     .buttonStyle(.row)
                     .overlay(alignment: .top) { if index > 0 { FormDivider() } }

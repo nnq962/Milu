@@ -49,7 +49,7 @@ struct SettingsView: View {
                         NavigationLink {
                             CategoriesView()
                         } label: {
-                            NavigationRowLabel(title: "Hạng mục", icon: "hugeicons-tag-01",
+                            NavigationRowContent(title: "Hạng mục", icon: "hugeicons-tag-01",
                                                value: "\(store.visibleItemCount)",
                                                spokenValue: "\(store.visibleItemCount) hạng mục")
                         }
@@ -58,7 +58,7 @@ struct SettingsView: View {
                         NavigationLink {
                             ContactsView()
                         } label: {
-                            NavigationRowLabel(title: "Danh bạ", icon: "hugeicons-user-group",
+                            NavigationRowContent(title: "Danh bạ", icon: "hugeicons-user-group",
                                                value: "\(store.contacts.count)",
                                                spokenValue: "\(store.contacts.count) người")
                         }
@@ -68,14 +68,14 @@ struct SettingsView: View {
                         NavigationLink {
                             ReportView()
                         } label: {
-                            NavigationRowLabel(title: "Báo cáo", icon: "hugeicons-pie-chart")
+                            NavigationRowContent(title: "Báo cáo", icon: "hugeicons-pie-chart")
                         }
                         .buttonStyle(.row)
                         FormDivider()
                         NavigationLink {
                             BudgetView()
                         } label: {
-                            NavigationRowLabel(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
+                            NavigationRowContent(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
                                                value: monthlyBudget > 0 ? monthlyBudget.vndCompact : "Chưa đặt")
                         }
                         .buttonStyle(.row)
@@ -117,7 +117,7 @@ struct SettingsView: View {
                         NavigationLink {
                             LicensesView()
                         } label: {
-                            NavigationRowLabel(title: "Giấy phép mã nguồn mở", icon: "hugeicons-license")
+                            NavigationRowContent(title: "Giấy phép mã nguồn mở", icon: "hugeicons-license")
                         }
                         .buttonStyle(.row)
                     }
@@ -126,7 +126,7 @@ struct SettingsView: View {
                         NavigationLink {
                             DesignSystemView()
                         } label: {
-                            NavigationRowLabel(title: "Thư viện UI", subtitle: "Hệ thống thiết kế, chạm thử được",
+                            NavigationRowContent(title: "Thư viện UI", subtitle: "Hệ thống thiết kế, chạm thử được",
                                                icon: "hugeicons-dashboard-square-01")
                         }
                         .buttonStyle(.row)
@@ -182,7 +182,7 @@ struct SettingsView: View {
                     .foregroundStyle(Palette.secondaryLabel)
             }
             Spacer(minLength: Spacing.s)
-            StatusBadge(text: "Miễn phí", tone: .neutral, showsDot: false)
+            StatusBadge(title: "Miễn phí", tone: .neutral, showsDot: false)
         }
         .settingsCard()
         .accessibilityElement(children: .combine)
@@ -286,7 +286,7 @@ extension View {
         padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, Spacing.card)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, outlined: true)
+            .cardSurface(radius: CardCorners.inset)
     }
 }
 

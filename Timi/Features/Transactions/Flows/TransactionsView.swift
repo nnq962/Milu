@@ -60,7 +60,7 @@ struct TransactionsView: View {
                             listContainer { flowList }
                         case .loans:
                             LoansSummaryCard()
-                            chipsRow { ChipRow(options: LoanFilter.allCases, selection: $loanFilter) { $0.title } }
+                            chipsRow { ChipRow(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
                             listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                         }
                     }
@@ -201,13 +201,13 @@ struct TransactionsView: View {
                 .accessibilityLabel("Báo cáo tháng")
             }
             SplitTotals(items: [
-                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain),
-                .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .plain),
+                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .neutral),
+                .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .neutral),
             ])
             let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
             if monthlyBudget > 0, progress.isOver || progress.isNearing {
                 BudgetStatusLine(level: .init(progress),
-                                 text: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
+                                 message: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
                                      : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
             }
         }

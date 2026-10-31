@@ -3,7 +3,8 @@ import SwiftUI
 /// A ready amount offered before anything is typed ("Mỗi tháng 167k" on a goal deposit); with no
 /// label, the amount alone ("10tr").
 struct AmountPreset: Hashable {
-    let label: String
+    /// The words before the figure ("Mỗi tháng"); empty shows the figure alone.
+    let title: String
     let value: Double
 }
 
@@ -20,8 +21,8 @@ struct TimiAmountField: View {
     var isNegative = false
     /// Chips shown while nothing is typed; typing replaces them with the usual suggestions.
     var presets: [AmountPreset] = []
-    /// What VoiceOver calls the field ("Số tiền gốc"); the caption above it is a separate element.
-    var label = "Số tiền"
+    /// What VoiceOver calls the field ("Số tiền gốc"); the title above it is a separate element.
+    var accessibilityLabel = "Số tiền"
 
     @FocusState private var isFocused: Bool
     /// Digits the user typed; suggestions follow these, not the chip they picked.
@@ -92,7 +93,7 @@ struct TimiAmountField: View {
                             .foregroundStyle(.clear)
                             .tint(Palette.label)
                             .focused($isFocused)
-                            .accessibilityLabel(label)
+                            .accessibilityLabel(accessibilityLabel)
                     }
                 if text.isEmpty {
                     Text("0")
@@ -110,7 +111,7 @@ struct TimiAmountField: View {
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: heroSize)
             .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: sign)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: color)
-            .frame(maxWidth: .infinity, minHeight: 56)
+            .frame(maxWidth: .infinity, minHeight: ControlHeight.large)
             .contentShape(Rectangle())
             .onTapGesture { isFocused = true }
 
@@ -126,7 +127,7 @@ struct TimiAmountField: View {
                     }
                     .scrollIndicators(.hidden)
                     // iOS 26 draws a darker band behind glass chips at a scroll view's edges.
-                    .modifier(NoScrollEdgeEffect())
+                    .scrollEdgeEffectHidden(true, for: .all)
                     .padding(.horizontal, -Spacing.page)
                 }
                 .padding(.top, suggestions.isEmpty && shownPresets.isEmpty ? 0 : Spacing.m)
@@ -169,13 +170,13 @@ struct TimiAmountField: View {
         HStack(spacing: Spacing.s) {
             ForEach(shownPresets, id: \.self) { preset in
                 // An empty label shows the amount alone ("10tr").
-                TagChip(title: preset.label.isEmpty ? preset.value.vndCompact : "\(preset.label) \(preset.value.vndCompact)",
+                TagChip(title: preset.title.isEmpty ? preset.value.vndCompact : "\(preset.title) \(preset.value.vndCompact)",
                         isProminent: preset.value == amount) {
                     text = String(Int(preset.value)).groupedVNDInput
                     picks += 1
                 }
                 .fixedSize()
-                .accessibilityLabel(preset.label.isEmpty ? preset.value.vnd : "\(preset.label) \(preset.value.vnd)")
+                .accessibilityLabel(preset.title.isEmpty ? preset.value.vnd : "\(preset.title) \(preset.value.vnd)")
             }
             ForEach(suggestions, id: \.self) { value in
                 TagChip(title: Self.chipLabel(value), isProminent: value == amount) {
@@ -192,15 +193,15 @@ struct TimiAmountField: View {
 /// The top of a money sheet: what the amount is (a small grey line: "Số dư hiện tại", the goal's
 /// name) above the big `TimiAmountField`. One layout for every sheet that starts with an amount.
 struct SheetAmountHeader<Field: View>: View {
-    let caption: String
-    /// The field reads the caption itself (`TimiAmountField(label:)`), so VoiceOver skips the line
-    /// above it rather than saying it twice.
+    let title: String
+    /// The field reads the title itself (`TimiAmountField(accessibilityLabel:)`), so VoiceOver skips
+    /// the line above it rather than saying it twice.
     var fieldSaysCaption = false
     @ViewBuilder var field: Field
 
     var body: some View {
         VStack(spacing: Spacing.xs) {
-            Text(caption)
+            Text(title)
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityHidden(fieldSaysCaption)

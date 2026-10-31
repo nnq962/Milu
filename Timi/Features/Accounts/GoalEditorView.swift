@@ -79,13 +79,13 @@ struct GoalEditorView: View {
     var body: some View {
         SheetScaffold(title: original == nil ? "Thêm hũ tiết kiệm" : "Sửa hũ tiết kiệm",
                       validate: validate, onConfirm: save) {
-            SheetAmountHeader(caption: "Mục tiêu") {
+            SheetAmountHeader(title: "Mục tiêu") {
                 // A closed goal keeps the target it met; reopening it makes the target editable again.
                 TimiAmountField(text: $targetText, showsSuggestions: original?.isClosed != true,
                                 focusesOnAppear: original == nil || focusesTarget)
                     .disabled(original?.isClosed == true)
                 if let error = targetError ?? (showsNameError && targetText.vndInputAmount <= 0 ? "Nhập mục tiêu." : nil) {
-                    FormErrorText(text: error)
+                    FormErrorText(message: error)
                 }
             }
         } content: {

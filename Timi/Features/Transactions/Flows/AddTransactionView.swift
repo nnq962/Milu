@@ -248,7 +248,7 @@ struct AddTransactionView: View {
                 TimiAmountField(text: $amountText, kind: mode.kind, showsSuggestions: !isReadOnly,
                                 focusesOnAppear: !isEditing)
                 if showsErrors, missesAmount {
-                    FormErrorText(text: "Nhập số tiền.")
+                    FormErrorText(message: "Nhập số tiền.")
                 }
             }
             .padding(.vertical, Spacing.s)
@@ -372,7 +372,7 @@ struct AddTransactionView: View {
     @ViewBuilder
     private var transactionRows: some View {
         if keepsSystemCategory {
-            FormValueLabel(title: "Hạng mục", icon: nil, value: store.categoryName(categoryID),
+            FormValueRowContent(title: "Hạng mục", icon: nil, value: store.categoryName(categoryID),
                            valueIcon: store.categoryIcon(categoryID))
         } else if let kind = mode.kind {
             CategoryPickerRow(kind: kind, selection: $categoryID, showsError: showsErrors,
@@ -528,7 +528,7 @@ private struct BudgetNoticeRow: View {
     }
 
     var body: some View {
-        BudgetStatusLine(level: level, text: notice.text)
+        BudgetStatusLine(level: level, message: notice.text)
             .padding(.horizontal, RowMetrics.horizontal)
             .frame(maxWidth: .infinity, alignment: .leading)
             .animation(.snappy, value: notice)
@@ -548,7 +548,7 @@ private struct OptionalAccountRow: View {
 
     var body: some View {
         Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: nil,
+            FormValueRowContent(title: title, icon: nil,
                            value: selection.flatMap { store.account(id: $0)?.name } ?? "Chọn",
                            valueIcon: selection.flatMap { store.account(id: $0)?.iconName },
                            isInvalid: isInvalid)
@@ -559,8 +559,8 @@ private struct OptionalAccountRow: View {
             ChoiceSheet(title: title,
                         selection: Binding<Account.ID?> { selection } set: { if let new = $0 { set(new) } },
                         options: options.map(Optional.some),
-                        icon: { $0.flatMap { store.account(id: $0)?.iconName } ?? "hugeicons-wallet-01" },
-                        label: { $0.flatMap { store.account(id: $0)?.name } ?? "—" })
+                        optionIcon: { $0.flatMap { store.account(id: $0)?.iconName } ?? "hugeicons-wallet-01" },
+                        optionTitle: { $0.flatMap { store.account(id: $0)?.name } ?? "—" })
         }
     }
 }

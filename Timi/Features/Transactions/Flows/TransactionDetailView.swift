@@ -58,11 +58,11 @@ struct TransactionDetailView: View {
     /// the bar's title); a badge when it does not count.
     private func lead(_ transaction: FinanceTransaction) -> some View {
         // A balance adjustment is neither income nor spending (user choice 2026-10-29).
-        SummaryCard(label: transaction.isAdjustment ? "Điều chỉnh số dư" : transaction.kind.title, amount: transaction.amount,
+        SummaryCard(title: transaction.isAdjustment ? "Điều chỉnh số dư" : transaction.kind.title, amount: transaction.amount,
                     icon: store.categoryIcon(transaction.categoryID),
                     tone: transaction.kind == .income ? .signedIncome : .signedExpense) {
             if let excluded = Self.notCountedText(transaction, store: store) {
-                StatusBadge(text: excluded)
+                StatusBadge(title: excluded)
                     .padding(.top, Spacing.s)
             }
         }
@@ -169,8 +169,8 @@ struct TransferDetailSheet: View {
                            onEdit: { isEditing = true }) {
                 if let transfer {
                     // Neither income nor spending: no sign.
-                    SummaryCard(label: "Số tiền chuyển", amount: transfer.amount,
-                                icon: "hugeicons-arrow-data-transfer-horizontal", tone: .plain)
+                    SummaryCard(title: "Số tiền chuyển", amount: transfer.amount,
+                                icon: "hugeicons-arrow-data-transfer-horizontal", tone: .neutral)
                     details(transfer)
                     if !transfer.note.isEmpty {
                         FormGroup(title: "Ghi chú") { FormNoteText(text: transfer.note) }

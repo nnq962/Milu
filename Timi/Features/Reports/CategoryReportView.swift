@@ -86,8 +86,8 @@ struct CategoryReportView: View {
     private func summary(spent: Double, allSpent: Double, before: Double) -> some View {
         let limit = canHaveLimit ? categoryBudgets[groupID] : 0
         // Red with "-", as "Đã chi" on Báo cáo and Thu chi (strict review 2026-10-31).
-        return SummaryCard(label: "Đã chi", amount: spent, icon: store.categoryIcon(groupID),
-                           tone: spent > 0 ? .signedExpense : .plain) {
+        return SummaryCard(title: "Đã chi", amount: spent, icon: store.categoryIcon(groupID),
+                           tone: spent > 0 ? .signedExpense : .neutral) {
             let showsLimit = period.unit == .month && limit > 0
             if allSpent > 0 || before > 0 || showsLimit {
                 VStack(alignment: .leading, spacing: Spacing.m) {
@@ -114,7 +114,7 @@ struct CategoryReportView: View {
                                 .textRole(.captionStrong)
                             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
                             BudgetStatusLine(level: .init(progress),
-                                             text: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
+                                             message: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
                                                  : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
                         }
                         .padding(.top, Spacing.m)
@@ -175,9 +175,9 @@ struct ItemTransactionsView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                SummaryCard(label: period.unit == .week ? "Đã chi tuần \(period.title)" : "Đã chi \(period.title.lowercased())",
+                SummaryCard(title: period.unit == .week ? "Đã chi tuần \(period.title)" : "Đã chi \(period.title.lowercased())",
                             amount: total, icon: store.categoryIcon(itemID),
-                            tone: total > 0 ? .signedExpense : .plain)
+                            tone: total > 0 ? .signedExpense : .neutral)
 
                 if transactions.isEmpty {
                     // Worded as on Báo cáo for the same case (strict review 2026-10-31).

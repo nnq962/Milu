@@ -37,7 +37,7 @@ struct SearchField: View {
         .padding(.horizontal, Spacing.l)
         // At least the field height, taller with larger text (Dynamic Type).
         .padding(.vertical, Spacing.s)
-        .frame(minHeight: ControlHeight.field)
+        .frame(minHeight: ControlHeight.regular)
         .fixedSize(horizontal: false, vertical: true)
         .background(Palette.surface, in: Capsule())
         // Inside the capsule, so a scroll view or a stack never clips half the line.

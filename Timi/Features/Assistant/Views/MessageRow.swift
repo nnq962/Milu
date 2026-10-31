@@ -147,7 +147,7 @@ private struct TransactionCard: View {
 
     var body: some View {
         TransactionListRow(transaction: transaction, detail: .day)
-            .cardSurface(radius: CardCorners.flow, color: Palette.surfaceMuted)
+            .cardSurface(radius: CardCorners.flow, color: Palette.surfaceMuted, outlined: false)
             .accessibilityElement(children: .combine)
     }
 }

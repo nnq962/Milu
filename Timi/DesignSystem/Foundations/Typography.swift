@@ -59,8 +59,6 @@ enum Typography {
         }
     }
 
-    static var body: Font { font(.body, size: 17) }
-
     /// Segmented controls: selected SemiBold ink, others Medium muted, 14 scaled to `size`; iOS
     /// owns the shape. UIKit takes the font when a control is made, so a screen sets this for its
     /// own text size before making one (`ScaledSegmentedPicker`); set once at launch it stayed 14

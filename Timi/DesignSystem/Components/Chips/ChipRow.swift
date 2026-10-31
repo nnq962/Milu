@@ -3,9 +3,10 @@ import SwiftUI
 /// Horizontally scrolling filter chips: `TagChip`s, the chosen one filled in the primary colour.
 /// Not glass (user choice 2026-10-31: glass only on the bars).
 struct ChipRow<Option: Hashable & Identifiable>: View {
-    let options: [Option]
     @Binding var selection: Option
-    let title: (Option) -> String
+    let options: [Option]
+    /// The words on each chip.
+    let optionTitle: (Option) -> String
 
     var body: some View {
         // Scroll only when the chips overflow.
@@ -17,7 +18,7 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
                     .padding(.horizontal, Spacing.page)
             }
             .scrollIndicators(.hidden)
-            .modifier(NoScrollEdgeEffect())
+            .scrollEdgeEffectHidden(true, for: .all)
             // Bleed to the screen edges: the page margin, in and out.
             .padding(.horizontal, -Spacing.page)
         }
@@ -28,16 +29,9 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
         HStack(spacing: Spacing.s) {
             ForEach(options) { option in
                 let selected = option == selection
-                TagChip(title: title(option), isProminent: selected) { selection = option }
+                TagChip(title: optionTitle(option), isProminent: selected) { selection = option }
                     .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-    }
-}
-
-/// iOS 26 draws a soft edge band behind a horizontal scroll view's content; a chip row needs none.
-struct NoScrollEdgeEffect: ViewModifier {
-    func body(content: Content) -> some View {
-        content.scrollEdgeEffectHidden(true, for: .all)
     }
 }

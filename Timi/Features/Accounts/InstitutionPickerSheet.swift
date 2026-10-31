@@ -55,7 +55,7 @@ struct InstitutionPickerSheet: View {
             Haptics.selection()
             dismiss()
         } label: {
-            PickerRowLabel(icon: institution.logoImage, title: institution.shortName,
+            PickerRowContent(icon: institution.logoImage, title: institution.shortName,
                            subtitle: institution.name, isSelected: selected)
         }
         .buttonStyle(.row)

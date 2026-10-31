@@ -64,7 +64,7 @@ struct StatusBadge: View {
     static let dot: CGFloat = 6
     static let icon: CGFloat = 14
 
-    let text: String
+    let title: String
     var tone: BadgeTone = .neutral
     var showsDot = true
     var icon: String? = nil
@@ -80,7 +80,7 @@ struct StatusBadge: View {
             }
             // One line, two at the accessibility sizes; cut short with "…" rather than pushed
             // past the screen (review 2026-10-31: `fixedSize` let long badges overflow).
-            Text(text)
+            Text(title)
                 .textRole(.captionStrong)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 .monospacedDigit()

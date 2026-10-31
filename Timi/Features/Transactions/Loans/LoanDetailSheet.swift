@@ -86,10 +86,10 @@ struct LoanDetailSheet: View {
         // Settled: what was repaid, the principal the row shows, not a big "0 đ" (re-review
         // 2026-10-31). Open: what is left, in the row's colour (red with "-" while I owe it).
         let label = loan.isSettled ? (lent ? "Đã thu đủ" : "Đã trả đủ") : (lent ? "Còn phải thu" : "Còn phải trả")
-        return SummaryCard(label: label, amount: loan.isSettled ? loan.principal : loan.outstanding,
+        return SummaryCard(title: label, amount: loan.isSettled ? loan.principal : loan.outstanding,
                            icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02",
                            tone: LoanRow.amountTone(loan)) {
-            StatusBadge(text: urgency.text, tone: urgency.tone)
+            StatusBadge(title: urgency.text, tone: urgency.tone)
                 .padding(.top, Spacing.s)
             ProgressBar(value: loan.paidRatio, color: LoanRow.progressColor(for: loan, urgency: urgency))
                 .padding(.top, Spacing.l)
@@ -133,7 +133,7 @@ struct LoanDetailSheet: View {
             }
             // In or out as on the history rows; nothing yet, a plain 0.
             FormAmountInfoRow(title: lent ? "Đã thu tổng cộng" : "Đã trả tổng cộng", amount: paid,
-                              tone: paid == 0 ? .plain : lent ? .signedIncome : .signedExpense)
+                              tone: paid == 0 ? .neutral : lent ? .signedIncome : .signedExpense)
         }
     }
 
@@ -167,7 +167,7 @@ struct LoanDetailSheet: View {
             // `FormGroup` card put 16 between them).
             VStack(alignment: .leading, spacing: Spacing.s) {
                 SectionHeader(title: title, style: .group)
-                if let footer = historyFooter(loan, isEmpty: true) { FormFooter(text: footer) }
+                if let footer = historyFooter(loan, isEmpty: true) { FormFooter(message: footer) }
             }
         } else {
             FormGroup(title: title, footer: historyFooter(loan, isEmpty: false)) {

@@ -255,7 +255,7 @@ struct TransactionFilterSheet: View {
                     kindChips
                     ScrollView(.horizontal) { kindChips }
                         .scrollIndicators(.hidden)
-                        .modifier(NoScrollEdgeEffect())
+                        .scrollEdgeEffectHidden(true, for: .all)
                 }
                 .sensoryFeedback(.selection, trigger: draft.kind)
             }
@@ -287,7 +287,7 @@ struct TransactionFilterSheet: View {
                                       Set(draft.accountIDs.map(\.uuidString))
                                   } set: { draft.accountIDs = Set($0.compactMap(UUID.init(uuidString:))) })
                 } label: {
-                    FormValueLabel(title: "Tài khoản", icon: nil,
+                    FormValueRowContent(title: "Tài khoản", icon: nil,
                                    value: draft.accountIDs.isEmpty ? "Tất cả" : "\(draft.accountIDs.count) tài khoản")
                 }
                 .buttonStyle(.row)
@@ -297,7 +297,7 @@ struct TransactionFilterSheet: View {
                         MultiPickPage(title: "Nhóm hạng mục", options: groups.map { ($0.id, $0.name, $0.icon) },
                                       selection: $draft.groupIDs)
                     } label: {
-                        FormValueLabel(title: "Nhóm hạng mục", icon: nil,
+                        FormValueRowContent(title: "Nhóm hạng mục", icon: nil,
                                        value: draft.groupIDs.isEmpty ? "Tất cả" : "\(draft.groupIDs.count) nhóm")
                     }
                     .buttonStyle(.row)
@@ -345,7 +345,7 @@ private struct MultiPickPage: View {
                         selection.formSymmetricDifference([option.id])
                         Haptics.selection()
                     } label: {
-                        PickerRowLabel(icon: option.icon, title: option.name, isSelected: isOn)
+                        PickerRowContent(icon: option.icon, title: option.name, isSelected: isOn)
                     }
                     .buttonStyle(.row)
                     .accessibilityAddTraits(isOn ? .isSelected : [])

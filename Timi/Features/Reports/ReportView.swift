@@ -54,8 +54,8 @@ struct ReportView: View {
             // Signed and coloured as the month card on Thu chi (strict review 2026-10-31); under
             // each, how it moved against the period before.
             SplitTotals(items: [
-                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain),
-                .init("Đã thu", amount: received, tone: received > 0 ? .signedIncome : .plain),
+                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .neutral),
+                .init("Đã thu", amount: received, tone: received > 0 ? .signedIncome : .neutral),
             ]) { item in
                 let isSpending = item.title == "Đã chi"
                 ChangeLabel(now: item.amount, before: isSpending ? spentBefore : receivedBefore,
@@ -143,7 +143,7 @@ struct ReportView: View {
             }
             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
             BudgetStatusLine(level: .init(progress),
-                             text: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
+                             message: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
                                  : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
         }
         .foregroundStyle(Palette.label)
@@ -341,7 +341,7 @@ struct ReportView: View {
                         BreakdownRowLabel(icon: account.icon, title: account.name,
                                           detail: account.income > 0 ? "Thu +\(account.income.vndCompact)" : "Không có khoản thu",
                                           amount: account.expense,
-                                          tone: account.expense > 0 ? .signedExpense : .plain,
+                                          tone: account.expense > 0 ? .signedExpense : .neutral,
                                           isAccount: true)
                     }
                     .buttonStyle(.row)

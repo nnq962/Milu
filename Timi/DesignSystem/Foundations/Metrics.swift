@@ -9,7 +9,6 @@ enum Spacing {
     static let l: CGFloat = 16
     static let xl: CGFloat = 20
     static let xxl: CGFloat = 24
-    static let xxxl: CGFloat = 32
 
     /// Left/right margin of every screen.
     static let page: CGFloat = 20
@@ -23,7 +22,7 @@ enum Spacing {
     static let leadCard: CGFloat = 24
 
     static let scale: [(name: String, value: CGFloat)] = [
-        ("xxs", xxs), ("xs", xs), ("s", s), ("m", m), ("l", l), ("xl", xl), ("xxl", xxl), ("xxxl", xxxl),
+        ("xxs", xxs), ("xs", xs), ("s", s), ("m", m), ("l", l), ("xl", xl), ("xxl", xxl),
     ]
 }
 
@@ -69,7 +68,6 @@ enum ControlHeight {
     static let large: CGFloat = 56
     static let regular: CGFloat = 44
     static let small: CGFloat = 36
-    static let field: CGFloat = 44
 }
 
 /// Corner radii. Every card one radius, 28 (UI review 2026-10-30: cards were 22, 26 and 32 side
@@ -83,6 +81,5 @@ enum CardCorners {
     static let flow: CGFloat = 20
     /// Text fields and inline pickers, 44pt tall.
     static let field: CGFloat = 12
-    static let icon: CGFloat = 10
     static let calendarDay: CGFloat = 8
 }

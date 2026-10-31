@@ -36,7 +36,7 @@ struct LoanFilterSheet: View {
                     kindChips
                     ScrollView(.horizontal) { kindChips }
                         .scrollIndicators(.hidden)
-                        .modifier(NoScrollEdgeEffect())
+                        .scrollEdgeEffectHidden(true, for: .all)
                 }
                 .sensoryFeedback(.selection, trigger: draft)
             }

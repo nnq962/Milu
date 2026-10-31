@@ -69,7 +69,7 @@ struct DesignSystemView: View {
             .dismissesKeyboardOnTap()
             // The chip index stays under the bar; as a safe-area inset, scrolling to a part stops below it.
             .safeAreaInset(edge: .top, spacing: 0) {
-                ChipRow(options: Part.allCases, selection: chosen(proxy)) { $0.title }
+                ChipRow(selection: chosen(proxy), options: Part.allCases) { $0.title }
                     .padding(.horizontal, Spacing.page)
                     .padding(.vertical, Spacing.m)
                     .background(Palette.background)

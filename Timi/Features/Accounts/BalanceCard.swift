@@ -17,7 +17,7 @@ struct TotalBalanceHeader: View {
             Text("Tổng số dư")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryLabel)
-            MoneyText(amount: store.paymentBalance, size: .display, tone: .negativeRed)
+            MoneyText(amount: store.paymentBalance, size: .display, tone: .balance)
             if change != 0 || lockedMoney > 0 {
                 // Wraps onto a second line at large text instead of running off the edge.
                 FlowLayout(spacing: Spacing.xs) {

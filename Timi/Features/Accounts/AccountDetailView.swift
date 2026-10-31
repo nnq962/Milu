@@ -24,8 +24,8 @@ struct AccountDetailView: View {
                                          loanPayments: store.loanPayments(of: account))
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
-                    SummaryCard(label: "Số dư", amount: account.balance, icon: account.iconName,
-                                tone: account.isLocked || account.isArchived ? .muted : .negativeRed) {
+                    SummaryCard(title: "Số dư", amount: account.balance, icon: account.iconName,
+                                tone: account.isLocked || account.isArchived ? .muted : .balance) {
                         if let subtitle = Self.subtitle(for: account) {
                             Text(subtitle)
                                 .textRole(.caption)
@@ -238,7 +238,7 @@ struct AccountTransferRow: View {
         switch viewedAccount {
         case nil:
             title = "Chuyển khoản"
-            tone = .plain
+            tone = .neutral
         default:
             title = outgoing ? "Chuyển đến \(to)" : "Nhận từ \(from)"
             tone = outgoing ? .signedExpense : .signedIncome

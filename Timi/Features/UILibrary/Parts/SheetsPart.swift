@@ -42,7 +42,7 @@ struct SheetsPart: View {
                 SheetOption(icon: "hugeicons-money-02", title: "Tiền mặt"),
                 SheetOption(icon: "hugeicons-bank", title: "Ngân hàng"),
                 SheetOption(icon: "hugeicons-smart-phone-01", title: "Ví điện tử"),
-                SheetOption(icon: "hugeicons-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu", accent: true),
+                SheetOption(icon: "hugeicons-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu"),
             ]) { picked = $0.title }
         }
         .sheet(isPresented: $isShowingNote) {
@@ -105,8 +105,8 @@ struct SampleFormSheet: View {
     var body: some View {
         SheetScaffold(title: isEditing ? "Sửa tài khoản" : "Thêm tài khoản",
                       validate: validate, onConfirm: { dismiss() }) {
-            SheetAmountHeader(caption: "Số dư hiện tại", fieldSaysCaption: true) {
-                TimiAmountField(text: $balance, label: "Số dư hiện tại")
+            SheetAmountHeader(title: "Số dư hiện tại", fieldSaysCaption: true) {
+                TimiAmountField(text: $balance, accessibilityLabel: "Số dư hiện tại")
             }
         } content: {
             FormGroup(title: "Thông tin", error: nameError) {

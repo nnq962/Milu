@@ -87,7 +87,7 @@ struct AddAccountView: View {
 
     var body: some View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
-            SheetAmountHeader(caption: "Số dư hiện tại") {
+            SheetAmountHeader(title: "Số dư hiện tại") {
                 // An archived account's history is frozen, its balance too, until it is restored.
                 TimiAmountField(text: $balanceText, showsSuggestions: original?.isArchived != true,
                                 focusesOnAppear: original == nil, isNegative: isNegative)
@@ -183,7 +183,7 @@ struct AddAccountView: View {
 
     private var institutionRow: some View {
         Button { isPickingInstitution = true } label: {
-            FormValueLabel(title: type == .eWallet ? "Ví" : "Ngân hàng", icon: nil,
+            FormValueRowContent(title: type == .eWallet ? "Ví" : "Ngân hàng", icon: nil,
                            value: institution?.shortName ?? "Chọn",
                            valueIcon: institution?.logoImage,
                            isInvalid: showsErrors && missesInstitution)

@@ -58,7 +58,7 @@ struct RelationshipPickerSheet: View {
                 dismiss()
             } label: {
                 HStack(spacing: 0) {
-                    PickerRowLabel(icon: relationship.icon, title: relationship.name, isSelected: isSelected)
+                    PickerRowContent(icon: relationship.icon, title: relationship.name, isSelected: isSelected)
                     if hasPencils, relationship.isBuiltIn {
                         // The pencil's place, part of the row so it still picks.
                         Color.clear

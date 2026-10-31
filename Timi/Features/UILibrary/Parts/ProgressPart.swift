@@ -23,9 +23,9 @@ struct ProgressPart: View {
             // The one line for where a limit stands, wherever a limit is shown.
             SampleCard(label: "Dòng hạn mức · BudgetStatusLine") {
                 VStack(alignment: .leading, spacing: Spacing.s) {
-                    BudgetStatusLine(level: .fine, text: "Đã dùng 42% hạn mức, còn 2,9tr")
-                    BudgetStatusLine(level: .nearing, text: "Đã dùng 86% hạn mức, còn 700k")
-                    BudgetStatusLine(level: .over, text: "Vượt hạn mức 1,3tr")
+                    BudgetStatusLine(level: .fine, message: "Đã dùng 42% hạn mức, còn 2,9tr")
+                    BudgetStatusLine(level: .nearing, message: "Đã dùng 86% hạn mức, còn 700k")
+                    BudgetStatusLine(level: .over, message: "Vượt hạn mức 1,3tr")
                 }
             }
             SampleCard(label: "Vòng · ProgressRing") {
@@ -40,7 +40,7 @@ struct ProgressPart: View {
 
     private func progressSample(_ title: String, value: Double, color: Color) -> some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            Text(title).textRole(.label)
+            Text(title).textRole(.body)
             ProgressBar(value: value, color: color)
         }
     }

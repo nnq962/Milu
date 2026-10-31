@@ -121,9 +121,9 @@ struct BudgetView: View {
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryLabel)
                     if progress.isOver {
-                        StatusBadge(text: "Vượt hạn mức", tone: .warning)
+                        StatusBadge(title: "Vượt hạn mức", tone: .warning)
                     } else if progress.isNearing {
-                        StatusBadge(text: "Sắp hết", tone: .caution)
+                        StatusBadge(title: "Sắp hết", tone: .caution)
                     }
                     Spacer(minLength: Spacing.s)
                     // › alone says the card opens the split.
@@ -131,7 +131,7 @@ struct BudgetView: View {
                 }
                 // Over the limit: the amount over, red.
                 MoneyText(amount: progress.isOver ? -abs(progress.left) : progress.left,
-                          size: .large, tone: .negativeRed)
+                          size: .large, tone: .balance)
             }
             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
             // The amounts as MoneyText, grey like the words around them (re-review 2026-10-31).
@@ -191,7 +191,7 @@ struct BudgetView: View {
                                 .textRole(.caption)
                                 .foregroundStyle(Palette.secondaryLabel)
                             MoneyText(amount: progress.isOver ? -abs(progress.left) : progress.left,
-                                      size: .caption, tone: .negativeRed, compact: true)
+                                      size: .caption, tone: .balance, compact: true)
                         }
                         .fixedSize()
                     }

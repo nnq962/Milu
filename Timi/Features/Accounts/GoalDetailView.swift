@@ -140,8 +140,8 @@ struct GoalDetailView: View {
     /// A `SummaryCard` like "Tổng số dư": label and amount on the left, the goal's icon on the right,
     /// then the bar, the progress line and the actions (or how it ended, once closed).
     private func summary(_ goal: SavingsGoal) -> some View {
-        SummaryCard(label: goal.isClosed ? "Mục tiêu" : "Đã để dành",
-                    amount: goal.isClosed ? goal.target : goal.saved, icon: goal.icon, tone: .plain) {
+        SummaryCard(title: goal.isClosed ? "Mục tiêu" : "Đã để dành",
+                    amount: goal.isClosed ? goal.target : goal.saved, icon: goal.icon, tone: .neutral) {
             if goal.isClosed {
                 closedLine(goal)
                     .padding(.top, Spacing.m)
@@ -162,10 +162,10 @@ struct GoalDetailView: View {
         // At the largest text sizes the two halves stack instead of shrinking.
         AdaptiveStack(spacing: Spacing.s) {
             if goal.isReached {
-                StatusBadge(text: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
+                StatusBadge(title: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
             } else if goal.isOverdue {
                 // Past its deadline: say so, as an overdue loan does, instead of "45tr/tháng".
-                StatusBadge(text: "Quá hạn · \(goal.progressText)", tone: .warning)
+                StatusBadge(title: "Quá hạn · \(goal.progressText)", tone: .warning)
             } else {
                 (Text(goal.progressText).foregroundStyle(Palette.label)
                     + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
@@ -193,7 +193,7 @@ struct GoalDetailView: View {
         let rest = (Array(parts.dropFirst()) + [goal.closedAt?.shortDay].compactMap { $0 })
             .joined(separator: " · ")
         return VStack(alignment: .leading, spacing: Spacing.s) {
-            StatusBadge(text: head, tone: .positive, icon: "hugeicons-checkmark-badge-01")
+            StatusBadge(title: head, tone: .positive, icon: "hugeicons-checkmark-badge-01")
             if !rest.isEmpty {
                 Text(rest)
                     .textRole(.caption)

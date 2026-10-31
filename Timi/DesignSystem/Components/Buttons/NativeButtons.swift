@@ -45,7 +45,6 @@ struct HeaderLink: View {
     var opensPage = false
     /// "⌄" after the words when it opens a menu (the month of Lịch thu chi).
     var opensMenu = false
-    var color: Color = Palette.primary
 
     var body: some View {
         HStack(spacing: Spacing.xs) {
@@ -60,7 +59,7 @@ struct HeaderLink: View {
                 TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
             }
         }
-        .foregroundStyle(color)
+        .foregroundStyle(Palette.primary)
         // 44 each way to tap, even for a short word ("Xoá").
         .frame(minWidth: ControlHeight.regular, minHeight: ControlHeight.regular, alignment: .trailing)
         .contentShape(Rectangle())

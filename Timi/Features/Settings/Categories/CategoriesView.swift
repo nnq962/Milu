@@ -33,7 +33,7 @@ struct CategoriesView: View {
                                 CategoryGroupView(groupID: group.id)
                             } label: {
                                 let count = store.items(of: group).count
-                                NavigationRowLabel(title: group.name, icon: group.icon,
+                                NavigationRowContent(title: group.name, icon: group.icon,
                                                    value: "\(count)", spokenValue: "\(count) hạng mục")
                             }
                             .buttonStyle(.row)
@@ -47,7 +47,7 @@ struct CategoriesView: View {
                     NavigationLink {
                         HiddenCategoriesView(kind: kind)
                     } label: {
-                        NavigationRowLabel(title: "Hạng mục đã ẩn", icon: "hugeicons-archive-02", value: "\(hidden)", spokenValue: "\(hidden) mục")
+                        NavigationRowContent(title: "Hạng mục đã ẩn", icon: "hugeicons-archive-02", value: "\(hidden)", spokenValue: "\(hidden) mục")
                     }
                     .buttonStyle(.row)
                     .listCard()
@@ -101,7 +101,7 @@ struct CategoryGroupView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         Button { editing = .edit(item) } label: {
-                            NavigationRowLabel(title: item.name, icon: item.icon)
+                            NavigationRowContent(title: item.name, icon: item.icon)
                         }
                         .buttonStyle(.row)
                         .overlay(alignment: .top) { if index > 0 { FormDivider() } }
@@ -154,7 +154,7 @@ struct HiddenCategoriesView: View {
                 VStack(spacing: 0) {
                     ForEach(Array(hidden.enumerated()), id: \.element.id) { index, category in
                         Button { editing = .edit(category) } label: {
-                            NavigationRowLabel(title: category.name, subtitle: subtitle(category), icon: category.icon)
+                            NavigationRowContent(title: category.name, subtitle: subtitle(category), icon: category.icon)
                         }
                         .buttonStyle(.row)
                         .overlay(alignment: .top) { if index > 0 { FormDivider() } }

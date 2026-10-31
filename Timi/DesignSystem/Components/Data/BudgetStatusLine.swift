@@ -8,7 +8,7 @@ struct BudgetStatusLine: View {
     enum Level { case fine, nearing, over }
 
     let level: Level
-    let text: String
+    let message: String
 
     /// The glyph grows with the caption beside it.
     @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.inlineGlyph
@@ -17,7 +17,7 @@ struct BudgetStatusLine: View {
     var body: some View {
         // A Label, so the glyph sits centred on the first line when the words wrap.
         Label {
-            Text(text)
+            Text(message)
                 .monospacedDigit()
                 .contentTransition(reduceMotion ? .identity : .numericText())
         } icon: {
@@ -46,9 +46,9 @@ extension BudgetStatusLine.Level {
 
 #Preview {
     VStack(alignment: .leading, spacing: Spacing.m) {
-        BudgetStatusLine(level: .fine, text: "Đã dùng 42% hạn mức")
-        BudgetStatusLine(level: .nearing, text: "Đã dùng 86% hạn mức, còn 4,2tr")
-        BudgetStatusLine(level: .over, text: "Vượt hạn mức 2tr")
+        BudgetStatusLine(level: .fine, message: "Đã dùng 42% hạn mức")
+        BudgetStatusLine(level: .nearing, message: "Đã dùng 86% hạn mức, còn 4,2tr")
+        BudgetStatusLine(level: .over, message: "Vượt hạn mức 2tr")
     }
     .padding()
 }

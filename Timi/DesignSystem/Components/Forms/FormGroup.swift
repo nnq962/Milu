@@ -20,12 +20,12 @@ struct FormGroup<Content: View>: View {
                 SectionHeader(title: title, style: .group)
             }
             VStack(spacing: 0) { content }
-                .cardSurface(radius: CardCorners.inset, outlined: true)
+                .cardSurface(radius: CardCorners.inset)
             if let error {
-                FormErrorText(text: error)
+                FormErrorText(message: error)
                     .padding(.horizontal, RowMetrics.horizontal)
             } else if let footer {
-                FormFooter(text: footer)
+                FormFooter(message: footer)
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: error)
@@ -35,7 +35,7 @@ struct FormGroup<Content: View>: View {
 /// A red line saying what to fix: under a `FormGroup` (its `error`), or under a field outside one
 /// (the big amount). VoiceOver reads it as it appears, since nothing else says why saving failed.
 struct FormErrorText: View {
-    let text: String
+    let message: String
 
     /// The glyph before the words, as on `BudgetStatusLine`, growing with them.
     @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.inlineGlyph
@@ -43,7 +43,7 @@ struct FormErrorText: View {
 
     var body: some View {
         Label {
-            Text(text)
+            Text(message)
         } icon: {
             TimiIcon("hugeicons-alert-circle", size: glyph)
         }
@@ -51,18 +51,18 @@ struct FormErrorText: View {
         .foregroundStyle(Palette.negative)
         .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
         .accessibilityAddTraits(.isStaticText)
-        .onAppear { AccessibilityNotification.Announcement(text).post() }
-        .onChange(of: text) { _, new in AccessibilityNotification.Announcement(new).post() }
+        .onAppear { AccessibilityNotification.Announcement(message).post() }
+        .onChange(of: message) { _, new in AccessibilityNotification.Announcement(new).post() }
     }
 }
 
 /// The grey note under a card (`FormGroup`'s footer); for a list card, put it right under the card
 /// in a `VStack(spacing: Spacing.s)`.
 struct FormFooter: View {
-    let text: String
+    let message: String
 
     var body: some View {
-        Text(text)
+        Text(message)
             .textRole(.caption)
             .foregroundStyle(Palette.secondaryLabel)
             .padding(.horizontal, RowMetrics.horizontal)

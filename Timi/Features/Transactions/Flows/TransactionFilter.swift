@@ -30,6 +30,6 @@ struct FilterChips: View {
     @Binding var selection: TransactionFilter
 
     var body: some View {
-        ChipRow(options: TransactionFilter.allCases, selection: $selection) { $0.title }
+        ChipRow(selection: $selection, options: TransactionFilter.allCases) { $0.title }
     }
 }

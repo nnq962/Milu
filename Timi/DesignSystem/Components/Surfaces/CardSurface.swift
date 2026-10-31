@@ -1,11 +1,11 @@
 import SwiftUI
 
 extension View {
-    /// A solid surface with Apple's continuous corners and, when `outlined`, the app's one card
-    /// edge: a hairline in `separator`, no shadow (user choice 2026-10-31, design-system pass: on
+    /// A solid surface with Apple's continuous corners and, unless `outlined` is false (a tile
+    /// inside a card), the app's one card edge: a hairline in `separator`, no shadow (user choice 2026-10-31, design-system pass: on
     /// the near-white page a white card tells itself apart by its edge, as the Iconly mock-ups and
     /// iOS's own grouped lists do; the soft shadow used before let the cards melt into the page).
-    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, outlined: Bool = false) -> some View {
+    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, outlined: Bool = true) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         // Clip the content (not the edge) so a pressed row's wash follows the card's corners.
         return clipShape(shape)
@@ -26,13 +26,13 @@ extension View {
     /// (user report 2026-10-30: at 28 the corners crowded the first and last rows' icons).
     func listCard() -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, outlined: true)
+            .cardSurface(radius: CardCorners.inset)
     }
 
     /// The app's card: white, 20 inside, large continuous corners and the hairline edge.
     func card(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.large) -> some View {
         self.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: radius, outlined: true)
+            .cardSurface(radius: radius)
     }
 }

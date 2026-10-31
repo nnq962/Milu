@@ -136,12 +136,12 @@ struct LoanEditorView: View {
             // Its repayments moved money one way: the side cannot flip under them.
             .disabled(hasPayments || isMoneyLocked)
 
-            SheetAmountHeader(caption: "Số tiền gốc", fieldSaysCaption: true) {
+            SheetAmountHeader(title: "Số tiền gốc", fieldSaysCaption: true) {
                 TimiAmountField(text: $principalText, showsSuggestions: !isMoneyLocked,
-                                focusesOnAppear: original == nil, label: "Số tiền gốc")
+                                focusesOnAppear: original == nil, accessibilityLabel: "Số tiền gốc")
                     .disabled(isMoneyLocked)
                 if let error = principalError ?? (showsErrors ? amountError : nil) {
-                    FormErrorText(text: error)
+                    FormErrorText(message: error)
                 } else if let moneyLockReason {
                     Text(moneyLockReason)
                         .textRole(.caption)
@@ -271,7 +271,7 @@ struct LoanEditorView: View {
     /// Who it is with, from Danh bạ: their name and relationship icon, or "Chọn" in grey.
     private var personRow: some View {
         Button { isPickingPerson = true } label: {
-            FormValueLabel(title: lentLabel, icon: nil, value: person?.name ?? "Chọn",
+            FormValueRowContent(title: lentLabel, icon: nil, value: person?.name ?? "Chọn",
                            valueIcon: person.map { store.relationship(id: $0.relationshipID).icon },
                            isInvalid: showsErrors && personError != nil)
         }

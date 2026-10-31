@@ -4,10 +4,11 @@ import SwiftUI
 /// size just before the control is made, and a new size makes a new control, since UIKit keeps the
 /// font it was made with (HIG review 2026-10-30: "Thu chi · Vay nợ" stayed small at large sizes).
 struct ScaledSegmentedPicker<Value: Hashable & Identifiable>: View {
+    /// What VoiceOver calls the control; the segments say their own words.
     let title: String
     @Binding var selection: Value
     let options: [Value]
-    let label: (Value) -> String
+    let optionTitle: (Value) -> String
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -15,7 +16,7 @@ struct ScaledSegmentedPicker<Value: Hashable & Identifiable>: View {
         // A side effect in body on purpose: it must run before UIKit makes the control below.
         let _ = Typography.configureSegmentedControls(for: dynamicTypeSize)
         Picker(title, selection: $selection) {
-            ForEach(options) { Text(label($0)).tag($0) }
+            ForEach(options) { Text(optionTitle($0)).tag($0) }
         }
         .pickerStyle(.segmented)
         .id(dynamicTypeSize)

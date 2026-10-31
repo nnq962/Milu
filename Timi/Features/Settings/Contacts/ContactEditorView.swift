@@ -80,7 +80,7 @@ struct ContactEditorView: View {
                             maxLength: Contact.maxNameLength, focusesOnAppear: original == nil)
                 FormDivider(hasIcon: false)
                 Button { isPickingRelationship = true } label: {
-                    FormValueLabel(title: "Mối quan hệ", icon: nil, value: relationship.name,
+                    FormValueRowContent(title: "Mối quan hệ", icon: nil, value: relationship.name,
                                    valueIcon: relationship.icon)
                 }
                 .buttonStyle(.row)

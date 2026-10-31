@@ -14,7 +14,7 @@ struct DebtSheet: View {
             // The total as a `MoneyText` under the bar, red with its sign like the "Nợ" row that
             // opens this (re-review 2026-10-31: "Nợ 12tr" in ink, and "Nợ 0đ" with none).
             if store.totalDebt > 0 {
-                MoneyText(amount: -store.totalDebt, size: .large, tone: .negativeRed)
+                MoneyText(amount: -store.totalDebt, size: .large, tone: .balance)
                     .frame(maxWidth: .infinity)
             }
             if accounts.isEmpty && loans.isEmpty {

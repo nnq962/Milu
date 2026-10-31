@@ -25,7 +25,7 @@ struct HeroCard: View {
                         RowChevron()
                     }
                     // Red below zero.
-                    MoneyText(amount: store.netWorth, size: .display, tone: .negativeRed)
+                    MoneyText(amount: store.netWorth, size: .display, tone: .balance)
                     if let first = history.first {
                         NetWorthGrowth(change: store.netWorth - first.value, since: first)
                     }

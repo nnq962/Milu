@@ -91,6 +91,7 @@ Nền tảng đã vững: 23 token màu đều có nơi gọi, không còn màu 
 
 ## Tiến độ
 
+- **Đợt 3 làm 2026-10-31:** 23, 31, 32 (một phần), 33 (một phần), 38, 39, 41, 43, 46. Còn 40 (`TagChip` enum), 42, 44, 45.
 - **Đợt 2 làm 2026-10-31:** 17, 18, 50 (một `ListRow`, `AdaptiveStack` thay 7 bản, `layoutPriority` thay `fixedSize` trong dòng).
 - **Đợt 1 làm 2026-10-31:** 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13 và `FormValueLabel` xếp dọc (`AdaptiveStack` mới, mục 18 làm một phần). Còn 12, 14, 15, 16 cần thử VoiceOver trên máy.
 

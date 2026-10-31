@@ -52,7 +52,7 @@ struct ListsPart: View {
                 dividerSample(".none · dòng không icon", column: .none)
             }
 
-            SummaryCard(label: "Tổng số dư · SummaryCard", amount: 68_150_000, icon: "hugeicons-wallet-01") {
+            SummaryCard(title: "Tổng số dư · SummaryCard", amount: 68_150_000, icon: "hugeicons-wallet-01") {
                 ProgressBar(value: 0.62)
                     .padding(.top, Spacing.l)
             }
@@ -65,9 +65,9 @@ struct ListsPart: View {
                     moneyLine(".signedExpense · tiền ra", MoneyText(amount: 60_000, tone: .signedExpense))
                     moneyLine(".signedNet · dư ra", MoneyText(amount: 1_250_000, tone: .signedNet))
                     moneyLine(".signedNet · thiếu", MoneyText(amount: -340_000, tone: .signedNet))
-                    moneyLine(".negativeRed · số dư âm", MoneyText(amount: -6_430_000, tone: .negativeRed, compact: true))
+                    moneyLine(".balance · số dư âm", MoneyText(amount: -6_430_000, tone: .balance, compact: true))
                     moneyLine(".muted · không tính", MoneyText(amount: 20_000_000, tone: .muted, compact: true))
-                    moneyLine(".plain · chuyển giữa tài khoản", MoneyText(amount: 2_000_000))
+                    moneyLine(".neutral · chuyển giữa tài khoản", MoneyText(amount: 2_000_000))
                 }
             }
 

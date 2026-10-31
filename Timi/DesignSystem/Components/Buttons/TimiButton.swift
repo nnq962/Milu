@@ -6,10 +6,8 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     case primary
     /// Secondary actions inside content.
     case secondary
-    /// Delete next to Save in a sheet footer: light, so Save stays the main action.
+    /// Delete beside the main action: light, so that one stays the main action.
     case destructive
-    /// The final confirmation of something that cannot be undone.
-    case destructiveSolid
 
     var id: Self { self }
 
@@ -18,7 +16,6 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         case .primary: "Chính"
         case .secondary: "Phụ"
         case .destructive: "Xoá"
-        case .destructiveSolid: "Xoá vĩnh viễn"
         }
     }
 
@@ -27,7 +24,6 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         case .primary: "Một nút chính mỗi màn: Lưu, Thêm"
         case .secondary: "Hành động phụ trong nội dung"
         case .destructive: "Xoá nhẹ, cạnh một nút chính"
-        case .destructiveSolid: "Bước cuối không hoàn tác được"
         }
     }
 
@@ -36,14 +32,12 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         case .primary: Palette.primary
         case .secondary: Palette.fill
         case .destructive: Palette.negative.opacity(0.14)
-        case .destructiveSolid: Palette.negative
         }
     }
 
     fileprivate var foreground: Color {
         switch self {
         case .primary: Palette.onPrimary
-        case .destructiveSolid: Palette.onNegative
         case .secondary: Palette.label
         case .destructive: Palette.negative
         }

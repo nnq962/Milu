@@ -36,7 +36,7 @@ struct CategoryPickerRow: View {
     var body: some View {
         let isEmpty = selection.isEmpty
         Button { isPicking = true } label: {
-            FormValueLabel(title: "Hạng mục", icon: nil, value: name,
+            FormValueRowContent(title: "Hạng mục", icon: nil, value: name,
                            valueIcon: isEmpty ? nil : store.categoryIcon(selection),
                            isInvalid: isEmpty ? showsError : !Self.isPickable(selection, kind: kind, in: store, kept: kept))
         }
@@ -121,7 +121,7 @@ struct CategoryPickerSheet: View {
                     selection = item.id
                     dismiss()
                 } label: {
-                    PickerRowLabel(icon: item.icon, title: item.name,
+                    PickerRowContent(icon: item.icon, title: item.name,
                                    subtitle: showsGroup ? item.parentID.map(store.categoryName) : nil,
                                    isSelected: selected)
                 }

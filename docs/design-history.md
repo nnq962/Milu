@@ -1440,3 +1440,10 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - `AccountRow`, `LoanRow`, `GoalRow`, `CompletedGoalRow` dựng trên `ListRow`: mất ~120 dòng bố cục tự viết; `GoalRing` tự co như `RowIcon`.
 - 7 bản `AnyLayout(VStackLayout…)` thay bằng `AdaptiveStack` (`SectionHeader`, `LoanDetailSheet`, `GoalDetailView` ×2, ba dòng trên).
 - `fixedSize()` trên số tiền trong dòng → `layoutPriority(1)`, để `MoneyText` còn co được khi số rất dài.
+
+## Đợt 3 sau rà soát: API và tên gọi — 2026-10-31
+
+- `MoneyText.Tone` theo vai trò: `negativeRed` → `balance` (mặc định ở `MoneyText`, `SplitTotals`, `ListRow`, `SummaryCard`), `plain` → `neutral`.
+- Xoá `TextRole.label` (trùng `.body`), `ControlHeight.field`, `CardCorners.icon`, `Spacing.xxxl`, `Typography.body`, `TimiButtonRole.destructiveSolid`, `SheetOption.accent`, `HeaderLink.color`, `MonthMenu.tint`, `ProgressRing.track`, nhánh chỉ-giờ của `DateTimeSheet`, `NoScrollEdgeEffect` (gọi thẳng `scrollEdgeEffectHidden`).
+- Tên tham số: `StatusBadge(title:)`, `SummaryCard(title:)`, `SheetAmountHeader(title:)`, `AmountPreset(title:)`, `FormFooter(message:)`, `FormErrorText(message:)`, `BudgetStatusLine(message:)`, `TimiAmountField(accessibilityLabel:)`; closure lựa chọn `optionTitle` / `optionIcon` ở `ChipRow`, `ScaledSegmentedPicker`, `FormPickerRow`, `ChoiceSheet`; `ChipRow(selection:options:)`.
+- `FormValueLabel` → `FormValueRowContent` (`icon` mặc định nil), `NavigationRowLabel` → `NavigationRowContent`, `PickerRowLabel` → `PickerRowContent`. `cardSurface(outlined:)` mặc định true.

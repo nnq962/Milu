@@ -42,7 +42,7 @@ struct NetWorthView: View {
                     .foregroundStyle(Palette.secondaryLabel)
                     .contentTransition(.opacity)
                 // Red below zero (strict review 2026-10-31: drawn by hand, it stayed ink).
-                MoneyText(amount: shown?.value ?? store.netWorth, size: .display, tone: .negativeRed)
+                MoneyText(amount: shown?.value ?? store.netWorth, size: .display, tone: .balance)
                     .contentTransition(.numericText())
                 // Kept in place (only faded) while a month is picked, so the chart never jumps.
                 if history.count > 1 {
@@ -83,7 +83,7 @@ struct NetWorthView: View {
                 }
                 Button { isShowingDebt = true } label: {
                     ListRow(icon: "hugeicons-credit-card", title: "Nợ", subtitle: "Thẻ âm và đi vay",
-                            amount: -store.totalDebt, amountTone: .negativeRed)
+                            amount: -store.totalDebt, amountTone: .balance)
                 }
                 .buttonStyle(.row)
                 .overlay(alignment: .top) {

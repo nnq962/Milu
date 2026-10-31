@@ -121,7 +121,7 @@ struct LoanRow: View {
 
     /// What is left: still owed by me red with "-"; owed to me, or settled, in ink.
     static func amountTone(_ loan: Loan) -> MoneyText.Tone {
-        loan.direction == .borrowed && !loan.isSettled ? .signedExpense : .plain
+        loan.direction == .borrowed && !loan.isSettled ? .signedExpense : .neutral
     }
 
     /// The deadline in words takes the urgency's colour: red overdue, orange within a week,
