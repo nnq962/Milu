@@ -11,7 +11,9 @@ struct OverviewView: View {
 
     @State private var information: Information?
     @State private var isShowingSettings = false
-    /// Every page Tổng quan opens goes by value: Tài sản ròng and its parts, Trợ lý AI, Báo cáo.
+    /// Trợ lý AI, over everything from the foot of the net worth card.
+    @State private var isShowingAssistant = false
+    /// Every page Tổng quan opens goes by value: Tài sản ròng and its parts, Báo cáo.
     @State private var path = NavigationPath()
     @State private var selectedDay: CalendarDay?
     /// The month Lịch thu chi shows.
@@ -42,7 +44,7 @@ struct OverviewView: View {
                         HeroCard {
                             path.append(NetWorthRoute())
                         } onOpenAssistant: {
-                            path.append(AssistantRoute())
+                            isShowingAssistant = true
                         }
                     }
                     OnboardingCard()
@@ -95,7 +97,10 @@ struct OverviewView: View {
                 steps.forEach(quota.claim)
             }
             .navigationDestination(for: NetWorthRoute.self) { _ in NetWorthView() }
-            .navigationDestination(for: AssistantRoute.self) { _ in AssistantView() }
+            .fullScreenCover(isPresented: $isShowingAssistant) {
+                NavigationStack { AssistantView() }
+                    .presentationBackground(Palette.background)
+            }
             .navigationDestination(for: ReportRoute.self) { ReportView(period: ReportPeriod(.month, containing: $0.month)) }
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
             .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
@@ -139,9 +144,6 @@ struct OverviewView: View {
         .accessibilityLabel("Thông báo")
     }
 }
-
-/// Pushes Trợ lý AI from Tổng quan (the last shortcut).
-struct AssistantRoute: Hashable {}
 
 /// Pushes Báo cáo for a month from Tổng quan ("Tháng này").
 struct ReportRoute: Hashable {

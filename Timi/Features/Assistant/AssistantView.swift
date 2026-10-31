@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Trợ lý AI: a page of its own pushed from Tổng quan, with no tab bar, so the input bar is the
-/// only thing at the bottom (user request 2026-10-30: tab bar and input together looked crowded).
+/// Trợ lý AI: a screen of its own over everything, sliding up from Tổng quan and closed with ✕ or
+/// a swipe down, so the input bar is the only thing at the bottom (user request 2026-10-30: tab
+/// bar and input together looked crowded). Pushed, it hid the tab bar, which iOS brought back only
+/// once the pop had finished, at once (user report 2026-10-31). Wrap it in a `NavigationStack`.
 struct AssistantView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
@@ -16,12 +18,20 @@ struct AssistantView: View {
     @State private var pendingRemoval: ChatMessage?
     @State private var dictation = SpeechDictation()
     @FocusState private var isInputFocused: Bool
+    /// The chat is scrolled up from its end, far enough to show the ↓ that brings it back.
+    @State private var isAwayFromEnd = false
+
+    /// How far above the end, in points, before ↓ shows: past a short slip of the thumb.
+    private static let awayDistance: CGFloat = 160
 
     private var currentIndex: Int {
         chats.conversations.firstIndex { $0.id == chats.currentID } ?? chats.conversations.count - 1
     }
 
     private var messages: [ChatMessage] { chats.conversations[currentIndex].messages }
+
+    /// The very end of the chat, under the last message and the typing dots.
+    private static let endID = "end"
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -36,11 +46,39 @@ struct AssistantView: View {
                         TypingIndicator().id("typing")
                     }
                 }
-                .padding(.horizontal, Spacing.page)
+                // Close to the screen's edges, as the field below (user request 2026-10-31).
+                .padding(.horizontal, Spacing.l)
                 .padding(.top, Spacing.l)
                 .padding(.bottom, Spacing.xl)
+                Color.clear.frame(height: 0).id(Self.endID)
             }
             .scrollDismissesKeyboard(.interactively)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY > Self.awayDistance
+            } action: { _, away in
+                withAnimation(.spring(duration: 0.3)) { isAwayFromEnd = away }
+            }
+            // ↓ in glass over the chat, centred just above the field, as in Claude and ChatGPT
+            // (user request 2026-10-31): only while scrolled up, and gone once back at the end.
+            .overlay(alignment: .bottom) {
+                if isAwayFromEnd {
+                    Button {
+                        withAnimation { proxy.scrollTo(Self.endID, anchor: .bottom) }
+                    } label: {
+                        TimiIcon("hugeicons-arrow-up-02", size: RowMetrics.iconGlyph)
+                            .rotationEffect(.degrees(180))
+                            .foregroundStyle(Palette.label)
+                            // A full 44 of glass: the glass button style drew a 32 circle inside it.
+                            .frame(width: ControlHeight.regular, height: ControlHeight.regular)
+                            .glassEffect(.regular.interactive(), in: Circle())
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, Spacing.s)
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                    .accessibilityLabel("Cuộn xuống tin mới nhất")
+                }
+            }
             .onChange(of: messages) { _, newMessages in
                 guard let lastID = newMessages.last?.id else { return }
                 withAnimation { proxy.scrollTo(lastID, anchor: .bottom) }
@@ -49,18 +87,23 @@ struct AssistantView: View {
                 if thinking { withAnimation { proxy.scrollTo("typing", anchor: .bottom) } }
             }
         }
-        .background(Palette.background)
+        // Under the keyboard too: its rounded glass showed the window's white at its corners
+        // (user report 2026-10-31).
+        .background { Palette.background.ignoresSafeArea() }
         .foregroundStyle(Palette.label)
-        .safeAreaInset(edge: .bottom) {
+        // A bar of the system's: the chat scrolls under the glass, behind iOS's own edge fade.
+        .safeAreaBar(edge: .bottom) {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
-        // iOS draws the title and its subtitle natively (`TabHeading`), so they slide with the back
-        // button rather than showing as a glass rectangle (user report 2026-10-30).
+        // iOS draws the title and its subtitle natively, not a glass rectangle (user report 2026-10-30).
         .navigationTitle("Timi")
-        .modifier(TabHeading(subtitle: "Trợ lý tài chính · Bản thử nghiệm"))
+        // Small and centred, as on every sheet, so ✕ keeps its place on the left.
+        .toolbarTitleDisplayMode(.inline)
+        .navigationSubtitle("Trợ lý tài chính · Bản thử nghiệm")
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
-            // A plain menu: the bar draws its glass, which then takes part in push and pop.
+            ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+            // A plain menu: the bar draws its glass.
             ToolbarItem(placement: .topBarTrailing) { historyMenu }
         }
         .sheet(item: $viewingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
@@ -85,7 +128,6 @@ struct AssistantView: View {
             Text(dictationMessage)
         }
         .onDisappear { dictation.stop() }
-        .toolbar(.hidden, for: .tabBar)
     }
 
     // MARK: - Đầu trang
@@ -137,56 +179,61 @@ struct AssistantView: View {
         !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isThinking
     }
 
-    /// Half the one-line height, so one line reads as a capsule.
-    private static let inputRadius = (ControlHeight.regular + 2 * Spacing.xxs) / 2
+    /// The field's corner while one line: half its height, a capsule; it keeps the radius as it
+    /// grows, a rounded rectangle and not an oval.
+    private static let inputRadius = ControlHeight.regular / 2 + Spacing.xxs
 
+    /// iOS 26's own input, as in Tin nhắn (user request 2026-10-31): one Liquid Glass field over
+    /// the chat, holding only the words and one button at its end. The mic while there is nothing
+    /// to send or while listening; the send arrow, tinted, once there are words. Two jobs, one
+    /// place, so the button never moves under the thumb.
     private var inputBar: some View {
-        // Bottom-aligned: as the text grows to four lines, mic and send stay on its last line
-        // (re-review 2026-10-31: they floated to the middle).
-        HStack(alignment: .bottom, spacing: Spacing.s) {
-            Button {
-                Task { await dictation.toggle() }
-            } label: {
-                TimiIcon("hugeicons-mic-01", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(dictation.isRecording ? Palette.negative : Palette.tertiaryLabel)
-                    // 44 to tap, like every control (strict review 2026-10-31: it was 32×40).
-                    .frame(width: ControlHeight.regular, height: ControlHeight.regular)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(dictation.isRecording ? "Dừng nhập giọng nói" : "Nhập bằng giọng nói")
-
+        HStack(alignment: .bottom, spacing: Spacing.xs) {
             TextField(dictation.isRecording ? "Đang nghe…" : "Hỏi Timi", text: $draft, axis: .vertical)
                 .textRole(.body)
-                .lineLimit(1...4)
-                // Centred on the 44 buttons while one line, then growing upward.
-                .frame(minHeight: ControlHeight.regular)
+                .lineLimit(1...5)
                 .focused($isInputFocused)
                 .submitLabel(.send)
                 .onSubmit { send(draft) }
+                .padding(.leading, Spacing.l)
+                .padding(.vertical, Spacing.s)
+                // Centred on the button while one line, then growing upward.
+                .frame(minHeight: ControlHeight.small)
 
-            Button {
-                send(draft)
-            } label: {
-                TimiIcon("hugeicons-arrow-up-02", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(Palette.onPrimary)
+            Group {
+                if canSend && !dictation.isRecording {
+                    Button {
+                        send(draft)
+                    } label: {
+                        TimiIcon("hugeicons-arrow-up-02", size: RowMetrics.iconGlyph)
+                            .foregroundStyle(Palette.onPrimary)
+                    }
+                    .nativeFloatingButton(diameter: ControlHeight.small, tint: Palette.primary)
+                    .accessibilityLabel("Gửi tin nhắn")
+                } else {
+                    Button {
+                        Task { await dictation.toggle() }
+                    } label: {
+                        TimiIcon("hugeicons-mic-01", size: RowMetrics.iconGlyph)
+                            .foregroundStyle(dictation.isRecording ? Palette.negative : Palette.secondaryLabel)
+                            .frame(width: ControlHeight.small, height: ControlHeight.small)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isThinking)
+                    .accessibilityLabel(dictation.isRecording ? "Dừng nhập giọng nói" : "Nhập bằng giọng nói")
+                }
             }
-            .nativeFloatingButton(diameter: ControlHeight.regular, tint: Palette.primary)
-            .disabled(!canSend)
-            .accessibilityLabel("Gửi tin nhắn")
+            .transition(.scale(scale: 0.6).combined(with: .opacity))
         }
-        // The 44 mic and send buttons set the height, so the field needs little padding: the same
-        // on every side, so the send circle sits evenly in the end (re-review 2026-10-31).
-        .padding(Spacing.xxs)
-        // A capsule while one line; a rounded rectangle of the same end radius once it grows, not
-        // an oval (re-review 2026-10-31).
-        .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
-        // The page margin, the same as the messages above (strict review 2026-10-31: 16 here
-        // and 20 there put the bar 4pt past the bubbles on each side).
-        .padding(.horizontal, Spacing.page)
-        .padding(.vertical, Spacing.m)
-        // Solid page color, not a self-made blur: iOS owns translucency around system bars.
-        .background(Palette.background)
+        .animation(.spring(duration: 0.25), value: canSend && !dictation.isRecording)
+        .padding(Spacing.xs)
+        // The field itself is the hit area: a tap anywhere on the glass starts typing.
+        .contentShape(RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        .onTapGesture { isInputFocused = true }
+        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        .padding(.horizontal, Spacing.l)
+        .padding(.bottom, Spacing.s)
     }
 
     /// In place of the input once this month's questions and the bonus are used up.
@@ -211,9 +258,8 @@ struct AssistantView: View {
         // A card like every other, with the shared shadow (strict review 2026-10-31).
         .padding(RowMetrics.horizontal)
         .cardSurface(radius: CardCorners.inset)
-        .padding(.horizontal, Spacing.page)
-        .padding(.vertical, Spacing.m)
-        .background(Palette.background)
+        .padding(.horizontal, Spacing.l)
+        .padding(.bottom, Spacing.s)
     }
 
     private var dictationMessage: String {

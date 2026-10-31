@@ -75,14 +75,12 @@ extension View {
 
 /// A button inside content, never glass (user choice 2026-10-31: glass only on the bars and the
 /// floating +, since glass in a scrolling card trailed it): a flat fill in `shape`, dimmed while
-/// pressed as the system's plain buttons are, nothing more.
+/// pressed with the app's lively press (`LivelyPress`), sinking a little more as it is small.
 struct FlatButtonStyle<S: Shape>: ButtonStyle {
     var fill: Color = Palette.fill
     let shape: S
     /// A fixed square for round buttons; nil lets the label size the button.
     var diameter: CGFloat? = nil
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -90,8 +88,7 @@ struct FlatButtonStyle<S: Shape>: ButtonStyle {
             .frame(width: diameter, height: diameter)
             .background(fill, in: shape)
             .contentShape(shape)
-            .opacity(configuration.isPressed ? 0.6 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.isPressed)
+            .modifier(LivelyPress(isPressed: configuration.isPressed, scale: 0.92))
     }
 }
 

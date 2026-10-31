@@ -23,38 +23,37 @@ struct MessageRow: View {
                     .containerRelativeFrame(.horizontal, alignment: .trailing) { width, _ in width * Bubble.maxWidth }
             }
         case .assistant:
-            HStack(alignment: .top, spacing: Spacing.m) {
-                AssistantAvatar()
-                VStack(alignment: .leading, spacing: Spacing.s) {
-                    bubble
-                    cardButtons
-                    if message.showsSuggestions {
-                        FlowLayout(spacing: Spacing.s) {
-                            // Flat capsules 44 tall: no glass in a scrolling page, and a question
-                            // may wrap, which a 36 `TagChip` would cut (re-review 2026-10-31).
-                            ForEach(MockAssistant.suggestions, id: \.self) { suggestion in
-                                Button { onSuggestion(suggestion) } label: {
-                                    Text(suggestion)
-                                        .textRole(.captionStrong)
-                                        .foregroundStyle(Palette.label)
-                                        .multilineTextAlignment(.leading)
-                                        .padding(.horizontal, Spacing.l)
-                                        .padding(.vertical, Spacing.s)
-                                        .frame(minHeight: ControlHeight.regular)
-                                }
-                                .flatCapsuleButton()
+            // Timi's name over a bubble that may run the page's width, no avatar column beside it
+            // (user requests 2026-10-31: text close to both margins, yet still a chat).
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                AssistantSender()
+                answer
+                cardButtons
+                if message.showsSuggestions {
+                    FlowLayout(spacing: Spacing.s) {
+                        // Flat capsules 44 tall: no glass in a scrolling page, and a question
+                        // may wrap, which a 36 `TagChip` would cut (re-review 2026-10-31).
+                        ForEach(MockAssistant.suggestions, id: \.self) { suggestion in
+                            Button { onSuggestion(suggestion) } label: {
+                                Text(suggestion)
+                                    .textRole(.captionStrong)
+                                    .foregroundStyle(Palette.label)
+                                    .multilineTextAlignment(.leading)
+                                    .padding(.horizontal, Spacing.l)
+                                    .padding(.vertical, Spacing.s)
+                                    .frame(minHeight: ControlHeight.regular)
                             }
+                            .flatCapsuleButton()
                         }
-                        .padding(.top, Spacing.xs)
                     }
+                    .padding(.top, Spacing.xs)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .containerRelativeFrame(.horizontal, alignment: .leading) { width, _ in width * Bubble.maxWidth }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var bubble: some View {
+    private var answer: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             Text(formattedText)
                 .textRole(.body)
@@ -68,7 +67,8 @@ struct MessageRow: View {
                     .foregroundStyle(Palette.secondaryLabel)
             }
         }
-        .padding(Spacing.l)
+        .padding(.horizontal, Spacing.l)
+        .padding(.vertical, Spacing.m)
         .background { Bubble.assistantShape }
     }
 
@@ -153,18 +153,18 @@ private struct TransactionCard: View {
 }
 
 enum Bubble {
-    /// A bubble rounds like a list card, with a small tail corner (re-review 2026-10-31: written
-    /// as 24 and 8; a `CardCorners.bubbleTail` token would be the clean home for the 8).
+    /// A bubble rounds like a list card, with a small tail corner (re-review 2026-10-31:
+    /// written as 24 and 8; a `CardCorners.bubbleTail` token would be the clean home for the 8).
     static let radius = CardCorners.inset
     static let tail = CardCorners.calendarDay
-    static let maxWidth: CGFloat = 0.78
+    /// Wide enough that a question fills most of the row (user request 2026-10-31: close to the
+    /// margins), short enough that it still reads as the user's side.
+    static let maxWidth: CGFloat = 0.85
 
-    /// The assistant's bubble, in the card colour with the cards' edge; the typing bubble draws the
-    /// same, so nothing jumps when the answer arrives (strict review 2026-10-31).
+    /// Timi's bubble, in the card colour with the cards' edge, its tail corner under the name.
     static var assistantShape: some View {
-        let shape = UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
-                                           bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
-        return shape
+        UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
+                               bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
             .fill(Palette.surface)
             .cardShadow()
     }

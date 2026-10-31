@@ -14,16 +14,53 @@ struct RowButtonStyle: ButtonStyle {
     }
 }
 
-/// A whole tappable card or tile (a loan, a savings goal, a shortcut, a calendar day): it dims
-/// while pressed as the system's plain buttons do, nothing more (design-system pass 2026-10-31:
-/// it shrank and sprang back, against the rule to keep Apple's own press effects).
+/// A whole tappable card or tile (a loan, a savings goal, a calendar day): `LivelyPress`.
 struct CardButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .opacity(configuration.isPressed ? 0.6 : 1)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.isPressed)
+            .modifier(LivelyPress(isPressed: configuration.isPressed))
+    }
+}
+
+/// The press of every card and flat button (user request 2026-10-31: a flash of the fill read
+/// flat): it sinks a little under the finger, dims a touch and gives a light tap, then springs
+/// back with a small bounce as it is let go. With Reduce Motion it only dims. Rows keep iOS's own
+/// wash (`RowButtonStyle`), as a list does.
+struct LivelyPress: ViewModifier {
+    let isPressed: Bool
+
+    /// How far it sinks: a little more for a small control than for a card.
+    var scale: CGFloat = 0.97
+
+    /// The shortest time it stays down. A quick tap inside a scroll view is pressed and let go in
+    /// the same moment (iOS waits to see whether the touch scrolls), so following `isPressed` alone
+    /// showed nothing but the haptic (user report 2026-10-31).
+    private static let minimumDown: Duration = .milliseconds(60)
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// What is drawn: down from the touch, up again no sooner than `minimumDown` after it.
+    @State private var isDown = false
+    @State private var pressedAt = ContinuousClock.now
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isDown && !reduceMotion ? scale : 1)
+            .opacity(isDown ? 0.85 : 1)
+            .onChange(of: isPressed) { _, pressed in
+                if pressed {
+                    pressedAt = .now
+                    withAnimation(reduceMotion ? .easeOut(duration: 0.08) : .spring(duration: 0.1)) { isDown = true }
+                } else {
+                    let wait = Self.minimumDown - (ContinuousClock.now - pressedAt)
+                    Task { @MainActor in
+                        if wait > .zero { try? await Task.sleep(for: wait) }
+                        withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .spring(duration: 0.28, bounce: 0.35)) {
+                            isDown = false
+                        }
+                    }
+                }
+            }
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: isPressed) { _, new in new }
     }
 }
 

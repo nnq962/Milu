@@ -16,6 +16,8 @@ struct HeroCard: View {
 
     /// The growth line's height.
     private static let chartHeight: CGFloat = 48
+    /// Timi's disc in the strip; it grows with the words beside it.
+    @ScaledMetric(relativeTo: .caption) private var avatarSize = RowMetrics.iconColumn + Spacing.xs
 
     var body: some View {
         let history = store.netWorthHistory()
@@ -42,7 +44,8 @@ struct HeroCard: View {
                         .frame(height: Self.chartHeight)
                         .accessibilityHidden(true)
                 }
-                .padding(Spacing.leadCard)
+                .padding([.horizontal, .top], Spacing.leadCard)
+                .padding(.bottom, Spacing.l)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
@@ -51,21 +54,28 @@ struct HeroCard: View {
             .accessibilityHint("Xem tài sản ròng gồm những gì")
 
             timiStrip
+                .padding([.horizontal, .bottom], Spacing.m)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(radius: CardCorners.large)
     }
 
-    /// Edge to edge across the card's foot, a hairline over it and the quiet block colour under it.
+    /// A rounded block inside the card's foot, on the quiet block colour, the card's own surface
+    /// framing it all round (user report 2026-10-31: edge to edge, its grey ran into the grey page
+    /// and the card lost its bottom edge; at 60% with a hairline it was hard to see). Timi's ✦ on
+    /// a disc of the primary colour leads it, as its avatar in the chat, and "Hỏi Timi ›" closes it
+    /// in the primary colour.
     private var timiStrip: some View {
         let insight = TimiInsight.make(store: store, monthlyBudget: monthlyBudget, now: .now)
         return Button(action: onOpenAssistant) {
-            HStack(spacing: Spacing.s) {
-                TimiIcon("hugeicons-ai-magic", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(Palette.primary)
+            HStack(spacing: Spacing.m) {
+                TimiIcon("hugeicons-ai-magic", size: RowMetrics.inlineGlyph)
+                    .foregroundStyle(Palette.onPrimary)
+                    .frame(width: avatarSize, height: avatarSize)
+                    .background(Palette.primary, in: Circle())
                     .accessibilityHidden(true)
                 Text(insight.text)
-                    .textRole(.caption)
+                    .textRole(.captionStrong)
                     .foregroundStyle(Palette.label)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -74,17 +84,16 @@ struct HeroCard: View {
                     TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.linkChevron)
                 }
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryLabel)
+                .foregroundStyle(Palette.primary)
                 .fixedSize()
             }
-            .padding(.horizontal, Spacing.leadCard)
+            .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.m)
-            .frame(minHeight: ControlHeight.regular)
-            .background(Palette.surfaceMuted.opacity(0.6))
-            .overlay(alignment: .top) { Rectangle().fill(Palette.separator).frame(height: 0.5) }
-            .contentShape(Rectangle())
+            .frame(minHeight: ControlHeight.large)
+            .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
         }
-        .buttonStyle(.row)
+        .buttonStyle(.card)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Timi: \(insight.text)")
         .accessibilityHint("Hỏi Timi, mở trợ lý AI")
