@@ -51,36 +51,12 @@ private struct CompletedGoalRow: View {
     let goal: SavingsGoal
     let subtitle: String
 
-    @ScaledMetric(relativeTo: .body) private var ringSize = RowMetrics.listLogo
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-            : AnyLayout(HStackLayout(spacing: Spacing.s))
-        HStack(spacing: RowMetrics.gap) {
-            GoalRing(goal: goal, size: ringSize)
-            layout {
-                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                    Text(goal.name)
-                        .textRole(.body)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    Text(subtitle)
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                }
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
-                MoneyText(amount: goal.target, compact: true)
-                    .fixedSize()
-            }
-            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
-            RowChevron()
+        ListRow(title: goal.name, subtitle: subtitle) {
+            GoalRing(goal: goal, size: RowMetrics.listLogo)
+        } trailing: {
+            ListRowAmount(amount: goal.target, compact: true)
         }
-        .padding(.horizontal, RowMetrics.horizontal)
-        .padding(.vertical, RowMetrics.vertical)
-        .frame(minHeight: RowMetrics.minHeight)
-        .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, subtitle, "mục tiêu \(goal.target.vnd)"].joined(separator: ", "))
         .accessibilityHint("Xem hũ")

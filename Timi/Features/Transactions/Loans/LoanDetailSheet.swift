@@ -96,9 +96,7 @@ struct LoanDetailSheet: View {
             // How much is repaid and of what; settled, the label and the amount already say both.
             // Stacked at the accessibility text sizes, as on a goal's screen.
             if !loan.isSettled {
-                AnyLayout(dynamicTypeSize.isAccessibilitySize
-                          ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-                          : AnyLayout(HStackLayout(spacing: Spacing.s))) {
+                AdaptiveStack(spacing: Spacing.s) {
                     Text(loan.paidText)
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryLabel)

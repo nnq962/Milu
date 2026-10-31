@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// An account in a list, the same on every page that lists accounts (tab Tài khoản, Lưu trữ,
-/// Tài sản ròng, Nợ): its logo or glyph on a white tile, the name, the balance in short form, ›
-/// (strict review 2026-10-31: the same account was drawn three ways). At the accessibility text
-/// sizes the balance goes under the name, which one line cut short.
+/// Tài sản ròng, Nợ): a `ListRow` with its logo or glyph on a white tile in the icon column, the
+/// name, the balance in short form, › (strict review 2026-10-31: the same account was drawn
+/// three ways; review 2026-10-31: then the row itself was drawn by hand).
 struct AccountRow: View {
     let account: Account
     var showsChevron = true
@@ -16,41 +16,15 @@ struct AccountRow: View {
     /// 2026-10-31: named instead of written in place).
     static let lockOverhang: CGFloat = LockBadge.size / 3
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-            : AnyLayout(HStackLayout(spacing: Spacing.s))
-        HStack(spacing: RowMetrics.gap) {
+        ListRow(title: account.name, subtitle: subtitle, showsChevron: showsChevron) {
             RowIcon(name: account.iconName, size: RowMetrics.listLogo, tiled: true)
                 .overlay(alignment: .bottomTrailing) {
                     if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
                 }
-            layout {
-                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                    Text(account.name)
-                        .textRole(.body)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    if let subtitle {
-                        Text(subtitle)
-                            .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryLabel)
-                            .lineLimit(1)
-                    }
-                }
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
-                MoneyText(amount: account.balance, tone: account.isLocked || isMuted ? .muted : .negativeRed, compact: true)
-                    .fixedSize()
-            }
-            // Stacked, the words take the row's width so every row starts at the same edge.
-            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
-            if showsChevron { RowChevron() }
+        } trailing: {
+            ListRowAmount(amount: account.balance, tone: account.isLocked || isMuted ? .muted : .negativeRed, compact: true)
         }
-        .padding(.horizontal, RowMetrics.horizontal)
-        .padding(.vertical, RowMetrics.vertical)
-        .frame(minHeight: RowMetrics.minHeight)
-        .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([account.name, account.balance.vnd, account.isLocked ? "đã khoá" : nil, subtitle]
             .compactMap { $0 }.joined(separator: ", "))

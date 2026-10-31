@@ -7,58 +7,22 @@ import SwiftUI
 struct GoalRow: View {
     let goal: SavingsGoal
 
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// The ring, as wide as an account's logo, growing with the text; the hairline between goal
-    /// rows is then `RowDivider(column: .logo)`'s.
-    @ScaledMetric(relativeTo: .body) private var ringSize = RowMetrics.listLogo
-
     var body: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-            : AnyLayout(HStackLayout(spacing: Spacing.s))
-        // The app's row metrics, as `ListRow` and `AccountRow` (strict review 2026-10-31: 12 here
-        // put the names off the column of every other list).
-        HStack(spacing: RowMetrics.gap) {
-            ring
-            layout {
-                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                    // One line, as an account's name, so the two lists stand at one row height
-                    // (re-review 2026-10-31).
-                    Text(goal.name)
-                        .textRole(.body)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    if let subtitle {
-                        Text(subtitle)
-                            .textRole(.caption)
-                            .foregroundStyle(goal.isOverdue ? Palette.negative : Palette.secondaryLabel)
-                    }
-                }
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
-                VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: RowMetrics.lineGap) {
-                    // In the weight of every amount in a list (strict review 2026-10-31: SemiBold
-                    // here read lighter than the balances above).
-                    HStack(alignment: .firstTextBaseline, spacing: 0) {
-                        MoneyText(amount: goal.saved, compact: true)
-                        Text(" / ").textRole(.amount)
-                        MoneyText(amount: goal.target, compact: true)
-                    }
-                    .fixedSize()
-                    Text(goal.isReached ? "Đủ" : goal.progressText)
-                        .textRole(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(goal.isOverdue ? Palette.negative : Palette.secondaryLabel)
+        ListRow(title: goal.name, subtitle: subtitle,
+                subtitleColor: goal.isOverdue ? Palette.negative : Palette.secondaryLabel) {
+            // As wide as an account's logo, so the hairline between rows is `RowDivider(column: .logo)`.
+            GoalRing(goal: goal, size: RowMetrics.listLogo)
+        } trailing: {
+            ListRowTrailing(note: goal.isReached ? "Đủ" : goal.progressText,
+                            noteColor: goal.isOverdue ? Palette.negative : Palette.secondaryLabel) {
+                // In the weight of every amount in a list (strict review 2026-10-31).
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    MoneyText(amount: goal.saved, compact: true)
+                    Text(" / ").textRole(.amount)
+                    MoneyText(amount: goal.target, compact: true)
                 }
             }
-            // Stacked, the words take the row's width so every row starts at the same edge.
-            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
-            RowChevron()
         }
-        .padding(.horizontal, RowMetrics.horizontal)
-        // The app's row: 10 above and below, at least 52, as every list (user report 2026-10-30:
-        // 64 here stood taller than the rows of Hạng mục).
-        .padding(.vertical, RowMetrics.vertical)
-        .frame(minHeight: RowMetrics.minHeight)
-        .contentShape(Rectangle())
         // In words: "Mua xe, đã để dành 10.000.000 đ trên 40.000.000 đ, 25%".
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
@@ -74,18 +38,21 @@ struct GoalRow: View {
         guard let due = goal.dueDate else { return nil }
         return goal.isOverdue ? "Quá hạn \(due.shortDay)" : "Hạn \(due.shortDay)"
     }
-
-    private var ring: some View {
-        GoalRing(goal: goal, size: ringSize)
-    }
 }
 
 /// A goal's ring with its icon in it: the share saved, red once past the deadline, full once the
 /// goal is closed (it met its target; the money has since left it). The glyph is half the ring,
-/// as the glyph on an account's tile (`RowIcon(tiled:)`), at any size.
+/// as the glyph on an account's tile (`RowIcon(tiled:)`), at any size. `size` is the size at the
+/// default text size; the ring grows with the text on its own, as `RowIcon` does.
 struct GoalRing: View {
     let goal: SavingsGoal
-    let size: CGFloat
+
+    @ScaledMetric private var size: CGFloat
+
+    init(goal: SavingsGoal, size: CGFloat) {
+        self.goal = goal
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+    }
 
     var body: some View {
         ProgressRing(progress: goal.isClosed ? 1 : goal.progress,
@@ -111,12 +78,11 @@ struct GoalCarouselTile: View {
 
     let goal: SavingsGoal
 
-    @ScaledMetric(relativeTo: .body) private var ringSize = GoalCarouselTile.ring
     @ScaledMetric(relativeTo: .body) private var width = GoalCarouselTile.width
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            GoalRing(goal: goal, size: ringSize)
+            GoalRing(goal: goal, size: GoalCarouselTile.ring)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(goal.name)
                     .textRole(.label)

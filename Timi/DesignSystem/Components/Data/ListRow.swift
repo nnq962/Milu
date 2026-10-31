@@ -23,74 +23,57 @@ struct RowDivider: View {
     }
 }
 
-/// Data row: icon, title and subtitle, amount and an optional chevron. Same metrics and type as
-/// form rows (RowMetrics): title 16 SemiBold, amount 16 Bold, subtitle 13.
-struct ListRow: View {
-    let icon: String
+/// The app's one list row (review 2026-10-31: accounts, loans and goals each drew their own):
+/// `leading` in the icon column (a glyph, a logo tile, an avatar, a ring), the title with an
+/// optional line under it, `trailing` at the right (the amount, with a date or a state under
+/// it: `ListRowAmount`, `ListRowTrailing`), and › when it opens something. The right side goes
+/// under the words at the accessibility text sizes, where one line cut both short. Same metrics
+/// as form rows (`RowMetrics`): 16 at the sides, at least 52 tall.
+struct ListRow<Leading: View, Trailing: View>: View {
     let title: String
     /// Second line; leave it out for a one-line row (52pt, like a form row).
     var subtitle: String? = nil
-    /// A short line under the amount (a date "28/10", a time "08:15"): the amount then lines up
-    /// with the title, and this with the subtitle.
-    var trailingSubtitle: String? = nil
-    let amount: Double
-    var amountTone: MoneyText.Tone = .negativeRed
+    /// Grey, or red for a deadline passed.
+    var subtitleColor: Color = Palette.secondaryLabel
     var showsChevron = true
-    /// Money that does not count (a locked account): a lock badge on the icon's corner, like an
-    /// app badge on iOS, and the amount grey (user choice 2026-10-28).
-    var isLocked = false
-    /// "10,3tr" instead of "10.300.000đ": every list of accounts and goals (Tài khoản, Lưu trữ,
-    /// Tài sản ròng) shows the short form, so one account reads the same everywhere.
-    var compactAmount = false
+    let leading: Leading
+    let trailing: Trailing
+
+    init(title: String, subtitle: String? = nil, subtitleColor: Color = Palette.secondaryLabel,
+         showsChevron: Bool = true, @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: () -> Trailing) {
+        self.title = title
+        self.subtitle = subtitle
+        self.subtitleColor = subtitleColor
+        self.showsChevron = showsChevron
+        self.leading = leading()
+        self.trailing = trailing()
+    }
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// Titles take a second line at the accessibility text sizes, where one cut "Cho vay" to "Ch…".
-    private var titleLines: Int { dynamicTypeSize.isAccessibilitySize ? 2 : 1 }
 
     var body: some View {
+        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
         HStack(spacing: RowMetrics.gap) {
-            // No tile, coloured ones neither; amounts carry the meaning.
-            RowIcon(name: icon)
-                .overlay(alignment: .bottomTrailing) {
-                    if isLocked { LockBadge().offset(x: 5, y: 5) }
-                }
-            if let trailingSubtitle {
-                VStack(spacing: RowMetrics.lineGap) {
-                    HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                        Text(title)
-                            .textRole(.body)
-                            .lineLimit(titleLines)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        // Full size: the title gives way first.
-                        MoneyText(amount: amount, tone: isLocked ? .muted : amountTone, compact: compactAmount)
-                            .fixedSize()
-                    }
-                    HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                        Text(subtitle ?? "")
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text(trailingSubtitle)
-                            .monospacedDigit()
-                    }
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryLabel)
-                }
-            } else {
+            leading
+            // Title and amount on one baseline; stacked, the words take the row's width so every
+            // row starts at the same edge.
+            AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    // Whole at the accessibility sizes, where one line cut "Cho vay" to "Ch…".
                     Text(title)
                         .textRole(.body)
-                        .lineLimit(titleLines)
+                        .lineLimit(isAccessibilitySize ? nil : 1)
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
                             .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryLabel)
-                            .lineLimit(1)
+                            .foregroundStyle(subtitleColor)
+                            .lineLimit(isAccessibilitySize ? nil : 1)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                MoneyText(amount: amount, tone: isLocked ? .muted : amountTone, compact: compactAmount)
-                    .fixedSize()
+                if !isAccessibilitySize { Spacer(minLength: 0) }
+                trailing
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             if showsChevron { RowChevron() }
         }
         .padding(.horizontal, RowMetrics.horizontal)
@@ -98,6 +81,65 @@ struct ListRow: View {
         .frame(minHeight: RowMetrics.minHeight)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+}
+
+extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
+    /// A row with a glyph and one amount (transactions, the parts of net worth): `trailingSubtitle`
+    /// is the short line under the amount (a date "28/10", a time "08:15"). `compactAmount` shows
+    /// "10,3tr" instead of "10.300.000đ", as every list of accounts and goals does.
+    init(icon: String, title: String, subtitle: String? = nil, trailingSubtitle: String? = nil,
+         amount: Double, amountTone: MoneyText.Tone = .negativeRed, showsChevron: Bool = true,
+         compactAmount: Bool = false) {
+        self.init(title: title, subtitle: subtitle, showsChevron: showsChevron) {
+            // No tile, coloured ones neither; amounts carry the meaning.
+            RowIcon(name: icon)
+        } trailing: {
+            ListRowAmount(amount: amount, tone: amountTone, compact: compactAmount, note: trailingSubtitle)
+        }
+    }
+}
+
+/// The right side of a `ListRow`: a figure, and under it a short grey line (a date, "Còn 6
+/// ngày", "25%") in `noteColor`. Right-aligned beside the words, left-aligned under them at the
+/// accessibility sizes. The figure keeps its room first (`layoutPriority`), so the title gives
+/// way before it; it may still shrink a little, as `MoneyText` allows (review 2026-10-31:
+/// `fixedSize` let long figures push the title out).
+struct ListRowTrailing<Figure: View>: View {
+    var note: String? = nil
+    var noteColor: Color = Palette.secondaryLabel
+    @ViewBuilder let figure: Figure
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
+        VStack(alignment: isAccessibilitySize ? .leading : .trailing, spacing: RowMetrics.lineGap) {
+            figure
+                .layoutPriority(1)
+            if let note {
+                Text(note)
+                    .textRole(.caption)
+                    .foregroundStyle(noteColor)
+                    .monospacedDigit()
+                    .lineLimit(isAccessibilitySize ? nil : 1)
+            }
+        }
+    }
+}
+
+/// `ListRowTrailing` with one amount as the figure.
+struct ListRowAmount: View {
+    let amount: Double
+    var tone: MoneyText.Tone = .negativeRed
+    var compact = false
+    var note: String? = nil
+    var noteColor: Color = Palette.secondaryLabel
+
+    var body: some View {
+        ListRowTrailing(note: note, noteColor: noteColor) {
+            MoneyText(amount: amount, tone: tone, compact: compact)
+        }
     }
 }
 

@@ -1433,3 +1433,10 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - `TimiButton` một cỡ 44, chữ `textRole(.body)`; xoá `TimiButtonSize`. `SearchField` nút xoá rộng 44, `secondaryLabel`, icon `iconGlyph`.
 - `MoneyText` có nhãn VoiceOver "trừ 10.300.000 đồng". Reduce Motion ở `FlatButtonStyle`, `FormGroup`, `FormErrorText`, `IconQuickPicker`. Bỏ `GlassEffectContainer` quanh chip ô tiền. `IconQuickPicker` rung bằng `sensoryFeedback`.
 - Còn lại của mục 1 (12, 14, 15, 16) cần thử VoiceOver trên máy, để đợt sau.
+
+## Đợt 2 sau rà soát: một dòng danh sách — 2026-10-31
+
+- `ListRow` thành generic với slot `leading` / `trailing`, xếp dọc ở cỡ trợ năng bằng `AdaptiveStack`; `ListRowTrailing` / `ListRowAmount` cho phần phải (số + dòng nhỏ có màu). Bản ngắn `ListRow(icon:…amount:)` giữ nguyên chữ ký cho 10 nơi gọi; bỏ `isLocked`.
+- `AccountRow`, `LoanRow`, `GoalRow`, `CompletedGoalRow` dựng trên `ListRow`: mất ~120 dòng bố cục tự viết; `GoalRing` tự co như `RowIcon`.
+- 7 bản `AnyLayout(VStackLayout…)` thay bằng `AdaptiveStack` (`SectionHeader`, `LoanDetailSheet`, `GoalDetailView` ×2, ba dòng trên).
+- `fixedSize()` trên số tiền trong dòng → `layoutPriority(1)`, để `MoneyText` còn co được khi số rất dài.

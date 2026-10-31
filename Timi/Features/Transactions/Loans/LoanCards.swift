@@ -82,51 +82,19 @@ struct LoanRow: View {
     var today = Date.now
 
     @Environment(FinanceStore.self) private var store
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
         let borrowed = loan.direction == .borrowed
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.s))
-        HStack(spacing: RowMetrics.gap) {
+        ListRow(title: loan.name, subtitle: subtitle) {
             InitialsAvatar(name: loan.name, size: RowMetrics.listLogo)
-            layout {
-                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                    Text(loan.name)
-                        .textRole(.body)
-                        // Whole at the accessibility sizes, as an account's name (re-review 2026-10-31).
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    // One line, so the amount keeps its room; whole at the accessibility sizes.
-                    Text(subtitle)
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                }
-                // The stack's own spacing is the gap, as on an account row (re-review 2026-10-31).
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
-                VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: RowMetrics.lineGap) {
-                    // Still owed by me: money going out, red with "-" as on the top card and the
-                    // loan's sheet (strict review 2026-10-31).
-                    MoneyText(amount: loan.isSettled ? loan.principal : loan.outstanding,
-                              tone: Self.amountTone(loan), compact: true)
-                        .fixedSize()
-                    Text(urgency.text)
-                        .textRole(.caption)
-                        .foregroundStyle(Self.urgencyColor(urgency))
-                        .lineLimit(1)
-                }
-                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
-                .layoutPriority(1)
-            }
-            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
-            RowChevron()
+        } trailing: {
+            // Still owed by me: money going out, red with "-" as on the top card and the loan's
+            // sheet (strict review 2026-10-31); under it the deadline in the urgency's colour.
+            ListRowAmount(amount: loan.isSettled ? loan.principal : loan.outstanding,
+                          tone: Self.amountTone(loan), compact: true,
+                          note: urgency.text, noteColor: Self.urgencyColor(urgency))
         }
-        .padding(.horizontal, RowMetrics.horizontal)
-        .padding(.vertical, RowMetrics.vertical)
-        .frame(minHeight: RowMetrics.minHeight)
-        .contentShape(Rectangle())
         // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đ, còn 7 ngày".
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([loan.name, subtitle,

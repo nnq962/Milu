@@ -17,10 +17,7 @@ struct SectionHeader<Trailing: View>: View {
     var body: some View {
         // On one baseline with what is beside it ("Cho vay" 17, "Còn 65tr" 13); stacked at the
         // accessibility sizes, where the two crowded one line (strict review 2026-10-31).
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: Spacing.s))
-        layout {
+        AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             heading
                 .accessibilityAddTraits(.isHeader)
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }

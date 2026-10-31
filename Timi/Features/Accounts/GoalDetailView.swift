@@ -160,8 +160,7 @@ struct GoalDetailView: View {
     /// amount) on the left, the target on the right; "Đã đủ mục tiêu" once reached.
     private func progressLine(_ goal: SavingsGoal) -> some View {
         // At the largest text sizes the two halves stack instead of shrinking.
-        AnyLayout(dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-                  : AnyLayout(HStackLayout(spacing: Spacing.s))) {
+        AdaptiveStack(spacing: Spacing.s) {
             if goal.isReached {
                 StatusBadge(text: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
             } else if goal.isOverdue {
@@ -213,8 +212,7 @@ struct GoalDetailView: View {
                     open(.spend, for: goal)
                 }
                 // Side by side, one above the other at the largest text sizes.
-                AnyLayout(dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: Spacing.m))
-                          : AnyLayout(HStackLayout(spacing: Spacing.m))) {
+                AdaptiveStack(spacing: Spacing.m, stackedSpacing: Spacing.m) {
                     TimiButton("Rút hết", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
                         open(.withdrawAll, for: goal)
                     }
