@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// Wraps children onto new lines like CSS flex-wrap.
+/// Wraps children onto new lines like CSS flex-wrap; `centered` centres each line (the amount
+/// chips under a centred figure).
 struct FlowLayout: Layout {
     var spacing: CGFloat
+    var centered = false
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let rows = arrange(subviews, width: proposal.width ?? .infinity)
@@ -14,7 +16,7 @@ struct FlowLayout: Layout {
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var y = bounds.minY
         for row in arrange(subviews, width: bounds.width) {
-            var x = bounds.minX
+            var x = bounds.minX + (centered ? (bounds.width - row.width) / 2 : 0)
             for index in row.indices {
                 let size = subviews[index].sizeThatFits(.unspecified)
                 subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))

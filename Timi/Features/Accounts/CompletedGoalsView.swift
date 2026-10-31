@@ -55,7 +55,7 @@ private struct CompletedGoalRow: View {
         ListRow(title: goal.name, subtitle: subtitle) {
             GoalRing(goal: goal, size: RowMetrics.listLogo)
         } trailing: {
-            ListRowAmount(amount: goal.target, compact: true)
+            ListRowAmount(amount: goal.target)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, subtitle, "mục tiêu \(goal.target.vnd)"].joined(separator: ", "))

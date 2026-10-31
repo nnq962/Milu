@@ -1,6 +1,9 @@
 import SwiftUI
 
-/// Every amount on screen: tabular digits, "đ" attached, sign and colour by meaning.
+/// Every amount on screen: tabular digits, "đ" attached, sign and colour by meaning. Always the
+/// full figure in đồng, as a banking app writes it ("33.800.000đ"); only where that does not fit
+/// the room it is given does it shorten to "33,8tr" (user choice 2026-10-31: the app mixed the two
+/// forms with no rule). The choice is made by layout (`ViewThatFits`), not by the caller.
 struct MoneyText: View {
     /// `caption`: a total beside a heading (a day's +/-).
     /// `heading`: a total inside a chart (Tổng chi in the ring).
@@ -16,9 +19,8 @@ struct MoneyText: View {
     let amount: Double
     var size: Size = .row
     var tone: Tone = .balance
-    var compact = false
 
-    private var text: String {
+    private func text(compact: Bool) -> String {
         let value = compact ? abs(amount).vndCompact : abs(amount).vnd
         switch tone {
         case .signedIncome: return "+" + value
@@ -52,12 +54,28 @@ struct MoneyText: View {
     }
 
     var body: some View {
+        Group {
+            if size == .large || size == .display {
+                // A lead figure stays whole and shrinks its type to fit, as it always has: two
+                // columns of "-14.100.000đ" read better smaller than as "-14,1tr".
+                label(text(compact: false))
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    label(text(compact: false))
+                    label(text(compact: true))
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken)
+    }
+
+    private func label(_ text: String) -> some View {
         Text(text)
             .modifier(MoneyFont(size: size))
             .foregroundStyle(color)
             .lineLimit(1)
             .minimumScaleFactor(size == .large || size == .display ? 0.5 : 0.8)
-            .accessibilityLabel(spoken)
     }
 }
 

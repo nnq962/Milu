@@ -88,10 +88,11 @@ struct MonthBudgetEditor: View {
         let groups = categoryBudgets.keeping(store.budgetGroupIDs)
         BudgetEditorSheet(amount: $monthlyBudget, title: "Hạn mức tháng",
                           note: groups.total > 0
-                              ? "Tối thiểu \(groups.total.vndCompact), bằng tổng các hạng mục."
+                              ? "Tối thiểu \(groups.total.vnd), bằng tổng các hạng mục."
                               : nil,
-                          // Common monthly limits, none below what the groups already hold.
-                          presets: [5, 10, 15, 20, 30].map { AmountPreset(title: "", value: Double($0) * 1_000_000) }
+                          // Common monthly limits, none below what the groups already hold; three,
+                          // so the full amounts fit one row.
+                          presets: [10, 20, 30].map { AmountPreset(title: "", value: Double($0) * 1_000_000) }
                               .filter { $0.value >= groups.total }) { BudgetRules.monthError($0, groups: groups) }
     }
 }
@@ -128,7 +129,7 @@ struct GroupBudgetEditor: View {
         })
         BudgetEditorSheet(amount: amount, title: name, caption: "Hạn mức mỗi tháng",
                           note: month > 0
-                              ? "Còn \(room.vndCompact) chưa phân bổ."
+                              ? "Còn \(room.vnd) chưa phân bổ."
                               : "Cần đặt hạn mức tháng trước.",
                           presets: Self.presets(room: room)) {
             BudgetRules.groupError($0, groupID: groupID, month: month, groups: groups)

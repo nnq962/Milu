@@ -207,24 +207,27 @@ struct TransactionsView: View {
             let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
             if monthlyBudget > 0, progress.isOver || progress.isNearing {
                 BudgetStatusLine(level: .init(progress),
-                                 message: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
-                                     : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
+                                 message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
+                                     : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
             }
         }
         .card()
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
-    /// their transactions, "Chuyển khoản" the transfers between accounts, "Tất cả" all of them and
-    /// the money of new loans (neither income nor spending). A transfer's fee stays with the
-    /// transfer (its sheet), not on "Chi".
+    /// their transactions, "Chuyển khoản" the transfers between accounts and the money put into or
+    /// taken from goals (review 2026-10-31: it said "chưa có chuyển khoản" with eight deposits that
+    /// month), "Tất cả" all of them and the money of new loans (neither income nor spending). A
+    /// transfer's fee stays with the transfer (its sheet), not on "Chi".
     private var filteredItems: [AccountDetailView.Activity] {
         let inMonth = { (date: Date) in Calendar.current.isDate(date, equalTo: displayedMonth, toGranularity: .month) }
         let transactions = filter == .transfer ? [] : monthTransactions.filter(filter.matches)
         let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { inMonth($0.date) }
+        let goalTransfers = filter != .all && filter != .transfer ? [] : store.goalTransfers.filter { inMonth($0.date) }
         let loans = filter != .all ? [] : store.loanMoves.filter { inMonth($0.date) }
         let payments = filter != .all ? [] : store.listedLoanPayments.filter { inMonth($0.date) }
-        return AccountDetailView.activity(transactions: transactions, accountTransfers: transfers, loans: loans,
+        return AccountDetailView.activity(transactions: transactions, transfers: goalTransfers,
+                                          accountTransfers: transfers, loans: loans,
                                           loanPayments: payments)
     }
 
@@ -245,7 +248,8 @@ struct TransactionsView: View {
 
     /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.
     private var hasNothingRecorded: Bool {
-        store.transactions.isEmpty && store.accountTransfers.isEmpty && store.loanMoves.isEmpty
+        store.transactions.isEmpty && store.accountTransfers.isEmpty && store.goalTransfers.isEmpty
+            && store.loanMoves.isEmpty
             && store.listedLoanPayments.isEmpty
     }
 
@@ -268,7 +272,7 @@ struct TransactionsView: View {
         case .all: "Thu chi trong tháng sẽ hiện ở đây."
         case .income: "Khoản thu trong tháng sẽ hiện ở đây."
         case .expense: "Khoản chi trong tháng sẽ hiện ở đây."
-        case .transfer: "Tiền chuyển giữa tài khoản sẽ hiện ở đây."
+        case .transfer: "Tiền chuyển giữa tài khoản và nạp, rút hũ sẽ hiện ở đây."
         }
     }
 }

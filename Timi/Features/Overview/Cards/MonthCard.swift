@@ -36,7 +36,7 @@ struct MonthCard: View {
                                 .foregroundStyle(Palette.secondaryLabel)
                             Spacer(minLength: Spacing.s)
                             if monthlyBudget > 0 {
-                                Text("Hạn mức \(monthlyBudget.vndCompact)")
+                                Text("Hạn mức \(monthlyBudget.vnd)")
                                     .textRole(.caption)
                                     .monospacedDigit()
                                     .foregroundStyle(Palette.secondaryLabel)
@@ -75,7 +75,7 @@ struct MonthCard: View {
     private func label(earned: Double, spent: Double, top: [CategoryTotal]) -> String {
         var words = "Tháng này đã chi \(spent.vnd), đã thu \(earned.vnd)"
         if monthlyBudget > 0 { words += " trên hạn mức \(monthlyBudget.vnd)" }
-        if !top.isEmpty { words += ", nhiều nhất " + top.map { "\($0.name) \($0.amount.vndCompact)" }.joined(separator: ", ") }
+        if !top.isEmpty { words += ", nhiều nhất " + top.map { "\($0.name) \($0.amount.vnd)" }.joined(separator: ", ") }
         return words
     }
 }

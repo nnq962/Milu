@@ -87,6 +87,37 @@ enum SampleData {
         make("Giày thể thao", 1_250_000, "shopping.shoes", creditCard, daysAgo: 22, hour: 19),
     ]
 
+    /// The goals' history: deposits that add up to what each sample goal holds, so a goal with money
+    /// in it no longer says "Chưa nạp lần nào" (review 2026-10-31). History only: the sample
+    /// balances are set as they are, so these move no money.
+    static let goalTransfers: [GoalTransfer] = [
+        deposit(7_000_000, into: savingsGoals[0], from: vietcombank, daysAgo: 28),
+        deposit(7_000_000, into: savingsGoals[0], from: vietcombank, daysAgo: 21),
+        deposit(14_000_000, into: savingsGoals[0], from: techcombank, daysAgo: 14),
+        deposit(5_000_000, into: savingsGoals[1], from: vietcombank, daysAgo: 25),
+        deposit(5_000_000, into: savingsGoals[1], from: techcombank, daysAgo: 15),
+        deposit(5_000_000, into: savingsGoals[1], from: vietcombank, daysAgo: 6),
+        deposit(5_000_000, into: savingsGoals[2], from: techcombank, daysAgo: 18),
+        deposit(3_000_000, into: savingsGoals[2], from: cash, daysAgo: 4),
+    ]
+
+    /// When a sample account started being tracked: the day of the first money it moved, so
+    /// "Từ ngày …" on its page is not after the history under it (review 2026-10-31: it said the
+    /// day the app was installed). Today when it moved none.
+    static func openedAt(_ account: Account) -> Date {
+        let dates = transactions.filter { $0.accountID == account.id }.map(\.date)
+            + goalTransfers.filter { $0.accountID == account.id }.map(\.date)
+        return Calendar.current.startOfDay(for: dates.min() ?? .now)
+    }
+
+    private static func deposit(_ amount: Double, into goal: SavingsGoal, from account: Account,
+                                daysAgo: Int) -> GoalTransfer {
+        let calendar = Calendar.current
+        let day = calendar.date(byAdding: .day, value: -daysAgo, to: .now) ?? .now
+        let date = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
+        return GoalTransfer(goalID: goal.id, accountID: account.id, direction: .deposit, amount: amount, date: date)
+    }
+
     private static func make(
         _ title: String,
         _ amount: Double,

@@ -115,7 +115,7 @@ struct ReportView: View {
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryLabel)
             if let amount, amount > 0 {
-                MoneyText(amount: amount, tone: .signedExpense, compact: true)
+                MoneyText(amount: amount, tone: .signedExpense)
             } else {
                 Text("—")
                     .textRole(.amount)
@@ -136,15 +136,15 @@ struct ReportView: View {
         let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
         return VStack(alignment: .leading, spacing: Spacing.s) {
             HStack(spacing: Spacing.s) {
-                Text("Hạn mức \(monthlyBudget.vndCompact)")
+                Text("Hạn mức \(monthlyBudget.vnd)")
                     .textRole(.captionStrong)
                 Spacer(minLength: Spacing.s)
                 RowChevron()
             }
             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
             BudgetStatusLine(level: .init(progress),
-                             message: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
-                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
+                             message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
+                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
         }
         .foregroundStyle(Palette.label)
         .contentShape(Rectangle())
@@ -213,7 +213,7 @@ struct ReportView: View {
                 Text("Tổng chi")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryLabel)
-                MoneyText(amount: spent, size: .heading, tone: .signedExpense, compact: true)
+                MoneyText(amount: spent, size: .heading, tone: .signedExpense)
                     .fixedSize()
             }
             .accessibilityHidden(true)
@@ -252,7 +252,7 @@ struct ReportView: View {
         // as a hint (strict review 2026-10-31: no explanatory footers).
         let average = spending.count > 1 ? spending.reduce(0, +) / Double(spending.count) : nil
         return ReportSection(title: "Thu chi \(periods.count) \(unit) gần đây",
-                             footer: average.map { "Trung bình chi \($0.vndCompact) mỗi \(unit) có ghi chép." }) {
+                             footer: average.map { "Trung bình chi \($0.vnd) mỗi \(unit) có ghi chép." }) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack(spacing: Spacing.l) {
                     legend("Thu", color: Palette.positive)
@@ -271,6 +271,7 @@ struct ReportView: View {
                     AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
                         AxisGridLine().foregroundStyle(Palette.separator)
                         AxisValueLabel {
+                            // The axis is too narrow for the full figure: the one place that keeps "4,3tr".
                             Text((value.as(Double.self) ?? 0).vndCompact)
                                 .textRole(.footnote)
                                 .foregroundStyle(Palette.secondaryLabel)
@@ -339,7 +340,7 @@ struct ReportView: View {
                         }
                     } label: {
                         BreakdownRowLabel(icon: account.icon, title: account.name,
-                                          detail: account.income > 0 ? "Thu +\(account.income.vndCompact)" : "Không có khoản thu",
+                                          detail: account.income > 0 ? "Thu +\(account.income.vnd)" : "Không có khoản thu",
                                           amount: account.expense,
                                           tone: account.expense > 0 ? .signedExpense : .neutral,
                                           isAccount: true)

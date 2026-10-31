@@ -151,11 +151,18 @@ struct LoansContent: View {
 
     // MARK: - Cho vay / Đi vay / Đã tất toán
 
+    /// "Tất cả" on the page shows both sides under the card that already totals them: no "Còn …"
+    /// beside the headings, which said the card's figure again (review 2026-10-31). A chip of one
+    /// side, or search, keeps it.
+    private var isOverview: Bool { filter == .all && !isSearching }
+
     private var lentSection: some View {
         VStack(alignment: .leading, spacing: Spacing.headerGap) {
             // What is left beside the heading once there is a loan: no "Còn 0đ" over the empty card.
             SectionHeader(title: "Cho vay") {
-                if !lentLoans.isEmpty { remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .neutral) }
+                if !lentLoans.isEmpty && !isOverview {
+                    remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .neutral)
+                }
             }
             if lentLoans.isEmpty {
                 // One short sentence, no button named (strict review 2026-10-31).
@@ -171,11 +178,12 @@ struct LoansContent: View {
     private var borrowedSection: some View {
         VStack(alignment: .leading, spacing: Spacing.headerGap) {
             SectionHeader(title: "Đi vay") {
-                if !borrowedLoans.isEmpty {
+                if !borrowedLoans.isEmpty && !isOverview {
                     remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }, tone: .signedExpense)
                 }
             }
             if borrowedLoans.isEmpty {
+                // The same card on every chip (user choice 2026-10-31, after a single line on "Tất cả").
                 EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
                                message: "Khoản đi vay sẽ hiện ở đây.")
             }
@@ -200,7 +208,7 @@ struct LoansContent: View {
             Text("Còn")
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryLabel)
-            MoneyText(amount: amount, size: .caption, tone: tone, compact: true)
+            MoneyText(amount: amount, size: .caption, tone: tone)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Còn \(tone == .signedExpense ? "nợ " : "")\(amount.vnd)")

@@ -157,9 +157,9 @@ struct TransactionSearchFilter: Equatable {
             chips.append(Chip(part: .period, title: period.title))
         }
         switch (minAmount, maxAmount) {
-        case let (min?, max?): chips.append(Chip(part: .amount, title: "\(min.vndCompact)–\(max.vndCompact)"))
-        case let (min?, nil): chips.append(Chip(part: .amount, title: "Từ \(min.vndCompact)"))
-        case let (nil, max?): chips.append(Chip(part: .amount, title: "Đến \(max.vndCompact)"))
+        case let (min?, max?): chips.append(Chip(part: .amount, title: "\(min.vnd)–\(max.vnd)"))
+        case let (min?, nil): chips.append(Chip(part: .amount, title: "Từ \(min.vnd)"))
+        case let (nil, max?): chips.append(Chip(part: .amount, title: "Đến \(max.vnd)"))
         default: break
         }
         if accountIDs.count == 1, let id = accountIDs.first {

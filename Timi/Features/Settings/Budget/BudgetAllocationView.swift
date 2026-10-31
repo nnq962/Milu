@@ -111,7 +111,7 @@ struct BudgetAllocationView: View {
     /// "Còn 170k" or "Vượt 1,1tr".
     private func detail(limit: Double, spent: Double) -> String {
         let progress = BudgetProgress(limit: limit, spent: spent)
-        return progress.isOver ? "Vượt \((-progress.left).vndCompact)" : "Còn \(progress.left.vndCompact)"
+        return progress.isOver ? "Vượt \((-progress.left).vnd)" : "Còn \(progress.left.vnd)"
     }
 
     /// The month's limit and one bar split into the parts, "Chưa phân bổ" in grey at the end.
@@ -131,10 +131,10 @@ struct BudgetAllocationView: View {
             // Amounts as MoneyText, grey like the words (re-review 2026-10-31).
             HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                 Text("Đã phân bổ")
-                MoneyText(amount: assigned, size: .caption, tone: .muted, compact: true)
+                MoneyText(amount: assigned, size: .caption, tone: .muted)
                 Spacer(minLength: Spacing.s)
                 Text("Chưa phân bổ")
-                MoneyText(amount: unassigned, size: .caption, tone: .muted, compact: true)
+                MoneyText(amount: unassigned, size: .caption, tone: .muted)
             }
             .textRole(.caption)
             .foregroundStyle(Palette.secondaryLabel)

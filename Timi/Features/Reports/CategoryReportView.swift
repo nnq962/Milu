@@ -110,12 +110,12 @@ struct CategoryReportView: View {
                         let progress = BudgetProgress(limit: limit, spent: spent)
                         // The app's one look for a limit (`BudgetStatusLine`), as on Báo cáo.
                         VStack(alignment: .leading, spacing: Spacing.s) {
-                            Text("Hạn mức \(limit.vndCompact)")
+                            Text("Hạn mức \(limit.vnd)")
                                 .textRole(.captionStrong)
                             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
                             BudgetStatusLine(level: .init(progress),
-                                             message: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
-                                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
+                                             message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
+                                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
                         }
                         .padding(.top, Spacing.m)
                         .overlay(alignment: .top) { SplitLine() }
@@ -143,7 +143,7 @@ struct CategoryReportView: View {
                         .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
                         .fixedSize()
-                    MoneyText(amount: item.amount, tone: .signedExpense, compact: true)
+                    MoneyText(amount: item.amount, tone: .signedExpense)
                         .fixedSize()
                 }
                 ProgressBar(value: share)

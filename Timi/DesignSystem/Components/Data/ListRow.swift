@@ -86,16 +86,14 @@ struct ListRow<Leading: View, Trailing: View>: View {
 
 extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
     /// A row with a glyph and one amount (transactions, the parts of net worth): `trailingSubtitle`
-    /// is the short line under the amount (a date "28/10", a time "08:15"). `compactAmount` shows
-    /// "10,3tr" instead of "10.300.000đ", as every list of accounts and goals does.
+    /// is the short line under the amount (a date "28/10", a time "08:15").
     init(icon: String, title: String, subtitle: String? = nil, trailingSubtitle: String? = nil,
-         amount: Double, amountTone: MoneyText.Tone = .balance, showsChevron: Bool = true,
-         compactAmount: Bool = false) {
+         amount: Double, amountTone: MoneyText.Tone = .balance, showsChevron: Bool = true) {
         self.init(title: title, subtitle: subtitle, showsChevron: showsChevron) {
             // No tile, coloured ones neither; amounts carry the meaning.
             RowIcon(name: icon)
         } trailing: {
-            ListRowAmount(amount: amount, tone: amountTone, compact: compactAmount, note: trailingSubtitle)
+            ListRowAmount(amount: amount, tone: amountTone, note: trailingSubtitle)
         }
     }
 }
@@ -132,13 +130,12 @@ struct ListRowTrailing<Figure: View>: View {
 struct ListRowAmount: View {
     let amount: Double
     var tone: MoneyText.Tone = .balance
-    var compact = false
     var note: String? = nil
     var noteColor: Color = Palette.secondaryLabel
 
     var body: some View {
         ListRowTrailing(note: note, noteColor: noteColor) {
-            MoneyText(amount: amount, tone: tone, compact: compact)
+            MoneyText(amount: amount, tone: tone)
         }
     }
 }

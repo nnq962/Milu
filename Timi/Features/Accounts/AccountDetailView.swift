@@ -34,20 +34,16 @@ struct AccountDetailView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Lịch sử")
-                        if activity.isEmpty {
+                    if activity.isEmpty {
+                        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                            SectionHeader(title: "Lịch sử")
                             EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
                                            message: "Giao dịch của tài khoản sẽ hiện ở đây.")
-                        } else {
-                            VStack(spacing: 0) {
-                                ForEach(Array(activity.enumerated()), id: \.element.id) { index, item in
-                                    ActivityRow(item: item, side: .account, viewedAccount: account.id) { editingItem = $0 }
-                                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
-                                }
-                            }
-                            .listCard()
                         }
+                    } else {
+                        // One card a day with its totals, as on "Giao dịch" (review 2026-10-31: one
+                        // long list here, by day there).
+                        ActivityDayList(groups: ActivityDayList.byDay(activity), viewedAccount: account.id) { editingItem = $0 }
                     }
                 }
                 .padding(.horizontal, Spacing.page)
@@ -181,7 +177,7 @@ struct ActivityRow: View {
             case .transaction(let transaction):
                 TransactionListRow(transaction: transaction, detail: detail)
             case .transfer(let transfer):
-                GoalTransferRow(transfer: transfer, side: side)
+                GoalTransferRow(transfer: transfer, side: side, detail: detail)
             case .accountTransfer(let transfer):
                 AccountTransferRow(transfer: transfer, viewedAccount: viewedAccount, detail: detail)
             case .loan(let loan):
@@ -244,7 +240,7 @@ struct AccountTransferRow: View {
             tone = outgoing ? .signedExpense : .signedIncome
         }
         // Short, as every amount in a row's second line ("Gốc 5tr · Lãi 375k").
-        let fee = transfer.fee > 0 ? transfer.fee.vndCompact : nil
+        let fee = transfer.fee > 0 ? transfer.fee.vnd : nil
         let subtitle: String
         switch viewedAccount {
         case nil: subtitle = "\(from) → \(to)"
@@ -303,8 +299,8 @@ struct LoanPaymentRow: View {
         let name = loan?.name ?? "Khoản vay đã xoá"
         let kind = lent ? "Thu nợ" : "Trả nợ"
         let account = store.account(id: payment.accountID)?.name ?? "Tài khoản đã xoá"
-        let parts = [payment.principal > 0 ? "Gốc \(payment.principal.vndCompact)" : nil,
-                     payment.interest > 0 ? "Lãi \(payment.interest.vndCompact)" : nil].compactMap { $0 }
+        let parts = [payment.principal > 0 ? "Gốc \(payment.principal.vnd)" : nil,
+                     payment.interest > 0 ? "Lãi \(payment.interest.vnd)" : nil].compactMap { $0 }
         ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
                 title: viewedAccount == nil ? kind : "\(kind) \(name)",
                 subtitle: viewedAccount == nil ? "\(name) · \(account)" : parts.joined(separator: " · "),

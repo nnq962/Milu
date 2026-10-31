@@ -100,16 +100,14 @@ struct BudgetNotice: Equatable {
         after.isOver ? .over : after.isNearing ? .nearing : .fine
     }
 
-    /// "Ăn uống còn 170k → vượt 30k", "Hạn mức tháng còn 11,9tr → còn 11,8tr". A small amount that
-    /// the short form would hide ("còn 1,8tr → còn 1,8tr") is written in full instead.
+    /// "Ăn uống còn 170.000đ → vượt 30.000đ": full amounts, as every figure in the app (user
+    /// choice 2026-10-31).
     var text: String {
         let before = BudgetProgress(limit: limit, spent: spent)
-        func words(_ progress: BudgetProgress, _ format: (Double) -> String, was: Bool) -> String {
-            progress.isOver ? "\(was ? "đã vượt" : "vượt") \(format(-progress.left))" : "còn \(format(progress.left))"
+        func words(_ progress: BudgetProgress, was: Bool) -> String {
+            progress.isOver ? "\(was ? "đã vượt" : "vượt") \((-progress.left).vnd)" : "còn \(progress.left.vnd)"
         }
-        // Same in short form (1,8tr and 1,8tr): the full amounts show the change.
-        let format: (Double) -> String = before.left.vndCompact == after.left.vndCompact ? { $0.vnd } : { $0.vndCompact }
-        let (now, then) = (words(before, format, was: true), words(after, format, was: false))
+        let (now, then) = (words(before, was: true), words(after, was: false))
         return "\(name) \(now) → \(then)"
     }
 

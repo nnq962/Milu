@@ -48,8 +48,13 @@ struct SplitTotals<Detail: View>: View {
             Text(item.title)
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryLabel)
+            // Their own height: with a line under the figure, the column was offered less than
+            // the figure's height and `minimumScaleFactor` shrank it to half (review 2026-10-31:
+            // "80.000.000đ" at 12pt on Vay nợ and Báo cáo).
             MoneyText(amount: item.amount, size: .large, tone: item.tone)
+                .fixedSize(horizontal: false, vertical: true)
             detail(item)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         if let label = item.accessibilityLabel {

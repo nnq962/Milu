@@ -56,7 +56,7 @@ struct AttentionCard: View {
                     .foregroundStyle(days < 0 ? Palette.negative : days <= 3 ? Palette.warningLabel : Palette.secondaryLabel)
             }
             Spacer(minLength: Spacing.s)
-            MoneyText(amount: reminder.amount, tone: reminder.isIncome ? .signedIncome : .signedExpense, compact: true)
+            MoneyText(amount: reminder.amount, tone: reminder.isIncome ? .signedIncome : .signedExpense)
                 .fixedSize()
         }
         .accessibilityElement(children: .combine)

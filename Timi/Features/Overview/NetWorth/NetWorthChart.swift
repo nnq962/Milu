@@ -16,7 +16,10 @@ struct NetWorthChart: View {
         let high = values.max() ?? 0
         // A flat line still needs some room above and below it.
         let pad = max((high - low) * 0.2, abs(high) * 0.02, 1)
-        let floor = low - pad
+        // More room under the line than over it, so the faded area shows along the whole line,
+        // its flat start included, not only under the rise (user report 2026-10-31: the area
+        // seemed missing at both ends).
+        let floor = low - pad * 3
         let picked = selection?.wrappedValue.flatMap(nearest)
 
         Chart {
@@ -24,13 +27,16 @@ struct NetWorthChart: View {
                 AreaMark(x: .value("Tháng", point.month),
                          yStart: .value("Đáy", floor), yEnd: .value("Tài sản ròng", point.value))
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(LinearGradient(colors: [tint.opacity(compact ? 0.12 : 0.22), tint.opacity(0)],
+                    .foregroundStyle(LinearGradient(colors: [tint.opacity(compact ? 0.14 : 0.22), tint.opacity(0)],
                                                     startPoint: .top, endPoint: .bottom))
                 LineMark(x: .value("Tháng", point.month),
                          y: .value("Tài sản ròng", point.value))
                     .interpolationMethod(.monotone)
                     .foregroundStyle(tint)
-                    .lineStyle(StrokeStyle(lineWidth: compact ? 2 : 3, lineCap: .round, lineJoin: .round))
+                    // Square ends: a round cap reached half the line's width past the first and
+                    // last points, past the faded area under it, which then looked cut short at
+                    // both ends (user report 2026-10-31).
+                    .lineStyle(StrokeStyle(lineWidth: compact ? 2 : 3, lineCap: .butt, lineJoin: .round))
             }
             if let picked {
                 PointMark(x: .value("Tháng", picked.month),
@@ -67,7 +73,7 @@ struct NetWorthChart: View {
         .modifier(Selecting(selection: selection))
         .accessibilityElement()
         .accessibilityLabel("Tài sản ròng \(points.count) tháng gần đây")
-        .accessibilityValue(points.map { "tháng \(Calendar.current.component(.month, from: $0.month)): \($0.value.vndCompact)" }
+        .accessibilityValue(points.map { "tháng \(Calendar.current.component(.month, from: $0.month)): \($0.value.vnd)" }
             .joined(separator: ", "))
     }
 
@@ -106,7 +112,7 @@ struct NetWorthGrowth: View {
     }
 
     var body: some View {
-        Text("\(change < 0 ? "↓" : "↑") \(abs(change).vndCompact) \(label)")
+        Text("\(change < 0 ? "↓" : "↑") \(abs(change).vnd) \(label)")
             .textRole(.captionStrong)
             .monospacedDigit()
             .foregroundStyle(change == 0 ? Palette.secondaryLabel : change > 0 ? Palette.positive : Palette.negative)

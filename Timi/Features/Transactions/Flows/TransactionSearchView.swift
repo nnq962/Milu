@@ -1,10 +1,10 @@
 import SwiftUI
 
 /// The search of "Giao dịch", on a screen of its own over everything (user choice 2026-10-29, as
-/// banking apps do): its own field on top with ✕, then the filters as chips, then the recent
-/// searches (nothing typed, no filter) or what matches, by day, in every month. The page behind
-/// stays as it is. On "Vay nợ" it searches loans the same way: chips for the kind (Cho vay, Đi
-/// vay), its own recent searches (user choice 2026-10-29).
+/// banking apps do): its own field on top with "Bộ lọc" at its end and ✕ beside it, the filters
+/// that are on as chips, then the recent searches (nothing typed, no filter) or what matches, by
+/// day, in every month. The page behind stays as it is. On "Vay nợ" it searches loans the same
+/// way: the kind (Cho vay, Đi vay) as its filter, its own recent searches (user choice 2026-10-29).
 struct TransactionSearchView: View {
     let segment: TransactionSegment
 
@@ -84,8 +84,8 @@ struct TransactionSearchView: View {
     private var searchBar: some View {
         HStack(spacing: Spacing.s) {
             SearchField(prompt: segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay", text: $query,
-                        isFocused: $isFieldFocused) {
-                remember(query)
+                        isFocused: $isFieldFocused, onSubmit: { remember(query) }) {
+                filterButton
             }
             Button { dismiss() } label: {
                 TimiIcon("hugeicons-cancel-01", size: RowMetrics.toolbarGlyph)
@@ -125,43 +125,44 @@ struct TransactionSearchView: View {
 
     // MARK: - Bộ lọc
 
-    /// "Bộ lọc" (filled with a count when something is on), one chip per thing that is on (× drops
-    /// it), then quick picks for what is not set yet, so the button never stands alone.
-    private var filterChips: some View {
-        // Scroll only when the chips overflow: a horizontal ScrollView behind glass draws a lighter
-        // band across the row on iOS 26 (as ChipRow does).
-        ViewThatFits(in: .horizontal) {
-            chipStack.frame(maxWidth: .infinity, alignment: .leading)
-            ScrollView(.horizontal) {
-                chipStack.padding(.horizontal, Spacing.page)
-            }
-            .scrollIndicators(.hidden)
-            .scrollEdgeEffectHidden(true, for: .all)
-            .padding(.horizontal, -Spacing.page)
+    private var activeCount: Int { segment == .flows ? filter.activeCount : (loanKind == .all ? 0 : 1) }
+
+    /// "Bộ lọc" as an icon at the end of the search field (user request 2026-10-31: a row of a
+    /// lone "Bộ lọc" chip and quick picks under the field read cluttered); a dot on it while
+    /// something is on.
+    private var filterButton: some View {
+        let count = activeCount
+        return Button { isFiltering = true } label: {
+            TimiIcon("hugeicons-filter-horizontal", size: RowMetrics.iconGlyph)
+                .foregroundStyle(count > 0 ? Palette.primary : Palette.secondaryLabel)
+                .overlay(alignment: .topTrailing) {
+                    if count > 0 {
+                        Circle().fill(Palette.primary)
+                            .frame(width: RowMetrics.legendDot, height: RowMetrics.legendDot)
+                            .offset(x: Spacing.xxs, y: -Spacing.xxs)
+                    }
+                }
+                .frame(width: ControlHeight.regular)
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(count > 0 ? "Bộ lọc, đang bật \(count)" : "Bộ lọc")
     }
 
-    private var chipStack: some View {
-        let count = segment == .flows ? filter.activeCount : (loanKind == .all ? 0 : 1)
-        return HStack(spacing: Spacing.s) {
-            TagChip(title: count > 0 ? "Bộ lọc · \(count)" : "Bộ lọc",
-                    icon: "hugeicons-filter-horizontal", isProminent: count > 0) { isFiltering = true }
-                .accessibilityLabel(count > 0 ? "Bộ lọc, đang bật \(count)" : "Bộ lọc")
-
-            ForEach(activeChips) { chip in
-                TagChip(title: chip.title, hint: "Mở bộ lọc", action: { isFiltering = true }) {
-                    withAnimation(.smooth(duration: 0.25)) { chip.clear() }
+    /// One chip per thing that is on (× drops it, a tap opens "Bộ lọc"); nothing while nothing is.
+    /// They wrap rather than scroll: in a scrolling row iOS holds a touch to see whether it
+    /// scrolls, so the chips' press showed late (user report 2026-10-31).
+    @ViewBuilder
+    private var filterChips: some View {
+        if !activeChips.isEmpty {
+            FlowLayout(spacing: Spacing.s) {
+                ForEach(activeChips) { chip in
+                    TagChip(title: chip.title, hint: "Mở bộ lọc", action: { isFiltering = true }) {
+                        withAnimation(.smooth(duration: 0.25)) { chip.clear() }
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.9)))
-            }
-
-            ForEach(quickPicks, id: \.title) { pick in
-                TagChip(title: pick.title, isSuggestion: true) {
-                    Haptics.selection()
-                    withAnimation(.smooth(duration: 0.25)) { pick.apply() }
-                }
-                .accessibilityHint("Thêm vào bộ lọc")
-                .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
         }
     }
@@ -182,36 +183,6 @@ struct TransactionSearchView: View {
         case .loans:
             loanKind == .all ? [] : [ActiveChip(id: "kind", title: loanKind.title) { loanKind = .all }]
         }
-    }
-
-    private struct QuickPick {
-        let title: String
-        let apply: () -> Void
-    }
-
-    /// What is not set yet, one tap to turn on: on "Thu chi" the kinds while none is chosen and
-    /// "Tháng này" while no period is; on "Vay nợ" the two kinds while neither is.
-    private var quickPicks: [QuickPick] {
-        var picks: [QuickPick] = []
-        switch segment {
-        case .flows:
-            if filter.kind == .all {
-                // In the order of the chips on Thu chi and of "Loại" in Bộ lọc (strict review 2026-10-31).
-                picks += [TransactionFilter.income, .expense, .transfer].map { kind in
-                    QuickPick(title: kind.title) { filter.setKind(kind, groupsOf: store) }
-                }
-            }
-            if filter.period == .all {
-                picks.append(QuickPick(title: TransactionSearchFilter.Period.thisMonth.title) {
-                    filter.period = .thisMonth
-                })
-            }
-        case .loans:
-            if loanKind == .all {
-                picks += [LoanFilter.lent, .borrowed].map { kind in QuickPick(title: kind.title) { loanKind = kind } }
-            }
-        }
-        return picks
     }
 
     /// What matches the words and the filters, in every month: a transaction by its category,

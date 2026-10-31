@@ -121,7 +121,6 @@ struct BreakdownRowLabel: View {
     let detail: String
     let amount: Double
     var tone: MoneyText.Tone = .neutral
-    var compact = true
     var dot: Color? = nil
     /// A ring instead of a filled dot: the empty part of a chart.
     var hollowDot = false
@@ -157,7 +156,7 @@ struct BreakdownRowLabel: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             // Full size: the name gives way first.
-            MoneyText(amount: amount, tone: tone, compact: compact)
+            MoneyText(amount: amount, tone: tone)
                 .fixedSize()
             RowChevron()
                 .opacity(opensMore ? 1 : 0)

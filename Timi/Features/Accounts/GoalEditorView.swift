@@ -161,7 +161,7 @@ struct GoalEditorView: View {
                 : "Hũ còn \(saved.vnd). Chọn tài khoản nhận lại tiền, rồi hũ sẽ bị xoá.",
             choices: !hasMoney ? [] : accounts.map { account in
                 let label = (names[account.name]?.count ?? 0) > 1
-                    ? "\(account.name) · \(account.balance.vndCompact)" : account.name
+                    ? "\(account.name) · \(account.balance.vnd)" : account.name
                 return .init(id: account.id.uuidString, title: "Chuyển về \(label)") {
                     delete(goal, returningTo: account.id)
                 }

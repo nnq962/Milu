@@ -278,7 +278,7 @@ struct BudgetTests {
     @Test func theNoticeSaysWhatIsLeftAndPicksTheWorse() {
         let food = BudgetNotice(name: "Ăn uống", limit: 6_000_000, spent: 5_830_000, amount: 200_000)
         #expect(food.level == .over)
-        #expect(food.text == "Ăn uống còn 170k → vượt 30k")
+        #expect(food.text == "Ăn uống còn 170.000đ → vượt 30.000đ")
         let month = BudgetNotice(name: "Hạn mức tháng", limit: 30_000_000, spent: 18_000_000, amount: 200_000)
         #expect(month.level == .fine)
         #expect(BudgetNotice.pick(group: food, month: month) == food)
@@ -367,7 +367,7 @@ struct ReportTests {
 
     @Test func bigMovesAreWrittenAsAmounts() {
         #expect(Change.text(115, from: 100) == "↑ 15%")
-        #expect(Change.text(4_800_000, from: 560_000) == "↑ 4,2tr")
+        #expect(Change.text(4_800_000, from: 560_000) == "↑ 4.240.000đ")
         #expect(Change.text(100, from: 0) == nil)
     }
 
@@ -403,25 +403,25 @@ struct BudgetNoticeScenarioTests {
     @Test func greyWhileTheGroupHasRoom() {
         let n = notice(makeStore().0, 100_000, .food)
         #expect(n?.level == .fine)
-        #expect(n?.text == "Ăn uống còn 500k → còn 400k")
+        #expect(n?.text == "Ăn uống còn 500.000đ → còn 400.000đ")
     }
 
     @Test func amberFromEightyPercent() {
         let n = notice(makeStore().0, 300_000, .food)
         #expect(n?.level == .nearing)
-        #expect(n?.text == "Ăn uống còn 500k → còn 200k")
+        #expect(n?.text == "Ăn uống còn 500.000đ → còn 200.000đ")
     }
 
     @Test func redWhenItGoesOver() {
         let n = notice(makeStore().0, 600_000, .food)
         #expect(n?.level == .over)
-        #expect(n?.text == "Ăn uống còn 500k → vượt 100k")
+        #expect(n?.text == "Ăn uống còn 500.000đ → vượt 100.000đ")
     }
 
     @Test func aGroupWithoutALimitUsesTheMonth() {
         let n = notice(makeStore().0, 100_000, .transport)
         #expect(n?.name == "Hạn mức tháng")
-        #expect(n?.text == "Hạn mức tháng còn 1,5tr → còn 1,4tr")
+        #expect(n?.text == "Hạn mức tháng còn 1.500.000đ → còn 1.400.000đ")
         #expect(notice(makeStore().0, 1_200_000, .transport)?.level == .nearing)
         #expect(notice(makeStore().0, 1_600_000, .transport)?.level == .over)
     }
@@ -442,7 +442,7 @@ struct BudgetNoticeScenarioTests {
     @Test func aDayInAnotherMonthCountsThatMonth() {
         let n = notice(makeStore().0, 600_000, .food, date: lastMonth)
         #expect(n?.level == .fine)
-        #expect(n?.text == "Ăn uống còn 1tr → còn 400k")
+        #expect(n?.text == "Ăn uống còn 1.000.000đ → còn 400.000đ")
     }
 
     @Test func nothingForExcludedOrLockedOrEmpty() {
@@ -458,8 +458,8 @@ struct BudgetNoticeScenarioTests {
     @Test func editingCountsOnlyTheChange() {
         let (store, lunch) = makeStore()
         // 500k → 600k: Ăn uống had 1tr free before this one, 400k after.
-        #expect(notice(store, 600_000, .food, replacing: lunch)?.text == "Ăn uống còn 1tr → còn 400k")
+        #expect(notice(store, 600_000, .food, replacing: lunch)?.text == "Ăn uống còn 1.000.000đ → còn 400.000đ")
         // Moved to Di chuyển: the month gets its 500k back first.
-        #expect(notice(store, 500_000, .transport, replacing: lunch)?.text == "Hạn mức tháng còn 2tr → còn 1,5tr")
+        #expect(notice(store, 500_000, .transport, replacing: lunch)?.text == "Hạn mức tháng còn 2.000.000đ → còn 1.500.000đ")
     }
 }

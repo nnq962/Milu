@@ -48,7 +48,7 @@ final class FinanceStore {
         self.paymentReminders = paymentReminders
         self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
-        self.goalTransfers = []
+        self.goalTransfers = SampleData.goalTransfers.sorted { $0.date > $1.date }
         self.accountTransfers = []
         self.categories = DefaultCategories.all
         self.contacts = SampleData.contacts

@@ -112,6 +112,6 @@ enum Change {
         guard let ratio = ratio(now, from: before) else { return nil }
         if abs(ratio) < 0.005 { return "không đổi" }
         let arrow = ratio > 0 ? "↑" : "↓"
-        return abs(ratio) > 1 ? "\(arrow) \(abs(now - before).vndCompact)" : "\(arrow) \(abs(ratio).percentText)"
+        return abs(ratio) > 1 ? "\(arrow) \(abs(now - before).vnd)" : "\(arrow) \(abs(ratio).percentText)"
     }
 }

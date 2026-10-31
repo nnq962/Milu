@@ -55,18 +55,13 @@ struct TimiAmountField: View {
     /// The largest amount the field takes (12 digits, as `groupedVNDInput`).
     private static let maxAmount: Double = 999_999_999_999
 
-    /// What the typed digits most likely mean, from thousands up to billions: 5 → 5k, 50k, 500k,
-    /// 5tr, 50tr; 25 → 25k … 250tr; 2500 → 2,5tr … 25tỷ. Five chips at most.
+    /// What the typed digits most likely mean: 5 → 5.000đ, 50.000đ, 500.000đ; 25 → 25.000đ …
+    /// 2.500.000đ. Three chips, written in full as a banking app does (user choice 2026-10-31:
+    /// five short "25k … 250tr" chips mixed two forms of money), so they fit one row.
     private var suggestions: [Double] {
         guard let base = typedBase, base > 0 else { return [] }
         let multipliers: [Double] = [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9]
-        return Array(multipliers.map { base * $0 }.filter { $0 <= Self.maxAmount }.prefix(5))
-    }
-
-    /// "25k", "2,5tr", "1,2tỷ": the short form Vietnamese apps use, so five chips fit one row
-    /// without scrolling (a scrolling row of glass chips draws a dark band on iOS 26).
-    private static func chipLabel(_ value: Double) -> String {
-        value.vndCompact
+        return Array(multipliers.map { base * $0 }.filter { $0 <= Self.maxAmount }.prefix(3))
     }
 
     var body: some View {
@@ -118,20 +113,10 @@ struct TimiAmountField: View {
             // The row stays in place even when empty; chips fade in and out with SwiftUI's
             // default transition (user choice 2026-10-28, over a staggered pop-in).
             if showsSuggestions {
-                // Centred when the chips fit, otherwise a row that scrolls edge to edge.
-                ViewThatFits(in: .horizontal) {
-                    suggestionChips
-                    ScrollView(.horizontal) {
-                        suggestionChips
-                            .padding(.horizontal, Spacing.page)
-                    }
-                    .scrollIndicators(.hidden)
-                    // iOS 26 draws a darker band behind glass chips at a scroll view's edges.
-                    .scrollEdgeEffectHidden(true, for: .all)
-                    .padding(.horizontal, -Spacing.page)
-                }
-                .padding(.top, suggestions.isEmpty && shownPresets.isEmpty ? 0 : Spacing.m)
-                .sensoryFeedback(.selection, trigger: picks)
+                // Centred, wrapping onto a second line rather than scrolling when they do not fit.
+                chipStack
+                    .padding(.top, suggestions.isEmpty && shownPresets.isEmpty ? 0 : Spacing.m)
+                    .sensoryFeedback(.selection, trigger: picks)
             }
         }
         .task {
@@ -160,17 +145,17 @@ struct TimiAmountField: View {
         }
     }
 
-    private var suggestionChips: some View { chipStack }
 
     /// Presets until the user types their own figure.
     private var shownPresets: [AmountPreset] { typedBase == nil ? presets : [] }
 
     /// Flat chips, the one matching the amount filled (user choice 2026-10-31: no glass in content).
+    /// Lines wrap, centred under the figure, when the full amounts do not fit one row.
     private var chipStack: some View {
-        HStack(spacing: Spacing.s) {
+        FlowLayout(spacing: Spacing.s, centered: true) {
             ForEach(shownPresets, id: \.self) { preset in
                 // An empty label shows the amount alone ("10tr").
-                TagChip(title: preset.title.isEmpty ? preset.value.vndCompact : "\(preset.title) \(preset.value.vndCompact)",
+                TagChip(title: preset.title.isEmpty ? preset.value.vnd : "\(preset.title) \(preset.value.vnd)",
                         isProminent: preset.value == amount) {
                     text = String(Int(preset.value)).groupedVNDInput
                     picks += 1
@@ -179,7 +164,7 @@ struct TimiAmountField: View {
                 .accessibilityLabel(preset.title.isEmpty ? preset.value.vnd : "\(preset.title) \(preset.value.vnd)")
             }
             ForEach(suggestions, id: \.self) { value in
-                TagChip(title: Self.chipLabel(value), isProminent: value == amount) {
+                TagChip(title: value.vnd, isProminent: value == amount) {
                     text = String(Int(value)).groupedVNDInput
                     picks += 1
                 }

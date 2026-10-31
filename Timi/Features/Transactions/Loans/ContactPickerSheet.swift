@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Picks who a loan is with from "Danh bạ" (user choice 2026-10-29): everyone A→Z with their
-/// relationship, then "Thêm người mới" as the last row, which opens the Danh bạ form and picks the
-/// person it saves. Picking closes the sheet. The search is the system one, as the bank and category
+/// relationship, and a + at the top right of the sheet (user request 2026-10-31, over a last row
+/// "Thêm người mới" that went out of sight down a long list), which opens the Danh bạ form and
+/// picks the person it saves. Picking closes the sheet. The search is the system one, as the bank and category
 /// pickers have: on iOS 26 it sits at the bottom, by the thumb (user request 2026-10-29).
 struct ContactPickerSheet: View {
     let title: String
@@ -31,15 +32,16 @@ struct ContactPickerSheet: View {
                         EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
                                        message: "Danh bạ chưa có ai tên “\(query.trimmingCharacters(in: .whitespaces))”.")
                     }
-                    // Everyone, then "Thêm người mới" as the last row of the list, as the
-                    // relationship and category pickers do (user choice 2026-10-29).
-                    FormGroup(title: query.isEmpty && !people.isEmpty ? "Danh bạ" : nil) {
-                        ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
-                            row(person)
-                                .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                    if !people.isEmpty {
+                        FormGroup(title: query.isEmpty ? "Danh bạ" : nil) {
+                            ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
+                                row(person)
+                                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                            }
                         }
-                        FormActionRow(title: "Thêm người mới", icon: "hugeicons-add-01") { isAdding = true }
-                            .overlay(alignment: .top) { if !people.isEmpty { FormDivider() } }
+                    } else if query.isEmpty {
+                        EmptyStateCard(icon: "hugeicons-user-group", title: "Danh bạ trống",
+                                       message: "Người bạn thêm sẽ hiện ở đây.")
                     }
                 }
             }
@@ -56,6 +58,16 @@ struct ContactPickerSheet: View {
             .searchable(text: $query, prompt: "Tìm trong danh bạ")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { isAdding = true } label: {
+                        // The toolbar's one +, as on Danh bạ and Tài khoản.
+                        TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                            .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+                    }
+                    .buttonBorderShape(.circle)
+                    .tint(Palette.primary)
+                    .accessibilityLabel("Thêm người mới")
+                }
             }
         }
         .timiSheetStyle()

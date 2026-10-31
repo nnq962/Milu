@@ -173,7 +173,7 @@ struct GoalDetailView: View {
                     .foregroundStyle(Palette.secondaryLabel)
             }
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
-            Text("Mục tiêu \(goal.target.vndCompact)")
+            Text("Mục tiêu \(goal.target.vnd)")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityLabel("Mục tiêu \(goal.target.vnd)")
@@ -240,17 +240,20 @@ struct GoalDetailView: View {
     /// "167k/tháng" when the goal has a deadline and is not reached yet.
     static func monthlyText(_ goal: SavingsGoal) -> String? {
         guard let dueDate = goal.dueDate, goal.remaining > 0, !goal.isOverdue else { return nil }
-        return "\(SavingsGoal.monthlySaving(remaining: goal.remaining, until: dueDate).vndCompact)/tháng"
+        return "\(SavingsGoal.monthlySaving(remaining: goal.remaining, until: dueDate).vnd)/tháng"
     }
 }
 
 /// A deposit or withdrawal as a row: what happened as the title ("Nạp tiền"), where the money came
 /// from or went as the subtitle ("Từ Vietcombank"). Seen from an account, the goal is the other side.
+/// On "Giao dịch" (`list`) it reads as a transfer there does: both ends, no sign.
 struct GoalTransferRow: View {
-    enum Side { case goal, account }
+    enum Side { case goal, account, list }
 
     let transfer: GoalTransfer
     let side: Side
+    /// Under the amount: the day, or the time in a list grouped by day (an account's history).
+    var detail: TransactionListRow.Detail = .day
 
     @Environment(FinanceStore.self) private var store
 
@@ -258,16 +261,18 @@ struct GoalTransferRow: View {
         let deposit = transfer.direction == .deposit
         let intoGoal = side == .goal ? deposit : !deposit
         ListRow(icon: icon, title: title, subtitle: subtitle,
-                trailingSubtitle: transfer.date.shortDay,
+                trailingSubtitle: detail == .time
+                    ? transfer.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
+                    : transfer.date.shortDay,
                 amount: transfer.amount,
-                amountTone: intoGoal ? .signedIncome : .signedExpense,
+                amountTone: side == .list ? .neutral : intoGoal ? .signedIncome : .signedExpense,
                 showsChevron: false)
     }
 
     private var icon: String {
         switch side {
         case .goal: store.account(id: transfer.accountID)?.iconName ?? "hugeicons-wallet-01"
-        case .account: store.goal(id: transfer.goalID)?.icon ?? SavingsGoal.defaultIcon
+        case .account, .list: store.goal(id: transfer.goalID)?.icon ?? SavingsGoal.defaultIcon
         }
     }
 
@@ -275,7 +280,7 @@ struct GoalTransferRow: View {
         let deposit = transfer.direction == .deposit
         switch side {
         case .goal: return deposit ? "Nạp tiền" : "Rút tiền"
-        case .account: return deposit ? "Nạp vào hũ" : "Rút từ hũ"
+        case .account, .list: return deposit ? "Nạp vào hũ" : "Rút từ hũ"
         }
     }
 
@@ -287,6 +292,10 @@ struct GoalTransferRow: View {
             return deposit ? "Từ \(account)" : "Về \(account)"
         case .account:
             return store.goal(id: transfer.goalID)?.name ?? "Hũ đã xoá"
+        case .list:
+            let account = store.account(id: transfer.accountID)?.name ?? "Tài khoản đã xoá"
+            let goal = store.goal(id: transfer.goalID)?.name ?? "Hũ đã xoá"
+            return deposit ? "\(account) → \(goal)" : "\(goal) → \(account)"
         }
     }
 }

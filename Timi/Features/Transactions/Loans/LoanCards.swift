@@ -92,7 +92,7 @@ struct LoanRow: View {
             // Still owed by me: money going out, red with "-" as on the top card and the loan's
             // sheet (strict review 2026-10-31); under it the deadline in the urgency's colour.
             ListRowAmount(amount: loan.isSettled ? loan.principal : loan.outstanding,
-                          tone: Self.amountTone(loan), compact: true,
+                          tone: Self.amountTone(loan),
                           note: urgency.text, noteColor: Self.urgencyColor(urgency))
         }
         // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đ, còn 7 ngày".
@@ -113,7 +113,7 @@ struct LoanRow: View {
             .map { store.relationship(id: $0.relationshipID).name }
         if loan.isSettled { return [loan.direction.title, relationship].compactMap { $0 }.joined(separator: " · ") }
         let due = loan.dueDate.map { "Hạn \($0.shortDay)" } ?? relationship
-        let interest = loan.monthlyInterestRate > 0 ? "Lãi \(loan.monthlyInterest.vndCompact)" : nil
+        let interest = loan.monthlyInterestRate > 0 ? "Lãi \(loan.monthlyInterest.vnd)" : nil
         // How much is repaid only once something is: "Chưa trả" made the line wrap for little.
         let paid = loan.paidRatio > 0 ? loan.paidText : nil
         return [due, interest, paid].compactMap { $0 }.joined(separator: " · ")

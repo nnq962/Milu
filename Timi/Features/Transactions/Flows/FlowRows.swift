@@ -10,15 +10,14 @@ struct DayTotals: View {
         let counted = items.reportable(excluding: store.lockedAccountIDs)
         let income = counted.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
         let expense = counted.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
-        // Always the short form, one side or both, so the column reads the same on every day (HIG
-        // review 2026-10-30: both sides in full beside one side short read as two kinds of number).
+        // In full where they fit, as every figure (`MoneyText` shortens both when they do not).
         HStack(spacing: Spacing.m) {
             if income > 0 {
-                MoneyText(amount: income, size: .caption, tone: .signedIncome, compact: true)
+                MoneyText(amount: income, size: .caption, tone: .signedIncome)
             }
             if expense > 0 {
                 // Money out red (user rule 2026-10-30).
-                MoneyText(amount: expense, size: .caption, tone: .signedExpense, compact: true)
+                MoneyText(amount: expense, size: .caption, tone: .signedExpense)
             }
         }
         // In words: "Thu 1.200.000 đ, chi 55.000 đ", not "trừ 55k".
@@ -34,6 +33,8 @@ struct DayTotals: View {
 /// wall of rows); tapping one hands it back. Shared by "Giao dịch" and its search.
 struct ActivityDayList: View {
     let groups: [(day: Date, items: [AccountDetailView.Activity])]
+    /// The account whose history this is (its page): transfers read "Chuyển đến …" / "Nhận từ …".
+    var viewedAccount: Account.ID? = nil
     let onOpen: (AccountDetailView.Activity) -> Void
 
     static func byDay(_ items: [AccountDetailView.Activity]) -> [(day: Date, items: [AccountDetailView.Activity])] {
@@ -47,7 +48,8 @@ struct ActivityDayList: View {
                 dayHeader(group)
                 VStack(spacing: 0) {
                     ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
-                        ActivityRow(item: item, side: .account, detail: .time, onEdit: onOpen)
+                        ActivityRow(item: item, side: viewedAccount == nil ? .list : .account, viewedAccount: viewedAccount,
+                                    detail: .time, onEdit: onOpen)
                             .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                     }
                 }
@@ -57,14 +59,17 @@ struct ActivityDayList: View {
     }
 
     /// The day and its totals, as every heading over a card (`SectionHeader`: inset to the rows,
-    /// on one baseline, the totals under the day at the accessibility text sizes).
+    /// on one baseline, the totals under the day at the accessibility text sizes). A day of one row
+    /// shows no total: it was the row's own amount again, just above it (review 2026-10-31).
     private func dayHeader(_ group: (day: Date, items: [AccountDetailView.Activity])) -> some View {
         SectionHeader(title: group.day.transactionDayTitle) {
-            // The day's spending and income: its transactions. A transfer, fee and all, is a
-            // thing of its own (user choice 2026-10-29), so it adds nothing here.
-            DayTotals(items: group.items.compactMap {
-                if case .transaction(let transaction) = $0 { transaction } else { nil }
-            })
+            if group.items.count > 1 {
+                // The day's spending and income: its transactions. A transfer, fee and all, is a
+                // thing of its own (user choice 2026-10-29), so it adds nothing here.
+                DayTotals(items: group.items.compactMap {
+                    if case .transaction(let transaction) = $0 { transaction } else { nil }
+                })
+            }
         }
     }
 }

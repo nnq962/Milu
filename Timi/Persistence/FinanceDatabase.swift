@@ -292,6 +292,7 @@ final class FinanceDatabase {
         for (index, account) in SampleData.accounts.enumerated() {
             let row = AccountRecord(id: account.id, openingBalance: Int64(dong: account.balance), sortOrder: index)
             row.apply(account)
+            row.createdAt = SampleData.openedAt(account)
             context.insert(row)
         }
         for (index, goal) in SampleData.savingsGoals.enumerated() {
@@ -303,6 +304,12 @@ final class FinanceDatabase {
             let row = TransactionRecord(id: transaction.id)
             row.apply(transaction)
             row.createdAt = transaction.date
+            context.insert(row)
+        }
+        for transfer in SampleData.goalTransfers {
+            let row = TransactionRecord(id: transfer.id)
+            row.apply(transfer)
+            row.createdAt = transfer.date
             context.insert(row)
         }
         for contact in SampleData.contacts {

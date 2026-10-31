@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// A search field drawn by the app (a screen of its own, not the bar's): magnifier, the words, a
-/// clear button once something is typed, on a capsule in the card colour with a thin outline. No correction,
+/// clear button once something is typed, and an optional `accessory` at the end (the filter button
+/// of the search screen), on a capsule in the card colour with a thin outline. No correction,
 /// "Tìm" on the keyboard.
-struct SearchField: View {
+struct SearchField<Accessory: View>: View {
     let prompt: String
     @Binding var text: String
     var isFocused: FocusState<Bool>.Binding
     var onSubmit: () -> Void = {}
+    @ViewBuilder var accessory: Accessory
 
     var body: some View {
         HStack(spacing: Spacing.s) {
@@ -33,6 +35,7 @@ struct SearchField: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Xoá chữ đã gõ")
             }
+            accessory
         }
         .padding(.horizontal, Spacing.l)
         // At least the field height, taller with larger text (Dynamic Type).
@@ -44,5 +47,11 @@ struct SearchField: View {
         .overlay { Capsule().strokeBorder(Palette.separator, lineWidth: 1) }
         .contentShape(Capsule())
         .onTapGesture { isFocused.wrappedValue = true }
+    }
+}
+
+extension SearchField where Accessory == EmptyView {
+    init(prompt: String, text: Binding<String>, isFocused: FocusState<Bool>.Binding, onSubmit: @escaping () -> Void = {}) {
+        self.init(prompt: prompt, text: text, isFocused: isFocused, onSubmit: onSubmit) { EmptyView() }
     }
 }

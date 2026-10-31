@@ -137,9 +137,9 @@ struct BudgetView: View {
             // The amounts as MoneyText, grey like the words around them (re-review 2026-10-31).
             HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                 Text("Đã chi")
-                MoneyText(amount: progress.spent, size: .caption, tone: .muted, compact: true)
+                MoneyText(amount: progress.spent, size: .caption, tone: .muted)
                 Text("/")
-                MoneyText(amount: progress.limit, size: .caption, tone: .muted, compact: true)
+                MoneyText(amount: progress.limit, size: .caption, tone: .muted)
                 Spacer(minLength: Spacing.s)
                 Text(progress.ratio.percentText)
             }
@@ -154,7 +154,7 @@ struct BudgetView: View {
                     Spacer(minLength: Spacing.s)
                     HStack(spacing: 0) {
                         Text("~").textRole(.amount)
-                        MoneyText(amount: daily, compact: true)
+                        MoneyText(amount: daily)
                     }
                 }
                 .padding(.top, Spacing.m)
@@ -191,7 +191,7 @@ struct BudgetView: View {
                                 .textRole(.caption)
                                 .foregroundStyle(Palette.secondaryLabel)
                             MoneyText(amount: progress.isOver ? -abs(progress.left) : progress.left,
-                                      size: .caption, tone: .balance, compact: true)
+                                      size: .caption, tone: .balance)
                         }
                         .fixedSize()
                     }

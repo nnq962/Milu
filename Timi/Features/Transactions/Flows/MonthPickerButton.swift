@@ -12,6 +12,9 @@ struct MonthPickerButton: View {
     var compact = false
 
     @State private var isPicking = false
+    /// The ⌄ grows with the words beside it: fixed, it looked tiny at the accessibility sizes
+    /// (review 2026-10-31).
+    @ScaledMetric(relativeTo: .body) private var chevron = RowMetrics.inlineGlyph
 
     var body: some View {
         let calendar = Calendar.current
@@ -58,7 +61,7 @@ struct MonthPickerButton: View {
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
-            TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.inlineGlyph)
+            TimiIcon("hugeicons-arrow-down-01", size: chevron)
         }
         .foregroundStyle(Palette.label)
         // Inside the label, so the whole capsule takes the tap, not only the words.

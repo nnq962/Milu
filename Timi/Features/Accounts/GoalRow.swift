@@ -17,9 +17,9 @@ struct GoalRow: View {
                             noteColor: goal.isOverdue ? Palette.negative : Palette.secondaryLabel) {
                 // In the weight of every amount in a list (strict review 2026-10-31).
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    MoneyText(amount: goal.saved, compact: true)
+                    MoneyText(amount: goal.saved)
                     Text(" / ").textRole(.amount)
-                    MoneyText(amount: goal.target, compact: true)
+                    MoneyText(amount: goal.target)
                 }
             }
         }
@@ -90,11 +90,11 @@ struct GoalCarouselTile: View {
                 // Every amount a `MoneyText`, the target the small grey one (re-review 2026-10-31:
                 // a hand-made " / 50tr" that shrank to fit).
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    MoneyText(amount: goal.saved, compact: true)
+                    MoneyText(amount: goal.saved)
                     Text(" / ")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
-                    MoneyText(amount: goal.target, size: .caption, tone: .muted, compact: true)
+                    MoneyText(amount: goal.target, size: .caption, tone: .muted)
                 }
                 .lineLimit(1)
             }

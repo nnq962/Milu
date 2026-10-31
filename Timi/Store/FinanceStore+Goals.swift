@@ -70,7 +70,7 @@ extension FinanceStore {
                                                      to: Calendar.current.startOfDay(for: date)) ?? date
                 add(GoalTransfer(goalID: goal.id, accountID: leftoverAccount, direction: .withdrawal,
                                  amount: left, date: min(date.addingTimeInterval(1), max(endOfDay, date))))
-                note += " · \(left.vndCompact) về \(account(id: leftoverAccount)?.name ?? "tài khoản")"
+                note += " · \(left.vnd) về \(account(id: leftoverAccount)?.name ?? "tài khoản")"
             }
             close(goal.id, note: note)
         }

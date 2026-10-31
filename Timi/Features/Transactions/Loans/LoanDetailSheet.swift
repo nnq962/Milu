@@ -156,21 +156,26 @@ struct LoanDetailSheet: View {
         }
     }
 
-    /// Every repayment, newest first: tap one to change or delete it.
+    /// Every repayment, newest first: tap one to change or delete it. A loan that was there before
+    /// Timi may have been partly repaid already: that part closes the list as a row of its own, so
+    /// "Đã trả 40%" is not over "Chưa có lần thu nào" (review 2026-10-31). Nothing at all: the
+    /// empty card every other history uses.
     @ViewBuilder
     private func history(_ loan: Loan) -> some View {
         let payments = store.payments(of: loan)
         let lent = loan.direction == .lent
         let title = lent ? "Lịch sử thu nợ" : "Lịch sử trả nợ"
-        if payments.isEmpty {
-            // No empty card: the heading and the note, 8 apart (re-review 2026-10-31: an empty
-            // `FormGroup` card put 16 between them).
-            VStack(alignment: .leading, spacing: Spacing.s) {
+        let earlier = Self.repaidBeforeTimi(loan, payments: payments)
+        if payments.isEmpty && earlier == 0 {
+            VStack(alignment: .leading, spacing: Spacing.headerGap) {
                 SectionHeader(title: title, style: .group)
-                if let footer = historyFooter(loan, isEmpty: true) { FormFooter(message: footer) }
+                EmptyStateCard(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
+                               title: lent ? "Chưa có lần thu nào" : "Chưa có lần trả nào",
+                               message: lent ? "Các lần thu nợ sẽ hiện ở đây." : "Các lần trả nợ sẽ hiện ở đây.")
+                if let reason = store.readOnlyReason(loan) { FormFooter(message: reason) }
             }
         } else {
-            FormGroup(title: title, footer: historyFooter(loan, isEmpty: false)) {
+            FormGroup(title: title, footer: store.readOnlyReason(loan)) {
                 ForEach(Array(payments.enumerated()), id: \.element.id) { index, payment in
                     Button { paying = .edit(payment) } label: {
                         ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
@@ -186,23 +191,30 @@ struct LoanDetailSheet: View {
                     // Under the titles, the icon column scaled with the text as the rows' icons.
                     .overlay(alignment: .top) { if index > 0 { RowDivider(column: .icon) } }
                 }
+                if earlier > 0 {
+                    // Not a repayment of the app's: no account, no date, nothing to open.
+                    ListRow(icon: "hugeicons-checkmark-circle-02",
+                            title: lent ? "Đã thu trước đó" : "Đã trả trước đó",
+                            subtitle: "Trước khi ghi vào Timi",
+                            amount: earlier, amountTone: .neutral, showsChevron: false)
+                        .overlay(alignment: .top) { if !payments.isEmpty { RowDivider(column: .icon) } }
+                }
             }
         }
     }
 
-    /// None yet, and why the money cannot change (an archived account), whichever apply.
-    private func historyFooter(_ loan: Loan, isEmpty: Bool) -> String? {
-        let lent = loan.direction == .lent
-        let parts = [isEmpty ? (lent ? "Chưa có lần thu nào." : "Chưa có lần trả nào.") : nil, store.readOnlyReason(loan)]
-            .compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    /// What of an existing loan's principal was repaid before it was recorded: the principal less
+    /// what is still owed and less the repayments recorded since.
+    static func repaidBeforeTimi(_ loan: Loan, payments: [LoanPayment]) -> Double {
+        guard loan.isExisting else { return 0 }
+        return max(loan.principal - loan.outstanding - payments.reduce(0) { $0 + $1.principal }, 0)
     }
 
     /// "Gốc 5tr · Lãi 375k · Vietcombank".
     private func breakdown(_ payment: LoanPayment) -> String {
         var parts: [String] = []
-        if payment.principal > 0 { parts.append("Gốc \(payment.principal.vndCompact)") }
-        if payment.interest > 0 { parts.append("Lãi \(payment.interest.vndCompact)") }
+        if payment.principal > 0 { parts.append("Gốc \(payment.principal.vnd)") }
+        if payment.interest > 0 { parts.append("Lãi \(payment.interest.vnd)") }
         parts.append(store.account(id: payment.accountID)?.name ?? "Tài khoản đã xoá")
         return parts.joined(separator: " · ")
     }

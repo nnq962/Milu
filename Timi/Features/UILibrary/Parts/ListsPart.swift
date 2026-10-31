@@ -65,8 +65,8 @@ struct ListsPart: View {
                     moneyLine(".signedExpense · tiền ra", MoneyText(amount: 60_000, tone: .signedExpense))
                     moneyLine(".signedNet · dư ra", MoneyText(amount: 1_250_000, tone: .signedNet))
                     moneyLine(".signedNet · thiếu", MoneyText(amount: -340_000, tone: .signedNet))
-                    moneyLine(".balance · số dư âm", MoneyText(amount: -6_430_000, tone: .balance, compact: true))
-                    moneyLine(".muted · không tính", MoneyText(amount: 20_000_000, tone: .muted, compact: true))
+                    moneyLine(".balance · số dư âm", MoneyText(amount: -6_430_000, tone: .balance))
+                    moneyLine(".muted · không tính", MoneyText(amount: 20_000_000, tone: .muted))
                     moneyLine(".neutral · chuyển giữa tài khoản", MoneyText(amount: 2_000_000))
                 }
             }

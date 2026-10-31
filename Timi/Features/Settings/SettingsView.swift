@@ -77,7 +77,7 @@ struct SettingsView: View {
                             BudgetView()
                         } label: {
                             NavigationRowContent(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
-                                               value: monthlyBudget > 0 ? monthlyBudget.vndCompact : "Chưa đặt")
+                                               value: monthlyBudget > 0 ? monthlyBudget.vnd : "Chưa đặt")
                         }
                         .buttonStyle(.row)
                     }

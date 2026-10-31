@@ -22,7 +22,7 @@ struct TotalBalanceHeader: View {
                 // Wraps onto a second line at large text instead of running off the edge.
                 FlowLayout(spacing: Spacing.xs) {
                     if change != 0 {
-                        Text("\(change > 0 ? "↑" : "↓") \(abs(change).vndCompact) trong tháng này")
+                        Text("\(change > 0 ? "↑" : "↓") \(abs(change).vnd) trong tháng này")
                             .textRole(.captionStrong)
                             .monospacedDigit()
                             .foregroundStyle(change > 0 ? Palette.positive : Palette.negative)
@@ -31,7 +31,7 @@ struct TotalBalanceHeader: View {
                     if lockedMoney > 0 {
                         HStack(spacing: Spacing.xs) {
                             TimiIcon("hugeicons-square-lock-02", size: RowMetrics.inlineGlyph)
-                            Text("Đã khoá \(lockedMoney.vndCompact)")
+                            Text("Đã khoá \(lockedMoney.vnd)")
                         }
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
@@ -77,8 +77,8 @@ struct BalanceCard: View {
                 HStack(spacing: Spacing.xs) {
                     TimiIcon("hugeicons-alert-circle", size: RowMetrics.inlineGlyph)
                     Text(negatives.count == 1
-                         ? "Âm \(abs(owed).vndCompact) ở \(negatives[0].name)"
-                         : "Âm \(abs(owed).vndCompact) ở \(negatives.count) tài khoản")
+                         ? "Âm \(abs(owed).vnd) ở \(negatives[0].name)"
+                         : "Âm \(abs(owed).vnd) ở \(negatives.count) tài khoản")
                 }
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.negative)
