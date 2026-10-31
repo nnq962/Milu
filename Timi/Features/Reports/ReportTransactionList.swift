@@ -10,9 +10,9 @@ struct ReportTransactionList: View {
     var limit = 5
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            SectionHeader(title: "Giao dịch · \(transactions.count)", style: .group) { EmptyView() }
-                .padding(.bottom, Spacing.headerGap - Spacing.s)
+        // A main page's heading, as every part of Báo cáo (strict review 2026-10-31).
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            SectionHeader(title: "Giao dịch · \(transactions.count)")
             VStack(spacing: 0) {
                 TransactionRows(transactions: Array(transactions.prefix(limit)))
                 if transactions.count > limit {
@@ -23,15 +23,15 @@ struct ReportTransactionList: View {
                             Text("Xem tất cả \(transactions.count) giao dịch")
                                 .textRole(.body)
                             Spacer(minLength: Spacing.s)
-                            TimiIcon("hugeicons-arrow-right-01", size: 16)
-                                .foregroundStyle(Palette.secondary)
+                            RowChevron()
                         }
                         .padding(.horizontal, RowMetrics.horizontal)
                         .frame(minHeight: RowMetrics.minHeight)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) { RowDivider() }
+                    // No icon on this row, so the hairline starts where its words do.
+                    .overlay(alignment: .top) { RowDivider(column: .none) }
                 }
             }
             .listCard()
@@ -50,7 +50,8 @@ private struct AllReportTransactionsView: View {
                 .listCard()
         }
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-        .contentMargins(.top, Spacing.l, for: .scrollContent)
+        // The top margin of every detail page (strict review 2026-10-31).
+        .contentMargins(.top, Spacing.s, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
         .foregroundStyle(Palette.ink)

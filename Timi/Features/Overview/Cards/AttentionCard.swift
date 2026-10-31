@@ -11,13 +11,15 @@ struct AttentionCard: View {
 
     var body: some View {
         let reminders = store.paymentReminders.sorted { $0.dueDate < $1.dueDate }
-        VStack(alignment: .leading, spacing: Spacing.l) {
-            Text("Cần chú ý")
-                .textRole(.title)
+        // The shared heading, `headerGap` above the rows (strict review 2026-10-31).
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            SectionHeader(title: "Cần chú ý")
             if reminders.isEmpty {
-                Text("Chưa có lịch thanh toán sắp tới.")
+                // One short line under the heading, starting where it starts.
+                Text("Khoản sắp đến hạn sẽ hiện ở đây.")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
+                    .padding(.horizontal, RowMetrics.horizontal)
             } else {
                 VStack(spacing: Spacing.l) {
                     ForEach(reminders) { reminder in
@@ -43,7 +45,7 @@ struct AttentionCard: View {
                     .foregroundStyle(Palette.secondaryText)
             }
             .frame(minWidth: leafSize, minHeight: leafSize)
-            .background(Palette.muted, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(Palette.muted, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(reminder.title)
                     .textRole(.label)
@@ -54,10 +56,8 @@ struct AttentionCard: View {
                     .foregroundStyle(days < 0 ? Palette.red : days <= 3 ? Palette.warningText : Palette.secondaryText)
             }
             Spacer(minLength: Spacing.s)
-            Text("\(reminder.isIncome ? "+" : "-")\(reminder.amount.vndCompact)")
-                .textRole(.label)
-                .monospacedDigit()
-                .foregroundStyle(reminder.isIncome ? Palette.income : Palette.red)
+            MoneyText(amount: reminder.amount, tone: reminder.isIncome ? .signedIncome : .signedExpense, compact: true)
+                .fixedSize()
         }
         .accessibilityElement(children: .combine)
     }

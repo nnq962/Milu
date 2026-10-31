@@ -137,12 +137,6 @@ struct TransactionSearchFilter: Equatable {
         groupIDs.formIntersection(Set(fitting.map(\.id)))
     }
 
-    /// "29/10" this year, "29/10/2025" another.
-    private static func day(_ date: Date) -> String {
-        let sameYear = Calendar.current.isDate(date, equalTo: .now, toGranularity: .year)
-        return TransactionListRow.dayMonth(date) + (sameYear ? "" : "/\(Calendar.current.component(.year, from: date))")
-    }
-
     mutating func clear(_ part: Part) {
         switch part {
         case .kind: kind = .all
@@ -158,7 +152,7 @@ struct TransactionSearchFilter: Equatable {
         var chips: [Chip] = []
         if kind != .all { chips.append(Chip(part: .kind, title: kind.title)) }
         if period == .custom {
-            chips.append(Chip(part: .period, title: "\(Self.day(min(from, to)))–\(Self.day(max(from, to)))"))
+            chips.append(Chip(part: .period, title: "\(min(from, to).shortDay)–\(max(from, to).shortDay)"))
         } else if period != .all {
             chips.append(Chip(part: .period, title: period.title))
         }
@@ -238,12 +232,32 @@ struct TransactionFilterSheet: View {
             + deletedGoalIDs.map { ($0, "Hũ đã xoá", "hugeicons-piggy-bank") }
     }
 
+    private var kindChips: some View {
+        HStack(spacing: Spacing.s) {
+            ForEach(TransactionFilter.allCases) { kind in
+                TagChip(title: kind.title, isProminent: draft.kind == kind) {
+                    draft.setKind(kind, groupsOf: store)
+                }
+                .accessibilityAddTraits(draft.kind == kind ? .isSelected : [])
+            }
+        }
+        .padding(.horizontal, RowMetrics.horizontal)
+    }
+
     var body: some View {
-        SheetScaffold(title: "Bộ lọc", canConfirm: amountError == nil && dateError == nil, onConfirm: apply) {
-            // The page's chips, so the four kinds read in full.
+        // ✓ stays on; the red lines already say what to fix (sheet review 2026-10-30).
+        SheetScaffold(title: "Bộ lọc", validate: { amountError == nil && dateError == nil }, onConfirm: apply) {
+            // The four kinds in full, as plain chips (glass is for the bars) starting at the 16 of
+            // the heading and the rows below (strict review 2026-10-31).
             VStack(alignment: .leading, spacing: Spacing.headerGap) {
                 SectionHeader(title: "Loại", style: .group)
-                FilterChips(selection: Binding { draft.kind } set: { draft.setKind($0, groupsOf: store) })
+                ViewThatFits(in: .horizontal) {
+                    kindChips
+                    ScrollView(.horizontal) { kindChips }
+                        .scrollIndicators(.hidden)
+                        .modifier(NoScrollEdgeEffect())
+                }
+                .sensoryFeedback(.selection, trigger: draft.kind)
             }
 
             FormGroup(title: "Thời gian", error: dateError) {
@@ -263,29 +277,37 @@ struct TransactionFilterSheet: View {
                 FormAmountRow(title: "Đến", text: $maxText)
             }
 
-            FormGroup(title: "Tài khoản", footer: "Không chọn là mọi tài khoản.") {
-                ForEach(Array(sources.enumerated()), id: \.element.id) { index, source in
-                    toggleRow(icon: source.icon, title: source.name, isOn: draft.accountIDs.contains(source.id)) {
-                        draft.accountIDs.formSymmetricDifference([source.id])
-                    }
-                    .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+            // One row each, opening the list to tick (sheet review 2026-10-30: every account and
+            // every group inline made the sheet very long). "Tất cả" says what no tick means.
+            // Titled as every other group of the sheet (strict review 2026-10-31).
+            FormGroup(title: "Phạm vi") {
+                NavigationLink {
+                    MultiPickPage(title: "Tài khoản", options: sources.map { ($0.id.uuidString, $0.name, $0.icon) },
+                                  selection: Binding {
+                                      Set(draft.accountIDs.map(\.uuidString))
+                                  } set: { draft.accountIDs = Set($0.compactMap(UUID.init(uuidString:))) })
+                } label: {
+                    FormValueLabel(title: "Tài khoản", icon: nil,
+                                   value: draft.accountIDs.isEmpty ? "Tất cả" : "\(draft.accountIDs.count) tài khoản")
                 }
-            }
-
-            if !groups.isEmpty {
-                FormGroup(title: "Nhóm hạng mục", footer: "Không chọn là mọi nhóm.") {
-                    ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                        toggleRow(icon: group.icon, title: group.name, isOn: draft.groupIDs.contains(group.id)) {
-                            draft.groupIDs.formSymmetricDifference([group.id])
-                        }
-                        .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                .buttonStyle(.row)
+                if !groups.isEmpty {
+                    FormDivider(hasIcon: false)
+                    NavigationLink {
+                        MultiPickPage(title: "Nhóm hạng mục", options: groups.map { ($0.id, $0.name, $0.icon) },
+                                      selection: $draft.groupIDs)
+                    } label: {
+                        FormValueLabel(title: "Nhóm hạng mục", icon: nil,
+                                       value: draft.groupIDs.isEmpty ? "Tất cả" : "\(draft.groupIDs.count) nhóm")
                     }
+                    .buttonStyle(.row)
                 }
             }
 
             if draft.isActive || minAmount != nil || maxAmount != nil {
                 FormGroup {
-                    FormActionRow(title: "Đặt lại bộ lọc", icon: "hugeicons-cancel-01") {
+                    // Not the ✕ glyph, which read as the sheet's close button.
+                    FormActionRow(title: "Đặt lại bộ lọc", icon: "hugeicons-filter-horizontal") {
                         withAnimation(.smooth(duration: 0.25)) {
                             draft = TransactionSearchFilter()
                             minText = ""
@@ -300,21 +322,52 @@ struct TransactionFilterSheet: View {
         .animation(.smooth(duration: 0.25), value: draft.kind)
     }
 
-    private func toggleRow(icon: String, title: String, isOn: Bool, toggle: @escaping () -> Void) -> some View {
-        Button {
-            toggle()
-            Haptics.selection()
-        } label: {
-            PickerRowLabel(icon: icon, title: title, isSelected: isOn)
-        }
-        .buttonStyle(.row)
-        .accessibilityAddTraits(isOn ? .isSelected : [])
-    }
-
     private func apply() {
         draft.minAmount = minAmount
         draft.maxAmount = maxAmount
         filter = draft
         dismiss()
+    }
+}
+
+/// A list to tick any number of, pushed from the filter sheet: none ticked means all of them.
+private struct MultiPickPage: View {
+    let title: String
+    let options: [(id: String, name: String, icon: String)]
+    @Binding var selection: Set<String>
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
+                    let isOn = selection.contains(option.id)
+                    Button {
+                        selection.formSymmetricDifference([option.id])
+                        Haptics.selection()
+                    } label: {
+                        PickerRowLabel(icon: option.icon, title: option.name, isSelected: isOn)
+                    }
+                    .buttonStyle(.row)
+                    .accessibilityAddTraits(isOn ? .isSelected : [])
+                    .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                }
+            }
+            .listCard()
+        }
+        .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
+        // The top margin of every detail page and sheet (strict review 2026-10-31).
+        .contentMargins(.top, Spacing.s, for: .scrollContent)
+        .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
+        .background(Palette.background)
+        .foregroundStyle(Palette.ink)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !selection.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Bỏ chọn") { selection = [] }
+                }
+            }
+        }
     }
 }

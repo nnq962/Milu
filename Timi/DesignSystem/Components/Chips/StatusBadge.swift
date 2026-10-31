@@ -20,7 +20,7 @@ enum BadgeTone: CaseIterable, Identifiable {
     fileprivate var background: Color {
         switch self {
         case .neutral: Palette.fill2
-        case .positive: Palette.green.opacity(0.12)
+        case .positive: Palette.incomeTile
         case .accent: Palette.lime
         case .caution: Palette.warning.opacity(0.16)
         case .warning: Palette.red.opacity(0.10)
@@ -71,10 +71,12 @@ struct StatusBadge: View {
             }
             Text(text).textRole(.captionStrong).lineLimit(1).monospacedDigit()
         }
-        .fixedSize()
+        .fixedSize(horizontal: true, vertical: false)
         .foregroundStyle(tone.foreground)
         .padding(.horizontal, Self.horizontalPadding)
-        .frame(height: Self.height)
+        // At least 24, taller with large text instead of spilling out of the pill.
+        .padding(.vertical, Spacing.xxs)
+        .frame(minHeight: Self.height)
         .background(tone.background, in: Capsule())
         .accessibilityElement(children: .combine)
     }

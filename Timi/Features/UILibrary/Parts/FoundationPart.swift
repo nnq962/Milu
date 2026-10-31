@@ -1,28 +1,40 @@
 import SwiftUI
 
 struct FoundationPart: View {
-    private let colors: [(name: String, hex: String, color: Color)] = [
-        ("background", "#FAF7F2", Palette.background),
-        ("card", "#FFFFFF", Palette.card),
-        ("ink", "#1F2A22", Palette.ink),
-        ("primary", "#3E5B3F", Palette.primary),
-        ("green (dấu hiệu tốt)", "#1E5A48", Palette.green),
-        ("income (tiền vào)", "= ink", Palette.income),
-        ("red (tiền ra)", "#B5543F", Palette.red),
-        ("lime (vàng)", "#E0A840", Palette.lime),
-        ("sky", "#5FB89A", Palette.sky),
-        ("warning", "#E8890C", Palette.warning),
-        ("chartCoral", "#E8917A", Palette.chartCoral),
-        ("chartRest", "#A9B9A0", Palette.chartRest),
-        ("secondaryText", "#6F675B", Palette.secondaryText),
-        ("muted", "#F1EEE6", Palette.muted),
-        ("border", "#ECE7DC", Palette.border),
-        ("input", "#F4F1EA", Palette.input),
-        ("incomeTile", "green 12%", Palette.incomeTile),
-        ("rowPressed", "primary 10%", Palette.rowPressed),
-        ("fill1", "mực 4%", Palette.fill1),
-        ("fill2", "mực 6%", Palette.fill2),
-        ("fill3", "mực 10%", Palette.fill3),
+    /// The tokens themselves; the hex under each is read from the colour, so it follows a combo
+    /// tried in "Màu (thử)" (strict review 2026-10-31: written by hand, it went stale).
+    private var colors: [(name: String, color: Color)] {
+        [
+            ("background", Palette.background), ("card", Palette.card), ("ink", Palette.ink),
+            ("primary", Palette.primary), ("green (dấu hiệu tốt)", Palette.green),
+            ("income (tiền vào)", Palette.income), ("red (tiền ra)", Palette.red),
+            ("lime (xanh chanh)", Palette.lime), ("sky", Palette.sky), ("warning", Palette.warning),
+            ("chartCoral", Palette.chartCoral), ("chartRest", Palette.chartRest),
+            ("secondary", Palette.secondary), ("secondaryText", Palette.secondaryText),
+            ("muted", Palette.muted), ("border", Palette.border), ("input", Palette.input),
+            ("rowPressed", Palette.rowPressed), ("primaryTint", Palette.primaryTint),
+            ("primaryTrack", Palette.primaryTrack), ("primaryDash", Palette.primaryDash),
+            ("limeTile", Palette.limeTile), ("incomeTile", Palette.incomeTile),
+            ("fill1", Palette.fill1), ("fill2", Palette.fill2), ("fill3", Palette.fill3),
+            // Words on a filled colour, the orange for words, the tint of native controls
+            // (re-review 2026-10-31: missing here).
+            ("onPrimary (chữ trên primary)", Palette.onPrimary), ("onRed (chữ trên red)", Palette.onRed),
+            ("onLime (chữ trên lime)", Palette.onLime), ("warningText (chữ cam)", Palette.warningText),
+            ("controlTint (control native)", Palette.controlTint),
+        ]
+    }
+
+    private let heights: [(name: String, value: CGFloat)] = [
+        ("Nút lớn", ControlHeight.large), ("Nút thường", ControlHeight.regular),
+        ("Nút nhỏ, chip", ControlHeight.small), ("Ô nhập", ControlHeight.field),
+        ("Dòng", RowMetrics.minHeight), ("Icon đứng riêng", RowMetrics.featureIcon),
+        ("Logo trong danh sách", RowMetrics.listLogo), ("Cột icon dòng", RowMetrics.iconColumn),
+        ("Glyph icon dòng", RowMetrics.iconGlyph), ("Khoảng icon → chữ", RowMetrics.gap),
+        ("Icon trong sheet chọn icon", RowMetrics.iconChoice),
+        ("Glyph trên thanh", RowMetrics.toolbarGlyph), ("Khung glyph trên thanh", RowMetrics.toolbarGlyphFrame),
+        ("Mũi tên › cuối dòng", RowMetrics.chevron), ("› ⌄ × sau chữ", RowMetrics.linkChevron),
+        ("Glyph trước dòng chữ", RowMetrics.inlineGlyph), ("Chấm chú thích", RowMetrics.legendDot),
+        ("Nét vòng tiến độ", RowMetrics.ringStroke), ("Vạch kẻ lùi (cột icon)", RowMetrics.dividerInset),
     ]
 
     private let radii: [(name: String, value: CGFloat)] = [
@@ -45,7 +57,8 @@ struct FoundationPart: View {
                                         .strokeBorder(Palette.border, lineWidth: 1)
                                 }
                             Text(item.name).textRole(.captionStrong).lineLimit(1).minimumScaleFactor(0.8)
-                            Text(item.hex).textRole(.footnote).foregroundStyle(Palette.secondaryText)
+                            Text(Self.hex(item.color)).textRole(.footnote).foregroundStyle(Palette.secondaryText)
+                                .monospacedDigit()
                         }
                     }
                 }
@@ -76,7 +89,7 @@ struct FoundationPart: View {
                             Text("\(Int(step.value))").textRole(.footnote).foregroundStyle(Palette.secondaryText)
                         }
                     }
-                    Text("Lề màn \(Int(Spacing.page)) · giữa các phần \(Int(Spacing.section)) · đệm thẻ \(Int(Spacing.card))")
+                    Text("Lề màn \(Int(Spacing.page)) · giữa các phần \(Int(Spacing.section)) (trang không thẻ \(Int(Spacing.flatSection))) · tiêu đề → thẻ \(Int(Spacing.headerGap)) · đệm thẻ \(Int(Spacing.card)) (thẻ đầu trang \(Int(Spacing.leadCard))) · dòng lùi \(Int(RowMetrics.horizontal))")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
                         .padding(.top, Spacing.xs)
@@ -97,11 +110,46 @@ struct FoundationPart: View {
                 }
             }
 
-            SampleCard(label: "Chiều cao điều khiển") {
-                Text("Nút lớn 56 · thường 44 · nhỏ 36 · ô nhập 44 · dòng 52 · nút nổi 56. Không thứ gì bấm được thấp hơn 44, trừ chip trong nội dung.")
-                    .textRole(.body)
+            SampleCard(label: "Kích thước · ControlHeight & RowMetrics") {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    ForEach(heights, id: \.name) { item in
+                        HStack {
+                            Text(item.name).textRole(.body)
+                            Spacer(minLength: Spacing.s)
+                            Text("\(Int(item.value))").textRole(.body).monospacedDigit()
+                                .foregroundStyle(Palette.secondaryText)
+                        }
+                    }
+                    Text("Không thứ gì bấm được thấp hơn \(Int(ControlHeight.regular)), trừ chip trong nội dung.")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                }
+            }
+
+            SampleCard(label: "Bóng · softCardShadow") {
+                HStack(spacing: Spacing.l) {
+                    RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
+                        .fill(Palette.card)
+                        .frame(height: 64)
+                        .softCardShadow()
+                    RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
+                        .fill(Palette.card)
+                        .frame(height: 64)
+                        .softCardShadow(false)
+                }
+                .padding(Spacing.s)
+                .background(Palette.background, in: RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
             }
         }
+    }
+
+    /// "#3E5B3F", with "· 10%" when the colour is see-through.
+    private static func hex(_ color: Color) -> String {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        let byte = { (value: CGFloat) in Int((min(max(value, 0), 1) * 255).rounded()) }
+        let text = String(format: "#%02X%02X%02X", byte(red), byte(green), byte(blue))
+        return alpha < 0.995 ? "\(text) · \(Int((alpha * 100).rounded()))%" : text
     }
 
     private func weightName(_ weight: Font.Weight) -> String {

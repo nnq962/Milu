@@ -82,10 +82,8 @@ struct LoanPaymentSheet: View {
                 TimiAmountField(text: $principalText, showsSuggestions: !interestOnly,
                                 focusesOnAppear: original == nil && !interestOnly, presets: presets, label: "Tiền gốc")
                     .disabled(interestOnly)
+                // Interest only: the greyed field and the title say so, no caption (sheet review).
                 if interestOnly {
-                    Text("Đã \(lent ? "thu" : "trả") đủ tiền gốc, chỉ ghi tiền lãi.")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
                     if showsErrors, interest <= 0 {
                         FormErrorText(text: "Nhập tiền lãi.")
                     }
@@ -126,14 +124,13 @@ struct LoanPaymentSheet: View {
         .onAppear { if openedLeft == nil { openedLeft = liveLeft } }
     }
 
-    /// What is left after this one, and where the interest goes.
-    private var footer: String {
-        let after = max(left - principal, 0)
-        let rest = after > 0 ? "Còn lại sau lần này: \(after.vnd)." : (lent ? "Lần này thu hết khoản vay." : "Lần này trả hết khoản vay.")
-        let interestNote = lent ? "Tiền lãi tính là thu nhập." : "Tiền lãi tính là chi tiêu."
+    /// What is left after this one, a figure worked out as it is typed. No note on where the
+    /// interest goes: a footer is only for a computed figure or an error (strict review 2026-10-31).
+    private var footer: String? {
         // Only interest left: what is left of the loan is not news.
-        if interestOnly { return interestNote }
-        return rest + (interest > 0 ? " " + interestNote : "")
+        if interestOnly { return nil }
+        let after = max(left - principal, 0)
+        return after > 0 ? "Còn lại sau lần này: \(after.vnd)." : (lent ? "Lần này thu hết khoản vay." : "Lần này trả hết khoản vay.")
     }
 
     private func save() {

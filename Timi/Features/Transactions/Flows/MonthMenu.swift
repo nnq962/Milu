@@ -5,11 +5,13 @@ import SwiftUI
 /// one ticked), then "Tháng khác…" for the month-and-year wheels in a small sheet. The popover the
 /// wheels used to open in pointed an arrow at the button, which read as dated.
 ///
-/// The capsule is plain glass (`GlassCapsule`); `compact` is the quiet form for a section heading
-/// (Lịch thu chi on Tổng quan): moss words (14) and chevron with no capsule, still 44pt to tap.
+/// The capsule is a flat fill (`FilledCapsule`); `compact` is moss words (14) for beside a section
+/// heading (Lịch thu chi on Tổng quan).
 struct MonthMenu: View {
     @Binding var month: Date
     var compact = false
+    /// The colour of the compact words: moss, or ink on the soft cards of Tổng quan.
+    var tint: Color = Palette.primary
 
     @State private var isPicking = false
 
@@ -17,8 +19,8 @@ struct MonthMenu: View {
         let calendar = Calendar.current
         let year = calendar.component(.year, from: month)
         let number = calendar.component(.month, from: month)
-        let isCurrentYear = year == calendar.component(.year, from: .now)
-        let title = isCurrentYear ? "Tháng \(number)" : "T\(number)/\(year.formatted(.number.grouping(.never)))"
+        // The button says what its menu says ("Tháng 9/2025", not "T9/2025") (strict review 2026-10-31).
+        let title = Self.name(of: month)
         Menu {
             Picker("Tháng", selection: chosenMonth) {
                 ForEach(recentMonths, id: \.self) { start in
@@ -28,15 +30,21 @@ struct MonthMenu: View {
             Divider()
             Button("Tháng khác…") { isPicking = true }
         } label: {
-            if compact { compactLabel(title) } else { capsuleLabel(title) }
+            if compact { HeaderCapsuleLabel(title: title, opensMenu: true, color: tint) } else { capsuleLabel(title) }
         }
         .menuOrder(.fixed)
         .modifier(MonthMenuStyle(compact: compact))
+        // A new button for each month: the menu kept the old label's width, so "Tháng 9" ↔
+        // "Tháng 10" came out cut short, overlapping or too wide (user report 2026-10-31). It swaps
+        // at once: a fade left the old month showing through the new one.
+        .id(title)
+        .transition(.identity)
         .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
         .sheet(isPresented: $isPicking) {
             MonthPickerPopover(month: $month)
+                // Apple's own sheet: one height, so iOS shows no grabber, as on every other one.
                 .presentationDetents([.height(320)])
-                .presentationDragIndicator(.visible)
+                .presentationBackground(Palette.background)
         }
     }
 
@@ -61,28 +69,12 @@ struct MonthMenu: View {
         return months
     }
 
-    /// "Tháng 9" this year, "Tháng 9/2025" another.
-    private static func name(of start: Date) -> String {
+    /// "Tháng 9" this year, "Tháng 9/2025" another: the button, its menu, and the page's empty state.
+    static func name(of start: Date) -> String {
         let calendar = Calendar.current
         let number = calendar.component(.month, from: start)
         let year = calendar.component(.year, from: start)
         return year == calendar.component(.year, from: .now) ? "Tháng \(number)" : "Tháng \(number)/\(String(year))"
-    }
-
-    private func compactLabel(_ title: String) -> some View {
-        HStack(spacing: Spacing.xs) {
-            // 14, clearly under the 17 heading beside it: 16 read as large as the heading, 13 as
-            // too small (user 2026-10-30).
-            Text(title)
-                .textRole(.accessory)
-                .monospacedDigit()
-                .fixedSize()
-                .contentTransition(.numericText())
-            TimiIcon("hugeicons-arrow-down-01", size: 12)
-        }
-        .foregroundStyle(Palette.primary)
-        .frame(minHeight: ControlHeight.regular)
-        .contentShape(Rectangle())
     }
 
     private func capsuleLabel(_ title: String) -> some View {
@@ -92,8 +84,7 @@ struct MonthMenu: View {
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
-                .contentTransition(.numericText())
-            TimiIcon("hugeicons-arrow-down-01", size: 14)
+            TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.inlineGlyph)
         }
         .foregroundStyle(Palette.ink)
         // Inside the label, so the whole capsule takes the tap, not only the words.
@@ -105,16 +96,16 @@ struct MonthMenu: View {
     }
 }
 
-/// The menu's button: plain words for `compact`, else the glass capsule.
+/// The menu's button: a filled capsule, or plain moss words for `compact`.
 private struct MonthMenuStyle: ViewModifier {
     let compact: Bool
 
     func body(content: Content) -> some View {
         if compact {
+            // Plain words, as every control on a heading's row (user request 2026-10-30).
             content.buttonStyle(.plain)
         } else {
-            // The same plain glass as the circles beside it (user choice 2026-10-29, after lime).
-            content.modifier(GlassCapsule())
+            content.modifier(FilledCapsule())
         }
     }
 }
@@ -133,6 +124,7 @@ struct MonthPickerPopover: View {
     @State private var showsThisMonth: Bool
 
     private let calendar = Calendar.current
+    private static let wheelsSize = CGSize(width: 300, height: 216)
 
     init(month: Binding<Date>) {
         _month = month
@@ -152,17 +144,25 @@ struct MonthPickerPopover: View {
 
     var body: some View {
         VStack(spacing: Spacing.s) {
+            // UIDatePicker wheels have no size of their own in SwiftUI: 216 is their standard
+            // height, and the width keeps month and year close together in the middle of the sheet
+            // rather than flung to its edges.
             MonthYearWheels(month: $month, range: earliest...Date.now)
-                .frame(width: 300, height: 216)
+                .frame(width: Self.wheelsSize.width, height: Self.wheelsSize.height)
             if showsThisMonth {
-                Button("Tháng này") {
+                Button {
                     Haptics.selection()
                     withAnimation(.smooth(duration: 0.3)) { month = .now.startOfMonth }
                     dismiss()
+                } label: {
+                    // The frame inside the label, so all 44 take the tap (strict review 2026-10-31).
+                    Text("Tháng này")
+                        .padding(.horizontal, Spacing.l)
+                        .frame(minHeight: ControlHeight.regular)
+                        .contentShape(Rectangle())
                 }
                 .textRole(.bodyStrong)
                 .tint(Palette.primary)
-                .frame(minHeight: ControlHeight.regular)
             }
         }
         .padding(.vertical, Spacing.s)
@@ -215,19 +215,13 @@ private extension Date {
     }
 }
 
-/// The month button's look: the iOS default glass, as the search circle beside it, 44pt tall
-/// like it. A glass button style there takes the toolbar's smaller height, so the capsule is
-/// drawn here; earlier iOS has no glass and takes the light grey fill a bordered button has.
-private struct GlassCapsule: ViewModifier {
+/// The month button's look: a flat fill, as the report circle beside it. Glass here, inside a
+/// scrolling card, trailed behind the card as the page scrolled just after a month was picked
+/// (user report 2026-10-31); Apple keeps glass for the bars above the content.
+private struct FilledCapsule: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Capsule())
-        } else {
-            content
-                .buttonStyle(.plain)
-                .background(Palette.fill3, in: Capsule())
-        }
+        content
+            .buttonStyle(.plain)
+            .background(Palette.fill2, in: Capsule())
     }
 }

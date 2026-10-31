@@ -51,7 +51,7 @@ struct SheetScaffold<Header: View, Content: View>: View {
 
     private var closeButton: some View { SheetCloseButton() }
 
-    /// iOS 26 draws ✓ on a filled glass circle in the tint (teal); it greys itself out when disabled.
+    /// iOS 26 draws ✓ on a filled glass circle in the tint (the primary colour); it greys itself out when disabled.
     @ViewBuilder
     private func confirmButton(_ confirm: @escaping () -> Void) -> some View {
         let action = {

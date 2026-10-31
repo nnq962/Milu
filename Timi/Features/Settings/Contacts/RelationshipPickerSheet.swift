@@ -23,7 +23,8 @@ struct RelationshipPickerSheet: View {
                 .padding(.horizontal, Spacing.page)
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
             ScrollView {
-                FormGroup(footer: store.customRelationships.isEmpty ? nil : "Chạm bút chì để sửa hoặc xoá loại bạn đã thêm.") {
+                // No footer: the pencil names itself to VoiceOver (strict review 2026-10-31).
+                FormGroup {
                     ForEach(Array(relationships.enumerated()), id: \.element.id) { index, relationship in
                         row(relationship)
                             .overlay(alignment: .top) { if index > 0 { FormDivider() } }
@@ -58,15 +59,28 @@ struct RelationshipPickerSheet: View {
         }
     }
 
-    /// Picks on tap; a relationship the user added also has a pencil to edit it.
+    /// Picks on tap; a relationship the user added also has a pencil to edit it. Once any has one,
+    /// every row keeps the pencil's place (empty on the built-in ones), so the ✓ stays in one
+    /// column; the pencil's glyph ends 16 from the edge like everything else on the right
+    /// (strict review 2026-10-31: the ✓ jumped ~52pt left on rows with a pencil).
     private func row(_ relationship: Relationship) -> some View {
         let isSelected = relationship.id == selection
+        let hasPencils = !store.customRelationships.isEmpty
+        let pencilTrailing = RowMetrics.horizontal - (ControlHeight.regular - RowMetrics.iconGlyph) / 2
         return HStack(spacing: 0) {
             Button {
                 selection = relationship.id
                 dismiss()
             } label: {
-                PickerRowLabel(icon: relationship.icon, title: relationship.name, isSelected: isSelected)
+                HStack(spacing: 0) {
+                    PickerRowLabel(icon: relationship.icon, title: relationship.name, isSelected: isSelected)
+                    if hasPencils, relationship.isBuiltIn {
+                        // The pencil's place, part of the row so it still picks.
+                        Color.clear
+                            .frame(width: ControlHeight.regular + pencilTrailing)
+                    }
+                }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.row)
             .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -74,11 +88,11 @@ struct RelationshipPickerSheet: View {
                 Button { editing = .edit(relationship) } label: {
                     TimiIcon("hugeicons-pencil-edit-01", size: RowMetrics.iconGlyph)
                         .foregroundStyle(Palette.ink)
-                        .frame(width: 44, height: 44)
+                        .frame(width: ControlHeight.regular, height: ControlHeight.regular)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, RowMetrics.horizontal - Spacing.s)
+                .padding(.trailing, pencilTrailing)
                 .accessibilityLabel("Sửa \(relationship.name)")
             }
         }

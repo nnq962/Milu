@@ -63,11 +63,13 @@ struct InstantTabSwitch: UIViewControllerRepresentable {
             return original?.tabBarController?(tabBarController, shouldSelectTab: tab) ?? true
         }
 
-        /// iOS 17: the + is the fifth tab.
+        /// The + is the last tab: the fifth on iOS 17, the search-role one on iOS 26, where SwiftUI
+        /// asks only this (not `shouldSelectTab`). Checking for five tabs here let the + through on
+        /// iOS 26: its empty page showed for a frame before the sheet, a white flash (user report
+        /// 2026-10-31).
         func tabBarController(_ tabBarController: UITabBarController,
                               shouldSelect viewController: UIViewController) -> Bool {
-            if let controllers = tabBarController.viewControllers, controllers.count == 5,
-               viewController === controllers.last {
+            if viewController === tabBarController.viewControllers?.last {
                 onAddTab()
                 return false
             }
@@ -81,7 +83,7 @@ struct InstantTabSwitch: UIViewControllerRepresentable {
         }
 
         override func responds(to selector: Selector!) -> Bool {
-            super.responds(to: selector) || (original?.responds(to: selector) ?? false)
+            return super.responds(to: selector) || (original?.responds(to: selector) ?? false)
         }
 
         override func forwardingTarget(for selector: Selector!) -> Any? {

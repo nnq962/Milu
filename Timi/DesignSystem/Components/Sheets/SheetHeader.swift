@@ -1,13 +1,13 @@
 import SwiftUI
 
 /// Header of a short sheet, laid out like a native sheet's bar: ✕ on the left, title centred and,
-/// when there is something to confirm, ✓ on the right (teal, like the form sheet's).
-/// Its ✕ and ✓ are the system's own glyphs, as `SheetCloseButton` and the native close/confirm
-/// buttons are: it stands in for a navigation bar where a sheet has none.
+/// when there is something to confirm, ✓ on the right (in the primary colour, like the form
+/// sheet's). On iOS 26 both are the system's own close and confirm buttons on glass circles,
+/// glyph and all, so they match `SheetCloseButton` and the form sheet's ✓ (sheet review
+/// 2026-10-30: they were glyphs drawn on hand-made glass). It stands in for a navigation bar
+/// where a fitted sheet has none, so it never takes part in a push and pop.
 struct SheetHeader: View {
-    private static let button: CGFloat = 44
-    private static let glyphSize: CGFloat = 17
-    private static let glyphFrame: CGFloat = RowMetrics.toolbarGlyphFrame
+    private static let button = ControlHeight.regular
 
     let title: String
     var onConfirm: (() -> Void)? = nil
@@ -21,43 +21,56 @@ struct SheetHeader: View {
                 .lineLimit(1)
                 .padding(.horizontal, Self.button + Spacing.l)
             HStack {
-                Button { dismiss() } label: { glyph("xmark", color: Palette.ink) }
-                    .nativeCircleButton(diameter: Self.button)
-                    .accessibilityLabel("Đóng")
+                closeButton
                 Spacer()
                 if let onConfirm {
                     confirmButton(onConfirm)
                 }
             }
         }
-        .frame(height: Self.button)
+        // At least the buttons' height; taller with large text.
+        .frame(minHeight: Self.button)
         .padding(.top, Spacing.l)
     }
 
-    private func glyph(_ name: String, color: Color) -> some View {
+    /// The system's own glyph at the size of a bar's ✕ and ✓, framed like the other bar glyphs.
+    private func glyph(_ name: String) -> some View {
         Image(systemName: name)
-            .font(.system(size: Self.glyphSize, weight: .medium))
-            .foregroundStyle(color)
-            .frame(width: Self.glyphFrame, height: Self.glyphFrame)
+            .font(.body.weight(.medium))
+            .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+    }
+
+    @ViewBuilder
+    private var closeButton: some View {
+        if #available(iOS 26.0, *) {
+            // Outside a toolbar the close role shows the word "Đóng", so the ✕ is given.
+            Button(role: .close) { dismiss() } label: { glyph("xmark") }
+                .buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+                .tint(Palette.ink)
+                .accessibilityLabel("Đóng")
+        } else {
+            Button { dismiss() } label: { glyph("xmark") }
+            .nativeCircleButton(diameter: Self.button)
+            .tint(Palette.ink)
+            .accessibilityLabel("Đóng")
+        }
     }
 
     @ViewBuilder
     private func confirmButton(_ action: @escaping () -> Void) -> some View {
-        let button = Button(action: action) { glyph("checkmark", color: Palette.onPrimary) }
-            .accessibilityLabel("Xong")
         if #available(iOS 26.0, *) {
-            button
+            Button(role: .confirm, action: action) { glyph("checkmark") }
                 .buttonStyle(.glassProminent)
                 .buttonBorderShape(.circle)
-                .buttonSizing(.flexible)
                 .tint(Palette.primary)
-                .frame(width: Self.button, height: Self.button)
+                .accessibilityLabel("Xong")
         } else {
-            button
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
-                .tint(Palette.primary)
-                .frame(width: Self.button, height: Self.button)
+            Button(action: action) { glyph("checkmark").foregroundStyle(Palette.onPrimary) }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.circle)
+            .tint(Palette.primary)
+            .accessibilityLabel("Xong")
         }
     }
 }

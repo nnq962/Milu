@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// A plain chip (not glass: in a scrolling row glass draws a halo): white capsule, thin outline.
+/// The one chip of the app (not glass, user choice 2026-10-31): white capsule, thin outline; filled
+/// in the primary colour when chosen or prominent.
 /// With `onRemove` it is a filter that is on ("Chi ×"): the chip opens it, × drops it. Without, a
-/// suggestion in grey that one tap turns on. `isProminent` is the teal "Bộ lọc · 2".
+/// suggestion in grey that one tap turns on. `isProminent` is the filled one ("Bộ lọc · 2", the chosen filter).
 struct TagChip: View {
     let title: String
     var icon: String? = nil
@@ -17,7 +18,7 @@ struct TagChip: View {
         HStack(spacing: 0) {
             Button(action: action) {
                 HStack(spacing: Spacing.xs) {
-                    if let icon { TimiIcon(icon, size: 16) }
+                    if let icon { TimiIcon(icon, size: RowMetrics.chevron) }
                     Text(title)
                         .textRole(.captionStrong)
                         .monospacedDigit()
@@ -35,10 +36,10 @@ struct TagChip: View {
             .accessibilityHint(hint ?? "")
             if let onRemove {
                 Button(action: onRemove) {
-                    TimiIcon("hugeicons-cancel-01", size: 12)
+                    TimiIcon("hugeicons-cancel-01", size: RowMetrics.linkChevron)
                         .foregroundStyle(Palette.secondaryText)
-                        // A 32pt wide target the chip's full height, not just the glyph.
-                        .frame(width: 32)
+                        // A 44pt wide target the chip's full height, not just the glyph.
+                        .frame(width: ControlHeight.regular)
                         .frame(maxHeight: .infinity)
                         .contentShape(Rectangle())
                 }

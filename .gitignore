@@ -25,3 +25,6 @@ build/
 
 # Brand and logo source images kept locally, not part of the app (user choice 2026-10-29)
 docs/design/
+
+# Per-screen build folders used while reviewing on the Simulator
+build*/

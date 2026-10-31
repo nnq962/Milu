@@ -12,33 +12,40 @@ struct MessageRow: View {
             HStack {
                 Spacer(minLength: 0)
                 Text(message.text)
+                    // The body role's own line box; no extra `lineSpacing` (re-review 2026-10-31).
                     .textRole(.body)
-                    .lineSpacing(5)
                     .foregroundStyle(Palette.onPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, Spacing.l)
+                    .padding(.vertical, Spacing.m)
                     .background(Palette.primary, in: UnevenRoundedRectangle(
                         topLeadingRadius: Bubble.radius, bottomLeadingRadius: Bubble.radius,
                         bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.tail, style: .continuous))
                     .containerRelativeFrame(.horizontal, alignment: .trailing) { width, _ in width * Bubble.maxWidth }
             }
         case .assistant:
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: Spacing.m) {
                 AssistantAvatar()
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
                     bubble
                     cardButtons
                     if message.showsSuggestions {
-                        FlowLayout(spacing: 8) {
+                        FlowLayout(spacing: Spacing.s) {
+                            // Flat capsules 44 tall: no glass in a scrolling page, and a question
+                            // may wrap, which a 36 `TagChip` would cut (re-review 2026-10-31).
                             ForEach(MockAssistant.suggestions, id: \.self) { suggestion in
-                                Button(suggestion) { onSuggestion(suggestion) }
-                                    .textRole(.captionStrong)
-                                    .foregroundStyle(Palette.ink)
-                                    .nativeGlassButton()
-                                    .buttonBorderShape(.capsule)
+                                Button { onSuggestion(suggestion) } label: {
+                                    Text(suggestion)
+                                        .textRole(.captionStrong)
+                                        .foregroundStyle(Palette.ink)
+                                        .multilineTextAlignment(.leading)
+                                        .padding(.horizontal, Spacing.l)
+                                        .padding(.vertical, Spacing.s)
+                                        .frame(minHeight: ControlHeight.regular)
+                                }
+                                .flatCapsuleButton()
                             }
                         }
-                        .padding(.top, 4)
+                        .padding(.top, Spacing.xs)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -48,10 +55,9 @@ struct MessageRow: View {
     }
 
     private var bubble: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Text(formattedText)
                 .textRole(.body)
-                .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
             if let transaction = cardTransaction {
                 TransactionCard(transaction: transaction)
@@ -62,14 +68,8 @@ struct MessageRow: View {
                     .foregroundStyle(Palette.secondaryText)
             }
         }
-        .padding(16)
-        .background {
-            UnevenRoundedRectangle(topLeadingRadius: Bubble.tail, bottomLeadingRadius: Bubble.radius,
-                                   bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.radius, style: .continuous)
-                .fill(Palette.card)
-                // The same short shadow as the cards.
-                .softCardShadow()
-        }
+        .padding(Spacing.l)
+        .background { Bubble.assistantShape }
     }
 
     /// Shows the live transaction (after edits) while it exists, else the snapshot.
@@ -83,8 +83,8 @@ struct MessageRow: View {
 
     private var cardStatus: String? {
         switch message.card {
-        case .recorded(_, removed: true): "Đã xoá khoản này, số dư đã được cập nhật lại."
-        case .confirmDelete(_, .deleted): "Đã xoá khoản này, số dư đã được cập nhật lại."
+        // Short, like every status line (re-review 2026-10-31).
+        case .recorded(_, removed: true), .confirmDelete(_, .deleted): "Đã xoá khoản này."
         case .confirmDelete(_, .cancelled): "Đã giữ lại khoản này."
         default: nil
         }
@@ -94,42 +94,42 @@ struct MessageRow: View {
     private var cardButtons: some View {
         switch message.card {
         case .recorded(let snapshot, removed: false) where store.transaction(id: snapshot.id) != nil:
-            HStack(spacing: 8) {
-                cardButton("Sửa", icon: "hugeicons-pencil-edit-01", color: Palette.ink) { onAction(.edit, message) }
+            HStack(spacing: Spacing.s) {
+                // "Xem": it opens the transaction's sheet, where it is edited (strict review
+                // 2026-10-31: "Sửa" promised an editor and showed the detail).
+                cardButton("Xem", icon: "hugeicons-eye", color: Palette.ink) { onAction(.view, message) }
                 cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.red) { onAction(.remove, message) }
             }
         case .confirmDelete(let snapshot, .pending) where store.transaction(id: snapshot.id) != nil:
-            HStack(spacing: 8) {
-                Button { onAction(.cancel, message) } label: {
-                    Text("Huỷ").frame(maxWidth: .infinity)
+            HStack(spacing: Spacing.s) {
+                cardButton("Huỷ", color: Palette.ink) { onAction(.cancel, message) }
+                cardButton("Xoá khoản này", color: Palette.onRed, fill: Palette.red, role: .destructive) {
+                    onAction(.confirm, message)
                 }
-                .foregroundStyle(Palette.ink)
-                .nativeGlassButton(tint: Palette.muted)
-                Button(role: .destructive) { onAction(.confirm, message) } label: {
-                    Text("Xoá khoản này").frame(maxWidth: .infinity)
-                }
-                .foregroundStyle(.white)
-                .nativeGlassButton(prominent: true, tint: Palette.red)
             }
-            .textRole(.captionStrong)
-            .buttonBorderShape(.capsule)
         default:
             EmptyView()
         }
     }
 
-    private func cardButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                TimiIcon(icon, size: 14)
+    /// A flat capsule at least 44 tall: no Liquid Glass inside the chat, which scrolls (re-review
+    /// 2026-10-31: glass, and ~34 tall).
+    private func cardButton(_ title: String, icon: String? = nil, color: Color, fill: Color = Palette.fill2,
+                            role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
+        Button(role: role, action: action) {
+            HStack(spacing: Spacing.xs) {
+                if let icon {
+                    TimiIcon(icon, size: RowMetrics.inlineGlyph)
+                        .accessibilityHidden(true)
+                }
                 Text(title)
             }
-            .frame(maxWidth: .infinity)
+            .textRole(.captionStrong)
+            .foregroundStyle(color)
+            .padding(.horizontal, Spacing.l)
+            .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
         }
-        .textRole(.captionStrong)
-        .foregroundStyle(color)
-        .nativeGlassButton()
-        .buttonBorderShape(.capsule)
+        .flatCapsuleButton(fill: fill)
     }
 
     /// Hiển thị **in đậm** và _in nghiêng_ theo cú pháp Markdown, giữ nguyên xuống dòng.
@@ -139,56 +139,32 @@ struct MessageRow: View {
     }
 }
 
-/// Transaction summary inside an assistant bubble: muted tile, 40pt white icon circle.
+/// Transaction summary inside an assistant bubble: the same row as every list of transactions
+/// (`TransactionListRow`: plain icon, `MoneyText` with its sign and colour) on a muted tile
+/// (strict review 2026-10-31: a white icon disc and a hand-made amount).
 private struct TransactionCard: View {
     let transaction: FinanceTransaction
 
-    @Environment(FinanceStore.self) private var store
-
-    private var detail: String {
-        if let note = transaction.note.components(separatedBy: .newlines).first, !note.isEmpty { return note }
-        return store.category(id: transaction.categoryID)?.parentID.map(store.categoryName) ?? ""
-    }
-
     var body: some View {
-        HStack(spacing: 12) {
-            IconCircle(icon: store.categoryIcon(transaction.categoryID), iconSize: 18, background: Palette.card)
-                .frame(width: 40, height: 40)
-                .clipShape(Circle())
-            VStack(alignment: .leading, spacing: 0) {
-                Text(store.title(of: transaction))
-                    .textRole(.body)
-                    .lineLimit(1)
-                // The name is the category: below it, the note (or the group) and the day.
-                Text([detail, dayText].filter { !$0.isEmpty }.joined(separator: " · "))
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Text(transaction.signedAmountText)
-                .textRole(.amount)
-                .foregroundStyle(transaction.kind == .income ? Palette.income : Palette.red)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .padding(12)
-        .cardSurface(radius: CardCorners.flow, color: Palette.muted)
-        .accessibilityElement(children: .combine)
-    }
-
-    private var dayText: String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(transaction.date) { return "Hôm nay" }
-        if calendar.isDateInYesterday(transaction.date) { return "Hôm qua" }
-        return transaction.date.dayMonth
+        TransactionListRow(transaction: transaction, detail: .day)
+            .cardSurface(radius: CardCorners.flow, color: Palette.muted)
+            .accessibilityElement(children: .combine)
     }
 }
 
 enum Bubble {
-    // rounded-2xl with a rounded-md tail corner, scaled for short chat bubbles.
-    static let radius: CGFloat = 24
-    static let tail: CGFloat = 8
+    /// A bubble rounds like a list card, with a small tail corner (re-review 2026-10-31: written
+    /// as 24 and 8; a `CardCorners.bubbleTail` token would be the clean home for the 8).
+    static let radius = CardCorners.inset
+    static let tail = CardCorners.calendarDay
     static let maxWidth: CGFloat = 0.78
+
+    /// The assistant's bubble, white with the cards' shadow; the typing bubble draws the same, so
+    /// nothing jumps when the answer arrives (strict review 2026-10-31).
+    static var assistantShape: some View {
+        UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
+                               bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
+            .fill(Palette.card)
+            .softCardShadow()
+    }
 }

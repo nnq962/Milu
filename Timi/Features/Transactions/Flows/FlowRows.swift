@@ -14,15 +14,13 @@ struct DayTotals: View {
         // review 2026-10-30: both sides in full beside one side short read as two kinds of number).
         HStack(spacing: Spacing.m) {
             if income > 0 {
-                Text("+\(income.vndCompact)").foregroundStyle(Palette.income)
+                MoneyText(amount: income, size: .caption, tone: .signedIncome, compact: true)
             }
             if expense > 0 {
                 // Money out red (user rule 2026-10-30).
-                Text("-\(expense.vndCompact)").foregroundStyle(Palette.red)
+                MoneyText(amount: expense, size: .caption, tone: .signedExpense, compact: true)
             }
         }
-        .textRole(.captionStrong)
-        .monospacedDigit()
         // In words: "Thu 1.200.000 đ, chi 55.000 đ", not "trừ 55k".
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([income > 0 ? "Thu \(income.vnd)" : nil, expense > 0 ? "chi \(expense.vnd)" : nil]
@@ -37,8 +35,6 @@ struct DayTotals: View {
 struct ActivityDayList: View {
     let groups: [(day: Date, items: [AccountDetailView.Activity])]
     let onOpen: (AccountDetailView.Activity) -> Void
-
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     static func byDay(_ items: [AccountDetailView.Activity]) -> [(day: Date, items: [AccountDetailView.Activity])] {
         let groups = Dictionary(grouping: items) { Calendar.current.startOfDay(for: $0.date) }
@@ -60,24 +56,16 @@ struct ActivityDayList: View {
         }
     }
 
-    /// The day and its totals, starting where the rows inside the card start (`SectionHeader`).
-    /// At the accessibility text sizes the totals go under the day, which one line cut short.
+    /// The day and its totals, as every heading over a card (`SectionHeader`: inset to the rows,
+    /// on one baseline, the totals under the day at the accessibility text sizes).
     private func dayHeader(_ group: (day: Date, items: [AccountDetailView.Activity])) -> some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
-            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: Spacing.s))
-        return layout {
-            Text(group.day.transactionDayTitle)
-                .textRole(.title)
-                .accessibilityAddTraits(.isHeader)
-            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
+        SectionHeader(title: group.day.transactionDayTitle) {
             // The day's spending and income: its transactions. A transfer, fee and all, is a
             // thing of its own (user choice 2026-10-29), so it adds nothing here.
             DayTotals(items: group.items.compactMap {
                 if case .transaction(let transaction) = $0 { transaction } else { nil }
             })
         }
-        .padding(.horizontal, RowMetrics.horizontal)
     }
 }
 

@@ -12,6 +12,9 @@ struct ContactPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var isAdding = false
+    /// The person's initial at the size it has on their loan rows and in Danh bạ, growing with the
+    /// text so the letter stays inside (re-review 2026-10-31: a fixed 24 the letter outgrew).
+    @ScaledMetric(relativeTo: .body) private var avatar = RowMetrics.listLogo
 
     /// Every word found in the name, accents aside, as the other searches do.
     private var people: [Contact] {
@@ -36,7 +39,7 @@ struct ContactPickerSheet: View {
                     FormGroup(title: query.isEmpty && !people.isEmpty ? "Danh bạ" : nil) {
                         ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
                             row(person)
-                                .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                                .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                         }
                         FormActionRow(title: "Thêm người mới", icon: "hugeicons-add-01") { isAdding = true }
                             .overlay(alignment: .top) { if !people.isEmpty { FormDivider() } }
@@ -77,8 +80,23 @@ struct ContactPickerSheet: View {
             Haptics.selection()
             dismiss()
         } label: {
-            PickerRowLabel(icon: relationship.icon, title: person.name, subtitle: relationship.name,
-                           isSelected: selected)
+            // The person's initial, as on their loan rows and in Danh bạ, not the relationship's
+            // icon (strict review 2026-10-31), in the logo column as on those rows.
+            HStack(spacing: RowMetrics.gap) {
+                InitialsAvatar(name: person.name, size: avatar)
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    Text(person.name)
+                        .textRole(.body)
+                        .lineLimit(2)
+                    Text(relationship.name)
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if selected { SelectionCheck() }
+            }
+            .formRowFrame()
         }
         .buttonStyle(.row)
         .accessibilityAddTraits(selected ? .isSelected : [])

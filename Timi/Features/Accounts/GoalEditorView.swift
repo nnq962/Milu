@@ -55,6 +55,13 @@ struct GoalEditorView: View {
     }
     private var canSave: Bool { !trimmedName.isEmpty && targetText.vndInputAmount > 0 && targetError == nil }
 
+    /// ✓ stays on so what is missing can be pointed out instead of the button just doing
+    /// nothing (sheet review 2026-10-30: it greyed out here, against the app's rule).
+    private func validate() -> Bool {
+        withAnimation(.smooth(duration: 0.3)) { showsNameError = true }
+        return canSave
+    }
+
     /// "Cần để dành 2.500.000đ mỗi tháng trong 6 tháng."; nil without a deadline or a target.
     private var monthlyNote: String? {
         guard hasDueDate else { return nil }
@@ -62,7 +69,7 @@ struct GoalEditorView: View {
         guard targetText.vndInputAmount > 0 else { return nil }
         if remaining == 0 { return "Đã đủ mục tiêu." }
         if Calendar.current.startOfDay(for: dueDate) < Calendar.current.startOfDay(for: .now) {
-            return "Hạn đã qua. Chọn hạn mới để biết cần để dành bao nhiêu mỗi tháng."
+            return "Hạn đã qua."
         }
         let months = SavingsGoal.monthsLeft(until: dueDate)
         let perMonth = SavingsGoal.monthlySaving(remaining: remaining, until: dueDate)
@@ -71,14 +78,14 @@ struct GoalEditorView: View {
 
     var body: some View {
         SheetScaffold(title: original == nil ? "Thêm hũ tiết kiệm" : "Sửa hũ tiết kiệm",
-                      canConfirm: canSave, onConfirm: save) {
+                      validate: validate, onConfirm: save) {
             SheetAmountHeader(caption: "Mục tiêu") {
                 // A closed goal keeps the target it met; reopening it makes the target editable again.
                 TimiAmountField(text: $targetText, showsSuggestions: original?.isClosed != true,
                                 focusesOnAppear: original == nil || focusesTarget)
                     .disabled(original?.isClosed == true)
-                if let targetError {
-                    FormErrorText(text: targetError)
+                if let error = targetError ?? (showsNameError && targetText.vndInputAmount <= 0 ? "Nhập mục tiêu." : nil) {
+                    FormErrorText(text: error)
                 }
             }
         } content: {

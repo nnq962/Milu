@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Picks an icon from `IconCatalog` for a savings goal or a category: groups under small headings,
 /// five icons a row, no search (browsing invites the user to pick freely, user choice 2026-10-28).
-/// Icons stand alone; the chosen one sits on a teal circle. Tapping one picks it and closes the sheet.
+/// Icons stand alone; the chosen one sits on a circle in the primary colour. Tapping one picks it and closes the sheet.
 struct IconPickerSheet: View {
     @Binding var selection: String
 

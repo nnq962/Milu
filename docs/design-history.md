@@ -1365,3 +1365,37 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
   - Thẻ mời "Nâng cấp Timi Pro": tối + lime như card ở Tổng quan, bấm mở ghi chú "Sắp ra mắt".
   - **Giao diện** chọn ngay tại chỗ: 3 ô màn hình nhỏ (Theo máy nửa sáng nửa tối, Sáng, Tối) + vòng tick, như iOS Màn hình & Độ sáng. Bỏ dòng mở list.
   - Rồi Chung, Thông báo, Hỗ trợ, Nhà phát triển như cũ.
+
+## Tổng quan "Mực đêm" — 2026-10-31
+
+- Người dùng muốn "phong cách mới, màu mới thật là peak". Đưa 3 hướng mockup: A Mực đêm (thẻ than gần đen + lime điện trên nền kem), B Hoàng hôn (thẻ gradient cam → hồng → tím, nền trắng), C Tối giản (không thẻ, số rất to, một màu cam cháy). Chọn **A**.
+- Token mới trong `Palette`: `night` #14201A, `onNight`, `onNightMuted` (trắng 64%), `redOnNight` (= `chartCoral`), `nightTile` (trắng 10%). `lime` đổi từ vàng #E0A840 sang xanh chanh điện #C9F26B; `onLime` vẫn mực, `limeTile` theo. Mọi chỗ dùng `lime` (badge PRO, "+5 AI", nút `.accent`, vương miện ở Cài đặt, cột 3 trong biểu đồ Báo cáo) đổi theo.
+- Trang: bỏ dải rêu và `ClearBarOverBand` / `TopEdgeEffectOnlyPastBand` (thanh trạng thái không còn đổi theo cuộn, iOS 17 không còn thanh rêu đặc). Lời chào thành chữ mực trên nền kem. `HeroCard` nền đêm, không bóng, số trắng, tăng trưởng và đường biểu đồ lime (`MoneyText.Tone.onNight`, `NetWorthGrowth(onNight:)`, `NetWorthChart(tint:)`). `QuickActions` từ kính sang vòng đêm phẳng với icon lime (ngoại lệ kính duy nhất trong nội dung không còn). Thêm `MonthSummaryTiles` (hai ô trắng Chi/Thu tháng này, bấm mở Báo cáo qua `ReportRoute`). `OnboardingCard` vòng đêm (`ProgressRing` thêm `track:`). Lịch: hôm nay ô đêm số lime khi chưa chi, viền đêm khi đã chi. `ProUpgradeCard` từ banner vàng nhạt sang đêm + lime.
+- Để sau nếu người dùng muốn: chữ "Tháng 10 ⌄" trên tiêu đề Lịch vẫn rêu (quy tắc chung của nút trên hàng tiêu đề); nếu thấy lệch tông thì đổi sang mực riêng cho Tổng quan.
+
+## Tổng quan "soft UI" theo mẫu Iconly — 2026-10-31
+
+- Ngay sau bản "Mực đêm", người dùng gửi 3 ảnh chụp Instagram của iconlypro (màn Profile có huy hiệu lục giác, màn Dropbox có thanh Storage nhiều màu và dock, màn task có tag "High" và nút + đỏ) và yêu cầu làm lại theo phong cách đó.
+- Đặc điểm rút ra: nền xám lạnh nhạt; thẻ trắng bo rất tròn với bóng rộng mềm; ô trắng lồng trong thẻ có viền mảnh; nút tròn trắng; một nút tròn đen/màu nổi; icon nét; màu tươi chỉ ở điểm nhỏ; chữ đậm đen, phụ xám.
+- Đã làm: token `softPage/softBorder/softSecondary/softTrack/softBlack` và bộ `vividSeries` trong `Palette`; `CardCorners.soft` 36; file `SoftSurface.swift` (`softCard`, `softTile`, `SoftCircleButtonStyle`, `SoftCapsuleButtonStyle`, `SoftTag`, `RoundedHexagon`, `HexagonBadge`). `OverviewView` ẩn thanh điều hướng, header `OverviewHeader` trong nội dung. `HeroCard` thành thẻ tổng hợp (tài sản ròng + `SpendingBarTile` + `MonthSummaryTiles` + `ActionDock`). Thêm `TopCategoriesCard`. `OnboardingCard` và `MoneyCalendarCard` đổi sang bề mặt mềm; `MonthMenu`/`HeaderCapsuleLabel` thêm `tint`/`color`. Xoá `QuickActions`, `ProUpgradeCard`.
+- Sửa sau khi xem: emoji 👋 hiện ô vuông (Manrope không có emoji) → bỏ; nút Pro bị ép mất chữ → `fixedSize()`; avatar dùng `InitialsAvatar` nền kem lệch tông → chữ Q thẳng trên vòng trắng; nút ✦ dùng `ink` xanh xám → `softBlack`.
+- Để sau: số tiền ra trong ô "Đã chi" vẫn đỏ gạch `red` theo quy tắc toàn app, icon cạnh đó san hô tươi; nếu muốn đồng bộ thì cho `MoneyText` một tone san hô riêng cho Tổng quan. Các tab khác vẫn nền kem; nếu chốt soft UI cho cả app thì đổi `background` trong `AccentTrial` sang `softPage`.
+
+## Tổng quan: thẻ kính + bố cục HIG — 2026-10-31
+
+- Người dùng xem bản soft UI: "nhìn cũng tạm", chê card bọc trong card, muốn card Liquid Glass và bố cục chuẩn Apple HIG.
+- Lưu ý đã nêu: HIG khuyên glass cho lớp điều hướng, không làm nền nội dung; làm theo ý người dùng nhưng thêm `GlassBackdrop` (3 vòng màu blur cố định) để kính có gì để khúc xạ, và kiểm tra trôi khi cuộn trên Simulator.
+- Bỏ: header tự vẽ (`OverviewHeader`), dock + nút đen (`ActionDock`), ô lồng (`SpendingBarTile`, `MonthSummaryTiles`), lục giác, `SoftSurface` và token `soft*`/`vivid*`; cả token `night*` của bản "Mực đêm". Thêm `glassCard()` + `GlassBackdrop` trong `CardSurface.swift`.
+- Quay về tiêu đề native `TabHeading` + Q/chuông trên thanh; `QuickActions` kính như bản 2026-10-30; `HeroCard` như bản trắng nhưng kính; gộp thanh chi tiêu + hai tổng vào `MonthCard` một thẻ dưới section "Tháng này" (nút "Báo cáo ›"); `TopCategoriesCard` thành icon tròn tô nhạt theo `ChartShades`; Làm quen và Lịch lên kính; màu thanh/huy hiệu dùng `ChartShades` để khớp Báo cáo thay bộ màu tươi riêng.
+
+## Tổng quan chuẩn HIG + bảng Đơn sắc — 2026-10-31
+
+- Người dùng hỏi có nên dùng card Liquid Glass theo HIG không; trả lời: không, kính là của lớp điều khiển (thanh, tab bar, nút nổi), nội dung đặt trên bề mặt đặc; Wallet/Health/Fitness iOS 26 cũng vậy. Người dùng chốt: làm đúng HIG, và thử phối màu đơn sắc không rêu.
+- Bỏ `glassCard` và `GlassBackdrop`; thẻ Tổng quan về `sleekCard()`; nút nhanh từ kính sang vòng phẳng `primaryTint` (nút trong nội dung cuộn không phải kính). Kính còn ở thanh trên, tab bar, nút +.
+- Bảng "Đơn sắc" thêm vào `AccentTrial` làm mặc định: `Choice` có thêm `neutrals` và `hues`; `Palette` chuyển các token chữ/màu phụ sang computed đọc từ combo; `ChartShades.steps/rest` thành computed. Lần đầu xem thanh "Chi theo nhóm" xám không giảm dần (sky xám vừa, lime xám đậm) → đổi sky đậm, lime vừa với chữ mực.
+- Để sau: nếu chốt đơn sắc, đổi `AccentColor` Assets và cân nhắc đỏ tiền ra có cần lạnh hơn (#B5543F hiện hơi ấm trên nền xám).
+
+## Đơn sắc không xám — 2026-10-31
+
+- Người dùng xem bản đơn sắc xám: "không thích màu xám", muốn mono như 3 ảnh Iconly nhưng không xám. Đề xuất 3 mix khác (Mực & Kem, Navy đơn tông, Espresso) bị gạt: ý là giữ đen trắng.
+- Sửa combo "Đơn sắc": nền sáng hơn (#F5F5F7), lime = đen chữ trắng (badge đen như nút FAB của mẫu), green = mực, sky = xanh dương, đồ thị 4 màu tươi (`Hues.chartSteps`, `ChartShades.steps` đọc từ đó), nút nhanh vòng trắng viền mảnh thay tô xám.

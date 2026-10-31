@@ -17,8 +17,8 @@ struct TransactionListRow: View {
             row(subtitle: "\(categoryText) · \(store.account(id: transaction.accountID)?.name ?? store.goal(id: transaction.accountID)?.name ?? "Hũ đã xoá")", trailing: nil)
         case .day:
             // Amount level with the title, the short date under it.
-            row(subtitle: categoryText,
-                trailing: Self.dayMonth(transaction.date))
+            // The app's one short date: "6/11", with the year in another (strict review 2026-10-31).
+            row(subtitle: categoryText, trailing: transaction.date.shortDay)
         case .time:
             row(subtitle: categoryText,
                 trailing: transaction.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam)))
@@ -38,12 +38,6 @@ struct TransactionListRow: View {
         let base = [note, group, account].first { !$0.isEmpty && $0.compare(title, options: .caseInsensitive) != .orderedSame } ?? ""
         guard !store.isReportable(transaction) else { return base }
         return base.isEmpty ? "Không tính" : "\(base) · Không tính"
-    }
-
-    /// "27/10".
-    static func dayMonth(_ date: Date) -> String {
-        let parts = Calendar.current.dateComponents([.day, .month], from: date)
-        return String(format: "%02d/%02d", parts.day ?? 0, parts.month ?? 0)
     }
 
     private func row(subtitle: String, trailing: String?) -> some View {

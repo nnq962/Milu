@@ -94,7 +94,8 @@ struct AddAccountView: View {
                     .disabled(original?.isArchived == true)
             }
         } content: {
-            // Labels say it all: no captions or footers (user prefers few words, 2026-10-28).
+            // Titled groups, as every form adding something (user report 2026-10-30: the goal
+            // form had them and this one not). Labels say the rest: no captions or footers.
             FormGroup(title: "Thông tin", error: error) {
                 if hasInstitutions {
                     institutionRow
@@ -108,9 +109,7 @@ struct AddAccountView: View {
             }
 
             FormGroup(title: "Thời gian") {
-                FormDateRow(title: "Số dư tính từ", date: $openedAt)
-                FormDivider(hasIcon: false)
-                FormTimeRow(title: "Giờ", date: $openedAt)
+                FormDateTimeRow(title: "Số dư tính từ", date: $openedAt)
             }
 
             // A locked account stays in the list but out of totals, and cannot be picked when
@@ -162,7 +161,7 @@ struct AddAccountView: View {
                 FormActionRow(
                     title: "Lưu trữ tài khoản", icon: "hugeicons-archive-02",
                     question: "Lưu trữ “\(account.name)”?",
-                    message: "Tài khoản ẩn khỏi danh sách và tổng số dư, lịch sử vẫn giữ. Khôi phục được trong “Tài khoản đã lưu trữ”."
+                    message: "Ẩn khỏi danh sách và tổng, lịch sử vẫn giữ."
                 ) {
                     // A name left empty: say so instead of archiving without what was typed.
                     guard validate() else { return }

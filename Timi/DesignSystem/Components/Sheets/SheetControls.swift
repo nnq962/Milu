@@ -16,8 +16,11 @@ struct SheetCloseButton: View {
 
 /// The tick on the chosen row of a picking sheet (`ChoiceSheet`, the bank picker).
 struct SelectionCheck: View {
+    /// Grows with the text beside it.
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 20
+
     var body: some View {
-        TimiIcon("hugeicons-tick-02", size: 20)
+        TimiIcon("hugeicons-tick-02", size: size)
             .foregroundStyle(Palette.primary)
             .accessibilityHidden(true)
     }
@@ -37,9 +40,10 @@ struct PickerRowLabel: View {
                 RowIcon(name: icon)
             }
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                // Two lines before "…": a long bank or person name stays readable at large text.
                 Text(title)
                     .textRole(.body)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 if let subtitle {
                     Text(subtitle)
                         .textRole(.caption)

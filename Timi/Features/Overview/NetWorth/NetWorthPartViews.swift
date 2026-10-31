@@ -42,30 +42,33 @@ struct NetWorthPartView: View {
         .sheet(item: $viewingLoan) { LoanDetailSheet(loanID: $0.id) }
     }
 
-    /// What counts as money in hand: counted accounts above zero, largest first.
+    /// What counts as money in hand: counted accounts above zero, largest first, drawn as on the
+    /// tab Tài khoản (`AccountRow`; strict review 2026-10-31: a second style here).
     private var accounts: some View {
         let accounts = store.countedAccounts.filter { $0.balance > 0 }.sorted { $0.balance > $1.balance }
         return VStack(spacing: 0) {
             ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                 NavigationLink(value: account.id) {
-                    ListRow(icon: account.iconName, title: account.name, amount: account.balance)
+                    AccountRow(account: account)
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
             }
         }
         .listCard()
     }
 
+    /// Drawn as on the tab Tài khoản (`GoalRow`, its ring 32, and the logo-column hairline;
+    /// re-review 2026-10-31: `ListRow` with a 20 icon here).
     private var goals: some View {
         let goals = store.activeGoals.sorted { $0.saved > $1.saved }
         return VStack(spacing: 0) {
             ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
                 NavigationLink(value: GoalRoute(id: goal.id)) {
-                    ListRow(icon: goal.icon, title: goal.name, amount: goal.saved)
+                    GoalRow(goal: goal)
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
             }
         }
         .listCard()

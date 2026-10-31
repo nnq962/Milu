@@ -15,6 +15,9 @@ struct SettingsView: View {
     @AppStorage(StorageKey.news) private var news = false
 
     @State private var note: Note?
+    /// The profile's initial: 44 like a header icon, larger with the text inside it, so the letter
+    /// never spills out at large sizes (strict review 2026-10-31: a fixed 56).
+    @ScaledMetric(relativeTo: .title3) private var avatarSize = RowMetrics.featureIcon
 
     private static let supportEmail = "support@timi.nnqlab.dev"
 
@@ -78,8 +81,9 @@ struct SettingsView: View {
                         .buttonStyle(.row)
                     }
 
-                    FormGroup(title: "Thông báo",
-                              footer: "Thông báo chưa được gửi trong bản thử nghiệm; lựa chọn của bạn được lưu sẵn.") {
+                    // No footers here: a footer only carries a computed figure or an error
+                    // (strict review 2026-10-31).
+                    FormGroup(title: "Thông báo") {
                         FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "21:00 mỗi ngày",
                                       icon: "hugeicons-notification-01", isOn: $dailyReminder)
                         FormDivider()
@@ -118,8 +122,7 @@ struct SettingsView: View {
                         .buttonStyle(.row)
                     }
 
-                    FormGroup(title: "Nhà phát triển",
-                              footer: "Dữ liệu lưu trên máy bằng SwiftData. Đặt lại sẽ xoá mọi thay đổi và nạp lại dữ liệu mẫu.") {
+                    FormGroup(title: "Nhà phát triển") {
                         NavigationLink {
                             DesignSystemView()
                         } label: {
@@ -132,10 +135,12 @@ struct SettingsView: View {
                         FormDivider()
                         AccountsLayoutTrialRow()
                         FormDivider()
+                        // The version shows here only: a line under the last group repeated it (re-review 2026-10-31).
                         FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
                             note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
                         }
-                        FormDivider(hasIcon: false)
+                        // The red row has its bin icon, so its hairline starts at the text too.
+                        FormDivider()
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
                                            message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ và hạn mức bạn đã thêm hoặc sửa sẽ bị xoá.") {
                             store.resetToSampleData()
@@ -145,55 +150,35 @@ struct SettingsView: View {
                         }
                     }
 
-                    Text("Timi \(version) · Bản thử nghiệm")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
-                        .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.s)
-                .padding(.bottom, Spacing.xxxl)
+                // The same top and bottom as every page under Cài đặt and the main tabs.
+                .padding(.top, Spacing.l)
+                .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
             .navigationTitle("Cài đặt")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if #available(iOS 26.0, *) {
-                        Button(role: .close) { dismiss() }
-                    } else {
-                        Button { dismiss() } label: { Image(systemName: "xmark") }
-                            .accessibilityLabel("Đóng")
-                    }
-                }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
-            .sheet(item: $note) { note in
-                VStack(alignment: .leading, spacing: Spacing.l) {
-                    SheetHeader(title: note.title)
-                    Text(note.message)
-                        .textRole(.body)
-                        .foregroundStyle(Palette.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, Spacing.page)
-                .padding(.bottom, Spacing.xxl)
-                .timiFittedSheet()
-            }
+            .sheet(item: $note) { NoteSheet(title: $0.title, message: $0.message) }
         }
         .timiSheetStyle()
     }
 
-    /// Who is signed in and their plan; the avatar repeats the one on Tổng quan.
+    /// Who is signed in and their plan; the avatar repeats the one on Tổng quan. A row's gap after
+    /// it, as after every icon on this page (re-review 2026-10-31: 12).
     private var profile: some View {
-        HStack(spacing: Spacing.m) {
+        HStack(spacing: RowMetrics.gap) {
             Text("Q")
                 .textRole(.heading)
                 .foregroundStyle(Palette.primary)
-                .frame(width: 56, height: 56)
-                .background(Palette.primary.opacity(0.10), in: Circle())
+                .frame(width: avatarSize, height: avatarSize)
+                .background(Palette.primaryTint, in: Circle())
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text("Quyet")
                     .textRole(.heading)
                 Text("Dữ liệu mẫu · lưu trên máy")
@@ -203,66 +188,76 @@ struct SettingsView: View {
             Spacer(minLength: Spacing.s)
             StatusBadge(text: "Miễn phí", tone: .neutral, showsDot: false)
         }
-        .padding(Spacing.card)
-        .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+        .settingsCard()
         .accessibilityElement(children: .combine)
     }
 
-    /// This month's lượt AI: what is left of the 20, the bonus from Làm quen, and when it renews.
+    /// This month's lượt AI: what is left of the 20 and the bonus from Làm quen, then the bar of
+    /// what has been used with its words right under it, so an empty bar reads "nothing used"
+    /// (user report 2026-10-31: the bar was what is left, full at 0/20, and read as "all used").
+    /// Icon and words as a form row's: a 20 glyph in the 24 column, the words at 54 like the
+    /// rows below (re-review 2026-10-31).
     private var aiQuotaCard: some View {
         let used = quota.usedThisMonth
-        let renews = quota.renewsOn.formatted(.dateTime.day().month(.defaultDigits).locale(.vietnam))
-        return VStack(alignment: .leading, spacing: Spacing.m) {
-            HStack(spacing: Spacing.s) {
-                TimiIcon("hugeicons-ai-magic", size: 18)
-                Text("Lượt AI tháng này")
-                    .textRole(.bodyStrong)
-                Spacer()
-                Text("Làm mới \(renews)")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-            }
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                Text("\(quota.remaining)")
-                    .textRole(.display)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                Text("lượt còn lại")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
-            }
-            ProgressBar(value: Double(quota.monthlyLeft) / Double(AIQuota.monthlyFree),
-                        color: quota.monthlyLeft <= 3 ? Palette.warning : Palette.primary)
+        let renews = quota.renewsOn.shortDay
+        return HStack(alignment: .top, spacing: RowMetrics.gap) {
+            FormRowIcon(icon: "hugeicons-ai-magic")
                 .accessibilityHidden(true)
-            HStack {
-                Text("Đã dùng \(used)/\(AIQuota.monthlyFree) lượt miễn phí")
-                Spacer()
-                if quota.bonus > 0 {
-                    Text("+\(quota.bonus) lượt thưởng")
-                        .foregroundStyle(Palette.green)
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Lượt AI tháng này")
+                        .textRole(.bodyStrong)
+                    Spacer(minLength: Spacing.s)
+                    Text("Làm mới \(renews)")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                }
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                    Text("\(quota.remaining)")
+                        .textRole(.display)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    Text("lượt còn lại")
+                        .textRole(.captionStrong)
+                        .foregroundStyle(Palette.secondaryText)
+                    if quota.bonus > 0 {
+                        Spacer(minLength: Spacing.s)
+                        Text("+\(quota.bonus) lượt thưởng")
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.green)
+                    }
+                }
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    // Fills as lượt are used; orange once 3 or fewer free ones are left.
+                    ProgressBar(value: Double(used) / Double(AIQuota.monthlyFree),
+                                color: quota.monthlyLeft <= 3 ? Palette.warning : Palette.primary)
+                        .accessibilityHidden(true)
+                    Text("Đã dùng \(used)/\(AIQuota.monthlyFree) lượt miễn phí")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                        .monospacedDigit()
                 }
             }
-            .textRole(.caption)
-            .foregroundStyle(Palette.secondaryText)
-            .monospacedDigit()
         }
-        .padding(Spacing.card)
-        .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+        .settingsCard()
         .accessibilityElement(children: .combine)
     }
 
     /// A short Timi Pro invite: a white card like the Timi Pro card on Tổng quan, with a plain amber
-    /// crown (UI review 2026-10-30: only Tài sản ròng is a solid teal card).
+    /// crown (UI review 2026-10-30: only Tài sản ròng is a solid teal card). The crown is a row's
+    /// glyph in a row's column, so the words start at 54 like every row (re-review 2026-10-31: 24
+    /// and 12, words at 52).
     private var proInvite: some View {
         Button {
             note = Note(title: "Timi Pro · Sắp ra mắt",
                         message: "Timi Pro có \(AIQuota.monthlyPro) lượt AI mỗi tháng, xuất báo cáo PDF, Excel và đồng bộ trên mọi thiết bị. Gói đang được chuẩn bị, chưa mở đăng ký hoặc thanh toán.")
         } label: {
-            HStack(spacing: Spacing.m) {
-                TimiIcon("hugeicons-crown", size: 24)
+            HStack(spacing: RowMetrics.gap) {
+                TimiIcon("hugeicons-crown", size: RowMetrics.iconGlyph)
                     .foregroundStyle(Palette.lime)
+                    .frame(width: RowMetrics.iconColumn, height: RowMetrics.iconGlyph)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text("Nâng cấp Timi Pro")
                         .textRole(.bodyStrong)
                         .foregroundStyle(Palette.ink)
@@ -272,12 +267,9 @@ struct SettingsView: View {
                         .lineLimit(2)
                 }
                 Spacer(minLength: Spacing.s)
-                TimiIcon("hugeicons-arrow-right-01", size: 16)
-                    .foregroundStyle(Palette.secondaryText)
+                RowChevron()
             }
-            .padding(Spacing.card)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+            .settingsCard()
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
         }
         .buttonStyle(.card)
@@ -291,6 +283,17 @@ struct SettingsView: View {
     }
 }
 
+extension View {
+    /// A white card of words in Cài đặt and its pages (the cards atop Cài đặt, the month's card on
+    /// Hạn mức): corners 24 and words 16 from the edge, like the form groups and headings around
+    /// it, so the left edges line up (strict review 2026-10-31: 20 in, corners 28).
+    func settingsCard() -> some View {
+        padding(.horizontal, RowMetrics.horizontal)
+            .padding(.vertical, Spacing.card)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+    }
+}
 
 #Preview {
     SettingsView()

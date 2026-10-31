@@ -28,14 +28,15 @@ struct OnboardingCard: View {
 
     var body: some View {
         let steps: [(title: String, done: Bool, start: () -> Void)] = [
-            ("Thêm ví đầu tiên", !store.accounts.isEmpty, { step = .account }),
+            // "tài khoản": it opens the bank account form (re-review 2026-10-31: said "ví").
+            ("Thêm tài khoản đầu tiên", !store.accounts.isEmpty, { step = .account }),
             ("Ghi một khoản thu chi", !store.transactions.isEmpty, { step = .transaction }),
             ("Ghi một khoản cho vay", !store.loans.isEmpty, { step = .loan }),
             ("Hỏi AI một câu hỏi", hasAskedAI, onAskAI),
         ]
         let completed = steps.filter(\.done).count
         if let next = steps.first(where: { !$0.done }) {
-            let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
+            let shape = RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
             Button(action: next.start) {
                 Group {
                     // At the accessibility sizes the words go under the ring and the reward, which
@@ -58,9 +59,8 @@ struct OnboardingCard: View {
                         }
                     }
                 }
-                .padding(Spacing.l)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.muted, in: shape)
+                // A white card, as every card of Tổng quan (HIG pass 2026-10-31).
+                .sleekCard()
                 .contentShape(shape)
             }
             .buttonStyle(.card)
@@ -92,23 +92,16 @@ struct OnboardingCard: View {
     /// "+5 AI" and the chevron.
     private var reward: some View {
         HStack(spacing: Spacing.m) {
-            Text("+5 AI")
-                .textRole(.footnote)
-                .foregroundStyle(Palette.onLime)
-                .padding(.horizontal, Spacing.s).padding(.vertical, 3)
-                .background(Palette.lime, in: Capsule())
-            TimiIcon("hugeicons-arrow-right-01", size: 14)
-                .foregroundStyle(Palette.secondary)
+            // The shared badge and ›, not a hand-made pill (strict review 2026-10-31).
+            StatusBadge(text: "+5 AI", tone: .accent, showsDot: false)
+            RowChevron()
         }
     }
 
     /// How many steps are done, "3/4" inside a moss ring.
     private func progressRing(completed: Int, total: Int) -> some View {
         ZStack {
-            Circle().stroke(Palette.primary.opacity(0.15), lineWidth: 4)
-            Circle().trim(from: 0, to: Double(completed) / Double(total))
-                .stroke(Palette.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            ProgressRing(progress: Double(completed) / Double(total))
             Text("\(completed)/\(total)")
                 .textRole(.footnote)
                 .monospacedDigit()

@@ -38,7 +38,7 @@ struct AccountDetailView: View {
                         SectionHeader(title: "Lịch sử")
                         if activity.isEmpty {
                             EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
-                                           message: "Giao dịch ghi vào tài khoản này sẽ hiện ở đây.")
+                                           message: "Giao dịch của tài khoản sẽ hiện ở đây.")
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(activity.enumerated()), id: \.element.id) { index, item in
@@ -82,7 +82,9 @@ struct AccountDetailView: View {
         } else {
             EmptyStateCard(icon: "hugeicons-alert-02", title: "Không tìm thấy tài khoản",
                            message: "Tài khoản này có thể đã bị xoá.")
-                .padding(Spacing.page)
+                // The margins of every page: 20 at the sides, 16 on top (strict review 2026-10-31).
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.l)
                 .frame(maxHeight: .infinity, alignment: .top)
                 .background(Palette.background)
         }
@@ -129,11 +131,14 @@ extension AccountDetailView {
             .sorted { $0.date > $1.date }
     }
 
-    /// The line under the balance, the same for every kind of account: when tracking started.
+    /// The line under the balance, the same for every kind of account: when tracking started, or
+    /// that it is archived (and when, as on "Tài khoản đã lưu trữ") or locked. Short words, the
+    /// app's one short date (re-review 2026-10-31: explaining sentences and "01/10/2026").
     static func subtitle(for account: Account) -> String? {
-        let since = "Từ ngày " + account.openedAt.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
-        if account.isArchived { return "Đã lưu trữ · không tính vào tổng số dư" }
-        return account.isLocked ? "Đã khoá · không tính vào tổng và báo cáo" : since
+        if account.isArchived {
+            return ["Đã lưu trữ", account.archivedAt?.shortDay].compactMap { $0 }.joined(separator: " ")
+        }
+        return account.isLocked ? "Đã khoá" : "Từ ngày \(account.openedAt.shortDay)"
     }
 }
 
@@ -238,7 +243,8 @@ struct AccountTransferRow: View {
             title = outgoing ? "Chuyển đến \(to)" : "Nhận từ \(from)"
             tone = outgoing ? .signedExpense : .signedIncome
         }
-        let fee = transfer.fee > 0 ? transfer.fee.vnd : nil
+        // Short, as every amount in a row's second line ("Gốc 5tr · Lãi 375k").
+        let fee = transfer.fee > 0 ? transfer.fee.vndCompact : nil
         let subtitle: String
         switch viewedAccount {
         case nil: subtitle = "\(from) → \(to)"
@@ -249,12 +255,14 @@ struct AccountTransferRow: View {
                        subtitle: subtitle,
                        trailingSubtitle: detail == .time
                            ? transfer.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
-                           : TransactionListRow.dayMonth(transfer.date),
+                           : transfer.date.shortDay,
                        amount: outgoing ? transfer.totalOut : transfer.amount, amountTone: tone, showsChevron: false)
     }
 }
 
-/// The money of a new loan (user choice 2026-10-29): neither income nor spending, so no red.
+/// The money of a new loan (user choice 2026-10-29): neither income nor spending, though it
+/// leaves or reaches an account, so it reads as money out (red "-") or in ("+") like any other
+/// (strict review 2026-10-31: lent money was ink with a "-").
 /// On "Giao dịch": "Cho vay", "Minh Trần · Vietcombank", −75.000.000đ; in an account's history:
 /// "Cho Minh Trần vay" or "Vay của Lan", "Khoản vay".
 struct LoanMoveRow: View {
@@ -273,8 +281,8 @@ struct LoanMoveRow: View {
                 subtitle: subtitle,
                 trailingSubtitle: detail == .time
                     ? loan.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
-                    : TransactionListRow.dayMonth(loan.date),
-                amount: lent ? -loan.principal : loan.principal, amountTone: lent ? .plain : .signedIncome,
+                    : loan.date.shortDay,
+                amount: loan.principal, amountTone: lent ? .signedExpense : .signedIncome,
                 showsChevron: false)
     }
 }
@@ -302,8 +310,9 @@ struct LoanPaymentRow: View {
                 subtitle: viewedAccount == nil ? "\(name) · \(account)" : parts.joined(separator: " · "),
                 trailingSubtitle: detail == .time
                     ? payment.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
-                    : TransactionListRow.dayMonth(payment.date),
-                amount: lent ? payment.total : -payment.total, amountTone: lent ? .signedIncome : .plain,
+                    : payment.date.shortDay,
+                // Money out red with "-", in with "+" (strict review 2026-10-31).
+                amount: payment.total, amountTone: lent ? .signedIncome : .signedExpense,
                 showsChevron: false)
     }
 }

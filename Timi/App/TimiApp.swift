@@ -25,7 +25,9 @@ struct TimiApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .font(Typography.body)
+                // The body role (16 SemiBold), so a Text with no role still matches the scale
+                // (strict review 2026-10-31: 17 Regular sat outside it).
+                .font(TextRole.body.font)
                 .scrollIndicators(.hidden, axes: .vertical)
                 .environment(store)
                 .environment(quota)

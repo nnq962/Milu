@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>Timi — Một góc nhìn rõ ràng hơn</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-definitions" aria-hidden="true"><defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18M16 15h2M6 5V4a1 1 0 0 1 1-1h10"/></symbol>
+    <symbol id="i-transfer" viewBox="0 0 24 24"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-1 1v-9.5A8.5 8.5 0 0 1 11.5 3h1a8.5 8.5 0 0 1 8.5 8.5Z"/><path d="M8 10h8m-8 4h5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-up-right" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+    <symbol id="i-down-right" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18h12V6"/></symbol>
+    <symbol id="i-down-left" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6v12h12"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></symbol>
+    <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5ZM16 9h2a3 3 0 0 1 0 6h-2M3 22h15M7 2v2m5-2v2"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 7h14l1 14H4ZM8 8V6a4 4 0 0 1 8 0v2"/></symbol>
+    <symbol id="i-food" viewBox="0 0 24 24"><path d="M5 3v6a3 3 0 0 0 6 0V3M8 3v18M18 3c-3 3-3 8 0 9h2V3h-2Zm2 9v9"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="m5 9 2-5h10l2 5M3 10h18v8H3Zm2 8v3m14-3v3M6 14h2m8 0h2"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 12c5 3 13 3 18 0M12 12v4"/></symbol>
+    <symbol id="i-bank" viewBox="0 0 24 24"><path d="m3 8 9-5 9 5v2H3Zm2 4v6m7-6v6m7-6v6M3 21h18"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 3c0 10-1 16-8 16a7 7 0 0 1-7-7C5 5 12 4 20 3ZM3 21 16 8"/></symbol>
+    <symbol id="i-plane" viewBox="0 0 24 24"><path d="m21 3-7 18-4-7-7-4Zm-11 11L21 3"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 4-4 7-8 9-4-2-8-5-8-9V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10m8 10V4m8 16v-7"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM20 2v4m-2-2h4"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14A9 9 0 0 1 10 3.5 9 9 0 1 0 20.5 14Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M3 21l5-1L21 7a2 2 0 0 0 0-3l-1-1a2 2 0 0 0-3 0L4 16Z"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-14 4h2m4 0h2"/></symbol>
+  </defs></svg>
+
+  <main class="studio">
+    <aside class="intro">
+      <a class="wordmark" href="#" aria-label="Timi, về Tổng quan"><span class="brand-mark">t.</span><span>timi</span><span class="concept-tag">design study</span></a>
+      <h1>Tài chính.<br>Rõ ràng hơn.</h1>
+      <p class="intro-copy">Ít nhiễu thị giác hơn.<br>Nhiều không gian cho điều quan trọng.</p>
+      <nav class="screen-picker" aria-label="Chọn màn hình demo">
+        <button data-screen="overview" class="selected"><span>Tổng quan</span><span class="nav-index">01</span></button>
+        <button data-screen="accounts"><span>Tài khoản & hũ</span><span class="nav-index">02</span></button>
+        <button data-screen="transactions"><span>Giao dịch & vay nợ</span><span class="nav-index">03</span></button>
+        <button data-screen="assistant"><span>Trợ lý Timi</span><span class="nav-index">04</span></button>
+      </nav>
+      <div class="appearance-tools">
+        <span class="control-label">Màu nhấn</span>
+        <div class="swatches" role="group" aria-label="Màu nhấn demo">
+          <button class="swatch selected" data-accent="jade" aria-label="Xanh ngọc" aria-pressed="true" style="--swatch:#087f6d"></button>
+          <button class="swatch" data-accent="blue" aria-label="Xanh iOS" aria-pressed="false" style="--swatch:#0064d9"></button>
+          <button class="swatch" data-accent="graphite" aria-label="Than chì" aria-pressed="false" style="--swatch:#484a52"></button>
+          <span id="accent-name">Xanh ngọc</span>
+        </div>
+        <button class="appearance-button" id="theme-toggle" aria-pressed="false"></button>
+      </div>
+      <p class="prototype-note">Bản đề xuất độc lập · Dữ liệu minh hoạ<br>Chưa thay đổi giao diện SwiftUI hiện tại.</p>
+    </aside>
+
+    <section class="device-area" aria-label="Bản demo Timi có thể tương tác">
+      <div class="phone" id="phone">
+        <div class="status-bar" aria-hidden="true"><span>9:41</span><span class="island"></span><span class="status-icons"><svg viewBox="0 0 18 13"><path d="M1 9v3h2V9zm4-3v6h2V6zm4-3v9h2V3zm4-3v12h2V0z"/></svg><svg viewBox="0 0 18 13"><path d="M0 3a14 14 0 0 1 18 0l-2 2A11 11 0 0 0 2 5Zm4 4a8 8 0 0 1 10 0l-2 2a5 5 0 0 0-6 0Zm3 4a3 3 0 0 1 4 0l-2 2Z"/></svg><span class="battery"></span></span></div>
+        <div class="app-shell" id="app-shell">
+          <header class="app-toolbar" id="toolbar"></header>
+          <div class="app-scroll" id="app-scroll" tabindex="-1"><div id="screen"></div></div>
+          <nav class="tab-bar" aria-label="Điều hướng chính" id="tab-bar"></nav>
+        </div>
+        <div class="home-indicator" aria-hidden="true"></div>
+        <div class="sheet-layer" id="sheet-layer" hidden></div>
+        <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+      </div>
+    </section>
+
+    <aside class="design-notes">
+      <div class="note-heading"><span class="live-dot"></span>Bản demo tương tác</div>
+      <h2 id="note-title">Đọc được ngay,<br>hiểu được nhanh.</h2>
+      <p id="note-copy">Tài sản ròng dẫn đầu. Thu chi và hạn mức đi cùng nhau. Giao dịch gần đây luôn ở trong tầm mắt.</p>
+      <div class="note-divider"></div>
+      <dl class="design-spec"><div><dt>Chữ</dt><dd>System / SF Pro</dd></div><div><dt>Nội dung</dt><dd>17 px · Regular</dd></div><div><dt>Tiêu đề</dt><dd>34 px · Bold</dd></div><div><dt>Nhịp khoảng cách</dt><dd>8 / 16 / 24 / 32</dd></div><div><dt>Vùng chạm</dt><dd>Tối thiểu 44 px</dd></div></dl>
+      <button class="try-button" id="try-add">Thử ghi một khoản chi <svg class="icon"><use href="#i-up-right"/></svg></button>
+      <p class="small-note">Bạn có thể chuyển tab, xem chi tiết, lọc giao dịch và thêm dữ liệu. Đổi màu để so sánh trên cùng một bố cục.</p>
+      <a class="hig-link" href="https://developer.apple.com/design/human-interface-guidelines" target="_blank" rel="noreferrer">Tham chiếu Apple HIG <svg class="icon"><use href="#i-up-right"/></svg></a>
+    </aside>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

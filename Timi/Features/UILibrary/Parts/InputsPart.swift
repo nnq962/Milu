@@ -7,32 +7,45 @@ struct InputsPart: View {
     @State private var iosNumber = ""
     @State private var iosOwner = ""
     @State private var iosNote = ""
+    @State private var showsError = false
+    @State private var errorName = ""
+    @State private var search = ""
+    @FocusState private var isSearching: Bool
 
     var body: some View {
         PartSection(part: .inputs) {
-            FormGroup(title: "Mặc định · FormTextRow",
-                      footer: "Nhãn bên trái, giá trị gõ bên phải, các ô chung một thẻ như Danh bạ và Cài đặt của iOS. Ô nhập không kèm icon.") {
+            // No footers: in the app a footer carries only a computed figure or an error.
+            FormGroup(title: "Mặc định · FormTextRow") {
                 FormTextRow(title: "Tên", text: $iosName, prompt: "Bắt buộc")
                 FormDivider(hasIcon: false)
                 FormTextRow(title: "Số tài khoản", text: $iosNumber, prompt: "Không bắt buộc", keyboard: .numberPad)
                 FormDivider(hasIcon: false)
                 FormTextRow(title: "Chủ tài khoản", text: $iosOwner, prompt: "Không bắt buộc")
             }
-            FormGroup(title: "Có icon · không khuyên dùng cho ô nhập",
-                      footer: "Icon hợp với dòng chọn và dòng mở trang; ở ô nhập nó lặp lại điều nhãn đã nói.") {
-                FormTextRow(title: "Ngân hàng", text: $iosName, prompt: "Bắt buộc", icon: "hugeicons-bank")
-                FormDivider()
-                FormTextRow(title: "Số thẻ", text: $iosNumber, prompt: "•••• 4821", icon: "hugeicons-credit-card",
-                            keyboard: .numberPad)
-                FormDivider(hasIcon: false)
+            // No "with icon" sample: a text field never has one (re-review 2026-10-31).
+            FormGroup(title: "Ghi chú · FormNoteRow") {
                 FormNoteRow(text: $iosNote, prompt: "Ghi chú")
+            }
+            // ✓ stays on; tapping it with a field missing turns the row red and says what to fix.
+            FormGroup(title: "Báo lỗi · error, isInvalid", error: showsError ? "Nhập tên." : nil) {
+                FormTextRow(title: "Tên", text: $errorName, prompt: "Bắt buộc", isInvalid: showsError)
+                FormDivider(hasIcon: false)
+                FormToggleRow(title: "Hiện lỗi", isOn: $showsError.animation(.smooth(duration: 0.3)))
+            }
+            // Read-only rows of a detail sheet: words grey, money always a MoneyText.
+            FormGroup(title: "Chỉ xem · FormInfoRow, FormAmountInfoRow") {
+                FormInfoRow(title: "Tài khoản", value: "Vietcombank", valueIcon: "Institutions/vietcombank")
+                FormDivider(hasIcon: false)
+                FormAmountInfoRow(title: "Tiền gốc", amount: 5_000_000)
+                FormDivider(hasIcon: false)
+                FormAmountInfoRow(title: "Phí chuyển", amount: 5_000, tone: .signedExpense)
+            }
+            SampleCard(label: "Tìm kiếm · SearchField") {
+                SearchField(prompt: "Tìm giao dịch", text: $search, isFocused: $isSearching)
             }
             SampleCard(label: "Số tiền lớn · TimiAmountField") {
                 VStack(spacing: Spacing.xxl) {
                     TimiAmountField(text: $amount)
-                    Text("Gõ 3 để thấy gợi ý 3.000đ, 30.000đ, 300.000đ")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
                     TimiAmountField(text: $expense, kind: .expense, showsSuggestions: false)
                 }
             }

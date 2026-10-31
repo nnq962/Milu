@@ -6,6 +6,8 @@ extension View {
         self
             .presentationDetents(detents)
             .presentationBackground(Palette.background)
+            // A sheet does not inherit the app's hidden indicators (user report 2026-10-31).
+            .scrollIndicators(.hidden, axes: .vertical)
     }
 
     /// A standard iOS sheet as tall as its content (short choices, a calendar).

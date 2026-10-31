@@ -32,11 +32,25 @@ struct RowIcon: View {
     var size: CGFloat = RowMetrics.iconColumn
     /// Colour of a glyph (logos keep their own).
     var tint: Color = Palette.ink
+    /// A glyph on the same white tile as the logos, so a list mixing cash and banks lines up
+    /// (lists of accounts, `AccountRow`).
+    var tiled = false
 
     var body: some View {
         Group {
             if name.hasPrefix("Institutions/") {
                 InstitutionLogo(image: name, size: size)
+            } else if tiled {
+                TimiIcon(name, size: size * 0.5)
+                    .foregroundStyle(tint)
+                    .frame(width: size, height: size)
+                    .background(Palette.card)
+                    .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                            .strokeBorder(Palette.border, lineWidth: 0.5)
+                    }
+                    .accessibilityHidden(true)
             } else {
                 TimiIcon(name, size: size * RowMetrics.iconGlyph / RowMetrics.iconColumn)
                     .foregroundStyle(tint)

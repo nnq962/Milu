@@ -10,17 +10,19 @@ struct ArchivedAccountsView: View {
         ScrollView {
             if accounts.isEmpty {
                 EmptyStateCard(icon: "hugeicons-archive-02", title: "Chưa lưu trữ tài khoản nào",
-                               message: "Tài khoản đã có giao dịch mà bạn thôi dùng sẽ nằm ở đây.")
+                               message: "Tài khoản bạn thôi dùng sẽ hiện ở đây.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
+                        // The one account row of the app, as on the tab (strict review 2026-10-31:
+                        // here the icon went untiled and the balance in full).
                         NavigationLink(value: account.id) {
-                            ListRow(icon: account.iconName, title: account.name,
-                                    subtitle: account.archivedAt.map { "Đã lưu trữ \(TransactionListRow.dayMonth($0))" },
-                                    amount: account.balance, amountTone: .muted)
+                            AccountRow(account: account,
+                                       subtitle: account.archivedAt.map { "Đã lưu trữ \($0.shortDay)" },
+                                       isMuted: true)
                         }
-                        .buttonStyle(.row)
-                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                            .buttonStyle(.row)
+                            .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
                     }
                 }
                 .listCard()

@@ -1,50 +1,67 @@
 import SwiftUI
 
 /// What makes up "Nợ" on Tổng quan: cards and accounts below zero, then the loans still to repay.
+/// Scrolls, so many loans are never cut off (sheet review 2026-10-30), with group headings and
+/// list blocks like every other sheet.
 struct DebtSheet: View {
     @Environment(FinanceStore.self) private var store
+    @State private var viewingLoan: Loan?
 
     var body: some View {
         let accounts = store.countedAccounts.filter { $0.balance < 0 }
         let loans = store.loans.filter { $0.direction == .borrowed && $0.outstanding > 0 }
         VStack(alignment: .leading, spacing: Spacing.l) {
-            SheetHeader(title: "Nợ \(store.totalDebt.vndCompact)")
-            if accounts.isEmpty && loans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-credit-card", title: "Không có khoản nợ",
-                               message: "Không thẻ nào âm và không có khoản đi vay nào.")
+            // Just "Nợ": the total as a `MoneyText` under it, red with its sign like the "Nợ" row
+            // that opens this (re-review 2026-10-31: "Nợ 12tr" in ink, and "Nợ 0đ" with none).
+            VStack(spacing: Spacing.xs) {
+                SheetHeader(title: "Nợ")
+                if store.totalDebt > 0 {
+                    MoneyText(amount: -store.totalDebt, size: .large, tone: .negativeRed)
+                        .frame(maxWidth: .infinity)
+                }
             }
-            if !accounts.isEmpty {
-                group("Thẻ, tài khoản âm") {
-                    ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
-                        ListRow(icon: account.iconName, title: account.name, amount: account.balance,
-                                showsChevron: false)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+            .padding(.horizontal, Spacing.page)
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.xxl) {
+                    if accounts.isEmpty && loans.isEmpty {
+                        EmptyStateCard(icon: "hugeicons-credit-card", title: "Không có khoản nợ",
+                                       message: "Thẻ âm và khoản đi vay sẽ hiện ở đây.")
+                    }
+                    // Accounts and loans drawn as on their own pages (`AccountRow`, `LoanRowList`),
+                    // and a loan opens its sheet as on Vay nợ (strict review 2026-10-31).
+                    if !accounts.isEmpty {
+                        group("Thẻ, tài khoản âm") {
+                            VStack(spacing: 0) {
+                                ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
+                                    AccountRow(account: account, showsChevron: false)
+                                        .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
+                                }
+                            }
+                            .listCard()
+                        }
+                    }
+                    if !loans.isEmpty {
+                        group("Đi vay") {
+                            LoanRowList(loans: loans) { viewingLoan = $0 }
+                        }
                     }
                 }
             }
-            if !loans.isEmpty {
-                group("Đi vay") {
-                    ForEach(Array(loans.enumerated()), id: \.element.id) { index, loan in
-                        ListRow(icon: "hugeicons-user", title: loan.name, amount: -loan.outstanding,
-                                showsChevron: false)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
-                    }
-                }
-            }
+            // Margins inside the scroll view, so the list cards' shadow is not cut at the sides
+            // (re-review 2026-10-31).
+            .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
+            .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .foregroundStyle(Palette.ink)
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.l)
-        .timiFittedSheet()
+        .timiSheetStyle([.medium, .large])
+        .sheet(item: $viewingLoan) { LoanDetailSheet(loanID: $0.id) }
     }
 
-    private func group(_ title: String, @ViewBuilder rows: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            Text(title)
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
-            VStack(spacing: 0, content: rows)
-                .sleekCard(padding: 0)
+    private func group(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            SectionHeader(title: title, style: .group)
+            content()
         }
     }
 }

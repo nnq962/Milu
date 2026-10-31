@@ -1,11 +1,15 @@
 import SwiftUI
 
-/// The row of shortcuts under the lead card, straight on the page like a wallet app's (user
-/// request 2026-10-30: fewer cards), all alike, glass circles: Ghi chi, Ghi thu, Chuyển tiền open the
-/// add sheet on that mode; Trợ lý AI opens the assistant's page. At the accessibility text sizes
-/// they go two by two, as four in a row ran into each other (HIG review 2026-10-30).
+/// The row of shortcuts under the lead card, straight on the page, all alike: flat white
+/// circles with a hairline (HIG pass 2026-10-31: a button inside scrolling content is not glass;
+/// glass circles before). Ghi chi, Ghi thu, Chuyển tiền open the add sheet on that mode; Trợ lý AI opens the
+/// assistant's page. At the accessibility text sizes they go two by two, as four in a row ran
+/// into each other (HIG review 2026-10-30).
 struct QuickActions: View {
     let onOpenAssistant: () -> Void
+
+    /// The glyph in a shortcut's circle.
+    private static let glyph = RowMetrics.iconColumn
 
     @State private var mode: AddTransactionView.Mode?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -24,16 +28,16 @@ struct QuickActions: View {
 
     private func action(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
         VStack(spacing: Spacing.s) {
-            // Apple's Liquid Glass circle (user request 2026-10-30, over the white circles with a
-            // shadow); the system draws the press, so no custom style.
+            // A white circle with a hairline, the glyph in the primary colour, as the round
+            // buttons of the Iconly mock-ups (user 2026-10-31: no grey discs); a bordered button
+            // in HIG terms, flat since it sits in scrolling content.
             Button(action: action) {
-                // The glass hugs its label plus its own padding, so the label sets the circle's
-                // size: 40 here makes the 56 circle, as 28 does the 44 ones.
-                TimiIcon(icon, size: 24)
+                TimiIcon(icon, size: Self.glyph)
                     .foregroundStyle(Palette.primary)
-                    .frame(width: 40, height: 40)
             }
-            .nativeCircleButton(diameter: 56)
+            .flatCircleButton(diameter: ControlHeight.large, fill: Palette.card)
+            .overlay { Circle().strokeBorder(Palette.border, lineWidth: 1) }
+            .softCardShadow()
             .accessibilityLabel(title)
             Text(title)
                 .textRole(.caption)

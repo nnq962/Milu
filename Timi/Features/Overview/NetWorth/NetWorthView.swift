@@ -16,8 +16,9 @@ struct NetWorthView: View {
                 parts
             }
             .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.xxxl)
+            // The margins of every pushed page, its parts' too (re-review 2026-10-31: 8 and 32).
+            .padding(.top, Spacing.l)
+            .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.ink)
@@ -40,13 +41,12 @@ struct NetWorthView: View {
                     .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
                     .contentTransition(.opacity)
-                Text((shown?.value ?? store.netWorth).vnd)
-                    .textRole(.display)
-                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
+                // Red below zero (strict review 2026-10-31: drawn by hand, it stayed ink).
+                MoneyText(amount: shown?.value ?? store.netWorth, size: .display, tone: .negativeRed)
                     .contentTransition(.numericText())
                 // Kept in place (only faded) while a month is picked, so the chart never jumps.
                 if history.count > 1 {
-                    growth(store.netWorth - first, since: history[0].month)
+                    NetWorthGrowth(change: store.netWorth - first, since: history[0])
                         .opacity(picked == nil ? 1 : 0)
                 }
             }
@@ -58,14 +58,6 @@ struct NetWorthView: View {
         .sleekCard(padding: Spacing.xl)
     }
 
-    private func growth(_ change: Double, since month: Date) -> some View {
-        let up = change >= 0
-        return Text("\(up ? "↑" : "↓") \(abs(change).vndCompact) so với cuối tháng \(Calendar.current.component(.month, from: month))")
-            .textRole(.captionStrong)
-            .monospacedDigit()
-            .foregroundStyle(change == 0 ? Palette.secondaryText : up ? Palette.green : Palette.red)
-    }
-
     // MARK: - Thành phần
 
     private var parts: some View {
@@ -75,20 +67,28 @@ struct NetWorthView: View {
         return VStack(alignment: .leading, spacing: Spacing.headerGap) {
             SectionHeader(title: "Gồm")
             VStack(spacing: 0) {
-                link(.accounts, icon: "hugeicons-wallet-01", subtitle: "\(accounts.count) tài khoản",
-                     amount: store.totalAssets - saved, first: true)
+                // Hidden with no account above zero, like Hũ and Cho vay: it opened an empty list
+                // (strict review 2026-10-31).
+                if !accounts.isEmpty {
+                    link(.accounts, icon: "hugeicons-wallet-01", subtitle: "\(accounts.count) tài khoản",
+                         amount: store.totalAssets - saved, first: true)
+                }
                 if saved > 0 {
-                    link(.goals, icon: "hugeicons-piggy-bank", subtitle: "\(store.activeGoals.count) hũ", amount: saved)
+                    link(.goals, icon: "hugeicons-piggy-bank", subtitle: "\(store.activeGoals.count) hũ", amount: saved,
+                         first: accounts.isEmpty)
                 }
                 if !lent.isEmpty {
-                    link(.lent, icon: "hugeicons-hand-coins", subtitle: "\(lent.count) người", amount: store.totalLent)
+                    link(.lent, icon: "hugeicons-hand-coins", subtitle: "\(lent.count) người", amount: store.totalLent,
+                         first: accounts.isEmpty && saved <= 0)
                 }
                 Button { isShowingDebt = true } label: {
                     ListRow(icon: "hugeicons-credit-card", title: "Nợ", subtitle: "Thẻ âm và đi vay",
                             amount: -store.totalDebt, amountTone: .negativeRed)
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) { RowDivider() }
+                .overlay(alignment: .top) {
+                    if !(accounts.isEmpty && saved <= 0 && lent.isEmpty) { RowDivider() }
+                }
             }
             .listCard()
         }

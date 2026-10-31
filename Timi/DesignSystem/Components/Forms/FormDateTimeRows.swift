@@ -63,31 +63,6 @@ struct FormDateTimeRow: View {
     }
 }
 
-/// A time of day, shown like a picker row ("13:28" and ›); tapping it opens a short sheet with the
-/// time wheel. Changes only the hour and minute of `date`.
-struct FormTimeRow: View {
-    let title: String
-    var icon: String? = nil
-    @Binding var date: Date
-
-    @State private var isPicking = false
-
-    private var valueText: String {
-        date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
-    }
-
-    var body: some View {
-        Button { isPicking = true } label: {
-            FormValueLabel(title: title, icon: icon, value: valueText)
-        }
-        .buttonStyle(.row)
-        .accessibilityValue(valueText)
-        .sheet(isPresented: $isPicking) {
-            DateTimeSheet(title: title, date: $date, component: .hourAndMinute)
-        }
-    }
-}
-
 /// The calendar or the time wheel in a white card. Works on a copy: ✓ saves, ✕ discards.
 private struct DateTimeSheet: View {
     let title: String

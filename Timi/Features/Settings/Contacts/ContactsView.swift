@@ -12,7 +12,7 @@ struct ContactsView: View {
         ScrollView {
             if contacts.isEmpty {
                 EmptyStateCard(icon: "hugeicons-user-group", title: "Danh bạ trống",
-                               message: "Thêm những người bạn hay cho vay hoặc vay tiền.")
+                               message: "Người bạn cho vay hoặc vay sẽ hiện ở đây.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(contacts.enumerated()), id: \.element.id) { index, contact in
@@ -20,12 +20,10 @@ struct ContactsView: View {
                             ContactRowLabel(name: contact.name, subtitle: subtitle(contact))
                         }
                         .buttonStyle(.row)
-                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                     }
                 }
                 .listCard()
-                // The divider starts after the 44pt avatar, as on lists with icon circles.
-                .environment(\.formIconStyle, .tile)
             }
         }
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
@@ -38,8 +36,13 @@ struct ContactsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { editing = .new() } label: {
-                    TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
+                    // The toolbar's one +: add-circle in its 28 frame, as on Tài khoản and Thu chi
+                    // (re-review 2026-10-31).
+                    TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                        .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                 }
+                .buttonBorderShape(.circle)
+                .tint(Palette.primary)
                 .accessibilityLabel("Thêm người")
             }
         }
@@ -58,14 +61,17 @@ struct ContactsView: View {
 }
 
 /// A person's row: the same initial in a circle as their loan card on Vay nợ (user choice
-/// 2026-10-29), name, relationship and loans, and ›.
+/// 2026-10-29), name, relationship and loans, and ›. The circle is a list logo's size and the gap
+/// a row's, as an account in a list (strict review 2026-10-31: 44 and 12).
 private struct ContactRowLabel: View {
     let name: String
     let subtitle: String
 
+    @ScaledMetric(relativeTo: .body) private var avatarSize = RowMetrics.listLogo
+
     var body: some View {
-        HStack(spacing: Spacing.m) {
-            InitialsAvatar(name: name)
+        HStack(spacing: RowMetrics.gap) {
+            InitialsAvatar(name: name, size: avatarSize)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(name)
                     .textRole(.body)
@@ -76,8 +82,7 @@ private struct ContactRowLabel: View {
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            TimiIcon("hugeicons-arrow-right-01", size: 16)
-                .foregroundStyle(Palette.secondary)
+            RowChevron()
         }
         .formRowFrame()
         .accessibilityElement(children: .combine)

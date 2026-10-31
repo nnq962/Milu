@@ -12,24 +12,39 @@ struct SectionHeader<Trailing: View>: View {
     var style: Style = .section
     @ViewBuilder var trailing: Trailing
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack {
-            switch style {
-            case .section:
-                Text(title)
-                    .textRole(.title)
-            case .group:
-                // Sentence case, not small capitals (user request 2026-10-30), as the rest of the app.
-                Text(title)
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
-            }
-            Spacer(minLength: Spacing.s)
+        // On one baseline with what is beside it ("Cho vay" 17, "Còn 65tr" 13); stacked at the
+        // accessibility sizes, where the two crowded one line (strict review 2026-10-31).
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: Spacing.s))
+        layout {
+            heading
+                .accessibilityAddTraits(.isHeader)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             trailing
         }
         // Starts where the rows inside the card start: at the icon, or at the text when the
-        // rows have none (Claude app style, user request 2026-10-28).
+        // rows have none (Claude app style, user request 2026-10-28). Every page, cards or none
+        // (user choice 2026-10-31: Tổng quan and Tài khoản sat at the page margin).
         .padding(.horizontal, RowMetrics.horizontal)
+    }
+
+    @ViewBuilder
+    private var heading: some View {
+        switch style {
+        case .section:
+            Text(title)
+                .textRole(.title)
+        case .group:
+            // Small capitals again (user request 2026-10-30): in sentence case the heading read
+            // just like the caption under a group.
+            Text(title)
+                .textRole(.overline)
+                .foregroundStyle(Palette.secondaryText)
+        }
     }
 }
 

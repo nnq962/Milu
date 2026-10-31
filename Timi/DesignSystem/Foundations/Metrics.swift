@@ -19,6 +19,10 @@ enum Spacing {
     static let headerGap: CGFloat = 8
     /// Inside a regular card.
     static let card: CGFloat = 20
+    /// Inside a card that leads a page or stands alone (an empty state).
+    static let leadCard: CGFloat = 24
+    /// Between the parts of a page with no cards around its lists (Tổng quan, Tài khoản).
+    static let flatSection: CGFloat = 36
 
     static let scale: [(name: String, value: CGFloat)] = [
         ("xxs", xxs), ("xs", xs), ("s", s), ("m", m), ("l", l), ("xl", xl), ("xxl", xxl), ("xxxl", xxxl),
@@ -28,7 +32,7 @@ enum Spacing {
 /// Every row on a white card (form, list, option sheet) shares these, so rows line up everywhere:
 /// 16 side margin, at least 10 above and below, 14 between icon and text. Every one-line row is
 /// exactly 52 whatever sits on the right (text, 30pt pill, the 31pt native switch); a row with a
-/// 12pt subtitle is ~58. Apply the min height after the padding, or it never takes effect.
+/// 13pt subtitle is ~62. Apply the min height after the padding, or it never takes effect.
 enum RowMetrics {
     static let horizontal: CGFloat = 16
     static let vertical: CGFloat = 10
@@ -47,8 +51,19 @@ enum RowMetrics {
     /// A glyph in a toolbar's glass circle (+ on Tài khoản, the edit pencil), and the frame it sits in.
     static let toolbarGlyph: CGFloat = 22
     static let toolbarGlyphFrame: CGFloat = 28
-    /// Where a divider starts when rows have a 44pt round icon (`IconCircle`): margin + circle + gap.
-    static let circleDividerInset: CGFloat = horizontal + featureIcon + Spacing.m
+    /// The › at the end of a row (`RowChevron`), on every list and form.
+    static let chevron: CGFloat = 16
+    /// The › or ⌄ after a link in words ("Lưu trữ (2) ›", "Tháng 10 ⌄", "Tìm hiểu thêm ›"), and
+    /// the × of a chip.
+    static let linkChevron: CGFloat = 12
+    /// A glyph before a line of text: an ↑, a lock, the warning before a limit line.
+    static let inlineGlyph: CGFloat = 14
+    /// A bank or wallet logo in a list of accounts.
+    static let listLogo: CGFloat = 32
+    /// The line of a progress ring (`ProgressRing`).
+    static let ringStroke: CGFloat = 3
+    /// A legend dot beside a chart or a split bar (`LegendDot`).
+    static let legendDot: CGFloat = 8
     /// Where a divider starts when rows have icons: margin + icon column + gap.
     static let dividerInset: CGFloat = horizontal + iconColumn + gap
 }
@@ -66,9 +81,9 @@ enum ControlHeight {
 /// Corner radii. Every card one radius, 28 (UI review 2026-10-30: cards were 22, 26 and 32 side
 /// by side); tiles inside a card round less (20), so the inner corner never bulges past the outer.
 enum CardCorners {
-    /// Cards and lists on a page, savings goal tiles, overview cards.
+    /// Cards on a page with 20 inside (overview cards, totals), savings goal tiles.
     static let large: CGFloat = 28
-    /// A form group or the card in a short sheet.
+    /// A form group, a list of rows (`listCard`), or the card in a short sheet.
     static let inset: CGFloat = 24
     /// Tiles inside a card (Số dư / Cho vay / Nợ, Tiền vào / Tiền ra), chat cards.
     static let flow: CGFloat = 20

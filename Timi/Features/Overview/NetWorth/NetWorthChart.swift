@@ -88,3 +88,27 @@ struct NetWorthChart: View {
         }
     }
 }
+
+/// How much net worth moved, in small words under the figure: green up, red down, grey when it
+/// did not move. One view for Tổng quan's card and the Tài sản ròng page (strict review
+/// 2026-10-31: the card showed "↑ 0đ" in green where the page showed grey).
+struct NetWorthGrowth: View {
+    let change: Double
+    /// What it is measured against: "từ cuối tháng 5".
+    private let label: String
+
+    /// Measured from the end of `point`'s month (a history point holds that month's closing
+    /// figure), worded the same on Tổng quan and Tài sản ròng (re-review 2026-10-31: "trong 6
+    /// tháng" there, which was five, and "so với cuối tháng 5" here).
+    init(change: Double, since point: NetWorthPoint) {
+        self.change = change
+        self.label = "từ cuối tháng \(Calendar.current.component(.month, from: point.month))"
+    }
+
+    var body: some View {
+        Text("\(change < 0 ? "↓" : "↑") \(abs(change).vndCompact) \(label)")
+            .textRole(.captionStrong)
+            .monospacedDigit()
+            .foregroundStyle(change == 0 ? Palette.secondaryText : change > 0 ? Palette.green : Palette.red)
+    }
+}

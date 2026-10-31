@@ -7,7 +7,9 @@ struct BudgetEditorSheet: View {
     @Binding var amount: Double
     var title = "Hạn mức chi tiêu"
     var caption = "Mỗi tháng"
-    var note = "Áp dụng cho mọi tháng."
+    /// Under the amount, only when there is something to know (a floor); none by default, as
+    /// "Mỗi tháng" above already says it (strict review 2026-10-31).
+    var note: String? = nil
     var check: (Double) -> String? = { _ in nil }
     /// Ready amounts offered while nothing is typed.
     var presets: [AmountPreset] = []
@@ -22,7 +24,7 @@ struct BudgetEditorSheet: View {
         _amount = amount
         if let title { self.title = title }
         if let caption { self.caption = caption }
-        if let note { self.note = note }
+        self.note = note
         self.check = check
         let current = amount.wrappedValue
         _input = State(initialValue: current > 0 ? String(Int(current)).groupedVNDInput : "")
@@ -44,7 +46,7 @@ struct BudgetEditorSheet: View {
                     FormErrorText(text: error)
                         .multilineTextAlignment(.center)
                         .padding(.top, Spacing.s)
-                } else {
+                } else if let note {
                     Text(note)
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
@@ -60,7 +62,8 @@ struct BudgetEditorSheet: View {
         }
         // A new amount clears the old complaint until ✓ checks again.
         .onChange(of: input) { error = nil }
-        .timiSheetStyle([.medium])
+        // Large like every form sheet: the keyboard opens at once and the chips need room.
+        .timiSheetStyle()
     }
 
     private func validate() -> Bool {

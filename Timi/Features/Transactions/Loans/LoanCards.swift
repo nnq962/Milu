@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// How near a loan's deadline is, for its badge and its place in the list (user request
-/// 2026-10-29): overdue red, within a week orange, within a month grey, further green.
+/// 2026-10-29): overdue red, within a week orange, otherwise grey. A far deadline is grey on the
+/// sheet as in the list, not green (strict review 2026-10-31: one deadline, two colours).
 enum LoanUrgency: Comparable {
     case overdue(days: Int)
     case soon(days: Int)
@@ -51,8 +52,8 @@ enum LoanUrgency: Comparable {
         switch self {
         case .overdue: .warning
         case .soon: .caution
-        case .upcoming, .noDeadline: .neutral
-        case .later, .settled: .positive
+        case .upcoming, .later, .noDeadline: .neutral
+        case .settled: .positive
         }
     }
 }
@@ -72,6 +73,9 @@ extension Array where Element == Loan {
 /// 2026-10-30: a big card per loan, each with a badge and a bar, read as clutter). The person's
 /// initial, their name with the deadline and how much is repaid under it; on the right what is
 /// left, with how near the deadline is in its colour (red overdue, orange within a week).
+///
+/// Strict review 2026-10-31: the row has the account row's metrics (52 high, the initial in the
+/// logo column, scaled with the text), so Vay nợ and Tài khoản read as one kind of list.
 struct LoanRow: View {
     let loan: Loan
     /// Passed in so the deadline moves on overnight with the page.
@@ -79,6 +83,8 @@ struct LoanRow: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The same column as an account's logo; grows with the text so the letter stays inside.
+    @ScaledMetric(relativeTo: .body) private var avatar = RowMetrics.listLogo
 
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
@@ -87,62 +93,78 @@ struct LoanRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
             : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.s))
         HStack(spacing: RowMetrics.gap) {
-            InitialsAvatar(name: loan.name)
+            InitialsAvatar(name: loan.name, size: avatar)
             layout {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text(loan.name)
                         .textRole(.body)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                        // Whole at the accessibility sizes, as an account's name (re-review 2026-10-31).
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    // One line, so the amount keeps its room; whole at the accessibility sizes.
                     Text(subtitle)
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 }
-                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
+                // The stack's own spacing is the gap, as on an account row (re-review 2026-10-31).
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
                 VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: RowMetrics.lineGap) {
-                    Text(loan.isSettled ? loan.principal.vndCompact : loan.outstanding.vndCompact)
-                        .textRole(.amount)
-                        .monospacedDigit()
-                        .foregroundStyle(borrowed && !loan.isSettled ? Palette.red : Palette.ink)
+                    // Still owed by me: money going out, red with "-" as on the top card and the
+                    // loan's sheet (strict review 2026-10-31).
+                    MoneyText(amount: loan.isSettled ? loan.principal : loan.outstanding,
+                              tone: Self.amountTone(loan), compact: true)
+                        .fixedSize()
                     Text(urgency.text)
                         .textRole(.caption)
                         .foregroundStyle(Self.urgencyColor(urgency))
+                        .lineLimit(1)
                 }
+                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
+                .layoutPriority(1)
             }
             .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil, alignment: .leading)
-            TimiIcon("hugeicons-arrow-right-01", size: 14)
-                .foregroundStyle(Palette.secondary)
+            RowChevron()
         }
         .padding(.horizontal, RowMetrics.horizontal)
-        .padding(.vertical, Spacing.m)
-        .frame(minHeight: 68)
+        .padding(.vertical, RowMetrics.vertical)
+        .frame(minHeight: RowMetrics.minHeight)
         .contentShape(Rectangle())
         // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đ, còn 7 ngày".
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([loan.name, subtitle,
-                             loan.isSettled ? loan.principal.vnd : "còn \(loan.outstanding.vnd)",
+                             loan.isSettled ? loan.principal.vnd
+                                 : "còn \(borrowed ? "nợ " : "")\(loan.outstanding.vnd)",
                              urgency.text].joined(separator: ", "))
         .accessibilityHint("Xem khoản vay")
     }
 
     /// The deadline's day and how much is repaid once something is ("Hạn 6/11 · Đã trả 40%"); the
-    /// relationship when there is no deadline; "Lãi 1tr" too when it bears interest.
+    /// relationship when there is no deadline; "Lãi 1tr" too when it bears interest. Settled: the
+    /// side with the relationship ("Cho vay · Bạn bè"), since both sides' amounts are in ink there
+    /// (re-review 2026-10-31).
     private var subtitle: String {
         let relationship = loan.contactID.flatMap { store.contact(id: $0) }
             .map { store.relationship(id: $0.relationshipID).name }
-        if loan.isSettled { return relationship ?? loan.direction.title }
-        let due = loan.dueDate.map { "Hạn \($0.dayMonth)" } ?? relationship
+        if loan.isSettled { return [loan.direction.title, relationship].compactMap { $0 }.joined(separator: " · ") }
+        let due = loan.dueDate.map { "Hạn \($0.shortDay)" } ?? relationship
         let interest = loan.monthlyInterestRate > 0 ? "Lãi \(loan.monthlyInterest.vndCompact)" : nil
         // How much is repaid only once something is: "Chưa trả" made the line wrap for little.
         let paid = loan.paidRatio > 0 ? loan.paidText : nil
         return [due, interest, paid].compactMap { $0 }.joined(separator: " · ")
     }
 
+    /// What is left: still owed by me red with "-"; owed to me, or settled, in ink.
+    static func amountTone(_ loan: Loan) -> MoneyText.Tone {
+        loan.direction == .borrowed && !loan.isSettled ? .signedExpense : .plain
+    }
+
     /// The deadline in words takes the urgency's colour: red overdue, orange within a week,
-    /// grey otherwise.
+    /// green once settled, as the sheet's badge (re-review 2026-10-31), grey otherwise.
     static func urgencyColor(_ urgency: LoanUrgency) -> Color {
         switch urgency {
         case .overdue: Palette.red
         case .soon: Palette.warningText
+        case .settled: Palette.green
         default: Palette.secondaryText
         }
     }
@@ -170,10 +192,8 @@ struct LoanRowList: View {
                 Button { onOpen(loan) } label: { LoanRow(loan: loan, today: today) }
                     .buttonStyle(.row)
                     .overlay(alignment: .top) {
-                        if index > 0 {
-                            Palette.border.frame(height: 1)
-                                .padding(.leading, RowMetrics.circleDividerInset)
-                        }
+                        // From where the names start, the avatar column scaled with the text.
+                        if index > 0 { RowDivider(column: .logo) }
                     }
             }
         }

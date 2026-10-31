@@ -4,6 +4,7 @@ import SwiftUI
 /// badge and progress, "Ghi nhận thu nợ / trả nợ", the interest (each month, this month, in all),
 /// the details, then every repayment (tap one to change or delete it). The pencil opens the form.
 struct LoanDetailSheet: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let loanID: Loan.ID
     /// The page's day, so the badge agrees with the card just after midnight.
     var today = Date.now
@@ -82,21 +83,37 @@ struct LoanDetailSheet: View {
     private func summary(_ loan: Loan) -> some View {
         let urgency = LoanUrgency(loan, today: today)
         let lent = loan.direction == .lent
-        return SummaryCard(label: lent ? "Còn phải thu" : "Còn phải trả", amount: loan.outstanding,
-                           icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02", tone: .plain) {
+        // Settled: what was repaid, the principal the row shows, not a big "0 đ" (re-review
+        // 2026-10-31). Open: what is left, in the row's colour (red with "-" while I owe it).
+        let label = loan.isSettled ? (lent ? "Đã thu đủ" : "Đã trả đủ") : (lent ? "Còn phải thu" : "Còn phải trả")
+        return SummaryCard(label: label, amount: loan.isSettled ? loan.principal : loan.outstanding,
+                           icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02",
+                           tone: LoanRow.amountTone(loan)) {
             StatusBadge(text: urgency.text, tone: urgency.tone)
                 .padding(.top, Spacing.s)
             ProgressBar(value: loan.paidRatio, color: LoanRow.progressColor(for: loan, urgency: urgency))
                 .padding(.top, Spacing.l)
-            HStack {
-                Text(loan.paidText)
-                Spacer()
-                Text("Gốc \(loan.principal.vnd)")
+            // How much is repaid and of what; settled, the label and the amount already say both.
+            // Stacked at the accessibility text sizes, as on a goal's screen.
+            if !loan.isSettled {
+                AnyLayout(dynamicTypeSize.isAccessibilitySize
+                          ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
+                          : AnyLayout(HStackLayout(spacing: Spacing.s))) {
+                    Text(loan.paidText)
+                        .textRole(.captionStrong)
+                        .foregroundStyle(Palette.secondaryText)
+                    if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                    // The amount by MoneyText, grey as the line it sits on (re-review 2026-10-31).
+                    HStack(spacing: Spacing.xs) {
+                        Text("Gốc")
+                            .textRole(.captionStrong)
+                            .foregroundStyle(Palette.secondaryText)
+                        MoneyText(amount: loan.principal, size: .caption, tone: .muted)
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+                .padding(.top, Spacing.s)
             }
-            .textRole(.captionStrong)
-            .foregroundStyle(Palette.secondaryText)
-            .monospacedDigit()
-            .padding(.top, Spacing.s)
         }
     }
 
@@ -107,8 +124,8 @@ struct LoanDetailSheet: View {
         return FormGroup(title: "Lãi") {
             // Settled: what came in is what matters, not what each month would be.
             if loan.monthlyInterestRate > 0, !loan.isSettled {
-                FormInfoRow(title: "Mỗi tháng",
-                            value: "\(loan.monthlyInterest.vnd) (\(LoanEditorView.percent(loan.monthlyInterestRate))%)")
+                FormAmountInfoRow(title: "Mỗi tháng (\(LoanEditorView.percent(loan.monthlyInterestRate))%)",
+                                  amount: loan.monthlyInterest)
                 FormDivider(hasIcon: false)
                 if store.owesInterest(loan) {
                     FormInfoRow(title: "Tháng này",
@@ -116,25 +133,28 @@ struct LoanDetailSheet: View {
                     FormDivider(hasIcon: false)
                 }
             }
-            FormInfoRow(title: lent ? "Đã thu tổng cộng" : "Đã trả tổng cộng", value: paid.vnd)
+            // In or out as on the history rows; nothing yet, a plain 0.
+            FormAmountInfoRow(title: lent ? "Đã thu tổng cộng" : "Đã trả tổng cộng", amount: paid,
+                              tone: paid == 0 ? .plain : lent ? .signedIncome : .signedExpense)
         }
     }
 
     private func details(_ loan: Loan) -> some View {
         let lent = loan.direction == .lent
         return FormGroup(title: "Chi tiết") {
-            FormInfoRow(title: lent ? "Người vay" : "Người cho vay", value: loan.name)
-            FormDivider(hasIcon: false)
             if let id = loan.movedAccountID {
                 FormInfoRow(title: lent ? "Chi từ" : "Nhận vào", value: store.account(id: id)?.name ?? "Tài khoản đã xoá",
                             valueIcon: store.account(id: id)?.iconName)
                 FormDivider(hasIcon: false)
-                FormInfoRow(title: lent ? "Ngày cho vay" : "Ngày vay", value: day(loan.date))
+                FormInfoRow(title: lent ? "Ngày cho vay" : "Ngày vay", value: loan.date.shortDay)
             } else {
                 FormInfoRow(title: "Loại", value: "Khoản có sẵn")
             }
-            FormDivider(hasIcon: false)
-            FormInfoRow(title: "Hạn trả", value: loan.dueDate.map(day) ?? "Không có hạn")
+            // No deadline: the badge on top already says "Không có hạn" (re-review 2026-10-31).
+            if let due = loan.dueDate {
+                FormDivider(hasIcon: false)
+                FormInfoRow(title: "Hạn trả", value: due.shortDay)
+            }
         }
     }
 
@@ -143,28 +163,33 @@ struct LoanDetailSheet: View {
     private func history(_ loan: Loan) -> some View {
         let payments = store.payments(of: loan)
         let lent = loan.direction == .lent
-        FormGroup(title: lent ? "Lịch sử thu nợ" : "Lịch sử trả nợ",
-                  footer: historyFooter(loan, isEmpty: payments.isEmpty)) {
-            ForEach(Array(payments.enumerated()), id: \.element.id) { index, payment in
-                Button { paying = .edit(payment) } label: {
-                    ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
-                            title: lent ? "Thu nợ" : "Trả nợ", subtitle: breakdown(payment),
-                            trailingSubtitle: Self.day(payment.date),
-                            amount: lent ? payment.total : -payment.total,
-                            amountTone: lent ? .signedIncome : .plain, showsChevron: false)
+        let title = lent ? "Lịch sử thu nợ" : "Lịch sử trả nợ"
+        if payments.isEmpty {
+            // No empty card: the heading and the note, 8 apart (re-review 2026-10-31: an empty
+            // `FormGroup` card put 16 between them).
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                SectionHeader(title: title, style: .group)
+                if let footer = historyFooter(loan, isEmpty: true) { FormFooter(text: footer) }
+            }
+        } else {
+            FormGroup(title: title, footer: historyFooter(loan, isEmpty: false)) {
+                ForEach(Array(payments.enumerated()), id: \.element.id) { index, payment in
+                    Button { paying = .edit(payment) } label: {
+                        ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
+                                title: lent ? "Thu nợ" : "Trả nợ", subtitle: breakdown(payment),
+                                trailingSubtitle: payment.date.shortDay,
+                                // A repayment on what I borrowed is money out: red "-" (strict review 2026-10-31).
+                                amount: payment.total,
+                                amountTone: lent ? .signedIncome : .signedExpense, showsChevron: false)
+                    }
+                    .buttonStyle(.row)
+                    // On an archived account: shown, not changed (the footer says why).
+                    .disabled(store.readOnlyReason(payment) != nil)
+                    // Under the titles, the icon column scaled with the text as the rows' icons.
+                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .icon) } }
                 }
-                .buttonStyle(.row)
-                // On an archived account: shown, not changed (the footer says why).
-                .disabled(store.readOnlyReason(payment) != nil)
-                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
             }
         }
-    }
-
-    /// "05/11" this year, "05/11/2025" another: loans run across years.
-    static func day(_ date: Date) -> String {
-        let sameYear = Calendar.current.isDate(date, equalTo: .now, toGranularity: .year)
-        return TransactionListRow.dayMonth(date) + (sameYear ? "" : "/\(Calendar.current.component(.year, from: date))")
     }
 
     /// None yet, and why the money cannot change (an archived account), whichever apply.
@@ -182,9 +207,5 @@ struct LoanDetailSheet: View {
         if payment.interest > 0 { parts.append("Lãi \(payment.interest.vndCompact)") }
         parts.append(store.account(id: payment.accountID)?.name ?? "Tài khoản đã xoá")
         return parts.joined(separator: " · ")
-    }
-
-    private func day(_ date: Date) -> String {
-        date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
     }
 }

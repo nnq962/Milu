@@ -88,7 +88,7 @@ struct TransactionSearchView: View {
                 remember(query)
             }
             Button { dismiss() } label: {
-                TimiIcon("hugeicons-cancel-01", size: 20)
+                TimiIcon("hugeicons-cancel-01", size: RowMetrics.toolbarGlyph)
                     .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
             }
             .nativeCircleButton(diameter: ControlHeight.regular)
@@ -196,7 +196,8 @@ struct TransactionSearchView: View {
         switch segment {
         case .flows:
             if filter.kind == .all {
-                picks += [TransactionFilter.expense, .income, .transfer].map { kind in
+                // In the order of the chips on Thu chi and of "Loại" in Bộ lọc (strict review 2026-10-31).
+                picks += [TransactionFilter.income, .expense, .transfer].map { kind in
                     QuickPick(title: kind.title) { filter.setKind(kind, groupsOf: store) }
                 }
             }
@@ -273,18 +274,21 @@ struct TransactionSearchView: View {
     private var recentSearches: some View {
         let history = self.history
         if history.isEmpty {
-            Text(segment == .flows ? "Tìm theo hạng mục, ghi chú hoặc tài khoản. Dùng Bộ lọc để chọn loại, thời gian, số tiền."
-                 : "Tìm theo tên người cho vay hoặc người vay. Dùng Bộ lọc để chọn cho vay hay đi vay.")
+            // One short line, no button named (strict review 2026-10-31).
+            Text(segment == .flows ? "Tìm theo hạng mục, ghi chú hoặc tài khoản."
+                 : "Tìm theo tên người vay hoặc cho vay.")
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
                 .padding(.horizontal, RowMetrics.horizontal)
         } else {
             VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                SectionHeader(title: "Tìm kiếm gần đây", style: .group) {
-                    Button("Xoá") { withAnimation(.smooth(duration: 0.25)) { historyText = "" } }
-                        .textRole(.captionStrong)
-                        .tint(Palette.ink)
-                        .accessibilityLabel("Xoá lịch sử tìm kiếm")
+                // A full page's heading, as the days of the results (strict review 2026-10-31).
+                SectionHeader(title: "Tìm kiếm gần đây") {
+                    Button { withAnimation(.smooth(duration: 0.25)) { historyText = "" } } label: {
+                        HeaderCapsuleLabel(title: "Xoá")
+                    }
+                    .headerCapsuleGlass()
+                    .accessibilityLabel("Xoá lịch sử tìm kiếm")
                 }
                 VStack(spacing: 0) {
                     ForEach(Array(history.enumerated()), id: \.element) { index, item in
@@ -294,20 +298,25 @@ struct TransactionSearchView: View {
                                 remember(item)
                             } label: {
                                 FormRowLabel(title: item, icon: "hugeicons-clock-01")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, RowMetrics.vertical)
+                                    .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .leading)
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            // × on the card's 16 edge, under "Xoá", with a 44 target that grows to
+                            // the left and fills the row's height: the row stays 52, as every row
+                            // (strict review 2026-10-31: 64 tall, × 31 in).
                             Button { forget(item) } label: {
-                                TimiIcon("hugeicons-cancel-01", size: 14)
+                                TimiIcon("hugeicons-cancel-01", size: RowMetrics.inlineGlyph)
                                     .foregroundStyle(Palette.secondaryText)
-                                    .frame(width: ControlHeight.regular, height: ControlHeight.regular)
+                                    .frame(minWidth: ControlHeight.regular, maxHeight: .infinity, alignment: .trailing)
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Xoá “\(item)” khỏi lịch sử")
                         }
-                        .formRowFrame()
+                        .padding(.horizontal, RowMetrics.horizontal)
+                        .fixedSize(horizontal: false, vertical: true)
                         .overlay(alignment: .top) { if index > 0 { FormDivider() } }
                     }
                 }

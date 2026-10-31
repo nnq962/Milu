@@ -19,35 +19,56 @@ struct QuickCategoryGrid: View {
         return Array((used + pickable.filter { counts[$0.id] == nil }).prefix(8))
     }
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The circle and its glyph grow with the text (sheet review 2026-10-30); the glyph is a row
+    /// icon's size, not the toolbar's (strict review 2026-10-31).
+    @ScaledMetric(relativeTo: .caption) private var circle = RowMetrics.iconChoice
+    @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.iconColumn
+
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: 4), spacing: Spacing.m) {
-            ForEach(items) { item in
-                let isChosen = item.id == selection
-                Button {
-                    Haptics.selection()
-                    selection = item.id
-                } label: {
-                    VStack(spacing: Spacing.xs) {
-                        TimiIcon(item.icon, size: 22)
-                            .foregroundStyle(isChosen ? Palette.onPrimary : Palette.ink)
-                            .frame(width: 52, height: 52)
-                            .background(isChosen ? Palette.primary : Palette.card, in: Circle())
-                            .shadow(color: .black.opacity(isChosen ? 0 : 0.05), radius: 4, y: 2)
-                        // No shrink-to-fit: with the role's exact line height it shrank some names
-                        // and not others; a long one is cut off instead.
-                        Text(item.name)
-                            .textRole(.caption)
-                            .foregroundStyle(isChosen ? Palette.primary : Palette.secondaryText)
-                            .lineLimit(1)
+        // Three columns at the accessibility sizes, where four cut every name short.
+        let columns = dynamicTypeSize.isAccessibilitySize ? 3 : 4
+        // A plain Grid, not a lazy one: a lazy grid sized its rows a moment after the sheet came
+        // up, so the rows under it jumped as it slid in (user report 2026-10-30).
+        let rows = stride(from: 0, to: items.count, by: columns).map { Array(items[$0..<min($0 + columns, items.count)]) }
+        Grid(horizontalSpacing: Spacing.s, verticalSpacing: Spacing.m) {
+            ForEach(rows, id: \.first?.id) { row in
+                GridRow(alignment: .top) {
+                    ForEach(row) { item in
+                        cell(item, isChosen: item.id == selection)
                     }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
+                    // Keep the columns even on a short last row.
+                    ForEach(0..<(columns - row.count), id: \.self) { _ in Color.clear.frame(height: 1) }
                 }
-                .buttonStyle(.card)
-                .accessibilityLabel(item.name)
-                .accessibilityAddTraits(isChosen ? .isSelected : [])
             }
         }
         .animation(.snappy(duration: 0.2), value: selection)
+    }
+
+    /// A flat white circle with a hairline ring, as a `TagChip`; filled in the primary colour when
+    /// chosen (user choice 2026-10-31: no glass inside content, it trailed the sheet's scroll). The
+    /// name under it picks it too.
+    private func cell(_ item: Category, isChosen: Bool) -> some View {
+        // No haptic here: the "Hạng mục" row below gives one for every change of it.
+        let pick = { selection = item.id }
+        return VStack(spacing: Spacing.xs) {
+            Button(action: pick) {
+                TimiIcon(item.icon, size: glyph)
+                    .foregroundStyle(isChosen ? Palette.onPrimary : Palette.ink)
+                    .frame(width: circle, height: circle)
+                    .overlay { if !isChosen { Circle().strokeBorder(Palette.border, lineWidth: 1) } }
+            }
+            .flatCircleButton(diameter: circle, fill: isChosen ? Palette.primary : Palette.card)
+            .accessibilityLabel(item.name)
+            .accessibilityAddTraits(isChosen ? .isSelected : [])
+            Text(item.name)
+                .textRole(.caption)
+                .foregroundStyle(isChosen ? Palette.primary : Palette.secondaryText)
+                .multilineTextAlignment(.center)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .onTapGesture(perform: pick)
+                .accessibilityHidden(true)
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
     }
 }

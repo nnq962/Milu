@@ -25,6 +25,10 @@ struct TransactionsView: View {
     @State private var today = Date.now
     @Environment(\.scenePhase) private var scenePhase
     @State private var isSearching = false
+    /// The report circle grows with the text as the month capsule beside it does, so the two stay
+    /// one height (strict review 2026-10-31).
+    @ScaledMetric(relativeTo: .body) private var reportDiameter = ControlHeight.regular
+    @ScaledMetric(relativeTo: .body) private var reportGlyph = RowMetrics.toolbarGlyph
     @State private var isAddingLoan = false
     @State private var editingLoan: Loan?
     /// A row tapped to read it (then change or delete it from its sheet).
@@ -156,7 +160,7 @@ struct TransactionsView: View {
 
     private var searchButton: some View {
         Button { isSearching = true } label: {
-            TimiIcon("hugeicons-search-01", size: 20)
+            TimiIcon("hugeicons-search-01", size: RowMetrics.toolbarGlyph)
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
@@ -166,7 +170,8 @@ struct TransactionsView: View {
 
     private var addLoanButton: some View {
         Button { isAddingLoan = true } label: {
-            TimiIcon("hugeicons-add-01", size: 20)
+            // The same + as on Tài khoản, at the bar's one glyph size (strict review 2026-10-31).
+            TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
@@ -189,7 +194,7 @@ struct TransactionsView: View {
 
     /// The month in a white card right under the segments, balanced (user request 2026-10-30: a big
     /// spending figure over a small income line read lopsided). A top row of two controls the same
-    /// height: the month as a glass capsule, and a glass circle opening the month's report. Under
+    /// height: the month as a capsule, and a circle opening the month's report, both flat fills. Under
     /// it what went out and what came in side by side at one size, as on Báo cáo. The limit shows
     /// only when it needs a look: from 80% used, orange, red once over.
     private var summaryCard: some View {
@@ -204,29 +209,25 @@ struct TransactionsView: View {
                 NavigationLink {
                     ReportView(period: ReportPeriod(.month, containing: displayedMonth))
                 } label: {
-                    TimiIcon("hugeicons-pie-chart", size: 20)
+                    TimiIcon("hugeicons-pie-chart", size: reportGlyph)
                         .foregroundStyle(Palette.primary)
-                        .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                 }
-                .nativeCircleButton(diameter: ControlHeight.regular)
+                // Flat, as the month beside it: glass inside the card trailed it on scroll.
+                .flatCircleButton(diameter: reportDiameter)
                 .accessibilityLabel("Báo cáo tháng")
             }
             HStack(alignment: .top, spacing: 0) {
                 monthTotal("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain)
                     .padding(.trailing, Spacing.l)
-                    .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
+                    .overlay(alignment: .trailing) { VerticalDivider() }
                 monthTotal("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .plain)
                     .padding(.leading, Spacing.l)
             }
-            if monthlyBudget > 0, spent / monthlyBudget >= 0.8 {
-                let over = spent > monthlyBudget
-                HStack(spacing: Spacing.xs) {
-                    TimiIcon("hugeicons-alert-circle", size: 14)
-                    Text(over ? "Vượt hạn mức \((spent - monthlyBudget).vndCompact)"
-                         : "Đã dùng \((spent / monthlyBudget).percentText) hạn mức, còn \((monthlyBudget - spent).vndCompact)")
-                }
-                .textRole(.captionStrong)
-                .foregroundStyle(over ? Palette.red : Palette.warningText)
+            let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
+            if monthlyBudget > 0, progress.isOver || progress.isNearing {
+                BudgetStatusLine(level: .init(progress),
+                                 text: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
+                                     : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
             }
         }
         .sleekCard()
@@ -270,13 +271,8 @@ struct TransactionsView: View {
         }
     }
 
-    /// "Tháng 9" this year, "Tháng 9/2025" another.
-    private var monthName: String {
-        let calendar = Calendar.current
-        let number = calendar.component(.month, from: displayedMonth)
-        let sameYear = calendar.isDate(displayedMonth, equalTo: .now, toGranularity: .year)
-        return sameYear ? "Tháng \(number)" : "Tháng \(number)/\(calendar.component(.year, from: displayedMonth))"
-    }
+    /// "Tháng 9" this year, "Tháng 9/2025" another: the words of the month button and its menu.
+    private var monthName: String { MonthMenu.name(of: displayedMonth) }
 
     /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.
     private var hasNothingRecorded: Bool {
@@ -296,12 +292,15 @@ struct TransactionsView: View {
         }
     }
 
+    /// One short line on what will show here, no button named (strict review 2026-10-31).
     private var emptyMessage: String {
-        if hasNothingRecorded {
-            return "Thêm giao dịch đầu tiên bằng nút + cạnh thanh tab."
+        if hasNothingRecorded { return "Khoản thu chi bạn ghi sẽ hiện ở đây." }
+        return switch filter {
+        case .all: "Thu chi trong tháng sẽ hiện ở đây."
+        case .income: "Khoản thu trong tháng sẽ hiện ở đây."
+        case .expense: "Khoản chi trong tháng sẽ hiện ở đây."
+        case .transfer: "Tiền chuyển giữa tài khoản sẽ hiện ở đây."
         }
-        if filter == .transfer { return "Chuyển tiền giữa hai tài khoản bằng nút + cạnh thanh tab." }
-        return "Chọn tháng khác ở nút tháng, hoặc thêm bằng nút + cạnh thanh tab."
     }
 }
 

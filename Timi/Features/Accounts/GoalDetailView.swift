@@ -44,11 +44,9 @@ struct GoalDetailView: View {
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Lịch sử")
                         if activity.isEmpty {
-                            // A goal can start with money but no deposit yet (older data, sample data).
+                            // One short line, what will show here (strict review 2026-10-31).
                             EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa nạp lần nào",
-                                           message: goal.saved > 0
-                                               ? "\(goal.saved.vnd) là số có sẵn khi tạo hũ. Các lần nạp, rút sau này sẽ hiện ở đây."
-                                               : "Tiền nạp vào hoặc rút ra khỏi hũ sẽ hiện ở đây.")
+                                           message: "Các lần nạp, rút sẽ hiện ở đây.")
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(activity.enumerated()), id: \.element.id) { index, item in
@@ -101,9 +99,12 @@ struct GoalDetailView: View {
                 }
             }) { sheet in
                 switch sheet {
-                case .deposit: GoalTransferSheet(goal: goal, direction: .deposit)
-                case .withdraw: GoalTransferSheet(goal: goal, direction: .withdrawal)
-                case .withdrawAll: GoalTransferSheet(goal: goal, direction: .withdrawal, closesGoal: true)
+                // The account picked before the sheet opens, so its row is there from the first
+                // frame (re-review 2026-10-31: it was slid in on appear).
+                case .deposit: GoalTransferSheet(goal: goal, direction: .deposit, account: defaultAccount)
+                case .withdraw: GoalTransferSheet(goal: goal, direction: .withdrawal, account: defaultAccount)
+                case .withdrawAll: GoalTransferSheet(goal: goal, direction: .withdrawal, closesGoal: true,
+                                                     account: defaultAccount)
                 // The add-transaction sheet, spending from the goal (user choice 2026-10-29).
                 case .spend: AddTransactionView(buying: goal)
                 }
@@ -114,15 +115,21 @@ struct GoalDetailView: View {
             .alert("Đã đủ mục tiêu", isPresented: $isCelebrating) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Hũ “\(goal.name)” đã đủ \(goal.target.vnd). Giờ bạn có thể mua ngay, rút về tài khoản hoặc đặt mục tiêu mới.")
+                Text("Hũ “\(goal.name)” đã đủ \(goal.target.vnd).")
             }
         } else {
             EmptyStateCard(icon: "hugeicons-alert-02", title: "Không tìm thấy hũ",
                            message: "Hũ này có thể đã bị xoá.")
-                .padding(Spacing.page)
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.l)
                 .frame(maxHeight: .infinity, alignment: .top)
                 .background(Palette.background)
         }
+    }
+
+    /// The first unlocked payment account: where a deposit comes from and a withdrawal goes.
+    private var defaultAccount: Account.ID? {
+        store.paymentAccounts.first { !$0.isLocked }?.id
     }
 
     private func open(_ next: Sheet, for goal: SavingsGoal) {
@@ -177,21 +184,25 @@ struct GoalDetailView: View {
         .monospacedDigit()
     }
 
-    /// "Đã dùng: Mua xe · 36tr về Ví tiền mặt · 29/10": wraps rather than cutting off where the
-    /// rest of the money went.
+    /// How it ended as the screen's one kind of badge, as "Đã đủ mục tiêu" (re-review 2026-10-31:
+    /// a grey box with 12 corners beside a green pill): "Đã dùng: Mua xe" in the pill, then the
+    /// rest of where the money went and the day under it, wrapping rather than cut off
+    /// ("36tr về Ví tiền mặt · 29/10").
     private func closedLine(_ goal: SavingsGoal) -> some View {
-        Label {
-            Text([goal.closingNote, goal.closedAt.map(TransactionListRow.dayMonth)].compactMap { $0 }
-                    .filter { !$0.isEmpty }.joined(separator: " · "))
-                .textRole(.captionStrong)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            TimiIcon("hugeicons-checkmark-badge-01", size: StatusBadge.icon)
+        let parts = goal.closingNote.components(separatedBy: " · ").filter { !$0.isEmpty }
+        let head = parts.first ?? "Đã hoàn thành"
+        let rest = (Array(parts.dropFirst()) + [goal.closedAt?.shortDay].compactMap { $0 })
+            .joined(separator: " · ")
+        return VStack(alignment: .leading, spacing: Spacing.s) {
+            StatusBadge(text: head, tone: .positive, icon: "hugeicons-checkmark-badge-01")
+            if !rest.isEmpty {
+                Text(rest)
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .foregroundStyle(Palette.ink)
-        .padding(.horizontal, StatusBadge.horizontalPadding)
-        .padding(.vertical, Spacing.xs)
-        .background(Palette.fill2, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -249,7 +260,7 @@ struct GoalTransferRow: View {
         let deposit = transfer.direction == .deposit
         let intoGoal = side == .goal ? deposit : !deposit
         ListRow(icon: icon, title: title, subtitle: subtitle,
-                trailingSubtitle: TransactionListRow.dayMonth(transfer.date),
+                trailingSubtitle: transfer.date.shortDay,
                 amount: transfer.amount,
                 amountTone: intoGoal ? .signedIncome : .signedExpense,
                 showsChevron: false)

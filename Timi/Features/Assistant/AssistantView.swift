@@ -10,7 +10,10 @@ struct AssistantView: View {
     @State private var isThinking = false
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
-    @State private var editingTransaction: FinanceTransaction?
+    @State private var viewingTransaction: FinanceTransaction?
+    /// The chat card whose "Xoá" was tapped, until the alert is answered: deleting always asks
+    /// first, in chat too (strict review 2026-10-31: it deleted at once).
+    @State private var pendingRemoval: ChatMessage?
     @State private var dictation = SpeechDictation()
     @FocusState private var isInputFocused: Bool
 
@@ -23,7 +26,7 @@ struct AssistantView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: Spacing.xl) {
                     dateChip
                     ForEach(messages) { message in
                         MessageRow(message: message, onSuggestion: send, onAction: handle)
@@ -33,9 +36,9 @@ struct AssistantView: View {
                         TypingIndicator().id("typing")
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 20)
+                .padding(.horizontal, Spacing.page)
+                .padding(.top, Spacing.l)
+                .padding(.bottom, Spacing.xl)
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: messages) { _, newMessages in
@@ -64,7 +67,16 @@ struct AssistantView: View {
             // A plain menu: the bar draws its glass, which then takes part in push and pop.
             ToolbarItem(placement: .topBarTrailing) { historyMenu }
         }
-        .sheet(item: $editingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
+        .sheet(item: $viewingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
+        .alert("Xoá giao dịch?", isPresented: Binding(
+            get: { pendingRemoval != nil },
+            set: { if !$0 { pendingRemoval = nil } }
+        )) {
+            Button("Huỷ", role: .cancel) {}
+            Button("Xoá", role: .destructive) {
+                if let message = pendingRemoval { remove(message) }
+            }
+        }
         .onChange(of: dictation.transcript) { _, text in
             if dictation.isRecording { draft = text }
         }
@@ -83,7 +95,7 @@ struct AssistantView: View {
     // MARK: - Đầu trang
 
     private var heading: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
             Text("Timi")
                 .textRole(.pageTitle)
                 .accessibilityAddTraits(.isHeader)
@@ -117,8 +129,8 @@ struct AssistantView: View {
                 }
             }
         } label: {
-            TimiIcon("hugeicons-clock-01", size: 20)
-                .frame(width: 28, height: 28)
+            TimiIcon("hugeicons-clock-01", size: RowMetrics.toolbarGlyph)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .menuStyle(.button)
         .buttonBorderShape(.circle)
@@ -130,8 +142,8 @@ struct AssistantView: View {
         Text(chats.conversations[currentIndex].startedAt.transactionDayTitle)
             .textRole(.captionStrong)
             .foregroundStyle(Palette.secondaryText)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xs)
             .background(Palette.muted, in: Capsule())
             .frame(maxWidth: .infinity)
     }
@@ -142,22 +154,30 @@ struct AssistantView: View {
         !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isThinking
     }
 
+    /// Half the one-line height, so one line reads as a capsule.
+    private static let inputRadius = (ControlHeight.regular + 2 * Spacing.xxs) / 2
+
     private var inputBar: some View {
-        HStack(spacing: 8) {
+        // Bottom-aligned: as the text grows to four lines, mic and send stay on its last line
+        // (re-review 2026-10-31: they floated to the middle).
+        HStack(alignment: .bottom, spacing: Spacing.s) {
             Button {
                 Task { await dictation.toggle() }
             } label: {
-                TimiIcon("hugeicons-mic-01", size: 20)
+                TimiIcon("hugeicons-mic-01", size: RowMetrics.iconGlyph)
                     .foregroundStyle(dictation.isRecording ? Palette.red : Palette.secondary)
-                    .frame(width: 32, height: 40)
+                    // 44 to tap, like every control (strict review 2026-10-31: it was 32×40).
+                    .frame(width: ControlHeight.regular, height: ControlHeight.regular)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(dictation.isRecording ? "Dừng nhập giọng nói" : "Nhập bằng giọng nói")
 
-            TextField(dictation.isRecording ? "Đang nghe…" : "Hỏi Timi hoặc ghi giao dịch...", text: $draft, axis: .vertical)
+            TextField(dictation.isRecording ? "Đang nghe…" : "Hỏi Timi", text: $draft, axis: .vertical)
                 .textRole(.body)
                 .lineLimit(1...4)
+                // Centred on the 44 buttons while one line, then growing upward.
+                .frame(minHeight: ControlHeight.regular)
                 .focused($isInputFocused)
                 .submitLabel(.send)
                 .onSubmit { send(draft) }
@@ -165,43 +185,51 @@ struct AssistantView: View {
             Button {
                 send(draft)
             } label: {
-                TimiIcon("hugeicons-arrow-up-02", size: 18)
+                TimiIcon("hugeicons-arrow-up-02", size: RowMetrics.iconGlyph)
                     .foregroundStyle(Palette.onPrimary)
             }
-            .nativeFloatingButton(diameter: 40, tint: Palette.primary)
+            .nativeFloatingButton(diameter: ControlHeight.regular, tint: Palette.primary)
             .disabled(!canSend)
             .accessibilityLabel("Gửi tin nhắn")
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 6)
-        .padding(.vertical, 6)
-        .background(Palette.input, in: Capsule())
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        // The 44 mic and send buttons set the height, so the field needs little padding: the same
+        // on every side, so the send circle sits evenly in the end (re-review 2026-10-31).
+        .padding(Spacing.xxs)
+        // A capsule while one line; a rounded rectangle of the same end radius once it grows, not
+        // an oval (re-review 2026-10-31).
+        .background(Palette.input, in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        // The page margin, the same as the messages above (strict review 2026-10-31: 16 here
+        // and 20 there put the bar 4pt past the bubbles on each side).
+        .padding(.horizontal, Spacing.page)
+        .padding(.vertical, Spacing.m)
         // Solid page color, not a self-made blur: iOS owns translucency around system bars.
         .background(Palette.background)
     }
 
     /// In place of the input once this month's questions and the bonus are used up.
     private var outOfQuestions: some View {
-        HStack(alignment: .top, spacing: 12) {
-            TimiIcon("hugeicons-ai-magic", size: 22)
+        HStack(alignment: .top, spacing: Spacing.m) {
+            // A glyph in content, not a toolbar's (re-review 2026-10-31).
+            TimiIcon("hugeicons-ai-magic", size: RowMetrics.iconGlyph)
                 .foregroundStyle(Palette.primary)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text("Đã dùng hết lượt AI")
                     .textRole(.bodyStrong)
-                Text("Lượt mới vào \(quota.renewsOn.formatted(.dateTime.day().month(.defaultDigits).locale(.vietnam))). Timi Pro có \(AIQuota.monthlyPro) lượt mỗi tháng, sắp ra mắt.")
+                // Only when it comes back; Timi Pro is told about on Tổng quan (strict review 2026-10-31).
+                // The one short date (`shortDay`).
+                Text("Lượt mới vào \(quota.renewsOn.shortDay)")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
-        .padding(14)
-        .background(Palette.card, in: RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        // A white card like every other, with the shared shadow (strict review 2026-10-31).
+        .padding(RowMetrics.horizontal)
+        .cardSurface(radius: CardCorners.inset, elevated: true)
+        .padding(.horizontal, Spacing.page)
+        .padding(.vertical, Spacing.m)
         .background(Palette.background)
     }
 
@@ -250,11 +278,11 @@ struct AssistantView: View {
         guard let row = chats.conversations[index].messages.firstIndex(where: { $0.id == message.id }),
               let card = message.card else { return }
         switch (action, card) {
-        case (.edit, .recorded(let snapshot, _)):
-            editingTransaction = store.transaction(id: snapshot.id)
-        case (.remove, .recorded(let snapshot, _)):
-            store.delete(snapshot)
-            chats.conversations[index].messages[row].card = .recorded(snapshot, removed: true)
+        case (.view, .recorded(let snapshot, _)):
+            viewingTransaction = store.transaction(id: snapshot.id)
+        case (.remove, .recorded):
+            Haptics.warning()
+            pendingRemoval = message
         case (.confirm, .confirmDelete(let snapshot, .pending)):
             store.delete(snapshot)
             chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .deleted)
@@ -263,6 +291,16 @@ struct AssistantView: View {
         default:
             break
         }
+    }
+
+    /// "Xoá" on a recorded card, once the alert said yes.
+    private func remove(_ message: ChatMessage) {
+        let index = currentIndex
+        guard let row = chats.conversations[index].messages.firstIndex(where: { $0.id == message.id }),
+              case .recorded(let snapshot, removed: false) = chats.conversations[index].messages[row].card
+        else { return }
+        store.delete(snapshot)
+        chats.conversations[index].messages[row].card = .recorded(snapshot, removed: true)
     }
 }
 

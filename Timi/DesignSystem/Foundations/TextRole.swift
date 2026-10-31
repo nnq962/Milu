@@ -20,23 +20,23 @@ enum TextRole: CaseIterable, Identifiable {
     case title
     /// Everything read in a row: row titles, values, body text, typed text, button labels. 16
     case body
-    /// Field labels above a field. 16 Medium
+    /// Field labels above a field. 16 SemiBold
     case label
     /// Rare emphasis inside body text. 16 SemiBold
     case bodyStrong
-    /// Amounts at the end of a row: same size as the title, a touch heavier, tabular. 16 Medium
+    /// Amounts at the end of a row: same size as the title, a touch heavier, tabular. 16 Bold
     case amount
     /// A control beside a section heading (the month of Lịch thu chi): clearly under the 17 title
     /// it sits by, its colour marks it (user choice 2026-10-30: 16 read as large as the title). 14
     case accessory
     /// Row subtitles, notes, errors and descriptions. 13
     case caption
-    /// Chips, badges, small labels above figures. 13 Medium
+    /// Chips, badges, small labels above figures. 13 SemiBold
     case captionStrong
     /// Chart axes and tiny meta. 11
     case footnote
     /// Small capitals naming a group of rows in a sheet or form (`SectionHeader` `.group`).
-    /// 12 Medium
+    /// 12 Bold
     case overline
     /// Text typed into a field: 16, same as the body it sits beside.
     case input

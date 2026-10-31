@@ -64,6 +64,8 @@ struct AddTransactionView: View {
     @State private var showsErrors = false
     /// The item picked for each kind, so switching Chi tiêu → Thu nhập → Chi tiêu keeps it.
     @State private var pickedByKind: [TransactionKind: String] = [:]
+    /// The account of Chi tiêu / Thu nhập, kept while Chuyển khoản is shown.
+    @State private var accountBeforeTransfer: Account.ID?
 
     init(editing: FinanceTransaction? = nil, preferredAccount: Account.ID? = nil) {
         self.editing = editing
@@ -73,7 +75,11 @@ struct AddTransactionView: View {
         _amountText = State(initialValue: editing.map { String(Int($0.amount)).groupedVNDInput } ?? "")
         _categoryID = State(initialValue: editing?.categoryID ?? "")
         _isExcluded = State(initialValue: editing?.isExcluded ?? false)
-        _accountID = State(initialValue: editing?.accountID)
+        // Known from the first frame, so the "Tài khoản" row is there as the sheet slides up: set
+        // on appear it popped in and the form jumped (user report 2026-10-30). `fillDefaults`
+        // still swaps it for a usable one if this one is not.
+        _accountID = State(initialValue: editing?.accountID
+            ?? preferredAccount ?? UserDefaults.standard.string(forKey: StorageKey.lastAccountID).flatMap(UUID.init))
         _toAccountID = State(initialValue: nil)
         _feeText = State(initialValue: "")
         _date = State(initialValue: editing?.date ?? .now)
@@ -84,6 +90,8 @@ struct AddTransactionView: View {
     init(mode: Mode) {
         self.init()
         _mode = State(initialValue: mode)
+        // A transfer's two accounts are the user's to pick (user request 2026-10-30).
+        if mode == .transfer { _accountID = State(initialValue: nil) }
     }
 
     /// "Mua ngay" on a goal that reached its target.
@@ -157,6 +165,9 @@ struct AddTransactionView: View {
     /// A rule broken, shown at once: nothing to record on, two times the same account, more than a
     /// goal holds.
     private var error: String? {
+        if mode == .transfer, store.usableAccounts.count >= 2, !isEditing, accountID == nil || toAccountID == nil {
+            return showsErrors ? "Chọn tài khoản chuyển và nhận." : nil
+        }
         if accountID == nil, !isEditing {
             return mode == .transfer && !store.usableAccounts.isEmpty
                 ? "Cần ít nhất hai tài khoản để chuyển khoản."
@@ -219,14 +230,17 @@ struct AddTransactionView: View {
         return canSave
     }
 
+    /// Read-only (a closed goal, an archived account): no ✓ at all rather than a grey one.
+    private var confirmAction: (() -> Void)? {
+        isReadOnly ? nil : { save() }
+    }
+
     var body: some View {
-        SheetScaffold(title: title(for: isEditing), canConfirm: !isReadOnly, validate: validate, onConfirm: save) {
+        SheetScaffold(title: title(for: isEditing), validate: validate, onConfirm: confirmAction) {
             if !modes.isEmpty {
-                Picker("Loại giao dịch", selection: $mode) {
-                    ForEach(modes) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .controlSize(.large)
+                // Its words at the user's text size, as the segments of Thu chi (strict review 2026-10-31).
+                ScaledSegmentedPicker(title: "Loại giao dịch", selection: $mode, options: modes) { $0.title }
+                    .controlSize(.large)
                 .disabled(isModeFixed || isReadOnly)
             }
 
@@ -245,7 +259,8 @@ struct AddTransactionView: View {
                 QuickCategoryGrid(kind: kind, selection: $categoryID)
                     .id(kind)
             }
-            FormGroup(footer: readOnlyReason ?? footer, error: detailsError) {
+            // Titled groups, as on every other form (user report 2026-10-31).
+            FormGroup(title: "Chi tiết", footer: readOnlyReason ?? footer, error: detailsError) {
                 if mode == .transfer {
                     transferRows
                 } else {
@@ -267,7 +282,10 @@ struct AddTransactionView: View {
 
             // "Mua ngay" for less than the goal holds: the rest goes back to an account.
             if buyingGoal != nil, leftover >= 1, let leftoverAccount {
-                FormGroup(title: "Phần còn lại", footer: "\(leftover.vnd) sẽ về tài khoản này, rồi hũ được đóng.") {
+                // The figure as a row, no sentence under it (strict review 2026-10-31).
+                FormGroup(title: "Phần còn lại") {
+                    FormAmountInfoRow(title: "Số tiền", amount: leftover)
+                    FormDivider(hasIcon: false)
                     FormPickerRow(title: "Về tài khoản",
                                   selection: Binding { leftoverAccount } set: { self.leftoverAccount = $0 },
                                   options: leftoverOptions,
@@ -278,19 +296,18 @@ struct AddTransactionView: View {
                 .transition(.opacity)
             }
 
-            // The note and "Không tính vào báo cáo" in one group (user request 2026-10-30). A
-            // balance adjustment is never counted, a transfer neither: the switch is for spending
-            // and income.
-            let offersExclude = mode != .transfer && !keepsSystemCategory
-            FormGroup(footer: !offersExclude || !isExcluded ? nil
-                      : buyingGoal != nil ? "Vẫn trừ vào hũ."
-                      : accountID.flatMap(store.goal(id:)) != nil ? "Vẫn tính vào số tiền trong hũ."
-                      : "Vẫn tính vào số dư tài khoản.") {
-                FormNoteRow(text: $note, prompt: "Thêm ghi chú")
-                if offersExclude {
-                    FormDivider(hasIcon: false)
+            // "Không tính vào báo cáo" above the note, each under its title as on Thêm tài khoản
+            // (user report 2026-10-31). A balance adjustment is never counted, a transfer neither:
+            // the switch is for spending and income.
+            if mode != .transfer && !keepsSystemCategory {
+                // No explanatory footer (strict review 2026-10-31).
+                FormGroup(title: "Tuỳ chọn") {
                     FormToggleRow(title: "Không tính vào báo cáo", isOn: $isExcluded)
                 }
+                .disabled(isReadOnly)
+            }
+            FormGroup(title: "Ghi chú") {
+                FormNoteRow(text: $note, prompt: "Thêm ghi chú")
             }
             .disabled(isReadOnly)
 
@@ -302,6 +319,17 @@ struct AddTransactionView: View {
         // An item of the other kind no longer fits: the one picked for the new kind comes back, or
         // none (the user picks). Editing too: Ăn trưa → Thu nhập is empty, back → Ăn trưa again.
         .onChange(of: mode) { oldMode, newMode in
+            // A new transfer starts with no accounts picked; back from it, the account comes back.
+            if !isEditing, editingTransfer == nil {
+                if newMode == .transfer {
+                    accountBeforeTransfer = accountID
+                    accountID = nil
+                    toAccountID = nil
+                } else if oldMode == .transfer {
+                    accountID = accountBeforeTransfer
+                    fillDefaults()
+                }
+            }
             guard !isModeFixed else { return }
             if let oldKind = oldMode.kind { pickedByKind[oldKind] = categoryID }
             guard let kind = newMode.kind,
@@ -334,11 +362,11 @@ struct AddTransactionView: View {
         }
     }
 
-    /// Under the details: a transfer with a fee says where the fee goes.
+    /// Under the details of a transfer with a fee: the computed figure only, what leaves the source
+    /// account in all (strict review 2026-10-31: the sentence explaining the fee went).
     private var footer: String? {
         guard mode == .transfer, fee > 0 else { return nil }
-        let source = accountID.flatMap { store.account(id: $0)?.name } ?? "tài khoản nguồn"
-        return "Phí \(fee.vnd) trừ thêm vào \(source) và tính là chi tiêu."
+        return "Tổng trừ \((amount + fee).vnd)"
     }
 
     @ViewBuilder
@@ -368,22 +396,26 @@ struct AddTransactionView: View {
 
     @ViewBuilder
     private var transferRows: some View {
-        // Picking on one side the account already on the other swaps them.
-        if let accountID {
-            accountRow(title: "Từ", selection: accountID) { new in
-                if new == toAccountID { toAccountID = self.accountID }
-                self.accountID = new
-            }
+        // "Chọn" until picked; picking on one side the account already on the other swaps them.
+        optionalAccountRow(title: "Từ", selection: accountID) { new in
+            if new == toAccountID { toAccountID = self.accountID }
+            self.accountID = new
         }
-        if let toAccountID {
-            FormDivider(hasIcon: false)
-            accountRow(title: "Đến", selection: toAccountID) { new in
-                if new == accountID { accountID = self.toAccountID }
-                self.toAccountID = new
-            }
+        FormDivider(hasIcon: false)
+        optionalAccountRow(title: "Đến", selection: toAccountID) { new in
+            if new == accountID { accountID = self.toAccountID }
+            self.toAccountID = new
         }
         FormDivider(hasIcon: false)
         FormAmountRow(title: "Phí", text: $feeText)
+    }
+
+    /// A transfer's side, "Chọn" (red after ✓) until an account is picked.
+    private func optionalAccountRow(title: String, selection: Account.ID?,
+                                    set: @escaping (Account.ID) -> Void) -> some View {
+        OptionalAccountRow(title: title, selection: selection,
+                           options: accountOptions.filter { store.account(id: $0) != nil },
+                           isInvalid: showsErrors && selection == nil, set: set)
     }
 
     private func accountRow(title: String, selection: Account.ID, set: @escaping (Account.ID) -> Void) -> some View {
@@ -420,13 +452,12 @@ struct AddTransactionView: View {
             leftoverAccount = leftoverAccount ?? leftoverOptions.first
             return
         }
+        // A new transfer leaves both accounts to the user (user request 2026-10-30).
+        guard mode != .transfer else { return }
         let usable = store.usableAccounts.map(\.id)
-        if accountID == nil {
+        if accountID.map({ !usable.contains($0) }) ?? true, !isEditing {
             let last = UUID(uuidString: lastAccountID)
             accountID = [preferredAccount, last].compactMap { $0 }.first { usable.contains($0) } ?? usable.first
-        }
-        if toAccountID == nil {
-            toAccountID = usable.first { $0 != accountID }
         }
     }
 
@@ -483,31 +514,53 @@ struct TransactionEditSheet: View {
         .environment(\.locale, .vietnam)
 }
 
-/// One line under the details: the limit's state after this spending, grey, orange or red.
+/// One line under the details: the limit's state after this spending, in the app's one look for
+/// a limit (`BudgetStatusLine`).
 private struct BudgetNoticeRow: View {
     let notice: BudgetNotice
 
-    private var color: Color {
+    private var level: BudgetStatusLine.Level {
         switch notice.level {
-        case .fine: Palette.secondaryText
-        case .nearing: Palette.warningText
-        case .over: Palette.red
+        case .fine: .fine
+        case .nearing: .nearing
+        case .over: .over
         }
     }
 
     var body: some View {
-        Label {
-            Text(notice.text)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-        } icon: {
-            TimiIcon(notice.level == .fine ? "hugeicons-chart-increase" : "hugeicons-alert-circle", size: 16)
+        BudgetStatusLine(level: level, text: notice.text)
+            .padding(.horizontal, RowMetrics.horizontal)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .animation(.snappy, value: notice)
+    }
+}
+
+/// An account row that may have nothing picked yet ("Chọn"), opening the same choice sheet.
+private struct OptionalAccountRow: View {
+    let title: String
+    let selection: Account.ID?
+    let options: [Account.ID]
+    var isInvalid = false
+    let set: (Account.ID) -> Void
+
+    @Environment(FinanceStore.self) private var store
+    @State private var isPicking = false
+
+    var body: some View {
+        Button { isPicking = true } label: {
+            FormValueLabel(title: title, icon: nil,
+                           value: selection.flatMap { store.account(id: $0)?.name } ?? "Chọn",
+                           valueIcon: selection.flatMap { store.account(id: $0)?.iconName },
+                           isInvalid: isInvalid)
         }
-        .textRole(.caption)
-        .foregroundStyle(color)
-        .padding(.horizontal, RowMetrics.horizontal)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.snappy, value: notice)
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.row)
+        .sensoryFeedback(.selection, trigger: selection)
+        .sheet(isPresented: $isPicking) {
+            ChoiceSheet(title: title,
+                        selection: Binding<Account.ID?> { selection } set: { if let new = $0 { set(new) } },
+                        options: options.map(Optional.some),
+                        icon: { $0.flatMap { store.account(id: $0)?.iconName } ?? "hugeicons-wallet-01" },
+                        label: { $0.flatMap { store.account(id: $0)?.name } ?? "—" })
+        }
     }
 }

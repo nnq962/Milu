@@ -18,15 +18,14 @@ struct CategoriesView: View {
         let hidden = store.hiddenCategories(kind).count
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                Picker("Loại hạng mục", selection: $kind) {
-                    ForEach(TransactionKind.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .controlSize(.large)
+                // Its words grow with the text size (strict review 2026-10-31).
+                ScaledSegmentedPicker(title: "Loại hạng mục", selection: $kind,
+                                      options: TransactionKind.allCases) { $0.title }
+                    .controlSize(.large)
 
                 if groups.isEmpty {
                     EmptyStateCard(icon: "hugeicons-tag-01", title: "Chưa có nhóm nào",
-                                   message: "Thêm một nhóm, rồi các hạng mục trong nhóm đó.")
+                                   message: "Các nhóm hạng mục sẽ hiện ở đây.")
                 } else {
                     VStack(spacing: 0) {
                         ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
@@ -56,7 +55,7 @@ struct CategoriesView: View {
             }
         }
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-        .contentMargins(.top, Spacing.s, for: .scrollContent)
+        .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
         .foregroundStyle(Palette.ink)
@@ -65,8 +64,13 @@ struct CategoriesView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { editing = .newGroup(kind) } label: {
-                    TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
+                    // The toolbar's one +: add-circle in its 28 frame, as on Tài khoản and Thu chi
+                    // (re-review 2026-10-31).
+                    TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                        .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                 }
+                .buttonBorderShape(.circle)
+                .tint(Palette.primary)
                 .accessibilityLabel("Thêm nhóm")
             }
         }
@@ -145,7 +149,7 @@ struct HiddenCategoriesView: View {
         ScrollView {
             if hidden.isEmpty {
                 EmptyStateCard(icon: "hugeicons-archive-02", title: "Không có hạng mục nào bị ẩn",
-                               message: "Hạng mục đã có giao dịch được ẩn thay vì xoá, để lịch sử không đổi.")
+                               message: "Hạng mục bạn ẩn sẽ hiện ở đây.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(hidden.enumerated()), id: \.element.id) { index, category in
@@ -171,10 +175,11 @@ struct HiddenCategoriesView: View {
         }
     }
 
-    /// "Nhóm · Đã ẩn 29/10", or the item's group: "Ăn uống · Đã ẩn 29/10".
+    /// "Nhóm · Đã ẩn 29/10", or the item's group: "Ăn uống · Đã ẩn 29/10" (with the year when it
+    /// was another: `Date.shortDay`).
     private func subtitle(_ category: Category) -> String {
         let owner = category.parentID.map { store.category(id: $0)?.name ?? "Nhóm đã xoá" } ?? "Nhóm"
-        let day = category.hiddenAt.map { "Đã ẩn \(TransactionListRow.dayMonth($0))" }
+        let day = category.hiddenAt.map { "Đã ẩn \($0.shortDay)" }
         return [owner, day].compactMap { $0 }.joined(separator: " · ")
     }
 }

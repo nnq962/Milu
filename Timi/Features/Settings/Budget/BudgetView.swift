@@ -15,6 +15,8 @@ struct BudgetView: View {
 
     @State private var month: Date
     @State private var isSettingMonth = false
+    /// A group's icon grows with its name, as in every list row.
+    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.iconColumn
 
     /// `month`: the one to show first (Báo cáo opens the month it is showing).
     init(month: Date = .now) {
@@ -43,11 +45,12 @@ struct BudgetView: View {
                             summary(progress)
                                 .foregroundStyle(Palette.ink)
                         }
-                        .buttonStyle(.automatic)
+                        // Pressed like every other card that opens something (strict review 2026-10-31).
+                        .buttonStyle(.card)
                         .accessibilityHint("Xem phân bổ hạn mức")
                     } else {
                         EmptyStateCard(icon: "hugeicons-chart-increase", title: "Chưa đặt hạn mức",
-                                       message: "Đặt hạn mức để theo dõi chi tiêu mỗi tháng.")
+                                       message: "Phần còn lại mỗi tháng sẽ hiện ở đây.")
                         FormGroup {
                             FormNavigationRow(title: "Đặt hạn mức tháng", icon: "hugeicons-chart-increase") {
                                 isSettingMonth = true
@@ -56,36 +59,51 @@ struct BudgetView: View {
                     }
                 }
 
+                // Headings and list cards as on Báo cáo, which these rows open into: this is a page
+                // of figures, not a form (re-review 2026-10-31: small-caps form groups).
                 if !limited.isEmpty {
-                    FormGroup(title: "Theo hạng mục") {
-                        ForEach(Array(limited.enumerated()), id: \.element.id) { index, group in
-                            if index > 0 { FormDivider() }
-                            groupRow(group, progress: BudgetProgress(limit: categoryBudgets[group.id],
-                                                                     spent: spentByGroup[group.id]?.amount ?? 0))
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Theo hạng mục")
+                        VStack(spacing: 0) {
+                            ForEach(Array(limited.enumerated()), id: \.element.id) { index, group in
+                                groupRow(group, progress: BudgetProgress(limit: categoryBudgets[group.id],
+                                                                         spent: spentByGroup[group.id]?.amount ?? 0))
+                                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                            }
                         }
+                        .listCard()
                     }
                 }
 
                 if !others.isEmpty {
-                    FormGroup(title: "Chưa có hạn mức") {
-                        ForEach(Array(others.enumerated()), id: \.element.id) { index, group in
-                            if index > 0 { FormDivider() }
-                            let spent = spentByGroup[group.id]?.amount ?? 0
-                            NavigationLink {
-                                CategoryReportView(groupID: group.id, period: monthPeriod)
-                            } label: {
-                                // What it spent, on the right like any value: one line per group.
-                                NavigationRowLabel(title: group.name, icon: group.icon,
-                                                   value: spent > 0 ? spent.vndCompact : nil)
+                    let othersSpent = others.reduce(0) { $0 + (spentByGroup[$1.id]?.amount ?? 0) }
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Chưa có hạn mức")
+                        VStack(spacing: 0) {
+                            ForEach(Array(others.enumerated()), id: \.element.id) { index, group in
+                                let spent = spentByGroup[group.id]?.amount ?? 0
+                                NavigationLink {
+                                    CategoryReportView(groupID: group.id, period: monthPeriod)
+                                } label: {
+                                    // The same row as these groups on Phân bổ hạn mức: what each
+                                    // spent and its share of what they spent together (re-review
+                                    // 2026-10-31: grey words here, MoneyText there).
+                                    BreakdownRowLabel(icon: group.icon, title: group.name,
+                                                      detail: spent > 0 && othersSpent > 0
+                                                          ? (spent / othersSpent).percentText : "Chưa chi",
+                                                      amount: spent)
+                                }
+                                .buttonStyle(.row)
+                                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                             }
-                            .buttonStyle(.row)
                         }
+                        .listCard()
                     }
                 }
             }
             .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.xxxl)
+            .padding(.top, Spacing.l)
+            .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.ink)
@@ -105,24 +123,25 @@ struct BudgetView: View {
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryText)
                     if progress.isOver {
-                        StatusBadge(text: "Vượt", tone: .warning)
+                        StatusBadge(text: "Vượt hạn mức", tone: .warning)
                     } else if progress.isNearing {
                         StatusBadge(text: "Sắp hết", tone: .caution)
                     }
                     Spacer(minLength: Spacing.s)
                     // › alone says the card opens the split.
-                    TimiIcon("hugeicons-arrow-right-01", size: 16)
-                        .foregroundStyle(Palette.secondary)
+                    RowChevron()
                 }
-                Text(abs(progress.left).vnd)
-                    .textRole(.amountLarge)
-                    .foregroundStyle(progress.isOver ? Palette.red : Palette.ink)
-                    .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
-                    .frame(minHeight: 32)
+                // Over the limit: the amount over, red.
+                MoneyText(amount: progress.isOver ? -abs(progress.left) : progress.left,
+                          size: .large, tone: .negativeRed)
             }
             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
-            HStack {
-                Text("Đã chi \(progress.spent.vndCompact) / \(progress.limit.vndCompact)")
+            // The amounts as MoneyText, grey like the words around them (re-review 2026-10-31).
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Text("Đã chi")
+                MoneyText(amount: progress.spent, size: .caption, tone: .muted, compact: true)
+                Text("/")
+                MoneyText(amount: progress.limit, size: .caption, tone: .muted, compact: true)
                 Spacer(minLength: Spacing.s)
                 Text(progress.ratio.percentText)
             }
@@ -135,50 +154,60 @@ struct BudgetView: View {
                     Text("Mỗi ngày")
                         .textRole(.captionStrong)
                     Spacer(minLength: Spacing.s)
-                    Text("~\(daily.vndCompact)")
-                        .textRole(.bodyStrong)
-                        .monospacedDigit()
+                    HStack(spacing: 0) {
+                        Text("~").textRole(.amount)
+                        MoneyText(amount: daily, compact: true)
+                    }
                 }
                 .padding(.top, Spacing.m)
-                .overlay(alignment: .top) { Palette.border.frame(height: 1) }
+                // A form hairline: from where the words start to the card's edge.
+                .overlay(alignment: .top) { FormDivider(hasIcon: false).padding(.horizontal, -RowMetrics.horizontal) }
                 .accessibilityElement(children: .combine)
             }
         }
-        .sleekCard(padding: Spacing.xl)
+        // A card at 24 like the form groups under it, its words 16 in like their rows.
+        .settingsCard()
         .accessibilityElement(children: .combine)
     }
 
     /// A group with a limit: name, what is left or how much over, and the bar; it opens the group's
     /// detail.
     private func groupRow(_ group: Category, progress: BudgetProgress) -> some View {
+        // "Còn" / "Vượt" in sentence case as on Phân bổ hạn mức, the amount a MoneyText, red with
+        // "-" once over as on the month's card (re-review 2026-10-31).
         // Opens the group: its items, its transactions, and "Hạn mức" to change the limit.
         NavigationLink {
             CategoryReportView(groupID: group.id, period: ReportPeriod(.month, containing: month))
         } label: {
             HStack(spacing: RowMetrics.gap) {
-                RowIcon(name: group.icon)
+                // Grows with the text, as on Báo cáo (re-review 2026-10-31: a fixed 24).
+                RowIcon(name: group.icon, size: iconSize)
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     HStack {
                         Text(group.name)
                             .textRole(.body)
                             .lineLimit(1)
                         Spacer(minLength: Spacing.s)
-                        Text(progress.isOver ? "vượt \((-progress.left).vndCompact)" : "còn \(progress.left.vndCompact)")
-                            .textRole(.captionStrong)
-                            .foregroundStyle(progress.isOver ? Palette.red : Palette.secondaryText)
-                            .monospacedDigit()
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                            Text(progress.isOver ? "Vượt" : "Còn")
+                                .textRole(.caption)
+                                .foregroundStyle(Palette.secondaryText)
+                            MoneyText(amount: progress.isOver ? -abs(progress.left) : progress.left,
+                                      size: .caption, tone: .negativeRed, compact: true)
+                        }
+                        .fixedSize()
                     }
                     ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
                 }
+                // Opens the group, as the rows of "Chưa có hạn mức" do (strict review 2026-10-31).
+                RowChevron()
             }
-            .padding(.horizontal, RowMetrics.horizontal)
-            .padding(.vertical, Spacing.m)
-            .contentShape(Rectangle())
+            .formRowFrame()
         }
         .buttonStyle(.row)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(group.name), đã chi \(progress.spent.vnd) trên \(progress.limit.vnd), "
-            + (progress.isOver ? "vượt \((-progress.left).vnd)" : "còn \(progress.left.vnd)"))
+            + (progress.isOver ? "Vượt \((-progress.left).vnd)" : "Còn \(progress.left.vnd)"))
         .accessibilityHint("Xem chi tiết")
     }
 }

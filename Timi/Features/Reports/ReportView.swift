@@ -9,6 +9,9 @@ struct ReportView: View {
     @Environment(FinanceStore.self) private var store
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
     @State private var period: ReportPeriod
+    /// The charts grow with the text, so their labels keep room (strict review 2026-10-31).
+    @ScaledMetric(relativeTo: .body) private var ringHeight: CGFloat = 190
+    @ScaledMetric(relativeTo: .footnote) private var barsHeight: CGFloat = 180
 
     init(period: ReportPeriod = ReportPeriod(.month)) {
         _period = State(initialValue: period)
@@ -35,7 +38,7 @@ struct ReportView: View {
             }
             .padding(.horizontal, Spacing.page)
             .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.xxxl)
+            .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.ink)
@@ -51,33 +54,33 @@ struct ReportView: View {
             HStack(alignment: .top, spacing: 0) {
                 total("Đã chi", amount: spent, before: spentBefore, risingIsBad: true)
                     .padding(.trailing, Spacing.l)
-                    .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
+                    .overlay(alignment: .trailing) { VerticalDivider() }
                 total("Đã thu", amount: received, before: receivedBefore, risingIsBad: false)
                     .padding(.leading, Spacing.l)
             }
-            HStack {
+            // Money in ink with "+", out in red with "-", as on Thu chi (strict review 2026-10-31).
+            HStack(alignment: .firstTextBaseline) {
+                // Grey as "Đã chi" / "Đã thu" above it; the amount carries the meaning.
                 Text(net >= 0 ? "Dư ra" : "Chi nhiều hơn thu")
                     .textRole(.captionStrong)
+                    .foregroundStyle(Palette.secondaryText)
                 Spacer(minLength: Spacing.s)
-                Text((net >= 0 ? "+" : "-") + abs(net).vnd)
-                    .textRole(.bodyStrong)
-                    .monospacedDigit()
-                    .foregroundStyle(net >= 0 ? Palette.green : Palette.red)
+                MoneyText(amount: net, tone: .signedNet)
             }
             .padding(.top, Spacing.m)
-            .overlay(alignment: .top) { Palette.border.frame(height: 1) }
+            .overlay(alignment: .top) { SplitLine() }
             .accessibilityElement(children: .combine)
 
             facts(spent: spent)
                 .padding(.top, Spacing.m)
-                .overlay(alignment: .top) { Palette.border.frame(height: 1) }
+                .overlay(alignment: .top) { SplitLine() }
 
             // A month's limit, as on Tổng quan; it opens Hạn mức chi tiêu (review fix 2026-10-30).
             if period.unit == .month, monthlyBudget > 0 {
                 NavigationLink { BudgetView(month: period.start) } label: { budgetRow(spent: spent) }
                     .buttonStyle(.automatic)
                     .padding(.top, Spacing.m)
-                    .overlay(alignment: .top) { Palette.border.frame(height: 1) }
+                    .overlay(alignment: .top) { SplitLine() }
             }
         }
         .sleekCard(padding: Spacing.xl)
@@ -92,22 +95,27 @@ struct ReportView: View {
             .filter { $0.kind == .expense }
             .max { $0.amount < $1.amount }
         return HStack(alignment: .top, spacing: 0) {
-            fact("TB mỗi ngày", value: (spent / Double(days)).vndCompact, note: "\(days) ngày")
+            fact("TB mỗi ngày", amount: spent / Double(days), note: "\(days) ngày")
                 .padding(.trailing, Spacing.l)
-            fact("Lớn nhất", value: largest?.amount.vndCompact ?? "—",
+            fact("Lớn nhất", amount: largest?.amount,
                  note: largest.map { store.title(of: $0) } ?? "Chưa có khoản chi")
                 .padding(.leading, Spacing.l)
         }
     }
 
-    private func fact(_ title: String, value: String, note: String) -> some View {
+    /// Money out, so red with "-" as every spending figure (strict review 2026-10-31).
+    private func fact(_ title: String, amount: Double?, note: String) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(title)
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
-            Text(value)
-                .textRole(.bodyStrong)
-                .monospacedDigit()
+            if let amount, amount > 0 {
+                MoneyText(amount: amount, tone: .signedExpense, compact: true)
+            } else {
+                Text("—")
+                    .textRole(.amount)
+                    .foregroundStyle(Palette.secondaryText)
+            }
             Text(note)
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
@@ -117,22 +125,21 @@ struct ReportView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// "Hạn mức 30tr · 60%" with its bar and ›.
+    /// "Hạn mức 30tr", its bar and ›, then where it stands in the app's one look for a limit
+    /// (`BudgetStatusLine`, strict review 2026-10-31).
     private func budgetRow(spent: Double) -> some View {
         let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
         return VStack(alignment: .leading, spacing: Spacing.s) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.s) {
                 Text("Hạn mức \(monthlyBudget.vndCompact)")
                     .textRole(.captionStrong)
                 Spacer(minLength: Spacing.s)
-                Text(progress.isOver ? "vượt \((-progress.left).vndCompact)" : "đã dùng \(progress.ratio.percentText)")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(progress.isOver ? Palette.red : Palette.secondaryText)
-                    .monospacedDigit()
-                TimiIcon("hugeicons-arrow-right-01", size: 14)
-                    .foregroundStyle(Palette.secondary)
+                RowChevron()
             }
             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
+            BudgetStatusLine(level: .init(progress),
+                             text: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
+                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
         }
         .foregroundStyle(Palette.ink)
         .contentShape(Rectangle())
@@ -145,11 +152,9 @@ struct ReportView: View {
             Text(title)
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-            Text(amount.vnd)
-                .textRole(.amountLarge)
-                .foregroundStyle(risingIsBad ? Palette.red : Palette.green)
-                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
-                .frame(minHeight: 32)
+            // Signed and coloured as the month card on Thu chi (strict review 2026-10-31).
+            MoneyText(amount: amount, size: .large,
+                      tone: amount > 0 ? (risingIsBad ? .signedExpense : .signedIncome) : .plain)
             ChangeLabel(now: amount, before: before, period: period, risingIsBad: risingIsBad)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -163,23 +168,27 @@ struct ReportView: View {
     @ViewBuilder
     private func categories(_ groups: [CategoryTotal], spent: Double, before: [String: Double]) -> some View {
         if groups.isEmpty {
-            EmptyStateCard(icon: "hugeicons-pie-chart", title: "Chưa có chi tiêu",
-                           message: "Kỳ này chưa ghi khoản chi nào.")
+            // Its heading stays, as on the empty trend below (strict review 2026-10-31).
+            VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                SectionHeader(title: "Chi theo hạng mục")
+                EmptyStateCard(icon: "hugeicons-pie-chart", title: "Chưa có chi tiêu",
+                               message: "Khoản chi trong kỳ sẽ hiện ở đây.")
+            }
         } else {
-            FormGroup(title: "Chi theo hạng mục") {
+            ReportSection(title: "Chi theo hạng mục") {
                 ring(groups, spent: spent)
                     .padding(.vertical, Spacing.xl)
                 ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-                    FormDivider()
                     NavigationLink {
                         CategoryReportView(groupID: group.groupID, period: period)
                     } label: {
                         BreakdownRowLabel(icon: group.icon, title: group.name,
                                           detail: detail(group, share: group.amount / spent, before: before),
-                                          amount: group.amount.vndCompact, dot: color(at: index),
+                                          amount: group.amount, tone: .signedExpense, dot: color(at: index),
                                           edgedDot: ChartShades.isRest(at: index))
                     }
                     .buttonStyle(.row)
+                    .overlay(alignment: .top) { RowDivider() }
                 }
             }
         }
@@ -209,15 +218,14 @@ struct ReportView: View {
                 .accessibilityLabel(slice.name)
                 .accessibilityValue(slice.amount.vnd)
         }
-        .frame(height: 190)
+        .frame(height: ringHeight)
         .overlay {
-            VStack(spacing: 2) {
+            VStack(spacing: Spacing.xxs) {
                 Text("Tổng chi")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryText)
-                Text(spent.vndCompact)
-                    .textRole(.heading)
-                    .monospacedDigit()
+                MoneyText(amount: spent, size: .heading, tone: .signedExpense, compact: true)
+                    .fixedSize()
             }
             .accessibilityHidden(true)
         }
@@ -232,12 +240,10 @@ struct ReportView: View {
         let unit = period.unit.title.lowercased()
         // Nothing in all six: a short line, not an empty chart that looks broken (review 2026-10-30).
         if periods.allSatisfy({ store.reportableTransactions(in: $0.interval).isEmpty }) {
-            FormGroup(title: "Thu chi \(periods.count) \(unit) gần đây") {
-                Text("Chưa có thu chi trong \(periods.count) \(unit) này.")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(RowMetrics.horizontal)
+            VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                SectionHeader(title: "Thu chi \(periods.count) \(unit) gần đây")
+                EmptyStateCard(icon: "hugeicons-chart-increase", title: "Chưa có thu chi",
+                               message: "Thu chi từng \(unit) sẽ hiện ở đây.")
             }
         } else {
             trendChart(periods)
@@ -253,10 +259,11 @@ struct ReportView: View {
         // pull it down.
         let spending = rows.filter { $0.kind == "Chi" && $0.amount > 0 }.map(\.amount)
         let unit = period.unit.title.lowercased()
-        let footer = spending.count > 1
-            ? "Trung bình chi \((spending.reduce(0, +) / Double(spending.count)).vndCompact) mỗi \(unit) có ghi chép. Chạm một cột để xem kỳ đó."
-            : "Chạm một cột để xem kỳ đó."
-        return FormGroup(title: "Thu chi \(periods.count) \(unit) gần đây", footer: footer) {
+        // A footer for the computed figure only; that a bar opens its period is said to VoiceOver
+        // as a hint (strict review 2026-10-31: no explanatory footers).
+        let average = spending.count > 1 ? spending.reduce(0, +) / Double(spending.count) : nil
+        return ReportSection(title: "Thu chi \(periods.count) \(unit) gần đây",
+                             footer: average.map { "Trung bình chi \($0.vndCompact) mỗi \(unit) có ghi chép." }) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack(spacing: Spacing.l) {
                     legend("Thu", color: Palette.green)
@@ -282,8 +289,13 @@ struct ReportView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks { _ in
-                        AxisValueLabel().font(Typography.font(.caption2, size: 11, weight: .medium))
+                    // The same type as the amounts on the other axis.
+                    AxisMarks { value in
+                        AxisValueLabel {
+                            Text(value.as(String.self) ?? "")
+                                .textRole(.footnote)
+                                .foregroundStyle(Palette.secondaryText)
+                        }
                     }
                 }
                 .chartOverlay { proxy in
@@ -298,7 +310,8 @@ struct ReportView: View {
                             })
                     }
                 }
-                .frame(height: 180)
+                .frame(height: barsHeight)
+                .accessibilityHint("Chạm một cột để xem kỳ đó")
             }
             .padding(RowMetrics.horizontal)
         }
@@ -313,7 +326,7 @@ struct ReportView: View {
 
     private func legend(_ title: String, color: Color) -> some View {
         HStack(spacing: Spacing.xs) {
-            Circle().fill(color).frame(width: 8, height: 8)
+            LegendDot(color: color)
             Text(title)
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
@@ -326,9 +339,8 @@ struct ReportView: View {
     private var accounts: some View {
         let totals = store.totalsByAccount(in: period.interval)
         if !totals.isEmpty {
-            FormGroup(title: "Theo tài khoản") {
+            ReportSection(title: "Theo tài khoản") {
                 ForEach(Array(totals.enumerated()), id: \.element.id) { index, account in
-                    if index > 0 { FormDivider() }
                     // Opens the account or hũ, like a group opens its detail (review fix 2026-10-30).
                     NavigationLink {
                         if store.goal(id: account.id) != nil {
@@ -339,9 +351,13 @@ struct ReportView: View {
                     } label: {
                         BreakdownRowLabel(icon: account.icon, title: account.name,
                                           detail: account.income > 0 ? "Thu +\(account.income.vndCompact)" : "Không có khoản thu",
-                                          amount: "-\(account.expense.vndCompact)")
+                                          amount: account.expense,
+                                          tone: account.expense > 0 ? .signedExpense : .plain,
+                                          isAccount: true)
                     }
                     .buttonStyle(.row)
+                    // Accounts as drawn everywhere: a tile in the logo column (user report 2026-10-31).
+                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                 }
             }
         }

@@ -1,11 +1,54 @@
 import SwiftUI
 
+/// "Tổng số dư": the total, how it moved this month and how much is locked away. One header for
+/// both layouts of Tài khoản, large on the page or at the top of `BalanceCard` (strict review
+/// 2026-10-31: the card left out the lock line and turned a total below zero red, the page did
+/// neither the same way).
+struct TotalBalanceHeader: View {
+    @Environment(FinanceStore.self) private var store
+
+    var body: some View {
+        // Money set aside: what is owed on a locked account is not "khoá" money.
+        let lockedMoney = store.lockedPaymentAccounts.reduce(0) { $0 + max($1.balance, 0) }
+        // Money in less money out on counted accounts since the 1st; moves between them, and
+        // into goals, leave it as it was.
+        let change = store.netWorthChange(since: DateInterval.month(of: .now).start)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Tổng số dư")
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryText)
+            MoneyText(amount: store.paymentBalance, size: .display, tone: .negativeRed)
+            if change != 0 || lockedMoney > 0 {
+                // Wraps onto a second line at large text instead of running off the edge.
+                FlowLayout(spacing: Spacing.xs) {
+                    if change != 0 {
+                        Text("\(change > 0 ? "↑" : "↓") \(abs(change).vndCompact) trong tháng này")
+                            .textRole(.captionStrong)
+                            .monospacedDigit()
+                            .foregroundStyle(change > 0 ? Palette.green : Palette.red)
+                            .padding(.trailing, Spacing.m)
+                    }
+                    if lockedMoney > 0 {
+                        HStack(spacing: Spacing.xs) {
+                            TimiIcon("hugeicons-square-lock-02", size: RowMetrics.inlineGlyph)
+                            Text("Đã khoá \(lockedMoney.vndCompact)")
+                        }
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryText)
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// Kiểu A of Tài khoản: the total in a white card, with a bar of where the money is, like the
 /// storage bar in iPhone Settings. The bar splits only money that is there: each counted account
 /// with a balance above zero and the money in goals, the four biggest in the chart colours, the
 /// rest as "Khác". Accounts below zero cannot be a length on a bar, so a red line under it names
-/// them; a total at or below zero turns red and leaves the bar out. Locked accounts are left out,
-/// as they are from the total.
+/// them; a total at or below zero leaves the bar out. Locked accounts are left out, as they are
+/// from the total.
 struct BalanceCard: View {
     @Environment(FinanceStore.self) private var store
 
@@ -20,24 +63,8 @@ struct BalanceCard: View {
         let counted = store.paymentAccounts.filter { !$0.isLocked }
         let parts = self.parts(counted)
         let negatives = counted.filter { $0.balance < 0 }
-        let change = store.netWorthChange(since: DateInterval.month(of: .now).start)
         VStack(alignment: .leading, spacing: Spacing.l) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("Tổng số dư")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
-                Text(total.vnd)
-                    .textRole(.display)
-                    .monospacedDigit()
-                    .lineLimit(1).minimumScaleFactor(0.6)
-                    .foregroundStyle(total < 0 ? Palette.red : Palette.ink)
-                if change != 0 {
-                    Text("\(change > 0 ? "↑" : "↓") \(abs(change).vndCompact) trong tháng này")
-                        .textRole(.captionStrong)
-                        .monospacedDigit()
-                        .foregroundStyle(change > 0 ? Palette.green : Palette.red)
-                }
-            }
+            TotalBalanceHeader()
             // A bar says something only with a total above zero and money in two places or more.
             if total > 0, parts.count > 1 {
                 bar(parts)
@@ -46,7 +73,7 @@ struct BalanceCard: View {
             if !negatives.isEmpty {
                 let owed = negatives.reduce(0) { $0 + $1.balance }
                 HStack(spacing: Spacing.xs) {
-                    TimiIcon("hugeicons-alert-circle", size: 14)
+                    TimiIcon("hugeicons-alert-circle", size: RowMetrics.inlineGlyph)
                     Text(negatives.count == 1
                          ? "Âm \(abs(owed).vndCompact) ở \(negatives[0].name)"
                          : "Âm \(abs(owed).vndCompact) ở \(negatives.count) tài khoản")
@@ -55,7 +82,11 @@ struct BalanceCard: View {
                 .foregroundStyle(Palette.red)
             }
         }
-        .sleekCard()
+        // 16 at the sides, as the rows and headings below, so "Tổng số dư" starts on their edge
+        // (re-review 2026-10-31: 20 put it 4pt in from the logos); 20 above and below.
+        .padding(.horizontal, RowMetrics.horizontal)
+        .padding(.vertical, Spacing.card)
+        .sleekCard(padding: 0)
         .accessibilityElement(children: .combine)
     }
 
@@ -74,19 +105,20 @@ struct BalanceCard: View {
         return Array(parts[..<limit]) + [Part(id: "rest", name: "Khác", amount: rest)]
     }
 
+    /// As tall as every progress bar of the app (strict review 2026-10-31: it was 10 against 8).
     private func bar(_ parts: [Part]) -> some View {
         let sum = parts.reduce(0) { $0 + $1.amount }
         return GeometryReader { geometry in
-            // 2pt gaps between the pieces, as the storage bar has.
-            let gaps = CGFloat(parts.count - 1) * 2
-            HStack(spacing: 2) {
+            // Thin gaps between the pieces, as the storage bar has.
+            let gaps = CGFloat(parts.count - 1) * Spacing.xxs
+            HStack(spacing: Spacing.xxs) {
                 ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
                     ChartShades.color(at: index)
-                        .frame(width: max((geometry.size.width - gaps) * part.amount / sum, 2))
+                        .frame(width: max((geometry.size.width - gaps) * part.amount / sum, Spacing.xxs))
                 }
             }
         }
-        .frame(height: 10)
+        .frame(height: ProgressBar.height)
         .clipShape(Capsule())
         .accessibilityHidden(true)
     }
@@ -96,7 +128,7 @@ struct BalanceCard: View {
         return FlowLayout(spacing: Spacing.s) {
             ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
                 HStack(spacing: Spacing.xs) {
-                    Circle().fill(ChartShades.color(at: index)).frame(width: 8, height: 8)
+                    LegendDot(color: ChartShades.color(at: index))
                     Text("\(part.name) \((part.amount / sum).percentText)")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)

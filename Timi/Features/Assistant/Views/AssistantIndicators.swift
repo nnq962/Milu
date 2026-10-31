@@ -3,9 +3,10 @@ import SwiftUI
 struct AssistantAvatar: View {
     var body: some View {
         // A plain teal glyph, no circle (user rule: icons without a background).
-        TimiIcon("hugeicons-ai-magic", size: 22)
+        // A glyph in content, not a toolbar's (re-review 2026-10-31).
+        TimiIcon("hugeicons-ai-magic", size: RowMetrics.iconGlyph)
             .foregroundStyle(Palette.primary)
-            .frame(width: 32, height: 32)
+            .frame(width: RowMetrics.listLogo, height: RowMetrics.listLogo)
             .accessibilityHidden(true)
     }
 }
@@ -14,20 +15,18 @@ struct TypingIndicator: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             AssistantAvatar()
-            TimiIcon("hugeicons-more-horizontal", size: 20)
+            TimiIcon("hugeicons-more-horizontal", size: RowMetrics.iconGlyph)
                 .foregroundStyle(Palette.secondary)
                 .phaseAnimator([false, true]) { content, dimmed in
                     content.opacity(reduceMotion ? 1 : (dimmed ? 0.35 : 1))
                 } animation: { _ in
                     .easeInOut(duration: 0.7)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Palette.card, in: UnevenRoundedRectangle(
-                    topLeadingRadius: Bubble.tail, bottomLeadingRadius: Bubble.radius,
-                    bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.radius, style: .continuous))
+                // The real bubble's padding and shadow, so it does not jump when the answer comes.
+                .padding(Spacing.l)
+                .background { Bubble.assistantShape }
             Spacer()
         }
         .accessibilityLabel("Timi đang trả lời")

@@ -2,9 +2,12 @@ import SwiftUI
 
 /// Every amount on screen: tabular digits, "đ" attached, sign and colour by meaning.
 struct MoneyText: View {
-    enum Size { case row, large, display }
-    /// `muted`: grey, for money that does not count (a locked account).
-    enum Tone { case plain, signedIncome, signedExpense, negativeRed, muted }
+    /// `caption`: a total beside a heading (a day's +/-).
+    /// `heading`: a total inside a chart (Tổng chi in the ring).
+    enum Size { case caption, row, heading, large, display }
+    /// `muted`: grey, for money that does not count (a locked account). `signedNet`: a change
+    /// either way, "+" in ink above zero and "-" in red below (Dư ra, a day's total).
+    enum Tone { case plain, signedIncome, signedExpense, signedNet, negativeRed, muted }
 
     let amount: Double
     var size: Size = .row
@@ -16,6 +19,7 @@ struct MoneyText: View {
         switch tone {
         case .signedIncome: return "+" + value
         case .signedExpense: return "-" + value
+        case .signedNet: return (amount > 0 ? "+" : amount < 0 ? "-" : "") + value
         case .plain, .negativeRed, .muted: return (amount < 0 ? "-" : "") + value
         }
     }
@@ -23,7 +27,7 @@ struct MoneyText: View {
     private var color: Color {
         switch tone {
         case .signedExpense: Palette.red
-        case .negativeRed: amount < 0 ? Palette.red : Palette.ink
+        case .negativeRed, .signedNet: amount < 0 ? Palette.red : Palette.ink
         // Money in ink with its "+", money out red, everywhere (user choice 2026-10-30).
         case .signedIncome: Palette.income
         case .plain: Palette.ink
@@ -36,7 +40,7 @@ struct MoneyText: View {
             .modifier(MoneyFont(size: size))
             .foregroundStyle(color)
             .lineLimit(1)
-            .minimumScaleFactor(size == .row ? 0.8 : 0.5)
+            .minimumScaleFactor(size == .large || size == .display ? 0.5 : 0.8)
     }
 }
 
@@ -45,7 +49,9 @@ private struct MoneyFont: ViewModifier {
 
     func body(content: Content) -> some View {
         switch size {
+        case .caption: content.textRole(.captionStrong).monospacedDigit()
         case .row: content.textRole(.amount)
+        case .heading: content.textRole(.heading).monospacedDigit()
         case .large: content.textRole(.amountLarge).frame(minHeight: 32)
         case .display: content.textRole(.display).frame(minHeight: 42.5)
         }

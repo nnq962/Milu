@@ -18,7 +18,6 @@ struct InstitutionPickerSheet: View {
                 if results.isEmpty {
                     EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
                                    message: "Thử tên viết tắt, như vcb.")
-                        .padding(.top, Spacing.s)
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, institution in
@@ -30,6 +29,8 @@ struct InstitutionPickerSheet: View {
                 }
             }
             .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
+            // The top margin of every page (strict review 2026-10-31).
+            .contentMargins(.top, Spacing.l, for: .scrollContent)
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
             .background(Palette.background)

@@ -23,7 +23,7 @@ struct SearchField: View {
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Palette.secondary.opacity(0.6))
+                        .foregroundStyle(Palette.secondary)
                         .frame(width: RowMetrics.toolbarGlyphFrame)
                         .frame(maxHeight: .infinity)
                         .contentShape(Rectangle())

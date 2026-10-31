@@ -41,33 +41,32 @@ struct LoansSummaryCard: View {
         let debts = Set(active.filter { $0.direction == .borrowed }.map { $0.contactID?.uuidString ?? $0.name }).count
         let owed = store.totalBorrowed
         HStack(alignment: .top, spacing: 0) {
-            side("Cho vay", amount: store.totalLent, people: lenders, color: Palette.ink)
+            side("Cho vay", amount: store.totalLent, people: lenders, tone: .plain)
                 .padding(.trailing, Spacing.l)
-                .overlay(alignment: .trailing) { Palette.border.frame(width: 1) }
-            // Red only while something is owed.
-            side("Đang nợ", amount: owed, people: debts, color: owed > 0 ? Palette.red : Palette.ink)
+                .overlay(alignment: .trailing) { VerticalDivider() }
+            // "Đi vay", the chip's and the section's word, not "Đang nợ"; red with "-" while
+            // something is owed, as on its rows (strict review 2026-10-31).
+            side("Đi vay", amount: owed, people: debts, tone: owed > 0 ? .signedExpense : .plain)
                 .padding(.leading, Spacing.l)
         }
         .sleekCard()
     }
 
-    private func side(_ title: String, amount: Double, people: Int, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+    private func side(_ title: String, amount: Double, people: Int, tone: MoneyText.Tone) -> some View {
+        let who = people == 0 ? "Không có ai" : "\(people) người"
+        return VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryText)
-            Text(amount.vnd)
-                .textRole(.amountLarge)
-                .monospacedDigit()
-                .foregroundStyle(color)
-                .lineLimit(1).minimumScaleFactor(0.5)
-            Text(people == 0 ? "Không có ai" : "\(people) người")
+            MoneyText(amount: amount, size: .large, tone: tone)
+            Text(who)
                 .textRole(.caption)
                 .foregroundStyle(Palette.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) \(amount.vnd), \(people) người")
+        // The words on screen, so VoiceOver says "Không có ai" too.
+        .accessibilityLabel("\(title) \(tone == .signedExpense ? "-" : "")\(amount.vnd), \(who)")
     }
 }
 
@@ -161,12 +160,15 @@ struct LoansContent: View {
     // MARK: - Cho vay / Đi vay / Đã tất toán
 
     private var lentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
-            SectionHeader(title: "Cho vay") { remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }) }
-                .padding(.bottom, Spacing.headerGap - Spacing.m)
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            // What is left beside the heading once there is a loan: no "Còn 0đ" over the empty card.
+            SectionHeader(title: "Cho vay") {
+                if !lentLoans.isEmpty { remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .plain) }
+            }
             if lentLoans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có khoản cho vay",
-                               message: "Nhấn + để ghi lại số tiền bạn cho người khác vay.")
+                // One short sentence, no button named (strict review 2026-10-31).
+                EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
+                               message: "Khoản cho vay sẽ hiện ở đây.")
             }
             if !lentLoans.isEmpty {
                 LoanRowList(loans: lentLoans, today: today, onOpen: onEdit)
@@ -175,12 +177,15 @@ struct LoansContent: View {
     }
 
     private var borrowedSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
-            SectionHeader(title: "Đi vay") { remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }) }
-                .padding(.bottom, Spacing.headerGap - Spacing.m)
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            SectionHeader(title: "Đi vay") {
+                if !borrowedLoans.isEmpty {
+                    remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }, tone: .signedExpense)
+                }
+            }
             if borrowedLoans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa có khoản đi vay",
-                               message: "Khoản bạn vay của người khác sẽ hiện ở đây.")
+                EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
+                               message: "Khoản đi vay sẽ hiện ở đây.")
             }
             if !borrowedLoans.isEmpty {
                 LoanRowList(loans: borrowedLoans, today: today, onOpen: onEdit)
@@ -190,18 +195,23 @@ struct LoansContent: View {
 
     /// Search only: the page keeps these behind `settledEntry`.
     private var settledSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
             SectionHeader(title: "Đã tất toán")
-                .padding(.bottom, Spacing.headerGap - Spacing.m)
             LoanRowList(loans: settledLoans, today: today, onOpen: onEdit)
         }
     }
 
-    private func remainingLabel(_ amount: Double) -> some View {
-        Text("Còn \(amount.vndCompact)")
-            .textRole(.captionStrong)
-            .foregroundStyle(Palette.secondaryText)
-            .monospacedDigit()
+    /// "Còn 45tr" beside a heading: the amount by `MoneyText(.caption)` as a day's totals on Thu chi,
+    /// in its rows' colour (re-review 2026-10-31: grey text there, MoneyText here).
+    private func remainingLabel(_ amount: Double, tone: MoneyText.Tone) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Text("Còn")
+                .textRole(.captionStrong)
+                .foregroundStyle(Palette.secondaryText)
+            MoneyText(amount: amount, size: .caption, tone: tone, compact: true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Còn \(tone == .signedExpense ? "nợ " : "")\(amount.vnd)")
     }
 }
 

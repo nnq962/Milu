@@ -54,6 +54,14 @@ extension Date {
         return "\(prefix), \(dayMonth)\(year)"
     }
 
+    /// The one short date of the app: "6/11", "6/11/2025" in another year (strict review
+    /// 2026-10-31: five helpers wrote "06/11", "6/11/2026" or no year at all).
+    var shortDay: String {
+        let calendar = Calendar.current
+        let sameYear = calendar.isDate(self, equalTo: .now, toGranularity: .year)
+        return sameYear ? dayMonth : "\(dayMonth)/\(calendar.component(.year, from: self))"
+    }
+
     /// "22/5"
     var dayMonth: String {
         let calendar = Calendar.current

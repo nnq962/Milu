@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct ButtonsPart: View {
+    @State private var flatChoice = 0
 
     var body: some View {
         PartSection(part: .buttons) {
-            SampleCard(label: "Vai trò · TimiButton") {
+            SampleCard(label: "Vai trò · TimiButton (phẳng)") {
                 VStack(alignment: .leading, spacing: Spacing.m) {
                     ForEach(TimiButtonRole.allCases) { role in
                         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -31,23 +32,75 @@ struct ButtonsPart: View {
                 }
             }
 
-            SampleCard(label: "Nút tròn trên thanh · nút nổi") {
+            // Every button inside content is flat (user choice 2026-10-31): a fill2 circle or capsule,
+            // the chosen one in the primary colour with onPrimary words (re-review 2026-10-31: the
+            // catalogue still showed glass in its cards).
+            SampleCard(label: "Phẳng · flatCircleButton, flatCapsuleButton") {
+                VStack(alignment: .leading, spacing: Spacing.m) {
+                    HStack(spacing: Spacing.s) {
+                        Button {} label: {
+                            TimiIcon("hugeicons-arrow-left-01", size: RowMetrics.chevron)
+                        }
+                        .flatCircleButton()
+                        .accessibilityLabel("Kỳ trước")
+                        Button {} label: {
+                            TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.chevron)
+                        }
+                        .flatCircleButton()
+                        .accessibilityLabel("Kỳ sau")
+                        Spacer(minLength: Spacing.s)
+                        Button { flatChoice = flatChoice == 0 ? 1 : 0 } label: {
+                            Text("Thường")
+                                .textRole(.body)
+                                .foregroundStyle(flatChoice == 0 ? Palette.onPrimary : Palette.ink)
+                                .padding(.horizontal, Spacing.l)
+                                .frame(minHeight: ControlHeight.regular)
+                        }
+                        .flatCapsuleButton(fill: flatChoice == 0 ? Palette.primary : Palette.fill2)
+                        .accessibilityAddTraits(flatChoice == 0 ? .isSelected : [])
+                    }
+                    Text("FlatButtonStyle(fill:shape:) · nền fill2, đang chọn nền primary")
+                        .textRole(.footnote)
+                        .foregroundStyle(Palette.secondaryText)
+                }
+                .tint(Palette.ink)
+            }
+
+            // In a ToolbarItem a plain Button sits on the bar's glass by itself (rule 2026-10-30);
+            // here, off the bar, the same buttons show bare. The + is add-circle in its 28 frame.
+            SampleCard(label: "Nút trên thanh · Button trơn") {
                 HStack(spacing: Spacing.l) {
                     Button {} label: {
-                        TimiIcon("hugeicons-notification-01", size: 20).frame(width: 28, height: 28)
+                        TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                            .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                     }
-                    .tint(Palette.ink)
-                    .nativeCircleButton(diameter: 44)
+                    .tint(Palette.primary)
+                    .accessibilityLabel("Thêm")
                     Button {} label: {
-                        TimiIcon("hugeicons-search-01", size: 20).frame(width: 28, height: 28)
+                        TimiIcon("hugeicons-search-01", size: RowMetrics.toolbarGlyph)
+                            .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                     }
-                    .tint(Palette.ink)
-                    .nativeCircleButton(diameter: 44)
-                    Spacer()
-                    Button {} label: {
-                        TimiIcon("hugeicons-add-01", size: 26).foregroundStyle(Palette.onPrimary)
-                    }
-                    .nativeFloatingButton(diameter: ControlHeight.floating, tint: Palette.primary)
+                    .accessibilityLabel("Tìm")
+                    EditToolbarButton {}
+                }
+                .tint(Palette.ink)
+            }
+
+            // The one glass button outside a bar: the floating + (explicit exception).
+            SampleCard(label: "Nút + nổi · nativeFloatingButton (kính)") {
+                Button {} label: {
+                    TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph).foregroundStyle(Palette.onPrimary)
+                }
+                .nativeFloatingButton(diameter: ControlHeight.large, tint: Palette.primary)
+                .accessibilityLabel("Thêm giao dịch")
+            }
+
+            SampleCard(label: "Cạnh tiêu đề · HeaderCapsuleLabel") {
+                HStack(spacing: Spacing.xl) {
+                    Button {} label: { HeaderCapsuleLabel(title: "Xoá") }
+                        .headerCapsuleGlass()
+                    Button {} label: { HeaderCapsuleLabel(title: "Lưu trữ (2)", opensPage: true) }
+                        .headerCapsuleGlass()
                 }
             }
         }

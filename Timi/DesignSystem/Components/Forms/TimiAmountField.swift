@@ -178,37 +178,25 @@ struct TimiAmountField: View {
     /// Presets until the user types their own figure.
     private var shownPresets: [AmountPreset] { typedBase == nil ? presets : [] }
 
+    /// Flat chips, the one matching the amount filled (user choice 2026-10-31: no glass in content).
     private var chipStack: some View {
         HStack(spacing: Spacing.s) {
             ForEach(shownPresets, id: \.self) { preset in
-                let picked = preset.value == amount
-                Button {
+                // An empty label shows the amount alone ("10tr").
+                TagChip(title: preset.label.isEmpty ? preset.value.vndCompact : "\(preset.label) \(preset.value.vndCompact)",
+                        isProminent: preset.value == amount) {
                     text = String(Int(preset.value)).groupedVNDInput
                     picks += 1
-                } label: {
-                    // An empty label shows the amount alone ("10tr").
-                    Text(preset.label.isEmpty ? preset.value.vndCompact : "\(preset.label) \(preset.value.vndCompact)")
-                        .textRole(.captionStrong)
-                        .foregroundStyle(picked ? .white : Palette.ink)
-                        .fixedSize()
                 }
-                .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
-                .buttonBorderShape(.capsule)
+                .fixedSize()
                 .accessibilityLabel(preset.label.isEmpty ? preset.value.vnd : "\(preset.label) \(preset.value.vnd)")
             }
             ForEach(suggestions, id: \.self) { value in
-                let picked = value == amount
-                Button {
+                TagChip(title: Self.chipLabel(value), isProminent: value == amount) {
                     text = String(Int(value)).groupedVNDInput
                     picks += 1
-                } label: {
-                    Text(Self.chipLabel(value))
-                        .textRole(.captionStrong)
-                        .foregroundStyle(picked ? .white : Palette.ink)
-                        .fixedSize()
                 }
-                .nativeGlassButton(prominent: picked, tint: picked ? Palette.primary : nil)
-                .buttonBorderShape(.capsule)
+                .fixedSize()
                 .accessibilityLabel(value.vnd)
             }
         }

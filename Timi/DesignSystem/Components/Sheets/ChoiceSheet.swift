@@ -17,6 +17,7 @@ struct ChoiceSheet<Value: Hashable>: View {
             FormGroup {
                 ForEach(Array(options.enumerated()), id: \.element) { index, option in
                     Button {
+                        Haptics.selection()
                         selection = option
                         dismiss()
                     } label: {

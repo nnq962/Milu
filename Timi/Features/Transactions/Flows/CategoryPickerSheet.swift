@@ -72,11 +72,12 @@ struct CategoryPickerSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.section) {
+                // The gap between groups of the form sheets (`SheetScaffold`, strict review 2026-10-31).
+                VStack(alignment: .leading, spacing: Spacing.xxl) {
                     if !query.isEmpty {
                         if matches.isEmpty {
                             EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                                           message: "Thêm hạng mục mới bằng nút bút chì ở góc trên.")
+                                           message: "Không có hạng mục nào khớp từ này.")
                         } else {
                             section(nil, items: matches, showsGroup: true)
                         }

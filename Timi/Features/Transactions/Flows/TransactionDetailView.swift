@@ -191,25 +191,17 @@ struct TransferDetailSheet: View {
         .timiSheetStyle()
     }
 
-    /// Why it cannot change (if so) and where the fee goes (if any), both.
-    private func footer(_ transfer: AccountTransfer) -> String? {
-        // A locked account is out of reports, its fee too.
-        let locked = store.lockedAccountIDs.contains(transfer.fromAccountID)
-        let fee = transfer.fee <= 0 ? nil
-            : locked ? "Phí không tính vào báo cáo vì \(name(transfer.fromAccountID)) đang khoá."
-            : "Phí tính là chi tiêu của \(name(transfer.fromAccountID))."
-        let text = [store.readOnlyReason(transfer), fee].compactMap { $0 }.joined(separator: " ")
-        return text.isEmpty ? nil : text
-    }
-
     private func details(_ transfer: AccountTransfer) -> some View {
-        FormGroup(title: "Chi tiết", footer: footer(transfer)) {
+        // Only why it cannot change, if so; no sentence on where the fee goes (strict review
+        // 2026-10-31: no explanatory footers).
+        FormGroup(title: "Chi tiết", footer: store.readOnlyReason(transfer)) {
             FormInfoRow(title: "Từ", value: name(transfer.fromAccountID), valueIcon: icon(transfer.fromAccountID))
             FormDivider(hasIcon: false)
             FormInfoRow(title: "Đến", value: name(transfer.toAccountID), valueIcon: icon(transfer.toAccountID))
             if transfer.fee > 0 {
                 FormDivider(hasIcon: false)
-                FormInfoRow(title: "Phí", value: transfer.fee.vnd)
+                // Money out: red with "-" by `MoneyText` (strict review 2026-10-31).
+                FormAmountInfoRow(title: "Phí", amount: transfer.fee, tone: .signedExpense)
             }
             FormDivider(hasIcon: false)
             FormInfoRow(title: "Thời gian", value: TransactionDetailView.when(transfer.date))
@@ -231,11 +223,13 @@ struct DetailScaffold<Content: View>: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.section) {
+            // The gap between groups of the form sheets (`SheetScaffold`, strict review 2026-10-31).
+            VStack(alignment: .leading, spacing: Spacing.xxl) {
                 content
             }
             .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.l)
+            // The first card as high as in the form sheets (`SheetScaffold`).
+            .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)

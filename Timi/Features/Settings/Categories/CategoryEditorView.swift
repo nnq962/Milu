@@ -29,6 +29,7 @@ struct CategoryEditorView: View {
     @State private var icon: String
     @State private var groupID: String?
     @State private var firstItem = ""
+    @State private var showsErrors = false
 
     init(target: Target) {
         self.target = target
@@ -82,6 +83,13 @@ struct CategoryEditorView: View {
     private static func clean(_ text: String) -> String {
         text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
+    /// ✓ stays on so what is missing can be pointed out instead of the button just doing
+    /// nothing (sheet review 2026-10-30: it greyed out here, against the app's rule).
+    private func validate() -> Bool {
+        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        return canSave
+    }
+
     private var canSave: Bool {
         !cleanName.isEmpty && (isGroup || groupID != nil) && duplicate == nil && reservedName == nil
     }
@@ -104,6 +112,7 @@ struct CategoryEditorView: View {
     }
 
     private var nameError: String? {
+        if showsErrors, cleanName.isEmpty { return "Nhập tên." }
         if let reservedName { return "“\(reservedName)” là tên dành cho hệ thống." }
         guard let duplicate else { return nil }
         let place = isGroup ? "Đã có nhóm" : "Nhóm này đã có"
@@ -136,11 +145,9 @@ struct CategoryEditorView: View {
     }
 
     var body: some View {
-        SheetScaffold(title: title, canConfirm: canSave, onConfirm: save) {
-            FormGroup(title: "Thông tin",
-                      footer: original.map { !$0.isGroup && !store.canMove($0) } == true
-                          ? "Hạng mục cuối cùng của nhóm nên không chuyển nhóm được." : nil,
-                      error: nameError) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save) {
+            // No footer on why "Nhóm" is locked: the greyed row says it (strict review 2026-10-31).
+            FormGroup(title: "Thông tin", error: nameError) {
                 FormTextRow(title: isGroup ? "Tên nhóm" : "Tên hạng mục", text: $name,
                             prompt: isGroup ? "Du lịch" : "Ăn sáng", isInvalid: nameError != nil,
                             maxLength: Category.maxNameLength)
@@ -186,7 +193,8 @@ struct CategoryEditorView: View {
                 : "Mỗi loại cần ít nhất một nhóm. Thêm nhóm khác hoặc hiện lại một nhóm đã ẩn trước."
             : "Mỗi nhóm cần ít nhất một hạng mục. Thêm hạng mục khác, hoặc ẩn/xoá cả nhóm."
         if category.isHidden {
-            FormActionRow(title: "Hiện lại \(noun)", icon: "hugeicons-archive-02") {
+            // An eye, not the box of "Ẩn": the two did the opposite with one icon (re-review 2026-10-31).
+            FormActionRow(title: "Hiện lại \(noun)", icon: "hugeicons-eye") {
                 applyEdits()
                 store.unhide(category)
                 Haptics.success()

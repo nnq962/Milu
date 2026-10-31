@@ -22,12 +22,21 @@ struct GoalTransferSheet: View {
     @State private var accountID: Account.ID?
     @State private var date = Date.now
     @State private var note = ""
+    @State private var showsErrors = false
 
-    init(goal: SavingsGoal, direction: GoalTransfer.Direction, closesGoal: Bool = false) {
+    /// `account` is the one offered first. It and "Rút hết"'s amount are set here, not on appear,
+    /// so the sheet opens as it stays: no row slid in, no amount changing under the eye
+    /// (re-review 2026-10-31).
+    init(goal: SavingsGoal, direction: GoalTransfer.Direction, closesGoal: Bool = false,
+         account: Account.ID? = nil) {
         self.goal = goal
         self.direction = direction
         self.closesGoal = closesGoal
         _savedWithout = State(initialValue: goal.saved)
+        _accountID = State(initialValue: account)
+        if closesGoal {
+            _amountText = State(initialValue: String(Int(goal.saved)).groupedVNDInput)
+        }
     }
 
     init(editing transfer: GoalTransfer, goal: SavingsGoal) {
@@ -51,6 +60,13 @@ struct GoalTransferSheet: View {
         return nil
     }
     private var canSave: Bool { amount > 0 && accountID != nil && limitError == nil }
+
+    /// ✓ stays on so what is missing can be pointed out instead of the button just doing
+    /// nothing (sheet review 2026-10-30: it greyed out here, against the app's rule).
+    private func validate() -> Bool {
+        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        return canSave
+    }
     /// Deleting a deposit whose money was already taken out would leave the goal below 0đ.
     private var canDelete: Bool { savedWithout >= 0 }
 
@@ -65,7 +81,7 @@ struct GoalTransferSheet: View {
     }
 
     var body: some View {
-        SheetScaffold(title: title, canConfirm: canSave, onConfirm: save) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save) {
             SheetAmountHeader(caption: goal.name) {
                 // "Rút hết" takes everything: the amount is shown, not typed.
                 TimiAmountField(text: $amountText, showsSuggestions: !closesGoal,
@@ -74,7 +90,8 @@ struct GoalTransferSheet: View {
                     .disabled(closesGoal)
             }
         } content: {
-            FormGroup(title: "Chi tiết", error: accountOptions.isEmpty ? Self.noAccountError(store) : limitError) {
+            FormGroup(title: "Chi tiết", error: accountOptions.isEmpty ? Self.noAccountError(store)
+                        : limitError ?? (showsErrors && amount <= 0 ? "Nhập số tiền." : nil)) {
                 if let accountID {
                     FormPickerRow(title: isDeposit ? "Từ tài khoản" : "Về tài khoản",
                                   selection: Binding { accountID } set: { self.accountID = $0 },
@@ -85,9 +102,7 @@ struct GoalTransferSheet: View {
                     FormDivider(hasIcon: false)
                 }
                 // Money already moved: no day after today (user choice 2026-10-29).
-                FormDateRow(title: "Ngày", date: $date, latest: .now)
-                FormDivider(hasIcon: false)
-                FormTimeRow(title: "Giờ", date: $date)
+                FormDateTimeRow(title: "Thời gian", date: $date, latest: .now)
             }
 
             FormGroup(title: "Ghi chú") {
@@ -111,12 +126,6 @@ struct GoalTransferSheet: View {
             }
         }
         .timiSheetStyle()
-        .onAppear {
-            accountID = accountID ?? store.paymentAccounts.first { !$0.isLocked }?.id
-            if closesGoal, amountText.isEmpty {
-                amountText = String(Int(goal.saved)).groupedVNDInput
-            }
-        }
     }
 
     /// "Mỗi tháng 167k" with a deadline, and "Còn thiếu 2tr" when it differs.

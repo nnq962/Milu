@@ -129,11 +129,10 @@ struct LoanEditorView: View {
 
     var body: some View {
         SheetScaffold(title: original == nil ? "Thêm khoản vay" : "Sửa khoản vay", validate: validate, onConfirm: save) {
-            Picker("Loại khoản vay", selection: $direction) {
-                ForEach(LoanDirection.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .controlSize(.large)
+            // Its words at the user's text size, as every other segmented control (re-review 2026-10-31).
+            ScaledSegmentedPicker(title: "Loại khoản vay", selection: $direction,
+                                  options: LoanDirection.allCases) { $0.title }
+                .controlSize(.large)
             // Its repayments moved money one way: the side cannot flip under them.
             .disabled(hasPayments || isMoneyLocked)
 
@@ -154,17 +153,16 @@ struct LoanEditorView: View {
             FormGroup(title: "Thông tin", error: showsErrors ? personError : nil) {
                 personRow
                 FormDivider(hasIcon: false)
+                // Fewer words (sheet review 2026-10-30): the line under it only when it cannot change.
                 FormToggleRow(title: "Khoản có sẵn",
-                              subtitle: hasPayments ? "Đã có lần \(direction == .lent ? "thu" : "trả") nợ, không đổi được"
-                                  : "Có từ trước khi dùng Timi, không đổi số dư",
+                              subtitle: hasPayments ? "Đã có lần \(direction == .lent ? "thu" : "trả"), không đổi được" : nil,
                               isOn: Binding { isExisting } set: { setExisting($0) })
                     .disabled(hasPayments || isMoneyLocked)
             }
 
             if isExisting {
-                FormGroup(title: direction == .lent ? "Còn phải thu" : "Còn phải trả", footer: repaidInApp > 0
-                              ? "Để trống nếu trước khi dùng Timi chưa \(direction == .lent ? "thu" : "trả") đồng nào."
-                              : "Để trống nếu chưa \(direction == .lent ? "thu" : "trả") đồng nào.",
+                // No "Để trống nếu…" footer: explanations are not footers (strict review 2026-10-31).
+                FormGroup(title: direction == .lent ? "Còn phải thu" : "Còn phải trả",
                           error: outstandingError) {
                     FormAmountRow(title: "Còn lại", text: $outstandingText, isInvalid: outstandingError != nil)
                 }
@@ -199,11 +197,12 @@ struct LoanEditorView: View {
                     }
             }
 
-            FormGroup(title: "Hạn trả", error: dueError) {
-                FormToggleRow(title: "Có hạn trả", isOn: $hasDueDate.animation(.smooth(duration: 0.25)))
+            // Titled like every group of the form; the switch names it, the date is just "Ngày".
+            FormGroup(title: "Kế hoạch", error: dueError) {
+                FormToggleRow(title: "Hạn trả", isOn: $hasDueDate.animation(.smooth(duration: 0.25)))
                 if hasDueDate {
                     FormDivider(hasIcon: false)
-                    FormDateRow(title: "Hạn trả", date: $dueDate, earliest: isExisting ? nil : firstDueDay,
+                    FormDateRow(title: "Ngày", date: $dueDate, earliest: isExisting ? nil : firstDueDay,
                                 isInvalid: dueError != nil)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -280,10 +279,11 @@ struct LoanEditorView: View {
         .accessibilityValue(person?.name ?? "Chưa chọn")
     }
 
-    /// The interest each month, worked out as it is typed: "Mỗi tháng 375.000đ, tính trên số gốc."
+    /// The interest each month, worked out as it is typed: "Mỗi tháng 375.000đ"; the figure alone,
+    /// no "tính trên số gốc" (strict review 2026-10-31). Nothing until there is a figure to show.
     private var rateFooter: String? {
-        guard rate > 0, principal > 0 else { return "Tính trên số gốc, tháng nào cũng như nhau." }
-        return "Mỗi tháng \((principal * rate / 100).vnd), tính trên số gốc."
+        guard rate > 0, principal > 0 else { return nil }
+        return "Mỗi tháng \((principal * rate / 100).vnd)."
     }
 
     @ViewBuilder

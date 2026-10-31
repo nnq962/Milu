@@ -76,3 +76,76 @@ struct HiddenToolbarTitle: View {
         Color.clear.frame(width: 1, height: 1).accessibilityHidden(true)
     }
 }
+
+/// A control on a heading's row ("Lưu trữ (2) ›", "Xoá", the month of Lịch thu chi): 14 moss words,
+/// no glass (user request 2026-10-30, after trying small glass capsules), 44 tall to tap. Its words
+/// end where the heading's row ends, so it lines up with the card's right edge.
+struct HeaderCapsuleLabel: View {
+    let title: String
+    /// "›" after the words when it opens a page.
+    var opensPage = false
+    /// "⌄" after the words when it opens a menu (the month of Lịch thu chi).
+    var opensMenu = false
+    /// Moss words, or ink on the soft cards of Tổng quan (2026-10-31).
+    var color: Color = Palette.primary
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            Text(title)
+                .textRole(.accessory)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+            if opensPage {
+                TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.linkChevron)
+            } else if opensMenu {
+                TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
+            }
+        }
+        .foregroundStyle(color)
+        // 44 each way to tap, even for a short word ("Xoá").
+        .frame(minWidth: ControlHeight.regular, minHeight: ControlHeight.regular, alignment: .trailing)
+        .contentShape(Rectangle())
+    }
+}
+
+extension View {
+    /// A plain button for a `HeaderCapsuleLabel`; it reaches above and below the heading rather
+    /// than making the row taller.
+    func headerCapsuleGlass() -> some View {
+        buttonStyle(.plain)
+            .padding(.vertical, -10)
+    }
+}
+
+/// A button inside content, never glass (user choice 2026-10-31: glass only on the bars and the
+/// floating +, since glass in a scrolling card trailed it): a flat fill in `shape`, dimmed while
+/// pressed as the system's plain buttons are, nothing more.
+struct FlatButtonStyle<S: Shape>: ButtonStyle {
+    var fill: Color = Palette.fill2
+    let shape: S
+    /// A fixed square for round buttons; nil lets the label size the button.
+    var diameter: CGFloat? = nil
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // The fill takes the whole button, not only the glyph inside it.
+            .frame(width: diameter, height: diameter)
+            .background(fill, in: shape)
+            .contentShape(shape)
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+extension View {
+    /// A round flat button `diameter` wide (‹ › on Báo cáo, the report circle on Thu chi).
+    func flatCircleButton(diameter: CGFloat = ControlHeight.regular, fill: Color = Palette.fill2) -> some View {
+        buttonStyle(FlatButtonStyle(fill: fill, shape: Circle(), diameter: diameter))
+    }
+
+    /// A flat capsule button; size the label yourself (at least `ControlHeight.regular` to tap).
+    func flatCapsuleButton(fill: Color = Palette.fill2) -> some View {
+        buttonStyle(FlatButtonStyle(fill: fill, shape: Capsule()))
+    }
+}

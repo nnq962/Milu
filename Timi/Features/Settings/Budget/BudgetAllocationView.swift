@@ -45,42 +45,54 @@ struct BudgetAllocationView: View {
             VStack(alignment: .leading, spacing: Spacing.section) {
                 overview(parts: parts, assigned: assigned, unassigned: unassigned)
 
-                FormGroup(title: "Phân bổ") {
-                    ForEach(parts) { part in
-                        NavigationLink {
-                            CategoryReportView(groupID: part.id, period: monthPeriod)
-                        } label: {
-                            BreakdownRowLabel(icon: part.icon, title: part.name,
-                                              detail: detail(limit: part.limit, spent: part.spent),
-                                              amount: part.limit.vndCompact, dot: part.color, edgedDot: part.isRest)
+                // Headings and list cards as on Báo cáo, which these rows open into (re-review
+                // 2026-10-31: small-caps form groups on a page of figures).
+                VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                    SectionHeader(title: "Phân bổ")
+                    VStack(spacing: 0) {
+                        ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
+                            NavigationLink {
+                                CategoryReportView(groupID: part.id, period: monthPeriod)
+                            } label: {
+                                BreakdownRowLabel(icon: part.icon, title: part.name,
+                                                  detail: detail(limit: part.limit, spent: part.spent),
+                                                  amount: part.limit, dot: part.color, edgedDot: part.isRest)
+                            }
+                            .buttonStyle(.row)
+                            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                         }
-                        .buttonStyle(.row)
-                        FormDivider()
+                        BreakdownRowLabel(icon: "hugeicons-dashboard-square-01", title: "Chưa phân bổ",
+                                          detail: detail(limit: unassigned, spent: restSpent),
+                                          amount: unassigned, hollowDot: true, opensMore: false)
+                            .overlay(alignment: .top) { if !parts.isEmpty { RowDivider() } }
                     }
-                    BreakdownRowLabel(icon: "hugeicons-dashboard-square-01", title: "Chưa phân bổ",
-                                      detail: detail(limit: unassigned, spent: restSpent),
-                                      amount: unassigned.vndCompact, hollowDot: true, opensMore: false)
+                    .listCard()
                 }
 
                 if !restGroups.isEmpty {
-                    FormGroup(title: "Chi từ phần chưa phân bổ") {
-                        ForEach(Array(restGroups.enumerated()), id: \.element.id) { index, group in
-                            if index > 0 { FormDivider() }
-                            NavigationLink {
-                                CategoryReportView(groupID: group.groupID, period: monthPeriod)
-                            } label: {
-                                BreakdownRowLabel(icon: group.icon, title: group.name,
-                                                  detail: restSpent > 0 ? (group.amount / restSpent).percentText : "",
-                                                  amount: group.amount.vndCompact)
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Chi từ phần chưa phân bổ")
+                        VStack(spacing: 0) {
+                            ForEach(Array(restGroups.enumerated()), id: \.element.id) { index, group in
+                                NavigationLink {
+                                    CategoryReportView(groupID: group.groupID, period: monthPeriod)
+                                } label: {
+                                    // The same row as these groups under "Chưa có hạn mức" on Hạn mức.
+                                    BreakdownRowLabel(icon: group.icon, title: group.name,
+                                                      detail: restSpent > 0 ? (group.amount / restSpent).percentText : "Chưa chi",
+                                                      amount: group.amount)
+                                }
+                                .buttonStyle(.row)
+                                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                             }
-                            .buttonStyle(.row)
                         }
+                        .listCard()
                     }
                 }
             }
             .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.xxxl)
+            .padding(.top, Spacing.l)
+            .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.ink)
@@ -111,14 +123,12 @@ struct BudgetAllocationView: View {
                 Text("Hạn mức tháng")
                     .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryText)
-                Text(monthlyBudget.vnd)
-                    .textRole(.amountLarge)
-                    .monospacedDigit()
+                MoneyText(amount: monthlyBudget, size: .large)
             }
             GeometryReader { proxy in
-                HStack(spacing: 2) {
+                HStack(spacing: Spacing.xxs) {
                     ForEach(parts) { part in
-                        part.color.frame(width: max(proxy.size.width * part.limit / whole - 2, 2))
+                        part.color.frame(width: max(proxy.size.width * part.limit / whole - Spacing.xxs, Spacing.xxs))
                     }
                     // The empty track, like any progress bar: what is not split yet.
                     if unassigned > 0 {
@@ -127,18 +137,22 @@ struct BudgetAllocationView: View {
                 }
                 .clipShape(Capsule())
             }
-            .frame(height: 12)
+            // One bar height in the app (strict review 2026-10-31: this one was 12).
+            .frame(height: ProgressBar.height)
             .accessibilityHidden(true)
-            HStack {
-                Text("Đã phân bổ \(assigned.vndCompact)")
+            // Amounts as MoneyText, grey like the words (re-review 2026-10-31).
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Text("Đã phân bổ")
+                MoneyText(amount: assigned, size: .caption, tone: .muted, compact: true)
                 Spacer(minLength: Spacing.s)
-                Text("Chưa phân bổ \(unassigned.vndCompact)")
+                Text("Chưa phân bổ")
+                MoneyText(amount: unassigned, size: .caption, tone: .muted, compact: true)
             }
             .textRole(.caption)
             .foregroundStyle(Palette.secondaryText)
             .monospacedDigit()
         }
-        .sleekCard(padding: Spacing.xl)
+        .settingsCard()
         .accessibilityElement(children: .combine)
     }
 }

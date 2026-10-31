@@ -24,9 +24,11 @@ extension View {
 extension View {
     /// A white card holding rows (accounts, transactions, settings): no padding, the rows bring
     /// their own. One helper so every list card looks the same.
+    /// Corners 24, as form groups: concentric with the rows' 16 inset and their ~9 icon corners
+    /// (user report 2026-10-30: at 28 the corners crowded the first and last rows' icons).
     func listCard() -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(color: Palette.card, elevated: true)
+            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
     }
 
     /// White Sleek card: p-5, large continuous corners and the soft shadow.

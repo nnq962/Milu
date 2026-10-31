@@ -69,8 +69,7 @@ struct FormValueLabel: View {
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.3), value: value)
             if showsChevron {
-                TimiIcon("hugeicons-arrow-right-01", size: 16)
-                    .foregroundStyle(Palette.secondary)
+                RowChevron()
             }
         }
         .formRowFrame()
@@ -86,6 +85,25 @@ struct FormInfoRow: View {
     var body: some View {
         FormValueLabel(title: title, icon: nil, value: value, valueIcon: valueIcon, showsChevron: false)
             .accessibilityElement(children: .combine)
+    }
+}
+
+/// A read-only row whose value is money: the title, and the amount by `MoneyText` (a transfer's
+/// fee "-5.000đ" red, a loan's principal), never a grey string.
+struct FormAmountInfoRow: View {
+    let title: String
+    let amount: Double
+    var tone: MoneyText.Tone = .plain
+
+    var body: some View {
+        HStack(spacing: Spacing.s) {
+            FormRowLabel(title: title)
+            Spacer(minLength: Spacing.s)
+            MoneyText(amount: amount, tone: tone)
+                .fixedSize()
+        }
+        .formRowFrame()
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -110,8 +128,7 @@ struct NavigationRowLabel: View {
                     .monospacedDigit()
                     .lineLimit(1)
             }
-            TimiIcon("hugeicons-arrow-right-01", size: 16)
-                .foregroundStyle(Palette.secondary)
+            RowChevron()
         }
         .formRowFrame()
         .contentShape(Rectangle())
@@ -145,8 +162,7 @@ struct FormNavigationRow: View {
                         .foregroundStyle(Palette.secondaryText)
                         .lineLimit(1)
                 }
-                TimiIcon("hugeicons-arrow-right-01", size: 16)
-                    .foregroundStyle(Palette.secondary)
+                RowChevron()
             }
             .formRowFrame()
         }

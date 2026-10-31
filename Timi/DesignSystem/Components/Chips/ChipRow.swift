@@ -1,55 +1,37 @@
 import SwiftUI
 
-/// Horizontally scrolling filter chips; the selected chip uses teal prominent glass.
+/// Horizontally scrolling filter chips: `TagChip`s, the chosen one filled in the primary colour.
+/// Not glass (user choice 2026-10-31: glass only on the bars).
 struct ChipRow<Option: Hashable & Identifiable>: View {
     let options: [Option]
     @Binding var selection: Option
     let title: (Option) -> String
 
     var body: some View {
-        // Scroll only when the chips overflow; a horizontal ScrollView behind glass
-        // chips draws a lighter band across the row on iOS 26.
+        // Scroll only when the chips overflow.
         ViewThatFits(in: .horizontal) {
             chips
                 .frame(maxWidth: .infinity, alignment: .leading)
             ScrollView(.horizontal) {
                 chips
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, Spacing.page)
             }
             .scrollIndicators(.hidden)
             .modifier(NoScrollEdgeEffect())
-            // Bleed to the screen edges like Sleek's -mx-5 px-5.
-            .padding(.horizontal, -20)
+            // Bleed to the screen edges like Sleek's -mx-5 px-5: the page margin, in and out.
+            .padding(.horizontal, -Spacing.page)
         }
         .sensoryFeedback(.selection, trigger: selection)
     }
 
-    /// Group the glass chips so iOS renders them as one glass layer.
-    @ViewBuilder
     private var chips: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer { chipStack }
-        } else {
-            chipStack
-        }
-    }
-
-    private var chipStack: some View {
-            HStack(spacing: 8) {
-                ForEach(options) { option in
-                    let selected = option == selection
-                    Button { selection = option } label: {
-                        Text(title(option))
-                            .textRole(.captionStrong)
-                            .foregroundStyle(selected ? Palette.onPrimary : Palette.ink)
-                    }
-                    .nativeGlassButton(prominent: selected, tint: selected ? Palette.primary : nil)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.regular)
-                    .tint(Palette.ink)
+        HStack(spacing: Spacing.s) {
+            ForEach(options) { option in
+                let selected = option == selection
+                TagChip(title: title(option), isProminent: selected) { selection = option }
                     .accessibilityAddTraits(selected ? .isSelected : [])
-                }
             }
+        }
     }
 }
 

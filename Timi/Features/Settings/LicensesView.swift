@@ -32,15 +32,17 @@ struct LicensesView: View {
     }
 
     private let works = [
-        Work(name: "Hugeicons", use: "Biểu tượng · MIT", file: "Hugeicons-LICENSE"),
-        Work(name: "Manrope", use: "Phông chữ · SIL Open Font License 1.1", file: "OFL"),
+        Work(name: "Hugeicons", use: "MIT", file: "Hugeicons-LICENSE"),
+        Work(name: "Manrope", use: "SIL Open Font License 1.1", file: "OFL"),
     ]
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.section) {
                 ForEach(works) { work in
-                    FormGroup(title: work.name, footer: work.use) {
+                    // What it is and its licence in the group's title, not a footer: a footer
+                    // only carries a computed figure or an error (re-review 2026-10-31).
+                    FormGroup(title: "\(work.name) · \(work.use)") {
                         Text(work.text)
                             .textRole(.caption)
                             .foregroundStyle(Palette.secondaryText)
@@ -51,8 +53,8 @@ struct LicensesView: View {
                 }
             }
             .padding(.horizontal, Spacing.page)
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.xxxl)
+            .padding(.top, Spacing.l)
+            .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.ink)

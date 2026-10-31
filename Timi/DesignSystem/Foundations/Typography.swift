@@ -41,6 +41,13 @@ enum Typography {
         return .custom(instance(for: weight), size: size, relativeTo: style)
     }
 
+    /// A size that does not scale on its own: for text sized from something already scaled (the
+    /// initial inside an avatar that grows with the text).
+    static func fixedFont(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        _ = registered
+        return .custom(instance(for: weight), fixedSize: size)
+    }
+
     /// Each weight is the Manrope instance of its name (regular 400, medium 500, semibold 600,
     /// bold 700, heavy/black ExtraBold 800). It rendered one step lighter for a while; that read
     /// thin and fragile, and the weights went back to their names after trying other typefaces

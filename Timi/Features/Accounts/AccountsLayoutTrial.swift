@@ -21,21 +21,22 @@ enum AccountsLayout: String, CaseIterable, Identifiable {
     var showsGoalCarousel: Bool { self == .goalCarousel || self == .both }
 }
 
-/// "Kiểu trang Tài khoản" in Cài đặt → Nhà phát triển.
+/// "Kiểu trang Tài khoản" in Cài đặt → Nhà phát triển: labelled like its neighbours, the switch
+/// under the title, so the group's rows all start at the icon column (strict review 2026-10-31).
 struct AccountsLayoutTrialRow: View {
     @AppStorage(StorageKey.accountsLayout) private var layout = AccountsLayout.both
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            Text("Kiểu trang Tài khoản (thử)")
-                .textRole(.body)
-            Picker("Kiểu trang Tài khoản", selection: $layout) {
-                ForEach(AccountsLayout.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            FormRowLabel(title: "Kiểu trang Tài khoản (thử)", icon: "hugeicons-wallet-01")
+                .frame(minHeight: RowMetrics.minHeight - 2 * RowMetrics.vertical)
+            ScaledSegmentedPicker(title: "Kiểu trang Tài khoản", selection: $layout,
+                                  options: AccountsLayout.allCases) { $0.title }
+                .labelsHidden()
+                .padding(.leading, RowMetrics.dividerInset - RowMetrics.horizontal)
         }
         .padding(.horizontal, RowMetrics.horizontal)
         .padding(.vertical, RowMetrics.vertical)
+        .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .leading)
     }
 }
