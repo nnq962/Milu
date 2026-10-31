@@ -165,6 +165,8 @@ struct AccountsView: View {
                     .padding(.vertical, Spacing.xs)
                 }
                 .scrollIndicators(.hidden)
+                // Let the tiles' shadow show past the row's edges instead of being cut off.
+                .scrollClipDisabled()
                 .padding(.horizontal, -Spacing.page)
             }
         }

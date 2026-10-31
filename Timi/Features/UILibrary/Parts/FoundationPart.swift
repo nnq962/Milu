@@ -124,7 +124,7 @@ struct FoundationPart: View {
             }
 
             SampleCard(label: "Mép thẻ · cardSurface(outlined:)") {
-                // Outlined, as every card on a page; plain, as a tile inside a card.
+                // With the edge (shadow and white rim), as every card on a page; plain, as a tile inside a card.
                 HStack(spacing: Spacing.l) {
                     Color.clear
                         .frame(height: 64)

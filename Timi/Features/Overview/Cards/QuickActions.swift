@@ -35,8 +35,7 @@ struct QuickActions: View {
                 TimiIcon(icon, size: Self.glyph)
                     .foregroundStyle(Palette.primary)
                     .frame(width: ControlHeight.large, height: ControlHeight.large)
-                    .background(Palette.surface, in: Circle())
-                    .cardOutline(Circle())
+                    .background { Circle().fill(Palette.surface).cardEdge(Circle()) }
                 Text(title)
                     .textRole(.caption)
                     .foregroundStyle(Palette.label)

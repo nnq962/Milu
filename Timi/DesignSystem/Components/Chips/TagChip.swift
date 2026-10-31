@@ -39,10 +39,12 @@ struct TagChip: View {
                 Button(action: onRemove) {
                     TimiIcon("hugeicons-cancel-01", size: RowMetrics.linkChevron)
                         .foregroundStyle(Palette.secondaryLabel)
-                        // A 44pt wide target the chip's full height, not just the glyph.
-                        .frame(width: ControlHeight.regular)
+                        // Right after the words (user report 2026-10-31: a 44 frame left a gap
+                        // inside the chip); the area that takes a tap reaches past the glyph to 44.
+                        .frame(width: RowMetrics.iconColumn)
+                        .padding(.trailing, Spacing.xs)
                         .frame(maxHeight: .infinity)
-                        .contentShape(Rectangle())
+                        .contentShape(Rectangle().inset(by: -Spacing.s))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Bỏ \(title)")

@@ -1453,3 +1453,9 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - `SheetScaffold` tách thành `SheetScaffold` (NavigationStack, nền, ẩn chỉ báo cuộn, detent vừa nội dung) và `SheetPage` (một màn: thanh ✕/‹, ✓, nút phải `trailing`, nội dung cuộn). `DetailScaffold` trong Features xoá, ba sheet xem (giao dịch, chuyển khoản, khoản vay) dùng `SheetPage(canEdit:onEdit:)`. `IconPickerSheet` về scaffold.
 - Chiều cao vừa nội dung đo bằng `onScrollGeometryChange` + `PreferenceKey`, **chỉ khi `fitsContent`**: các sheet form không còn dựng lại theo từng phím gõ.
 - `hasConfirmed` tự mở lại sau 1 giây. `SheetOption.id` = tiêu đề. `HeaderLink` bỏ khung 44 và padding −10, vùng chạm bằng `contentShape(Rectangle().inset(by: -12))`. `dismissesKeyboardOnTap` → `dismissesKeyboardOnDrag`.
+
+## Mép thẻ bóng + viền trắng, chip ×, kế hoạch dark mode — 2026-10-31
+
+- Người dùng gửi ảnh Iconly: muốn thẻ có bóng nhẹ và viền trắng thay kẻ mảnh ("viền đen"). `cardSurface` → `cardShadow()` (4% r1 y1 + 6% r16 y6) + viền `surface` 1pt; `cardOutline` → `cardEdge`. Hũ cuộn ngang lấy lại `scrollClipDisabled()`.
+- Chip "Chi ×" trên màn tìm hở khoảng trống vì nút × rộng 44: glyph về cột 24, vùng chạm mở bằng `contentShape(inset: -8)`.
+- Viết `docs/dark-mode-plan.md`: cách làm (`Color(light:dark:)` trong `Palette`, bỏ khoá sáng, `AccentColor` dark, viền thay bóng khi tối), bảng giá trị tối cho 23 token, thứ tự làm.
