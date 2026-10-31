@@ -3,11 +3,13 @@ import SwiftUI
 /// Named text roles: one scale for the whole app, built around a 16pt body (user choice 2026-10-28,
 /// after trying 17 and 14). Manrope is wide, so 16 reads close to SF Pro's 17 Body. Each step is
 /// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 14 · 13 · 12 · 11.
-/// The amount being typed (`TimiAmountField`) is the one figure outside it, 52 shrinking as it grows.
 /// Use `.textRole(_:)` instead of raw sizes. Manrope at the weight named (see Typography).
 enum TextRole: CaseIterable, Identifiable {
     /// The screen's lead figure (Tài sản ròng). 34
     case display
+    /// The amount being typed in a form: 52, shrinking to 38 and 28 as the figure grows
+    /// (`amountEntrySize(for:)`).
+    case amountEntry
     /// Big figures inside a card (Đã chi / Đã thu). 24
     case amountLarge
     /// Screen titles in the toolbar. 24
@@ -43,6 +45,7 @@ enum TextRole: CaseIterable, Identifiable {
     var size: CGFloat {
         switch self {
         case .display: 34
+        case .amountEntry: 52
         case .amountLarge, .pageTitle: 24
         case .heading: 20
         case .title: 17
@@ -58,15 +61,18 @@ enum TextRole: CaseIterable, Identifiable {
         switch self {
         // Titles and figures Bold, every other text SemiBold: one step under the first mock-ups'
         // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
-        case .display, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
+        case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
         case .body, .label, .accessory, .caption, .captionStrong, .footnote: .semibold
         }
     }
 
-    /// Design line box; nil keeps the font's own metrics (figures that may shrink to fit).
+    /// Design line box; nil keeps the font's own metrics. The two big figures keep their box while
+    /// they shrink to fit, so a card does not change height with the amount.
     var lineHeight: CGFloat? {
         switch self {
-        case .display, .amountLarge: nil
+        case .amountEntry: nil
+        case .display: 42
+        case .amountLarge: 32
         case .pageTitle: 32
         case .heading: 26
         case .title: 24
@@ -80,7 +86,7 @@ enum TextRole: CaseIterable, Identifiable {
 
     var textStyle: Font.TextStyle {
         switch self {
-        case .display: .largeTitle
+        case .display, .amountEntry: .largeTitle
         case .amountLarge, .pageTitle: .title2
         case .heading: .title3
         case .title: .headline
@@ -91,7 +97,18 @@ enum TextRole: CaseIterable, Identifiable {
         }
     }
 
-    var isNumeric: Bool { [.display, .amountLarge, .amount].contains(self) }
+    var isNumeric: Bool { [.display, .amountEntry, .amountLarge, .amount].contains(self) }
+
+    /// The amount being typed shrinks as it grows: 52 up to ten digits with their dots, 38 to
+    /// thirteen, 28 beyond (user request 2026-10-30: larger than before, the amount is what the
+    /// form is for).
+    static func amountEntrySize(for count: Int) -> CGFloat {
+        switch count {
+        case ..<11: 52
+        case ..<14: 38
+        default: 28
+        }
+    }
     var tracking: CGFloat { self == .overline ? 0.6 : 0 }
 
     var font: Font { Typography.font(textStyle, size: size, weight: weight) }
@@ -100,6 +117,7 @@ enum TextRole: CaseIterable, Identifiable {
     var name: String {
         switch self {
         case .display: "Số dẫn đầu"
+        case .amountEntry: "Số tiền đang nhập"
         case .amountLarge: "Số lớn trong thẻ"
         case .pageTitle: "Tên màn"
         case .heading: "Tiêu đề phần"

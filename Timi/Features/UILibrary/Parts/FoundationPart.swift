@@ -132,16 +132,15 @@ struct FoundationPart: View {
                 }
             }
 
-            SampleCard(label: "Bóng · softCardShadow") {
+            SampleCard(label: "Mép thẻ · cardSurface(outlined:)") {
+                // Outlined, as every card on a page; plain, as a tile inside a card.
                 HStack(spacing: Spacing.l) {
-                    RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
-                        .fill(Palette.surface)
+                    Color.clear
                         .frame(height: 64)
-                        .softCardShadow()
-                    RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
-                        .fill(Palette.surface)
+                        .cardSurface(radius: CardCorners.flow, outlined: true)
+                    Color.clear
                         .frame(height: 64)
-                        .softCardShadow(false)
+                        .cardSurface(radius: CardCorners.flow)
                 }
                 .padding(Spacing.s)
                 .background(Palette.background, in: RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))

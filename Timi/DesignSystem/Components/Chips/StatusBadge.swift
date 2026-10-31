@@ -20,12 +20,16 @@ enum BadgeTone: CaseIterable, Identifiable {
     fileprivate var background: Color {
         switch self {
         case .neutral: Palette.fill2
-        case .positive: Palette.fill2
+        // White with a hairline (`isOutlined`): a grey pill read as neutral, and a green tint is a
+        // fill the monochrome set has none of; the dot carries the meaning.
+        case .positive: Palette.surface
         case .accent: Palette.accent
         case .caution: Palette.warning.opacity(0.16)
         case .warning: Palette.negative.opacity(0.10)
         }
     }
+
+    fileprivate var isOutlined: Bool { self == .positive }
 
     fileprivate var foreground: Color {
         switch self {
@@ -78,6 +82,7 @@ struct StatusBadge: View {
         .padding(.vertical, Spacing.xxs)
         .frame(minHeight: Self.height)
         .background(tone.background, in: Capsule())
+        .overlay { if tone.isOutlined { Capsule().strokeBorder(Palette.separator, lineWidth: 1) } }
         .accessibilityElement(children: .combine)
     }
 }

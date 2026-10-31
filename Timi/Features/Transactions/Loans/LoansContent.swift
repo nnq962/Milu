@@ -40,33 +40,25 @@ struct LoansSummaryCard: View {
         let lenders = Set(active.filter { $0.direction == .lent }.map { $0.contactID?.uuidString ?? $0.name }).count
         let debts = Set(active.filter { $0.direction == .borrowed }.map { $0.contactID?.uuidString ?? $0.name }).count
         let owed = store.totalBorrowed
-        HStack(alignment: .top, spacing: 0) {
-            side("Cho vay", amount: store.totalLent, people: lenders, tone: .plain)
-                .padding(.trailing, Spacing.l)
-                .overlay(alignment: .trailing) { VerticalDivider() }
-            // "Đi vay", the chip's and the section's word, not "Đang nợ"; red with "-" while
-            // something is owed, as on its rows (strict review 2026-10-31).
-            side("Đi vay", amount: owed, people: debts, tone: owed > 0 ? .signedExpense : .plain)
-                .padding(.leading, Spacing.l)
+        let lentWho = Self.who(lenders)
+        let owedWho = Self.who(debts)
+        // "Đi vay", the chip's and the section's word, not "Đang nợ"; red with "-" while
+        // something is owed, as on its rows (strict review 2026-10-31). VoiceOver gets the words on
+        // screen, "Không có ai" included.
+        SplitTotals(items: [
+            .init("Cho vay", amount: store.totalLent, accessibilityLabel: "Cho vay \(store.totalLent.vnd), \(lentWho)"),
+            .init("Đi vay", amount: owed, tone: owed > 0 ? .signedExpense : .plain,
+                  accessibilityLabel: "Đi vay \(owed > 0 ? "-" : "")\(owed.vnd), \(owedWho)"),
+        ]) { item in
+            Text(item.title == "Cho vay" ? lentWho : owedWho)
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryLabel)
         }
         .card()
     }
 
-    private func side(_ title: String, amount: Double, people: Int, tone: MoneyText.Tone) -> some View {
-        let who = people == 0 ? "Không có ai" : "\(people) người"
-        return VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(title)
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryLabel)
-            MoneyText(amount: amount, size: .large, tone: tone)
-            Text(who)
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryLabel)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        // The words on screen, so VoiceOver says "Không có ai" too.
-        .accessibilityLabel("\(title) \(tone == .signedExpense ? "-" : "")\(amount.vnd), \(who)")
+    private static func who(_ people: Int) -> String {
+        people == 0 ? "Không có ai" : "\(people) người"
     }
 }
 

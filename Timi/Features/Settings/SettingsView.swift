@@ -286,7 +286,7 @@ extension View {
         padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, Spacing.card)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
+            .cardSurface(radius: CardCorners.inset, outlined: true)
     }
 }
 

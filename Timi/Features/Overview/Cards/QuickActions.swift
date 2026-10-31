@@ -1,10 +1,11 @@
 import SwiftUI
 
 /// The row of shortcuts under the lead card, straight on the page, all alike: flat white
-/// circles with a hairline (HIG pass 2026-10-31: a button inside scrolling content is not glass;
-/// glass circles before). Ghi chi, Ghi thu, Chuyển tiền open the add sheet on that mode; Trợ lý AI opens the
-/// assistant's page. At the accessibility text sizes they go two by two, as four in a row ran
-/// into each other (HIG review 2026-10-30).
+/// circles with a hairline (HIG pass 2026-10-31: a button inside scrolling content is not glass).
+/// Ghi chi, Ghi thu, Chuyển tiền open the add sheet on that mode; Trợ lý AI opens the assistant's
+/// page. The name under a circle is part of its button, one control for VoiceOver (design-system
+/// pass 2026-10-31: it was a tap gesture of its own). At the accessibility text sizes they go two
+/// by two, as four in a row ran into each other (HIG review 2026-10-30).
 struct QuickActions: View {
     let onOpenAssistant: () -> Void
 
@@ -27,29 +28,27 @@ struct QuickActions: View {
     }
 
     private func action(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
-        VStack(spacing: Spacing.s) {
-            // A white circle with a hairline, the glyph in the primary colour, as the round
-            // buttons of the Iconly mock-ups (user 2026-10-31: no grey discs); a bordered button
-            // in HIG terms, flat since it sits in scrolling content.
-            Button(action: action) {
+        Button(action: action) {
+            VStack(spacing: Spacing.s) {
+                // A white circle with a hairline, the glyph in the primary colour, as the round
+                // buttons of the Iconly mock-ups (user 2026-10-31: no grey discs).
                 TimiIcon(icon, size: Self.glyph)
                     .foregroundStyle(Palette.primary)
+                    .frame(width: ControlHeight.large, height: ControlHeight.large)
+                    .background(Palette.surface, in: Circle())
+                    .cardOutline(Circle())
+                Text(title)
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.label)
+                    // Two lines rather than cut off when the text is large.
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .flatCircleButton(diameter: ControlHeight.large, fill: Palette.surface)
-            .overlay { Circle().strokeBorder(Palette.separator, lineWidth: 1) }
-            .softCardShadow()
-            .accessibilityLabel(title)
-            Text(title)
-                .textRole(.caption)
-                .foregroundStyle(Palette.label)
-                // Two lines rather than cut off when the text is large.
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                // The name below the circle opens the same thing.
-                .onTapGesture(perform: action)
-                .accessibilityHidden(true)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .top)
+        .buttonStyle(.card)
+        .accessibilityLabel(title)
     }
 }

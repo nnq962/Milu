@@ -140,7 +140,7 @@ struct GoalCarouselTile: View {
         .frame(width: width, alignment: .leading)
         // The goal tile's corners and the one card surface (strict review 2026-10-31: 20 and a
         // shadow put on by hand).
-        .cardSurface(radius: CardCorners.large, elevated: true)
+        .cardSurface(radius: CardCorners.large, outlined: true)
         .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",

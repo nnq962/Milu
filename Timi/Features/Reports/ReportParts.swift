@@ -88,21 +88,6 @@ struct ChangeLabel: View {
     }
 }
 
-/// The chart colours of Báo cáo, Phân bổ hạn mức and the bars of Tổng quan and Tài khoản: the
-/// four largest groups in `Palette.chart`, the rest share one grey ("Khác"). What is not split
-/// (Chưa phân bổ) is the empty track, marked by a hollow dot.
-enum ChartShades {
-    static let steps = Palette.chart
-    static let rest = Palette.chartRest
-
-    /// Whether a colour is the shared "Khác" one, whose dot gets an edge so it stays visible.
-    static func isRest(at index: Int) -> Bool { index >= steps.count }
-
-    static func color(at index: Int) -> Color {
-        index < steps.count ? steps[index] : rest
-    }
-}
-
 /// A part of a report page: its heading (`.section`, as on every main page), the rows in a list
 /// card under it, and a line under the card for a computed figure only. Forms keep `FormGroup`
 /// and its small grey heading (strict review 2026-10-31: Báo cáo used the form's).
@@ -120,14 +105,6 @@ struct ReportSection<Content: View>: View {
                 FormFooter(text: footer)
             }
         }
-    }
-}
-
-/// The hairline between the parts of a padded card (Đã chi | Dư ra | the limit), edge to edge
-/// of the card's padding: `RowDivider` starts after a row's icon, which these parts have none of.
-struct SplitLine: View {
-    var body: some View {
-        Palette.separator.frame(height: 1)
     }
 }
 

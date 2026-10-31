@@ -51,12 +51,17 @@ struct ReportView: View {
     private func totals(spent: Double, received: Double, spentBefore: Double, receivedBefore: Double) -> some View {
         let net = received - spent
         return VStack(alignment: .leading, spacing: Spacing.l) {
-            HStack(alignment: .top, spacing: 0) {
-                total("Đã chi", amount: spent, before: spentBefore, risingIsBad: true)
-                    .padding(.trailing, Spacing.l)
-                    .overlay(alignment: .trailing) { VerticalDivider() }
-                total("Đã thu", amount: received, before: receivedBefore, risingIsBad: false)
-                    .padding(.leading, Spacing.l)
+            // Signed and coloured as the month card on Thu chi (strict review 2026-10-31); under
+            // each, how it moved against the period before.
+            SplitTotals(items: [
+                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain),
+                .init("Đã thu", amount: received, tone: received > 0 ? .signedIncome : .plain),
+            ]) { item in
+                let isSpending = item.title == "Đã chi"
+                ChangeLabel(now: item.amount, before: isSpending ? spentBefore : receivedBefore,
+                            period: period, risingIsBad: isSpending)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             // Money in ink with "+", out in red with "-", as on Thu chi (strict review 2026-10-31).
             HStack(alignment: .firstTextBaseline) {
@@ -145,22 +150,6 @@ struct ReportView: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityHint("Mở hạn mức chi tiêu")
-    }
-
-    private func total(_ title: String, amount: Double, before: Double, risingIsBad: Bool) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(title)
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryLabel)
-            // Signed and coloured as the month card on Thu chi (strict review 2026-10-31).
-            MoneyText(amount: amount, size: .large,
-                      tone: amount > 0 ? (risingIsBad ? .signedExpense : .signedIncome) : .plain)
-            ChangeLabel(now: amount, before: before, period: period, risingIsBad: risingIsBad)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Theo hạng mục

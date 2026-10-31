@@ -47,28 +47,27 @@ struct QuickCategoryGrid: View {
 
     /// A flat white circle with a hairline ring, as a `TagChip`; filled in the primary colour when
     /// chosen (user choice 2026-10-31: no glass inside content, it trailed the sheet's scroll). The
-    /// name under it picks it too.
+    /// name under it is part of the button: one control (design-system pass 2026-10-31).
     private func cell(_ item: Category, isChosen: Bool) -> some View {
         // No haptic here: the "Hạng mục" row below gives one for every change of it.
-        let pick = { selection = item.id }
-        return VStack(spacing: Spacing.xs) {
-            Button(action: pick) {
+        Button { selection = item.id } label: {
+            VStack(spacing: Spacing.xs) {
                 TimiIcon(item.icon, size: glyph)
                     .foregroundStyle(isChosen ? Palette.onPrimary : Palette.label)
                     .frame(width: circle, height: circle)
+                    .background(isChosen ? Palette.primary : Palette.surface, in: Circle())
                     .overlay { if !isChosen { Circle().strokeBorder(Palette.separator, lineWidth: 1) } }
+                Text(item.name)
+                    .textRole(.caption)
+                    .foregroundStyle(isChosen ? Palette.primary : Palette.secondaryLabel)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
             }
-            .flatCircleButton(diameter: circle, fill: isChosen ? Palette.primary : Palette.surface)
-            .accessibilityLabel(item.name)
-            .accessibilityAddTraits(isChosen ? .isSelected : [])
-            Text(item.name)
-                .textRole(.caption)
-                .foregroundStyle(isChosen ? Palette.primary : Palette.secondaryLabel)
-                .multilineTextAlignment(.center)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-                .onTapGesture(perform: pick)
-                .accessibilityHidden(true)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .top)
+        .buttonStyle(.card)
+        .accessibilityLabel(item.name)
+        .accessibilityAddTraits(isChosen ? .isSelected : [])
     }
 }

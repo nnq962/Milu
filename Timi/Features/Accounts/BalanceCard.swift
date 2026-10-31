@@ -43,8 +43,8 @@ struct TotalBalanceHeader: View {
     }
 }
 
-/// Kiểu A of Tài khoản: the total in a white card, with a bar of where the money is, like the
-/// storage bar in iPhone Settings. The bar splits only money that is there: each counted account
+/// The head of Tài khoản: the total in a white card, with a bar of where the money is, like the
+/// storage bar in iPhone Settings (`SegmentedBar`). The bar splits only money that is there: each counted account
 /// with a balance above zero and the money in goals, the four biggest in the chart colours, the
 /// rest as "Khác". Accounts below zero cannot be a length on a bar, so a red line under it names
 /// them; a total at or below zero leaves the bar out. Locked accounts are left out, as they are
@@ -67,8 +67,10 @@ struct BalanceCard: View {
             TotalBalanceHeader()
             // A bar says something only with a total above zero and money in two places or more.
             if total > 0, parts.count > 1 {
-                bar(parts)
-                legend(parts)
+                SegmentedBar(segments: parts.enumerated().map { index, part in
+                    SegmentedBar.Segment(id: part.id, color: ChartShades.color(at: index), amount: part.amount)
+                })
+                LegendRow(items: legend(parts))
             }
             if !negatives.isEmpty {
                 let owed = negatives.reduce(0) { $0 + $1.balance }
@@ -105,36 +107,11 @@ struct BalanceCard: View {
         return Array(parts[..<limit]) + [Part(id: "rest", name: "Khác", amount: rest)]
     }
 
-    /// As tall as every progress bar of the app (strict review 2026-10-31: it was 10 against 8).
-    private func bar(_ parts: [Part]) -> some View {
+    /// Each part's name and share, after its dot.
+    private func legend(_ parts: [Part]) -> [LegendRow.Item] {
         let sum = parts.reduce(0) { $0 + $1.amount }
-        return GeometryReader { geometry in
-            // Thin gaps between the pieces, as the storage bar has.
-            let gaps = CGFloat(parts.count - 1) * Spacing.xxs
-            HStack(spacing: Spacing.xxs) {
-                ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
-                    ChartShades.color(at: index)
-                        .frame(width: max((geometry.size.width - gaps) * part.amount / sum, Spacing.xxs))
-                }
-            }
-        }
-        .frame(height: ProgressBar.height)
-        .clipShape(Capsule())
-        .accessibilityHidden(true)
-    }
-
-    private func legend(_ parts: [Part]) -> some View {
-        let sum = parts.reduce(0) { $0 + $1.amount }
-        return FlowLayout(spacing: Spacing.s) {
-            ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
-                HStack(spacing: Spacing.xs) {
-                    LegendDot(color: ChartShades.color(at: index))
-                    Text("\(part.name) \((part.amount / sum).percentText)")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                }
-                .padding(.trailing, Spacing.s)
-            }
+        return parts.enumerated().map { index, part in
+            LegendRow.Item(id: part.id, color: ChartShades.color(at: index), text: "\(part.name) \((part.amount / sum).percentText)")
         }
     }
 }

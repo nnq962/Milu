@@ -1,23 +1,21 @@
 import SwiftUI
 
 extension View {
-    /// Solid design color with Apple's continuous corners. Glass belongs to buttons only.
-    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, elevated: Bool = false) -> some View {
-        // Clip the content (not the shadow) so a pressed row's grey follows the card's corners.
-        clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
-        .background {
-            RoundedRectangle(cornerRadius: radius, style: .continuous)
-                .fill(color)
-                // Shadow only the surface, so text and nested tiles don't acquire their own.
-                .softCardShadow(elevated)
-        }
+    /// A solid surface with Apple's continuous corners and, when `outlined`, the app's one card
+    /// edge: a hairline in `separator`, no shadow (user choice 2026-10-31, design-system pass: on
+    /// the near-white page a white card tells itself apart by its edge, as the Iconly mock-ups and
+    /// iOS's own grouped lists do; the soft shadow used before let the cards melt into the page).
+    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, outlined: Bool = false) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        // Clip the content (not the edge) so a pressed row's wash follows the card's corners.
+        return clipShape(shape)
+            .background(color, in: shape)
+            .overlay { if outlined { shape.strokeBorder(Palette.separator, lineWidth: 1) } }
     }
 
-    /// The one card shadow of the app, kept gentle (user request 2026-10-30, after a tighter,
-    /// darker pair): a barely-there contact line and a wide faint spread, no border.
-    func softCardShadow(_ isOn: Bool = true) -> some View {
-        shadow(color: .black.opacity(isOn ? 0.025 : 0), radius: 1, x: 0, y: 0.5)
-            .shadow(color: .black.opacity(isOn ? 0.04 : 0), radius: 12, x: 0, y: 4)
+    /// The card edge alone, for a surface drawn in another shape (a chat bubble, a round button).
+    func cardOutline<S: InsettableShape>(_ shape: S) -> some View {
+        overlay { shape.strokeBorder(Palette.separator, lineWidth: 1) }
     }
 }
 
@@ -28,13 +26,13 @@ extension View {
     /// (user report 2026-10-30: at 28 the corners crowded the first and last rows' icons).
     func listCard() -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
+            .cardSurface(radius: CardCorners.inset, outlined: true)
     }
 
-    /// The app's card: white, 20 inside, large continuous corners and the soft shadow.
+    /// The app's card: white, 20 inside, large continuous corners and the hairline edge.
     func card(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.large) -> some View {
         self.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: radius, color: Palette.surface, elevated: true)
+            .cardSurface(radius: radius, outlined: true)
     }
 }

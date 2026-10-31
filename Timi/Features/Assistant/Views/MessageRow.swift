@@ -159,12 +159,13 @@ enum Bubble {
     static let tail = CardCorners.calendarDay
     static let maxWidth: CGFloat = 0.78
 
-    /// The assistant's bubble, white with the cards' shadow; the typing bubble draws the same, so
-    /// nothing jumps when the answer arrives (strict review 2026-10-31).
+    /// The assistant's bubble, white with the cards' hairline edge; the typing bubble draws the
+    /// same, so nothing jumps when the answer arrives (strict review 2026-10-31).
     static var assistantShape: some View {
-        UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
-                               bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
+        let shape = UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
+                                           bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
+        return shape
             .fill(Palette.surface)
-            .softCardShadow()
+            .cardOutline(shape)
     }
 }

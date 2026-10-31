@@ -31,14 +31,8 @@ struct TimiAmountField: View {
 
     private var amount: Double { text.vndInputAmount }
 
-    private var heroSize: CGFloat {
-        switch text.count {
-        // Larger than before (user request 2026-10-30): the amount is what the form is for.
-        case ..<11: 52
-        case ..<14: 38
-        default: 28
-        }
-    }
+    private var heroSize: CGFloat { TextRole.amountEntrySize(for: text.count) }
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// "−" for an amount owed or spent, "+" for income; none until there is a figure (or for a
     /// plain balance).
@@ -80,7 +74,7 @@ struct TimiAmountField: View {
                 if let sign {
                     // Same view while the sign flips, so "+" and "−" roll into each other.
                     Text(sign)
-                        .contentTransition(.numericText())
+                        .contentTransition(reduceMotion ? .identity : .numericText())
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                 }
                 // The figure the user sees, changing at once (no rolling digits: too busy when a
@@ -109,12 +103,13 @@ struct TimiAmountField: View {
                 Text("đ")
                     .foregroundStyle(text.isEmpty ? Color(.placeholderText) : color)
             }
-            .font(Typography.font(.largeTitle, size: heroSize, weight: .bold))
+            .font(Typography.font(TextRole.amountEntry.textStyle, size: heroSize, weight: TextRole.amountEntry.weight))
             .monospacedDigit()
             .foregroundStyle(color)
-            .animation(.easeOut(duration: 0.15), value: heroSize)
-            .animation(.snappy(duration: 0.25), value: sign)
-            .animation(.easeInOut(duration: 0.25), value: color)
+            // Still under Reduce Motion: the figure, sign and colour change at once.
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: heroSize)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: sign)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: color)
             .frame(maxWidth: .infinity, minHeight: 56)
             .contentShape(Rectangle())
             .onTapGesture { isFocused = true }
@@ -157,7 +152,7 @@ struct TimiAmountField: View {
                 guard base != typedBase else { return }
                 // One transaction for the whole sheet: the chip row opens or closes and the rows
                 // below glide with it, instead of jumping while only the chips animate.
-                withAnimation(.smooth(duration: 0.35)) {
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) {
                     typedBase = base
                 }
             }

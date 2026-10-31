@@ -18,7 +18,7 @@ struct FormGroup<Content: View>: View {
                     .padding(.bottom, Spacing.headerGap - Spacing.s)
             }
             VStack(spacing: 0) { content }
-                .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
+                .cardSurface(radius: CardCorners.inset, outlined: true)
             if let error {
                 FormErrorText(text: error)
                     .padding(.horizontal, RowMetrics.horizontal)

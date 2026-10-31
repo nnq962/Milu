@@ -54,6 +54,8 @@ struct FormValueLabel: View {
     var isInvalid = false
     var showsChevron = true
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: Spacing.s) {
             FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
@@ -61,13 +63,14 @@ struct FormValueLabel: View {
             if let valueIcon {
                 RowIcon(name: valueIcon)
             }
-            // A new date, time or choice rolls in, so the change is easy to notice.
+            // A new date, time or choice rolls in, so the change is easy to notice (not under
+            // Reduce Motion).
             Text(value)
                 .textRole(.body)
                 .foregroundStyle(Palette.secondaryLabel)
                 .lineLimit(1)
-                .contentTransition(.numericText())
-                .animation(.snappy(duration: 0.3), value: value)
+                .contentTransition(reduceMotion ? .identity : .numericText())
+                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: value)
             if showsChevron {
                 RowChevron()
             }

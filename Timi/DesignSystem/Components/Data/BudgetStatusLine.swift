@@ -12,13 +12,14 @@ struct BudgetStatusLine: View {
 
     /// The glyph grows with the caption beside it.
     @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.inlineGlyph
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // A Label, so the glyph sits centred on the first line when the words wrap.
         Label {
             Text(text)
                 .monospacedDigit()
-                .contentTransition(.numericText())
+                .contentTransition(reduceMotion ? .identity : .numericText())
         } icon: {
             TimiIcon(level == .fine ? "hugeicons-chart-increase" : "hugeicons-alert-circle", size: glyph)
         }

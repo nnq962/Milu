@@ -125,21 +125,9 @@ struct BudgetAllocationView: View {
                     .foregroundStyle(Palette.secondaryLabel)
                 MoneyText(amount: monthlyBudget, size: .large)
             }
-            GeometryReader { proxy in
-                HStack(spacing: Spacing.xxs) {
-                    ForEach(parts) { part in
-                        part.color.frame(width: max(proxy.size.width * part.limit / whole - Spacing.xxs, Spacing.xxs))
-                    }
-                    // The empty track, like any progress bar: what is not split yet.
-                    if unassigned > 0 {
-                        Palette.surfaceMuted
-                    }
-                }
-                .clipShape(Capsule())
-            }
-            // One bar height in the app (strict review 2026-10-31: this one was 12).
-            .frame(height: ProgressBar.height)
-            .accessibilityHidden(true)
+            // The empty track is what is not split yet.
+            SegmentedBar(segments: parts.map { SegmentedBar.Segment(id: "\($0.id)", color: $0.color, amount: $0.limit) },
+                         whole: whole)
             // Amounts as MoneyText, grey like the words (re-review 2026-10-31).
             HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                 Text("Đã phân bổ")

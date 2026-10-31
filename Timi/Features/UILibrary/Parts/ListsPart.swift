@@ -71,25 +71,39 @@ struct ListsPart: View {
                 }
             }
 
-            SampleCard(label: "Dấu nhỏ · RowChevron, LegendDot, VerticalDivider") {
-                VStack(alignment: .leading, spacing: Spacing.m) {
-                    HStack(spacing: Spacing.s) {
-                        Text("Mở thêm").textRole(.body)
-                        Spacer()
-                        RowChevron()
-                    }
-                    HStack(spacing: Spacing.l) {
-                        legend("Ăn uống", Palette.primary)
-                        legend("Đi lại", Palette.info)
-                        legend("Khác", Palette.chartRest)
-                    }
-                    // Between two halves of a card (Đã chi | Đã thu).
-                    HStack(spacing: Spacing.l) {
-                        half("Đã chi", MoneyText(amount: 8_400_000, tone: .signedExpense, compact: true))
-                        VerticalDivider()
-                        half("Đã thu", MoneyText(amount: 25_000_000, tone: .signedIncome, compact: true))
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
+            SampleCard(label: "Hai cột · SplitTotals") {
+                SplitTotals(items: [
+                    .init("Đã chi", amount: 8_400_000, tone: .signedExpense),
+                    .init("Đã thu", amount: 25_000_000, tone: .signedIncome),
+                ]) { item in
+                    Text(item.title == "Đã chi" ? "↑ 12% · cùng kỳ" : "Như cùng kỳ")
+                        .textRole(.caption)
+                        .foregroundStyle(item.title == "Đã chi" ? Palette.negative : Palette.secondaryLabel)
+                }
+            }
+
+            SampleCard(label: "Thanh chia phần · SegmentedBar, LegendRow") {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    SegmentedBar(segments: [
+                        .init(id: "a", color: ChartShades.color(at: 0), amount: 4_200_000),
+                        .init(id: "b", color: ChartShades.color(at: 1), amount: 2_100_000),
+                        .init(id: "c", color: ChartShades.color(at: 2), amount: 900_000),
+                        .init(id: "d", color: ChartShades.rest, amount: 600_000),
+                    ], whole: 12_000_000)
+                    LegendRow(items: [
+                        .init(id: "a", color: ChartShades.color(at: 0), text: "Ăn uống"),
+                        .init(id: "b", color: ChartShades.color(at: 1), text: "Đi lại"),
+                        .init(id: "c", color: ChartShades.color(at: 2), text: "Nhà ở"),
+                        .init(id: "d", color: ChartShades.rest, text: "Khác"),
+                    ])
+                }
+            }
+
+            SampleCard(label: "Dấu nhỏ · RowChevron") {
+                HStack(spacing: Spacing.s) {
+                    Text("Mở thêm").textRole(.body)
+                    Spacer()
+                    RowChevron()
                 }
             }
 
@@ -130,16 +144,6 @@ struct ListsPart: View {
             .overlay(alignment: .bottom) { RowDivider(column: column) }
     }
 
-    private func half(_ title: String, _ amount: MoneyText) -> some View {
-        VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-            Text(title)
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryLabel)
-            amount
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private func dateLine(_ title: String, _ date: Date) -> some View {
         HStack {
             Text(title).textRole(.body)
@@ -158,10 +162,4 @@ struct ListsPart: View {
         }
     }
 
-    private func legend(_ title: String, _ color: Color) -> some View {
-        HStack(spacing: Spacing.xs) {
-            LegendDot(color: color)
-            Text(title).textRole(.caption)
-        }
-    }
 }

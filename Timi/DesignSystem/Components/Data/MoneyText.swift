@@ -51,8 +51,8 @@ private struct MoneyFont: ViewModifier {
         case .caption: content.textRole(.captionStrong).monospacedDigit()
         case .row: content.textRole(.amount)
         case .heading: content.textRole(.heading).monospacedDigit()
-        case .large: content.textRole(.amountLarge).frame(minHeight: 32)
-        case .display: content.textRole(.display).frame(minHeight: 42.5)
+        case .large: content.textRole(.amountLarge)
+        case .display: content.textRole(.display)
         }
     }
 }

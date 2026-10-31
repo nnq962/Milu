@@ -142,9 +142,18 @@ struct LegendDot: View {
     }
 }
 
-/// A thin vertical line between two halves of a card (Đã chi | Đã thu).
+/// A thin vertical line between the columns of `SplitTotals` (Đã chi | Đã thu).
 struct VerticalDivider: View {
     var body: some View {
         Palette.separator.frame(width: 1)
+    }
+}
+
+/// The hairline between the parts of a padded card (the totals | the limit), edge to edge of the
+/// card's padding: `RowDivider` starts after a row's icon, which these parts have none of. Use as
+/// a top overlay so it adds no height.
+struct SplitLine: View {
+    var body: some View {
+        Palette.separator.frame(height: 1)
     }
 }

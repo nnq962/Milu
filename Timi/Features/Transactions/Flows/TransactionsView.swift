@@ -24,6 +24,7 @@ struct TransactionsView: View {
     /// The day the page was last drawn for: left open overnight, it moves on (`followToday`).
     @State private var today = Date.now
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSearching = false
     /// The report circle grows with the text as the month capsule beside it does, so the two stay
     /// one height (strict review 2026-10-31).
@@ -63,7 +64,7 @@ struct TransactionsView: View {
                             listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                         }
                     }
-                    .animation(.smooth(duration: 0.3), value: listIdentity)
+                    .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: listIdentity)
                     .padding(.horizontal, Spacing.page)
                     .padding(.top, Spacing.l)
                     .padding(.bottom, Spacing.xxl)
@@ -199,13 +200,10 @@ struct TransactionsView: View {
                 .flatCircleButton(diameter: reportDiameter)
                 .accessibilityLabel("Báo cáo tháng")
             }
-            HStack(alignment: .top, spacing: 0) {
-                monthTotal("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain)
-                    .padding(.trailing, Spacing.l)
-                    .overlay(alignment: .trailing) { VerticalDivider() }
-                monthTotal("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .plain)
-                    .padding(.leading, Spacing.l)
-            }
+            SplitTotals(items: [
+                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .plain),
+                .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .plain),
+            ])
             let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
             if monthlyBudget > 0, progress.isOver || progress.isNearing {
                 BudgetStatusLine(level: .init(progress),
@@ -214,18 +212,6 @@ struct TransactionsView: View {
             }
         }
         .card()
-    }
-
-    /// One side of the month: its name and the amount, signed in the app's colours.
-    private func monthTotal(_ title: String, amount: Double, tone: MoneyText.Tone) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(title)
-                .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryLabel)
-            MoneyText(amount: amount, size: .large, tone: tone)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
