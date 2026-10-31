@@ -1459,3 +1459,9 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Người dùng gửi ảnh Iconly: muốn thẻ có bóng nhẹ và viền trắng thay kẻ mảnh ("viền đen"). `cardSurface` → `cardShadow()` (4% r1 y1 + 6% r16 y6) + viền `surface` 1pt; `cardOutline` → `cardEdge`. Hũ cuộn ngang lấy lại `scrollClipDisabled()`.
 - Chip "Chi ×" trên màn tìm hở khoảng trống vì nút × rộng 44: glyph về cột 24, vùng chạm mở bằng `contentShape(inset: -8)`.
 - Viết `docs/dark-mode-plan.md`: cách làm (`Color(light:dark:)` trong `Palette`, bỏ khoá sáng, `AccentColor` dark, viền thay bóng khi tối), bảng giá trị tối cho 23 token, thứ tự làm.
+
+## Dark mode — 2026-10-31
+
+- Làm theo `docs/dark-mode-plan.md`: `Palette` thành `Color` động hai giá trị (`dynamic(light, dark:)` qua `UIColor { traits }`), thêm `uiLabel`/`uiSecondaryLabel` cho thanh và segmented; bỏ `INFOPLIST_KEY_UIUserInterfaceStyle = Light`; `AccentColor` thêm bản tối #F2F2F7; `cardEdge` đọc `colorScheme`: tối thì viền `separator`, không bóng. Thư viện UI có chip Tối/Sáng (`preferredColorScheme`).
+- Xem trên Simulator ở chế độ tối: Tổng quan, Tài khoản, Thu chi, sheet Thêm giao dịch, Cài đặt; không chỗ nào mất tương phản. Logo ngân hàng nằm trên ô #1C1C1E, vẫn rõ.
+- Dark mode từng bị bỏ 2026-10-30 vì khó duy trì hai bảng; với token theo vai trò thì là một cột giá trị trong một file.

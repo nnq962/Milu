@@ -1,6 +1,6 @@
 # Kế hoạch dark mode — 2026-10-31
 
-> Chưa làm. Viết sau khi design system đã dọn (token theo vai trò, mọi màu đi qua `Palette`), nên dark mode gần như chỉ là việc của một file. Ước lượng: một buổi làm + một buổi xem từng màn.
+> **Đã làm cùng ngày** đúng như dưới đây, trừ `chartRest` tối giữ #8E8E93 (3:1 trên thẻ tối; #636366 chỉ 2,8:1) và `secondaryLabel` tối #A1A1A6. Viết sau khi design system đã dọn (token theo vai trò, mọi màu đi qua `Palette`), nên dark mode gần như chỉ là việc của một file. Ước lượng: một buổi làm + một buổi xem từng màn.
 
 ## Tại sao giờ làm được
 

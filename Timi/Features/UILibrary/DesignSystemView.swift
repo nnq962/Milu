@@ -43,6 +43,10 @@ struct DesignSystemView: View {
     /// The part at the top of the page, kept as the page scrolls, so the chip index follows the
     /// reading (re-review 2026-10-31: it only moved when a chip was tapped).
     @State private var visible: Part? = .foundation
+    /// Forces the app into one scheme while the library is open, to compare the two sets of
+    /// colours without leaving it; nil follows the system.
+    @State private var forcedScheme: ColorScheme?
+    @Environment(\.colorScheme) private var systemScheme
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -69,12 +73,20 @@ struct DesignSystemView: View {
             .dismissesKeyboardOnDrag()
             // The chip index stays under the bar; as a safe-area inset, scrolling to a part stops below it.
             .safeAreaInset(edge: .top, spacing: 0) {
-                ChipRow(selection: chosen(proxy), options: Part.allCases) { $0.title }
-                    .padding(.horizontal, Spacing.page)
-                    .padding(.vertical, Spacing.m)
-                    .background(Palette.background)
+                HStack(spacing: Spacing.s) {
+                    ChipRow(selection: chosen(proxy), options: Part.allCases) { $0.title }
+                    // Day or night, to see the colours of each set (dark mode 2026-10-31).
+                    TagChip(title: systemScheme == .dark ? "Sáng" : "Tối") {
+                        forcedScheme = systemScheme == .dark ? .light : .dark
+                    }
+                    .fixedSize()
+                }
+                .padding(.horizontal, Spacing.page)
+                .padding(.vertical, Spacing.m)
+                .background(Palette.background)
             }
         }
+        .preferredColorScheme(forcedScheme)
         .background(Palette.background)
         .foregroundStyle(Palette.label)
         .navigationTitle("Thư viện UI")

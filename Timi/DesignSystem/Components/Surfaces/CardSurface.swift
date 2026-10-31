@@ -19,17 +19,26 @@ extension View {
     }
 
     /// The card edge alone, put on a filled shape (a chat bubble, the circle behind a round
-    /// button): the soft shadow and the white rim.
+    /// button): by day the soft shadow and a white rim; at night a hairline in `separator`, since
+    /// a shadow shows nothing on black and the lighter card already lifts off the page.
     func cardEdge<S: InsettableShape>(_ shape: S) -> some View {
-        overlay { shape.strokeBorder(Palette.surface, lineWidth: 1) }
-            .cardShadow()
+        modifier(CardEdge(shape: shape))
     }
+}
 
-    /// The one shadow of the app (user choice 2026-10-31): a faint contact line and a wide soft
-    /// spread, so a card sits just above the page without a dark edge.
-    func cardShadow() -> some View {
-        shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
-            .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 6)
+/// The one shadow of the app (user choice 2026-10-31): a faint contact line and a wide soft
+/// spread, so a card sits just above the page without a dark edge. None in dark mode.
+private struct CardEdge<S: InsettableShape>: ViewModifier {
+    let shape: S
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let isDark = colorScheme == .dark
+        content
+            .overlay { shape.strokeBorder(isDark ? Palette.separator : Palette.surface, lineWidth: 1) }
+            .shadow(color: .black.opacity(isDark ? 0 : 0.04), radius: 1, x: 0, y: 1)
+            .shadow(color: .black.opacity(isDark ? 0 : 0.06), radius: 16, x: 0, y: 6)
     }
 }
 
