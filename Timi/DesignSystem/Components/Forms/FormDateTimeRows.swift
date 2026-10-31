@@ -127,9 +127,9 @@ private struct DateTimeSheet: View {
             .padding(Spacing.m)
             .environment(\.locale, .vietnam)
             .tint(Palette.primary)
-            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+            .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .padding(.horizontal, Spacing.page)
         .padding(.bottom, Spacing.xxl)
         .timiFittedSheet()

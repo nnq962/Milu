@@ -233,7 +233,7 @@ struct DetailScaffold<Content: View>: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

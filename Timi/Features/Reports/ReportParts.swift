@@ -71,16 +71,16 @@ struct ChangeLabel: View {
             if let ratio = Change.ratio(now, from: before), let text = Change.text(now, from: before) {
                 if abs(ratio) < 0.005 {
                     Text("Như \(short)")
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .accessibilityLabel("Như \(name)")
                 } else {
                     Text(period.isCurrent() ? "\(text) · cùng kỳ" : "\(text) so với \(name)")
-                        .foregroundStyle((ratio > 0) == risingIsBad ? Palette.red : Palette.green)
+                        .foregroundStyle((ratio > 0) == risingIsBad ? Palette.negative : Palette.positive)
                         .accessibilityLabel("\(text) so với \(name)")
                 }
             } else {
                 Text("Chưa có số \(period.previousName)")
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
         }
         .textRole(.caption)
@@ -127,7 +127,7 @@ struct ReportSection<Content: View>: View {
 /// of the card's padding: `RowDivider` starts after a row's icon, which these parts have none of.
 struct SplitLine: View {
     var body: some View {
-        Palette.border.frame(height: 1)
+        Palette.separator.frame(height: 1)
     }
 }
 
@@ -168,15 +168,15 @@ struct BreakdownRowLabel: View {
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 HStack(spacing: Spacing.xs) {
                     if hollowDot {
-                        Circle().strokeBorder(Palette.secondary, lineWidth: 1.5)
+                        Circle().strokeBorder(Palette.tertiaryLabel, lineWidth: 1.5)
                             .frame(width: RowMetrics.legendDot, height: RowMetrics.legendDot)
                     } else if let dot {
                         LegendDot(color: dot)
-                            .overlay { if edgedDot { Circle().strokeBorder(Palette.secondary, lineWidth: 1) } }
+                            .overlay { if edgedDot { Circle().strokeBorder(Palette.tertiaryLabel, lineWidth: 1) } }
                     }
                     Text(detail)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
                         .lineLimit(1)
                 }

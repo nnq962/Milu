@@ -27,7 +27,7 @@ struct FormPickerRow<Value: Hashable>: View {
     }
 }
 
-/// On/off with Apple's switch: on iOS 26 its knob turns to Liquid Glass while dragged. Teal when on.
+/// On/off with Apple's switch, in the primary colour when on; its knob turns to Liquid Glass while dragged.
 struct FormToggleRow: View {
     let title: String
     var subtitle: String? = nil
@@ -64,7 +64,7 @@ struct FormValueLabel: View {
             // A new date, time or choice rolls in, so the change is easy to notice.
             Text(value)
                 .textRole(.body)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy(duration: 0.3), value: value)
@@ -124,7 +124,7 @@ struct NavigationRowLabel: View {
             if let value {
                 Text(value)
                     .textRole(.body)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .monospacedDigit()
                     .lineLimit(1)
             }
@@ -159,7 +159,7 @@ struct FormNavigationRow: View {
                 if let value {
                     Text(value)
                         .textRole(.body)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(1)
                 }
                 RowChevron()
@@ -195,7 +195,7 @@ struct FormActionRow: View {
                 Text(title)
                     .textRole(.body)
             }
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .formRowFrame()
         }
         .buttonStyle(.row)
@@ -237,12 +237,12 @@ struct FormDestructiveRow: View {
         Button(role: .destructive) { isConfirming = true } label: {
             HStack(spacing: RowMetrics.gap) {
                 if let icon {
-                    RowIcon(name: icon, tint: Palette.red)
+                    RowIcon(name: icon, tint: Palette.negative)
                 }
                 Text(title)
                     .textRole(.body)
             }
-            .foregroundStyle(Palette.red)
+            .foregroundStyle(Palette.negative)
             .formRowFrame()
         }
         .buttonStyle(.row)

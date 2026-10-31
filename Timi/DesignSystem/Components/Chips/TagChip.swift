@@ -24,7 +24,7 @@ struct TagChip: View {
                         .monospacedDigit()
                         .lineLimit(1)
                 }
-                .foregroundStyle(isProminent ? Palette.onPrimary : isSuggestion ? Palette.secondaryText : Palette.ink)
+                .foregroundStyle(isProminent ? Palette.onPrimary : isSuggestion ? Palette.secondaryLabel : Palette.label)
                 .padding(.leading, Spacing.m)
                 .padding(.trailing, onRemove == nil ? Spacing.m : Spacing.xxs)
                 // At least 36, taller with larger text (Dynamic Type).
@@ -37,7 +37,7 @@ struct TagChip: View {
             if let onRemove {
                 Button(action: onRemove) {
                     TimiIcon("hugeicons-cancel-01", size: RowMetrics.linkChevron)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         // A 44pt wide target the chip's full height, not just the glyph.
                         .frame(width: ControlHeight.regular)
                         .frame(maxHeight: .infinity)
@@ -48,7 +48,7 @@ struct TagChip: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .background(isProminent ? Palette.primary : Palette.card, in: Capsule())
-        .overlay { if !isProminent { Capsule().strokeBorder(Palette.border, lineWidth: 1) } }
+        .background(isProminent ? Palette.primary : Palette.surface, in: Capsule())
+        .overlay { if !isProminent { Capsule().strokeBorder(Palette.separator, lineWidth: 1) } }
     }
 }

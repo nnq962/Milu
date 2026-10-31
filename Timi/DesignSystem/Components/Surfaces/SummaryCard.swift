@@ -16,7 +16,7 @@ struct SummaryCard<Content: View>: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(label)
                         .textRole(.captionStrong)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                     MoneyText(amount: amount, size: .display, tone: tone)
                 }
                 Spacer(minLength: 0)
@@ -28,7 +28,7 @@ struct SummaryCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .sleekCard()
+        .card()
     }
 }
 

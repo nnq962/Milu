@@ -30,7 +30,7 @@ struct ContactsView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Danh bạ")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -78,7 +78,7 @@ private struct ContactRowLabel: View {
                     .lineLimit(2)
                 Text(subtitle)
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

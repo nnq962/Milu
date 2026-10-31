@@ -54,16 +54,16 @@ struct QuickCategoryGrid: View {
         return VStack(spacing: Spacing.xs) {
             Button(action: pick) {
                 TimiIcon(item.icon, size: glyph)
-                    .foregroundStyle(isChosen ? Palette.onPrimary : Palette.ink)
+                    .foregroundStyle(isChosen ? Palette.onPrimary : Palette.label)
                     .frame(width: circle, height: circle)
-                    .overlay { if !isChosen { Circle().strokeBorder(Palette.border, lineWidth: 1) } }
+                    .overlay { if !isChosen { Circle().strokeBorder(Palette.separator, lineWidth: 1) } }
             }
-            .flatCircleButton(diameter: circle, fill: isChosen ? Palette.primary : Palette.card)
+            .flatCircleButton(diameter: circle, fill: isChosen ? Palette.primary : Palette.surface)
             .accessibilityLabel(item.name)
             .accessibilityAddTraits(isChosen ? .isSelected : [])
             Text(item.name)
                 .textRole(.caption)
-                .foregroundStyle(isChosen ? Palette.primary : Palette.secondaryText)
+                .foregroundStyle(isChosen ? Palette.primary : Palette.secondaryLabel)
                 .multilineTextAlignment(.center)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 .onTapGesture(perform: pick)

@@ -65,7 +65,7 @@ struct CategoryReportView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle(store.categoryName(groupID))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -98,7 +98,7 @@ struct CategoryReportView: View {
                             if allSpent > 0 {
                                 Text("\((spent / allSpent).percentText) tổng chi")
                                     .textRole(.caption)
-                                    .foregroundStyle(Palette.secondaryText)
+                                    .foregroundStyle(Palette.secondaryLabel)
                                     .monospacedDigit()
                             }
                             if before > 0 {
@@ -141,7 +141,7 @@ struct CategoryReportView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text(share.percentText)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
                         .fixedSize()
                     MoneyText(amount: item.amount, tone: .signedExpense, compact: true)
@@ -193,7 +193,7 @@ struct ItemTransactionsView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle(store.categoryName(itemID))
         .navigationBarTitleDisplayMode(.inline)
     }

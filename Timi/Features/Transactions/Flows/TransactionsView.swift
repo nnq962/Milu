@@ -77,7 +77,7 @@ struct TransactionsView: View {
                 }
             }
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             // The visible title (`TabHeading`) shrinks to the middle of the bar as the page scrolls,
             // as on Tài khoản.
             .navigationTitle("Giao dịch")
@@ -213,7 +213,7 @@ struct TransactionsView: View {
                                      : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
             }
         }
-        .sleekCard()
+        .card()
     }
 
     /// One side of the month: its name and the amount, signed in the app's colours.
@@ -221,7 +221,7 @@ struct TransactionsView: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             MoneyText(amount: amount, size: .large, tone: tone)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

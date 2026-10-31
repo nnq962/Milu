@@ -41,7 +41,7 @@ struct ReportView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Báo cáo")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -63,7 +63,7 @@ struct ReportView: View {
                 // Grey as "Đã chi" / "Đã thu" above it; the amount carries the meaning.
                 Text(net >= 0 ? "Dư ra" : "Chi nhiều hơn thu")
                     .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                 Spacer(minLength: Spacing.s)
                 MoneyText(amount: net, tone: .signedNet)
             }
@@ -83,7 +83,7 @@ struct ReportView: View {
                     .overlay(alignment: .top) { SplitLine() }
             }
         }
-        .sleekCard(padding: Spacing.xl)
+        .card(padding: Spacing.xl)
     }
 
     /// Per day so far, and the largest single spending of the period (review fix 2026-10-30).
@@ -108,17 +108,17 @@ struct ReportView: View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(title)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             if let amount, amount > 0 {
                 MoneyText(amount: amount, tone: .signedExpense, compact: true)
             } else {
                 Text("—")
                     .textRole(.amount)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
             Text(note)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -141,7 +141,7 @@ struct ReportView: View {
                              text: progress.isOver ? "Vượt hạn mức \((-progress.left).vndCompact)"
                                  : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vndCompact)")
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityHint("Mở hạn mức chi tiêu")
@@ -151,7 +151,7 @@ struct ReportView: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             // Signed and coloured as the month card on Thu chi (strict review 2026-10-31).
             MoneyText(amount: amount, size: .large,
                       tone: amount > 0 ? (risingIsBad ? .signedExpense : .signedIncome) : .plain)
@@ -223,7 +223,7 @@ struct ReportView: View {
             VStack(spacing: Spacing.xxs) {
                 Text("Tổng chi")
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                 MoneyText(amount: spent, size: .heading, tone: .signedExpense, compact: true)
                     .fixedSize()
             }
@@ -266,25 +266,25 @@ struct ReportView: View {
                              footer: average.map { "Trung bình chi \($0.vndCompact) mỗi \(unit) có ghi chép." }) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack(spacing: Spacing.l) {
-                    legend("Thu", color: Palette.green)
-                    legend("Chi", color: Palette.red)
+                    legend("Thu", color: Palette.positive)
+                    legend("Chi", color: Palette.negative)
                 }
                 Chart(rows) { row in
                     BarMark(x: .value("Kỳ", row.period.shortTitle), y: .value("Tiền", row.amount), width: .ratio(0.8))
                         .position(by: .value("Loại", row.kind))
                         .clipShape(Capsule())
-                        .foregroundStyle(row.kind == "Thu" ? Palette.green : Palette.red)
+                        .foregroundStyle(row.kind == "Thu" ? Palette.positive : Palette.negative)
                         .opacity(row.period == period ? 1 : 0.35)
                         .accessibilityLabel("\(row.kind) \(row.period.title)")
                         .accessibilityValue(row.amount.vnd)
                 }
                 .chartYAxis {
                     AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
-                        AxisGridLine().foregroundStyle(Palette.border)
+                        AxisGridLine().foregroundStyle(Palette.separator)
                         AxisValueLabel {
                             Text((value.as(Double.self) ?? 0).vndCompact)
                                 .textRole(.footnote)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                 }
@@ -294,7 +294,7 @@ struct ReportView: View {
                         AxisValueLabel {
                             Text(value.as(String.self) ?? "")
                                 .textRole(.footnote)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                 }
@@ -329,7 +329,7 @@ struct ReportView: View {
             LegendDot(color: color)
             Text(title)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
         }
     }
 

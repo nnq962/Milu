@@ -51,7 +51,7 @@ struct ContactPickerSheet: View {
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             // Default placement: on iOS 26 the field sits at the bottom in Liquid Glass; earlier iOS
@@ -90,7 +90,7 @@ struct ContactPickerSheet: View {
                         .lineLimit(2)
                     Text(relationship.name)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

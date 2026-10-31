@@ -59,7 +59,7 @@ struct TransactionSearchView: View {
             .modifier(NoScrollEdgeEffect())
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         // The keyboard comes up once the screen has slid in: started during the slide, it took
         // frames from it and the slide caught near its end (as TimiAmountField waits too).
         .task {
@@ -92,7 +92,7 @@ struct TransactionSearchView: View {
                     .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
             }
             .nativeCircleButton(diameter: ControlHeight.regular)
-            .tint(Palette.ink)
+            .tint(Palette.label)
             .accessibilityLabel("Đóng tìm kiếm")
         }
     }
@@ -125,7 +125,7 @@ struct TransactionSearchView: View {
 
     // MARK: - Bộ lọc
 
-    /// "Bộ lọc" (teal with a count when something is on), one chip per thing that is on (× drops
+    /// "Bộ lọc" (filled with a count when something is on), one chip per thing that is on (× drops
     /// it), then quick picks for what is not set yet, so the button never stands alone.
     private var filterChips: some View {
         // Scroll only when the chips overflow: a horizontal ScrollView behind glass draws a lighter
@@ -278,16 +278,16 @@ struct TransactionSearchView: View {
             Text(segment == .flows ? "Tìm theo hạng mục, ghi chú hoặc tài khoản."
                  : "Tìm theo tên người vay hoặc cho vay.")
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .padding(.horizontal, RowMetrics.horizontal)
         } else {
             VStack(alignment: .leading, spacing: Spacing.headerGap) {
                 // A full page's heading, as the days of the results (strict review 2026-10-31).
                 SectionHeader(title: "Tìm kiếm gần đây") {
                     Button { withAnimation(.smooth(duration: 0.25)) { historyText = "" } } label: {
-                        HeaderCapsuleLabel(title: "Xoá")
+                        HeaderLink(title: "Xoá")
                     }
-                    .headerCapsuleGlass()
+                    .headerLinkButton()
                     .accessibilityLabel("Xoá lịch sử tìm kiếm")
                 }
                 VStack(spacing: 0) {
@@ -308,7 +308,7 @@ struct TransactionSearchView: View {
                             // (strict review 2026-10-31: 64 tall, × 31 in).
                             Button { forget(item) } label: {
                                 TimiIcon("hugeicons-cancel-01", size: RowMetrics.inlineGlyph)
-                                    .foregroundStyle(Palette.secondaryText)
+                                    .foregroundStyle(Palette.secondaryLabel)
                                     .frame(minWidth: ControlHeight.regular, maxHeight: .infinity, alignment: .trailing)
                                     .contentShape(Rectangle())
                             }

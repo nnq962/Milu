@@ -30,7 +30,7 @@ struct ChoiceSheet<Value: Hashable>: View {
                 }
             }
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .padding(.horizontal, Spacing.page)
         .padding(.bottom, Spacing.xxl)
         .timiFittedSheet()

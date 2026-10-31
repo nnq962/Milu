@@ -13,7 +13,7 @@ struct PartSection<Content: View>: View {
                 SectionHeader(title: part.title)
                 Text(part.note)
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .padding(.horizontal, RowMetrics.horizontal)
             }
             VStack(alignment: .leading, spacing: Spacing.l) {
@@ -33,10 +33,10 @@ struct SampleCard<Content: View>: View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             Text(label)
                 .textRole(.overline)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             content
         }
-        .sleekCard()
+        .card()
     }
 }
 

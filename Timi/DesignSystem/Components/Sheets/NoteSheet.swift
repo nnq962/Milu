@@ -12,7 +12,7 @@ struct NoteSheet: View {
             SheetHeader(title: title)
             Text(message)
                 .textRole(.body)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, Spacing.page)

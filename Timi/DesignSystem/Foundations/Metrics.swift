@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Multiples of 4 (web: same scale). Page margin and section gap keep the Sleek iOS values.
+/// Multiples of 4.
 enum Spacing {
     static let xxs: CGFloat = 2
     static let xs: CGFloat = 4

@@ -10,11 +10,11 @@ struct ProgressBar: View {
     /// Spending against a limit: ink below 80%, orange (`warning`) from 80%, red once it is used up.
     static func budgetColor(_ ratio: Double) -> Color {
         switch ratio {
-        // Ink while well within: green read as the app's moss though it means nothing to tap
+        // Ink while well within: a coloured bar read as something to tap though it means nothing
         // (user request 2026-10-30); colour is kept for the warnings.
-        case ..<0.8: Palette.ink
+        case ..<0.8: Palette.label
         case ..<1: Palette.warning
-        default: Palette.red
+        default: Palette.negative
         }
     }
 
@@ -23,7 +23,7 @@ struct ProgressBar: View {
 
     var body: some View {
         Capsule()
-            .fill(Palette.muted)
+            .fill(Palette.surfaceMuted)
             .frame(height: Self.height)
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in

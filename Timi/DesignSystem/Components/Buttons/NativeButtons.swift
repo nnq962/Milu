@@ -35,16 +35,16 @@ struct EditToolbarButton: View {
     }
 }
 
-/// A control on a heading's row ("Lưu trữ (2) ›", "Xoá", the month of Lịch thu chi): 14 moss words,
-/// no glass (user request 2026-10-30, after trying small glass capsules), 44 tall to tap. Its words
-/// end where the heading's row ends, so it lines up with the card's right edge.
-struct HeaderCapsuleLabel: View {
+/// A control on a heading's row ("Lưu trữ (2) ›", "Xoá", the month of Lịch thu chi): 14 words in
+/// the primary colour, no fill and no glass (user request 2026-10-30, after trying small glass
+/// capsules), 44 tall to tap. Its words end where the heading's row ends, so it lines up with the
+/// card's right edge.
+struct HeaderLink: View {
     let title: String
     /// "›" after the words when it opens a page.
     var opensPage = false
     /// "⌄" after the words when it opens a menu (the month of Lịch thu chi).
     var opensMenu = false
-    /// Moss words, or ink on the soft cards of Tổng quan (2026-10-31).
     var color: Color = Palette.primary
 
     var body: some View {
@@ -68,9 +68,9 @@ struct HeaderCapsuleLabel: View {
 }
 
 extension View {
-    /// A plain button for a `HeaderCapsuleLabel`; it reaches above and below the heading rather
-    /// than making the row taller.
-    func headerCapsuleGlass() -> some View {
+    /// A plain button for a `HeaderLink`; it reaches above and below the heading rather than
+    /// making the row taller.
+    func headerLinkButton() -> some View {
         buttonStyle(.plain)
             .padding(.vertical, -10)
     }

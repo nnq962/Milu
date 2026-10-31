@@ -29,7 +29,7 @@ enum SampleData {
                         dueDate: daysFromNow(8), detail: "Cho vay · Minh Trần", avatar: .initials("M")),
     ]
 
-    // Khoản vay mẫu theo thiết kế Sleek (tổng cho vay còn 80tr), không phải giao dịch ngân hàng thật.
+    // Khoản vay mẫu (tổng cho vay còn 80tr), không phải giao dịch ngân hàng thật.
     // Có từ trước khi dùng app, nên không đổi số dư tài khoản nào.
     static let loans = [
         Loan(name: "Minh Trần", direction: .lent, principal: 75_000_000, outstanding: 45_000_000, dueDate: daysFromNow(8),
@@ -49,7 +49,7 @@ enum SampleData {
         Calendar.current.date(byAdding: .day, value: days, to: .now) ?? .now
     }
 
-    // Hũ tiết kiệm mẫu từ thiết kế Sleek (màn Tài khoản).
+    // Hũ tiết kiệm mẫu (màn Tài khoản).
     static let savingsGoals = [
         SavingsGoal(name: "Hũ tiết kiệm", icon: "hugeicons-piggy-bank", saved: 28_000_000, target: 40_000_000),
         SavingsGoal(name: "Mua xe", icon: "hugeicons-car-01", saved: 15_000_000, target: 50_000_000,

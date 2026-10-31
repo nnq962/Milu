@@ -18,7 +18,7 @@ struct AttentionCard: View {
                 // One short line under the heading, starting where it starts.
                 Text("Khoản sắp đến hạn sẽ hiện ở đây.")
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .padding(.horizontal, RowMetrics.horizontal)
             } else {
                 VStack(spacing: Spacing.l) {
@@ -39,13 +39,13 @@ struct AttentionCard: View {
                 Text("\(calendar.component(.day, from: reminder.dueDate))")
                     .textRole(.label)
                     .monospacedDigit()
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(Palette.label)
                 Text("Th\(calendar.component(.month, from: reminder.dueDate))")
                     .textRole(.footnote)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
             .frame(minWidth: leafSize, minHeight: leafSize)
-            .background(Palette.muted, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
+            .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(reminder.title)
                     .textRole(.label)
@@ -53,7 +53,7 @@ struct AttentionCard: View {
                 Text(reminder.dueDate.dueCountdown)
                     .textRole(.caption)
                     // Red once past due, brown within three days.
-                    .foregroundStyle(days < 0 ? Palette.red : days <= 3 ? Palette.warningText : Palette.secondaryText)
+                    .foregroundStyle(days < 0 ? Palette.negative : days <= 3 ? Palette.warningLabel : Palette.secondaryLabel)
             }
             Spacer(minLength: Spacing.s)
             MoneyText(amount: reminder.amount, tone: reminder.isIncome ? .signedIncome : .signedExpense, compact: true)

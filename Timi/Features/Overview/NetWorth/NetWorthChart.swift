@@ -40,7 +40,7 @@ struct NetWorthChart: View {
             }
             if let picked {
                 RuleMark(x: .value("Tháng", picked.month))
-                    .foregroundStyle(Palette.border)
+                    .foregroundStyle(Palette.separator)
                     .zIndex(-1)
             }
         }
@@ -57,7 +57,7 @@ struct NetWorthChart: View {
                         if let date = value.as(Date.self) {
                             Text("T\(Calendar.current.component(.month, from: date))")
                                 .textRole(.caption)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                 }
@@ -109,6 +109,6 @@ struct NetWorthGrowth: View {
         Text("\(change < 0 ? "↓" : "↑") \(abs(change).vndCompact) \(label)")
             .textRole(.captionStrong)
             .monospacedDigit()
-            .foregroundStyle(change == 0 ? Palette.secondaryText : change > 0 ? Palette.green : Palette.red)
+            .foregroundStyle(change == 0 ? Palette.secondaryLabel : change > 0 ? Palette.positive : Palette.negative)
     }
 }

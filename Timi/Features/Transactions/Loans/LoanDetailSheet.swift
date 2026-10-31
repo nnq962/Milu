@@ -101,13 +101,13 @@ struct LoanDetailSheet: View {
                           : AnyLayout(HStackLayout(spacing: Spacing.s))) {
                     Text(loan.paidText)
                         .textRole(.captionStrong)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                     if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
                     // The amount by MoneyText, grey as the line it sits on (re-review 2026-10-31).
                     HStack(spacing: Spacing.xs) {
                         Text("Gốc")
                             .textRole(.captionStrong)
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                         MoneyText(amount: loan.principal, size: .caption, tone: .muted)
                     }
                     .accessibilityElement(children: .combine)

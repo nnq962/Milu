@@ -18,7 +18,7 @@ struct FormGroup<Content: View>: View {
                     .padding(.bottom, Spacing.headerGap - Spacing.s)
             }
             VStack(spacing: 0) { content }
-                .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+                .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
             if let error {
                 FormErrorText(text: error)
                     .padding(.horizontal, RowMetrics.horizontal)
@@ -42,7 +42,7 @@ struct FormErrorText: View {
             TimiIcon("hugeicons-alert-circle", size: 16)
         }
         .textRole(.caption)
-        .foregroundStyle(Palette.red)
+        .foregroundStyle(Palette.negative)
         .transition(.opacity.combined(with: .move(edge: .top)))
         .accessibilityAddTraits(.isStaticText)
         .onAppear { AccessibilityNotification.Announcement(text).post() }
@@ -58,7 +58,7 @@ struct FormFooter: View {
     var body: some View {
         Text(text)
             .textRole(.caption)
-            .foregroundStyle(Palette.secondaryText)
+            .foregroundStyle(Palette.secondaryLabel)
             .padding(.horizontal, RowMetrics.horizontal)
     }
 }
@@ -68,7 +68,7 @@ struct FormDivider: View {
     var hasIcon = true
 
     var body: some View {
-        Palette.border
+        Palette.separator
             .frame(height: 1)
             .padding(.leading, hasIcon ? RowMetrics.dividerInset : RowMetrics.horizontal)
     }
@@ -90,11 +90,11 @@ struct FormRowLabel: View {
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(title)
                     .textRole(.body)
-                    .foregroundStyle(isInvalid ? Palette.red : Palette.ink)
+                    .foregroundStyle(isInvalid ? Palette.negative : Palette.label)
                 if let subtitle {
                     Text(subtitle)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                 }
             }
         }
@@ -109,7 +109,7 @@ struct FormRowIcon: View {
 
     var body: some View {
         TimiIcon(icon, size: RowMetrics.iconGlyph)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .frame(width: RowMetrics.iconColumn, height: RowMetrics.iconGlyph)
     }
 }

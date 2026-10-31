@@ -34,7 +34,7 @@ struct InstitutionPickerSheet: View {
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             // Default placement: on iOS 26 the field sits at the bottom, by the thumb, in Liquid Glass

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Empty list placeholder from the Sleek component sheet: an icon, a title and one line saying what
+/// Empty list placeholder: an icon, a title and one line saying what
 /// will appear here. No button: adding goes through the page's own + (user choice 2026-10-28).
 struct EmptyStateCard: View {
     let icon: String
@@ -17,12 +17,12 @@ struct EmptyStateCard: View {
                 .padding(.top, Spacing.m)
             Text(message)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .multilineTextAlignment(.center)
                 .padding(.top, Spacing.xs)
         }
         .frame(maxWidth: .infinity)
-        .sleekCard(padding: Spacing.leadCard)
+        .card(padding: Spacing.leadCard)
         .accessibilityElement(children: .combine)
     }
 }

@@ -49,11 +49,11 @@ struct TimiAmountField: View {
     }
 
     private var color: Color {
-        if isNegative { return Palette.red }
+        if isNegative { return Palette.negative }
         switch kind {
-        case .income: return Palette.ink
-        case .expense: return Palette.red
-        case nil: return Palette.ink
+        case .income: return Palette.label
+        case .expense: return Palette.negative
+        case nil: return Palette.label
         }
     }
 
@@ -96,7 +96,7 @@ struct TimiAmountField: View {
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(text.isEmpty ? .leading : .center)
                             .foregroundStyle(.clear)
-                            .tint(Palette.ink)
+                            .tint(Palette.label)
                             .focused($isFocused)
                             .accessibilityLabel(label)
                     }
@@ -211,7 +211,7 @@ struct SheetAmountHeader<Field: View>: View {
         VStack(spacing: Spacing.xs) {
             Text(caption)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityHidden(fieldSaysCaption)
             field
         }

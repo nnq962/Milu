@@ -20,7 +20,7 @@ struct HeroCard: View {
                     HStack {
                         Text("Tài sản ròng")
                             .textRole(.captionStrong)
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                         Spacer()
                         RowChevron()
                     }
@@ -34,7 +34,7 @@ struct HeroCard: View {
                     .frame(height: 48)
                     .accessibilityHidden(true)
             }
-            .sleekCard(padding: Spacing.leadCard)
+            .card(padding: Spacing.leadCard)
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         }
         .buttonStyle(.card)

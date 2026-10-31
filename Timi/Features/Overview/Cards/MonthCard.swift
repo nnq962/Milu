@@ -34,18 +34,18 @@ struct MonthCard: View {
                         .padding(.leading, Spacing.l)
                 }
                 if spent > 0 {
-                    Palette.border.frame(height: 1)
+                    Palette.separator.frame(height: 1)
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         HStack(alignment: .firstTextBaseline) {
                             Text("Chi theo nhóm")
                                 .textRole(.captionStrong)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                             Spacer(minLength: Spacing.s)
                             if monthlyBudget > 0 {
                                 Text("Hạn mức \(monthlyBudget.vndCompact)")
                                     .textRole(.caption)
                                     .monospacedDigit()
-                                    .foregroundStyle(Palette.secondaryText)
+                                    .foregroundStyle(Palette.secondaryLabel)
                             }
                         }
                         bar(top: top, rest: rest, whole: whole)
@@ -53,7 +53,7 @@ struct MonthCard: View {
                     }
                 }
             }
-            .sleekCard()
+            .card()
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         }
         .buttonStyle(.card)
@@ -66,7 +66,7 @@ struct MonthCard: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             MoneyText(amount: amount, size: .large, tone: tone)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -114,7 +114,7 @@ struct MonthCard: View {
             }
         }
         .textRole(.footnote)
-        .foregroundStyle(Palette.secondaryText)
+        .foregroundStyle(Palette.secondaryLabel)
         .minimumScaleFactor(0.8)
         .accessibilityHidden(true)
     }

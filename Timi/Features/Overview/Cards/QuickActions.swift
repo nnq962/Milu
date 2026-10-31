@@ -35,13 +35,13 @@ struct QuickActions: View {
                 TimiIcon(icon, size: Self.glyph)
                     .foregroundStyle(Palette.primary)
             }
-            .flatCircleButton(diameter: ControlHeight.large, fill: Palette.card)
-            .overlay { Circle().strokeBorder(Palette.border, lineWidth: 1) }
+            .flatCircleButton(diameter: ControlHeight.large, fill: Palette.surface)
+            .overlay { Circle().strokeBorder(Palette.separator, lineWidth: 1) }
             .softCardShadow()
             .accessibilityLabel(title)
             Text(title)
                 .textRole(.caption)
-                .foregroundStyle(Palette.ink)
+                .foregroundStyle(Palette.label)
                 // Two lines rather than cut off when the text is large.
                 .multilineTextAlignment(.center)
                 .lineLimit(2)

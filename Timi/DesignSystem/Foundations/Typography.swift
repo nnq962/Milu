@@ -73,9 +73,9 @@ enum Typography {
               let semibold = UIFont(name: instance(for: .semibold), size: 14) else { return }
         let segmented = UISegmentedControl.appearance()
         segmented.setTitleTextAttributes([.font: metrics.scaledFont(for: medium, compatibleWith: traits),
-                                          .foregroundColor: UIColor(Palette.secondaryText)], for: .normal)
+                                          .foregroundColor: UIColor(Palette.secondaryLabel)], for: .normal)
         segmented.setTitleTextAttributes([.font: metrics.scaledFont(for: semibold, compatibleWith: traits),
-                                          .foregroundColor: UIColor(Palette.ink)], for: .selected)
+                                          .foregroundColor: UIColor(Palette.label)], for: .selected)
     }
 
     static func configureNativeAppearance() {
@@ -107,7 +107,7 @@ enum Typography {
         let pageTitle = UIFont(name: instance(for: TextRole.pageTitle.weight), size: TextRole.pageTitle.size) ?? regular.withSize(TextRole.pageTitle.size)
         navigation.largeTitleTextAttributes = [
             .font: UIFontMetrics(forTextStyle: .title2).scaledFont(for: pageTitle),
-            .foregroundColor: UIColor(Palette.ink),
+            .foregroundColor: UIColor(Palette.label),
         ]
         // The line under a native title (Trợ lý AI): the `caption` role, muted. Only an appearance
         // carries it; a transparent one, as iOS 26 bars have no background of their own, with the
@@ -115,7 +115,7 @@ enum Typography {
         let caption = UIFont(name: instance(for: TextRole.caption.weight), size: TextRole.caption.size) ?? regular.withSize(TextRole.caption.size)
         let subtitle: [NSAttributedString.Key: Any] = [
             .font: UIFontMetrics(forTextStyle: .caption1).scaledFont(for: caption),
-            .foregroundColor: UIColor(Palette.secondaryText),
+            .foregroundColor: UIColor(Palette.secondaryLabel),
         ]
         let bar = UINavigationBarAppearance()
         bar.configureWithTransparentBackground()

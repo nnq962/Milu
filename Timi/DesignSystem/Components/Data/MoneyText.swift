@@ -26,11 +26,11 @@ struct MoneyText: View {
 
     private var color: Color {
         switch tone {
-        case .signedExpense: Palette.red
-        case .negativeRed, .signedNet: amount < 0 ? Palette.red : Palette.ink
+        case .signedExpense: Palette.negative
+        case .negativeRed, .signedNet: amount < 0 ? Palette.negative : Palette.label
         // Money in ink with its "+", money out red, everywhere (user choice 2026-10-30).
-        case .signedIncome, .plain: Palette.ink
-        case .muted: Palette.secondaryText
+        case .signedIncome, .plain: Palette.label
+        case .muted: Palette.secondaryLabel
         }
     }
 

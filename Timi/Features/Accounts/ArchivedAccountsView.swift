@@ -22,7 +22,7 @@ struct ArchivedAccountsView: View {
                                        isMuted: true)
                         }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
+                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                     }
                 }
                 .listCard()
@@ -32,7 +32,7 @@ struct ArchivedAccountsView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Tài khoản đã lưu trữ")
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -49,7 +49,7 @@ struct LoansSummaryCard: View {
             side("Đi vay", amount: owed, people: debts, tone: owed > 0 ? .signedExpense : .plain)
                 .padding(.leading, Spacing.l)
         }
-        .sleekCard()
+        .card()
     }
 
     private func side(_ title: String, amount: Double, people: Int, tone: MoneyText.Tone) -> some View {
@@ -57,11 +57,11 @@ struct LoansSummaryCard: View {
         return VStack(alignment: .leading, spacing: Spacing.xs) {
             Text(title)
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             MoneyText(amount: amount, size: .large, tone: tone)
             Text(who)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
@@ -207,7 +207,7 @@ struct LoansContent: View {
         HStack(spacing: Spacing.xs) {
             Text("Còn")
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             MoneyText(amount: amount, size: .caption, tone: tone, compact: true)
         }
         .accessibilityElement(children: .ignore)
@@ -236,7 +236,7 @@ struct SettledLoansView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Khoản vay đã tất toán")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id) }

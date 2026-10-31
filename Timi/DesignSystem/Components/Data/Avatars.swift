@@ -11,9 +11,9 @@ struct InitialsAvatar: View {
         Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
             // The circle already scales; scaling the letter again spilled it out at the largest sizes.
             .font(Typography.fixedFont(size: size * 0.42, weight: .semibold))
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .frame(width: size, height: size)
-            .background(Palette.muted, in: Circle())
+            .background(Palette.surfaceMuted, in: Circle())
             .accessibilityHidden(true)
     }
 }

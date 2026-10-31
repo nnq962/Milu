@@ -17,7 +17,7 @@ struct RowDivider: View {
         case .logo: RowMetrics.horizontal + logoColumn + RowMetrics.gap
         case .none: RowMetrics.horizontal
         }
-        Palette.border
+        Palette.separator
             .frame(height: 1)
             .padding(.leading, inset)
     }
@@ -75,7 +75,7 @@ struct ListRow: View {
                             .monospacedDigit()
                     }
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                 }
             } else {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
@@ -85,7 +85,7 @@ struct ListRow: View {
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
                             .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                             .lineLimit(1)
                     }
                 }
@@ -115,7 +115,7 @@ struct LockBadge: View {
             .frame(width: Self.size, height: Self.size)
             .background(Palette.primary, in: Circle())
             .padding(Self.ring)
-            .background(Palette.card, in: Circle())
+            .background(Palette.surface, in: Circle())
             .accessibilityHidden(true)
     }
 }
@@ -125,7 +125,7 @@ struct LockBadge: View {
 struct RowChevron: View {
     var body: some View {
         TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.chevron)
-            .foregroundStyle(Palette.secondary)
+            .foregroundStyle(Palette.tertiaryLabel)
             .accessibilityHidden(true)
     }
 }
@@ -145,6 +145,6 @@ struct LegendDot: View {
 /// A thin vertical line between two halves of a card (Đã chi | Đã thu).
 struct VerticalDivider: View {
     var body: some View {
-        Palette.border.frame(width: 1)
+        Palette.separator.frame(width: 1)
     }
 }

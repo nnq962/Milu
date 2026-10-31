@@ -34,7 +34,7 @@ struct OptionSheet: View {
                 }
             }
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .padding(.horizontal, Spacing.page)
         .padding(.bottom, Spacing.xxl)
         .timiFittedSheet()

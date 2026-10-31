@@ -17,7 +17,7 @@ struct ProgressPart: View {
                     // As `ProgressBar.budgetColor` does (strict review 2026-10-31: it said green).
                     Text("Mực dưới 80% · cam từ 80% · đỏ khi chạm hoặc vượt 100%.")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                 }
             }
             // The one line for where a limit stands, wherever a limit is shown.
@@ -51,7 +51,7 @@ struct ProgressPart: View {
             .frame(width: RowMetrics.listLogo, height: RowMetrics.listLogo)
             .overlay {
                 TimiIcon("hugeicons-piggy-bank", size: RowMetrics.listLogo / 2)
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(Palette.label)
             }
     }
 }

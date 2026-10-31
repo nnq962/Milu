@@ -10,7 +10,7 @@ struct ButtonsPart: View {
                     ForEach(TimiButtonRole.allCases) { role in
                         VStack(alignment: .leading, spacing: Spacing.xs) {
                             TimiButton(role.name, role: role, fullWidth: true) {}
-                            Text(role.usage).textRole(.footnote).foregroundStyle(Palette.secondaryText)
+                            Text(role.usage).textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                 }
@@ -52,7 +52,7 @@ struct ButtonsPart: View {
                         Button { flatChoice = flatChoice == 0 ? 1 : 0 } label: {
                             Text("Thường")
                                 .textRole(.body)
-                                .foregroundStyle(flatChoice == 0 ? Palette.onPrimary : Palette.ink)
+                                .foregroundStyle(flatChoice == 0 ? Palette.onPrimary : Palette.label)
                                 .padding(.horizontal, Spacing.l)
                                 .frame(minHeight: ControlHeight.regular)
                         }
@@ -61,9 +61,9 @@ struct ButtonsPart: View {
                     }
                     Text("FlatButtonStyle(fill:shape:) · nền fill2, đang chọn nền primary")
                         .textRole(.footnote)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                 }
-                .tint(Palette.ink)
+                .tint(Palette.label)
             }
 
             // In a ToolbarItem a plain Button sits on the bar's glass by itself (rule 2026-10-30);
@@ -83,7 +83,7 @@ struct ButtonsPart: View {
                     .accessibilityLabel("Tìm")
                     EditToolbarButton {}
                 }
-                .tint(Palette.ink)
+                .tint(Palette.label)
             }
 
             // The one glass button outside a bar: the floating + (explicit exception).
@@ -95,12 +95,12 @@ struct ButtonsPart: View {
                 .accessibilityLabel("Thêm giao dịch")
             }
 
-            SampleCard(label: "Cạnh tiêu đề · HeaderCapsuleLabel") {
+            SampleCard(label: "Cạnh tiêu đề · HeaderLink") {
                 HStack(spacing: Spacing.xl) {
-                    Button {} label: { HeaderCapsuleLabel(title: "Xoá") }
-                        .headerCapsuleGlass()
-                    Button {} label: { HeaderCapsuleLabel(title: "Lưu trữ (2)", opensPage: true) }
-                        .headerCapsuleGlass()
+                    Button {} label: { HeaderLink(title: "Xoá") }
+                        .headerLinkButton()
+                    Button {} label: { HeaderLink(title: "Lưu trữ (2)", opensPage: true) }
+                        .headerLinkButton()
                 }
             }
         }

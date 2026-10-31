@@ -36,7 +36,7 @@ struct MessageRow: View {
                                 Button { onSuggestion(suggestion) } label: {
                                     Text(suggestion)
                                         .textRole(.captionStrong)
-                                        .foregroundStyle(Palette.ink)
+                                        .foregroundStyle(Palette.label)
                                         .multilineTextAlignment(.leading)
                                         .padding(.horizontal, Spacing.l)
                                         .padding(.vertical, Spacing.s)
@@ -65,7 +65,7 @@ struct MessageRow: View {
             if let status = cardStatus {
                 Text(status)
                     .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
         }
         .padding(Spacing.l)
@@ -97,13 +97,13 @@ struct MessageRow: View {
             HStack(spacing: Spacing.s) {
                 // "Xem": it opens the transaction's sheet, where it is edited (strict review
                 // 2026-10-31: "Sửa" promised an editor and showed the detail).
-                cardButton("Xem", icon: "hugeicons-eye", color: Palette.ink) { onAction(.view, message) }
-                cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.red) { onAction(.remove, message) }
+                cardButton("Xem", icon: "hugeicons-eye", color: Palette.label) { onAction(.view, message) }
+                cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.negative) { onAction(.remove, message) }
             }
         case .confirmDelete(let snapshot, .pending) where store.transaction(id: snapshot.id) != nil:
             HStack(spacing: Spacing.s) {
-                cardButton("Huỷ", color: Palette.ink) { onAction(.cancel, message) }
-                cardButton("Xoá khoản này", color: Palette.onRed, fill: Palette.red, role: .destructive) {
+                cardButton("Huỷ", color: Palette.label) { onAction(.cancel, message) }
+                cardButton("Xoá khoản này", color: Palette.onNegative, fill: Palette.negative, role: .destructive) {
                     onAction(.confirm, message)
                 }
             }
@@ -147,7 +147,7 @@ private struct TransactionCard: View {
 
     var body: some View {
         TransactionListRow(transaction: transaction, detail: .day)
-            .cardSurface(radius: CardCorners.flow, color: Palette.muted)
+            .cardSurface(radius: CardCorners.flow, color: Palette.surfaceMuted)
             .accessibilityElement(children: .combine)
     }
 }
@@ -164,7 +164,7 @@ enum Bubble {
     static var assistantShape: some View {
         UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
                                bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
-            .fill(Palette.card)
+            .fill(Palette.surface)
             .softCardShadow()
     }
 }

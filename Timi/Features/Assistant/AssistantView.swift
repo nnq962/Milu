@@ -50,7 +50,7 @@ struct AssistantView: View {
             }
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .safeAreaInset(edge: .bottom) {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
@@ -124,10 +124,10 @@ struct AssistantView: View {
     private var dateChip: some View {
         Text(chats.conversations[currentIndex].startedAt.transactionDayTitle)
             .textRole(.captionStrong)
-            .foregroundStyle(Palette.secondaryText)
+            .foregroundStyle(Palette.secondaryLabel)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
-            .background(Palette.muted, in: Capsule())
+            .background(Palette.surfaceMuted, in: Capsule())
             .frame(maxWidth: .infinity)
     }
 
@@ -148,7 +148,7 @@ struct AssistantView: View {
                 Task { await dictation.toggle() }
             } label: {
                 TimiIcon("hugeicons-mic-01", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(dictation.isRecording ? Palette.red : Palette.secondary)
+                    .foregroundStyle(dictation.isRecording ? Palette.negative : Palette.tertiaryLabel)
                     // 44 to tap, like every control (strict review 2026-10-31: it was 32×40).
                     .frame(width: ControlHeight.regular, height: ControlHeight.regular)
                     .contentShape(Rectangle())
@@ -180,7 +180,7 @@ struct AssistantView: View {
         .padding(Spacing.xxs)
         // A capsule while one line; a rounded rectangle of the same end radius once it grows, not
         // an oval (re-review 2026-10-31).
-        .background(Palette.input, in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
         // The page margin, the same as the messages above (strict review 2026-10-31: 16 here
         // and 20 there put the bar 4pt past the bubbles on each side).
         .padding(.horizontal, Spacing.page)
@@ -203,7 +203,7 @@ struct AssistantView: View {
                 // The one short date (`shortDay`).
                 Text("Lượt mới vào \(quota.renewsOn.shortDay)")
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)

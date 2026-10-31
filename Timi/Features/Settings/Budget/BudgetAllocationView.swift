@@ -95,7 +95,7 @@ struct BudgetAllocationView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Phân bổ hạn mức")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -122,7 +122,7 @@ struct BudgetAllocationView: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Hạn mức tháng")
                     .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                 MoneyText(amount: monthlyBudget, size: .large)
             }
             GeometryReader { proxy in
@@ -132,7 +132,7 @@ struct BudgetAllocationView: View {
                     }
                     // The empty track, like any progress bar: what is not split yet.
                     if unassigned > 0 {
-                        Palette.muted
+                        Palette.surfaceMuted
                     }
                 }
                 .clipShape(Capsule())
@@ -149,7 +149,7 @@ struct BudgetAllocationView: View {
                 MoneyText(amount: unassigned, size: .caption, tone: .muted, compact: true)
             }
             .textRole(.caption)
-            .foregroundStyle(Palette.secondaryText)
+            .foregroundStyle(Palette.secondaryLabel)
             .monospacedDigit()
         }
         .settingsCard()

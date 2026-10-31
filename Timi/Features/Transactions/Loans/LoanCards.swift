@@ -103,7 +103,7 @@ struct LoanRow: View {
                     // One line, so the amount keeps its room; whole at the accessibility sizes.
                     Text(subtitle)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 }
                 // The stack's own spacing is the gap, as on an account row (re-review 2026-10-31).
@@ -162,20 +162,20 @@ struct LoanRow: View {
     /// green once settled, as the sheet's badge (re-review 2026-10-31), grey otherwise.
     static func urgencyColor(_ urgency: LoanUrgency) -> Color {
         switch urgency {
-        case .overdue: Palette.red
-        case .soon: Palette.warningText
-        case .settled: Palette.green
-        default: Palette.secondaryText
+        case .overdue: Palette.negative
+        case .soon: Palette.warningLabel
+        case .settled: Palette.positive
+        default: Palette.secondaryLabel
         }
     }
 
     /// The bar on the loan's sheet takes the deadline's colour when it is close, else the side's.
     static func progressColor(for loan: Loan, urgency: LoanUrgency) -> Color {
         switch urgency {
-        case .overdue: Palette.red
+        case .overdue: Palette.negative
         case .soon: Palette.warning
-        case .settled: Palette.green
-        default: loan.direction == .borrowed ? Palette.red : Palette.primary
+        case .settled: Palette.positive
+        default: loan.direction == .borrowed ? Palette.negative : Palette.primary
         }
     }
 }

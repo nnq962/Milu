@@ -41,9 +41,9 @@ struct OverviewView: View {
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Tháng này") {
                             Button { path.append(ReportRoute(month: month)) } label: {
-                                HeaderCapsuleLabel(title: "Báo cáo", opensPage: true)
+                                HeaderLink(title: "Báo cáo", opensPage: true)
                             }
-                            .headerCapsuleGlass()
+                            .headerLinkButton()
                         }
                         MonthCard(month: month) { path.append(ReportRoute(month: month)) }
                     }
@@ -59,12 +59,12 @@ struct OverviewView: View {
                     if Self.showsAttention { AttentionCard() }
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Lịch thu chi") {
-                            // The month menu as moss words, as every control on a heading's row.
+                            // The month menu as plain words, as every control on a heading's row.
                             MonthMenu(month: $calendarMonth, compact: true)
-                                .headerCapsuleGlass()
+                                .headerLinkButton()
                         }
                         MoneyCalendarCard(displayedMonth: $calendarMonth) { selectedDay = CalendarDay(date: $0) }
-                            .sleekCard()
+                            .card()
                     }
                 }
                 .padding(.horizontal, Spacing.page)
@@ -72,7 +72,7 @@ struct OverviewView: View {
                 .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle("Tổng quan")
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)

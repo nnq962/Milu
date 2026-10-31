@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AssistantAvatar: View {
     var body: some View {
-        // A plain teal glyph, no circle (user rule: icons without a background).
+        // A plain glyph, no circle (user rule: icons without a background).
         // A glyph in content, not a toolbar's (re-review 2026-10-31).
         TimiIcon("hugeicons-ai-magic", size: RowMetrics.iconGlyph)
             .foregroundStyle(Palette.primary)
@@ -18,7 +18,7 @@ struct TypingIndicator: View {
         HStack(alignment: .top, spacing: Spacing.m) {
             AssistantAvatar()
             TimiIcon("hugeicons-more-horizontal", size: RowMetrics.iconGlyph)
-                .foregroundStyle(Palette.secondary)
+                .foregroundStyle(Palette.tertiaryLabel)
                 .phaseAnimator([false, true]) { content, dimmed in
                     content.opacity(reduceMotion ? 1 : (dimmed ? 0.35 : 1))
                 } animation: { _ in

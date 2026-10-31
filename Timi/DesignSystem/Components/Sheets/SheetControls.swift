@@ -42,7 +42,7 @@ struct PickerRowLabel: View {
                 if let subtitle {
                     Text(subtitle)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(1)
                 }
             }

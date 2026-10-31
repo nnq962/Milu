@@ -13,11 +13,11 @@ struct InstitutionLogo: View {
             .scaledToFit()
             .padding(size * 0.14)
             .frame(width: size, height: size)
-            .background(Palette.card)
+            .background(Palette.surface)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                    .strokeBorder(Palette.border, lineWidth: 0.5)
+                    .strokeBorder(Palette.separator, lineWidth: 0.5)
             }
             .accessibilityHidden(true)
     }
@@ -31,7 +31,7 @@ struct RowIcon: View {
     let name: String
     var size: CGFloat = RowMetrics.iconColumn
     /// Colour of a glyph (logos keep their own).
-    var tint: Color = Palette.ink
+    var tint: Color = Palette.label
     /// A glyph on the same white tile as the logos, so a list mixing cash and banks lines up
     /// (lists of accounts, `AccountRow`).
     var tiled = false
@@ -44,11 +44,11 @@ struct RowIcon: View {
                 TimiIcon(name, size: size * 0.5)
                     .foregroundStyle(tint)
                     .frame(width: size, height: size)
-                    .background(Palette.card)
+                    .background(Palette.surface)
                     .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                            .strokeBorder(Palette.border, lineWidth: 0.5)
+                            .strokeBorder(Palette.separator, lineWidth: 0.5)
                     }
                     .accessibilityHidden(true)
             } else {

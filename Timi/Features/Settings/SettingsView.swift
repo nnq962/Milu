@@ -153,7 +153,7 @@ struct SettingsView: View {
                 .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle("Cài đặt")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -179,7 +179,7 @@ struct SettingsView: View {
                     .textRole(.heading)
                 Text("Dữ liệu mẫu · lưu trên máy")
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
             Spacer(minLength: Spacing.s)
             StatusBadge(text: "Miễn phí", tone: .neutral, showsDot: false)
@@ -206,7 +206,7 @@ struct SettingsView: View {
                     Spacer(minLength: Spacing.s)
                     Text("Làm mới \(renews)")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                     Text("\(quota.remaining)")
@@ -215,12 +215,12 @@ struct SettingsView: View {
                         .contentTransition(.numericText())
                     Text("lượt còn lại")
                         .textRole(.captionStrong)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                     if quota.bonus > 0 {
                         Spacer(minLength: Spacing.s)
                         Text("+\(quota.bonus) lượt thưởng")
                             .textRole(.caption)
-                            .foregroundStyle(Palette.green)
+                            .foregroundStyle(Palette.positive)
                     }
                 }
                 VStack(alignment: .leading, spacing: Spacing.s) {
@@ -230,7 +230,7 @@ struct SettingsView: View {
                         .accessibilityHidden(true)
                     Text("Đã dùng \(used)/\(AIQuota.monthlyFree) lượt miễn phí")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
                 }
             }
@@ -239,8 +239,7 @@ struct SettingsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// A short Timi Pro invite: a white card like the Timi Pro card on Tổng quan, with a plain amber
-    /// crown (UI review 2026-10-30: only Tài sản ròng is a solid teal card). The crown is a row's
+    /// A short Timi Pro invite: a white card with a plain crown in the accent colour. The crown is a row's
     /// glyph in a row's column, so the words start at 54 like every row (re-review 2026-10-31: 24
     /// and 12, words at 52).
     private var proInvite: some View {
@@ -250,16 +249,16 @@ struct SettingsView: View {
         } label: {
             HStack(spacing: RowMetrics.gap) {
                 TimiIcon("hugeicons-crown", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(Palette.lime)
+                    .foregroundStyle(Palette.accent)
                     .frame(width: RowMetrics.iconColumn, height: RowMetrics.iconGlyph)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text("Nâng cấp Timi Pro")
                         .textRole(.bodyStrong)
-                        .foregroundStyle(Palette.ink)
+                        .foregroundStyle(Palette.label)
                     Text("\(AIQuota.monthlyPro) lượt AI mỗi tháng, báo cáo, đồng bộ")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(2)
                 }
                 Spacer(minLength: Spacing.s)
@@ -287,7 +286,7 @@ extension View {
         padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, Spacing.card)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+            .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
     }
 }
 

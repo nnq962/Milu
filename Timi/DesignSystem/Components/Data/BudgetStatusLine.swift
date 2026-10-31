@@ -29,9 +29,9 @@ struct BudgetStatusLine: View {
 
     private var color: Color {
         switch level {
-        case .fine: Palette.secondaryText
-        case .nearing: Palette.warningText
-        case .over: Palette.red
+        case .fine: Palette.secondaryLabel
+        case .nearing: Palette.warningLabel
+        case .over: Palette.negative
         }
     }
 }

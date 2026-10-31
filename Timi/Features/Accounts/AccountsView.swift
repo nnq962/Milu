@@ -51,7 +51,7 @@ struct AccountsView: View {
                 .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle("Tài khoản")
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
@@ -111,8 +111,8 @@ struct AccountsView: View {
             // Not "Tài khoản" again under the page title of that name (HIG review 2026-10-30).
             SectionHeader(title: "Ví & ngân hàng") {
                 if archived > 0 {
-                    NavigationLink(value: ArchivedAccountsRoute()) { HeaderCapsuleLabel(title: "Lưu trữ (\(archived))", opensPage: true) }
-                        .headerCapsuleGlass()
+                    NavigationLink(value: ArchivedAccountsRoute()) { HeaderLink(title: "Lưu trữ (\(archived))", opensPage: true) }
+                        .headerLinkButton()
                         .accessibilityLabel("Tài khoản đã lưu trữ, \(archived)")
                 }
             }
@@ -124,7 +124,7 @@ struct AccountsView: View {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         NavigationLink(value: account.id) { AccountRow(account: account) }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
+                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                     }
                 }
                 .listCard()
@@ -137,8 +137,8 @@ struct AccountsView: View {
         return VStack(alignment: .leading, spacing: Spacing.headerGap) {
             SectionHeader(title: "Hũ tiết kiệm") {
                 if completed > 0 {
-                    NavigationLink(value: CompletedGoalsRoute()) { HeaderCapsuleLabel(title: "Đã xong (\(completed))", opensPage: true) }
-                        .headerCapsuleGlass()
+                    NavigationLink(value: CompletedGoalsRoute()) { HeaderLink(title: "Đã xong (\(completed))", opensPage: true) }
+                        .headerLinkButton()
                         .accessibilityLabel("Hũ đã hoàn thành, \(completed)")
                 }
             }

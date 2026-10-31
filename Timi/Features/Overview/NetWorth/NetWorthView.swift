@@ -21,7 +21,7 @@ struct NetWorthView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Tài sản ròng")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isShowingDebt) { DebtSheet() }
@@ -39,7 +39,7 @@ struct NetWorthView: View {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(picked.map { "Cuối tháng \(Calendar.current.component(.month, from: $0.month))" } ?? "Hiện tại")
                     .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .contentTransition(.opacity)
                 // Red below zero (strict review 2026-10-31: drawn by hand, it stayed ink).
                 MoneyText(amount: shown?.value ?? store.netWorth, size: .display, tone: .negativeRed)
@@ -55,7 +55,7 @@ struct NetWorthView: View {
                 .sensoryFeedback(.selection, trigger: picked?.month)
         }
         .animation(.snappy, value: picked?.month)
-        .sleekCard(padding: Spacing.xl)
+        .card(padding: Spacing.xl)
     }
 
     // MARK: - Thành phần

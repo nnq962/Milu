@@ -26,11 +26,11 @@ struct TopCategoriesCard: View {
                         VStack(spacing: RowMetrics.lineGap) {
                             Text(group.name)
                                 .textRole(.caption)
-                                .foregroundStyle(Palette.ink)
+                                .foregroundStyle(Palette.label)
                             Text(group.amount.vndCompact)
                                 .textRole(.captionStrong)
                                 .monospacedDigit()
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                         }
                         .multilineTextAlignment(.center)
                         .lineLimit(1)
@@ -39,7 +39,7 @@ struct TopCategoriesCard: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            .sleekCard()
+            .card()
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
         }
         .buttonStyle(.card)

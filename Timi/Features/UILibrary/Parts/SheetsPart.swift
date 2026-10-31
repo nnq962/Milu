@@ -20,7 +20,7 @@ struct SheetsPart: View {
                     if let picked {
                         Text("Đã chọn: \(picked)")
                             .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                     }
                 }
             }

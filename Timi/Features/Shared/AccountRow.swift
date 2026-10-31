@@ -41,7 +41,7 @@ struct AccountRow: View {
                     if let subtitle {
                         Text(subtitle)
                             .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                             .lineLimit(1)
                     }
                 }
@@ -62,9 +62,4 @@ struct AccountRow: View {
             .compactMap { $0 }.joined(separator: ", "))
         .accessibilityHint(showsChevron ? "Xem tài khoản" : "")
     }
-}
-
-/// The hairline between `AccountRow`s, from where the names start.
-struct AccountRowDivider: View {
-    var body: some View { RowDivider(column: .logo) }
 }

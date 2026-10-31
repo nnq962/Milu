@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Section headings as the app draws them: `.section` on a main page, `.group` in a form or sheet,
-/// and a control on the heading's row in plain moss words (`HeaderCapsuleLabel`).
+/// and a control on the heading's row in plain words (`HeaderLink`).
 struct HeadingsPart: View {
     @Environment(FinanceStore.self) private var store
     @State private var tapped: String?
@@ -11,9 +11,9 @@ struct HeadingsPart: View {
             VStack(alignment: .leading, spacing: Spacing.headerGap) {
                 SectionHeader(title: "Hũ tiết kiệm") {
                     Button { tapped = "Lưu trữ" } label: {
-                        HeaderCapsuleLabel(title: "Lưu trữ (2)", opensPage: true)
+                        HeaderLink(title: "Lưu trữ (2)", opensPage: true)
                     }
-                    .headerCapsuleGlass()
+                    .headerLinkButton()
                 }
                 // A goal as the app draws one: `GoalRow` (re-review 2026-10-31: a ListRow here).
                 if let goal = store.activeGoals.first {
@@ -35,7 +35,7 @@ struct HeadingsPart: View {
                     Text("Lùi \(Int(RowMetrics.horizontal)) như dòng trong thẻ; tiêu đề → thẻ \(Int(Spacing.headerGap)).")
                     if let tapped {
                         Text("Đã chạm: \(tapped)")
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                     }
                 }
                 .textRole(.body)

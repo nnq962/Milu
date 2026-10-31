@@ -18,7 +18,7 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
             }
             .scrollIndicators(.hidden)
             .modifier(NoScrollEdgeEffect())
-            // Bleed to the screen edges like Sleek's -mx-5 px-5: the page margin, in and out.
+            // Bleed to the screen edges: the page margin, in and out.
             .padding(.horizontal, -Spacing.page)
         }
         .sensoryFeedback(.selection, trigger: selection)

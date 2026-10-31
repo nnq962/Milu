@@ -9,7 +9,7 @@ struct GoalRow: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The ring, as wide as an account's logo, growing with the text; the hairline between goal
-    /// rows is then `AccountRowDivider`'s.
+    /// rows is then `RowDivider(column: .logo)`'s.
     @ScaledMetric(relativeTo: .body) private var ringSize = RowMetrics.listLogo
 
     var body: some View {
@@ -30,7 +30,7 @@ struct GoalRow: View {
                     if let subtitle {
                         Text(subtitle)
                             .textRole(.caption)
-                            .foregroundStyle(goal.isOverdue ? Palette.red : Palette.secondaryText)
+                            .foregroundStyle(goal.isOverdue ? Palette.negative : Palette.secondaryLabel)
                     }
                 }
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
@@ -46,7 +46,7 @@ struct GoalRow: View {
                     Text(goal.isReached ? "Đủ" : goal.progressText)
                         .textRole(.caption)
                         .monospacedDigit()
-                        .foregroundStyle(goal.isOverdue ? Palette.red : Palette.secondaryText)
+                        .foregroundStyle(goal.isOverdue ? Palette.negative : Palette.secondaryLabel)
                 }
             }
             // Stacked, the words take the row's width so every row starts at the same edge.
@@ -89,10 +89,10 @@ struct GoalRing: View {
 
     var body: some View {
         ProgressRing(progress: goal.isClosed ? 1 : goal.progress,
-                     color: goal.isOverdue ? Palette.red : Palette.primary)
+                     color: goal.isOverdue ? Palette.negative : Palette.primary)
             .overlay {
                 TimiIcon(goal.icon, size: size / 2)
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(Palette.label)
             }
             .frame(width: size, height: size)
             .accessibilityHidden(true)
@@ -127,7 +127,7 @@ struct GoalCarouselTile: View {
                     MoneyText(amount: goal.saved, compact: true)
                     Text(" / ")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                     MoneyText(amount: goal.target, size: .caption, tone: .muted, compact: true)
                 }
                 .lineLimit(1)

@@ -43,7 +43,7 @@ struct SectionHeader<Trailing: View>: View {
             // just like the caption under a group.
             Text(title)
                 .textRole(.overline)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
         }
     }
 }

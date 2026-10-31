@@ -26,7 +26,7 @@ struct IconPickerSheet: View {
             .contentMargins(.top, Spacing.s, for: .scrollContent)
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle("Biểu tượng")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -43,7 +43,7 @@ struct IconPickerSheet: View {
             }
         }
         .padding(Spacing.l)
-        .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+        .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
     }
 
     private func cell(_ icon: CatalogIcon) -> some View {

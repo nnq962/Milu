@@ -40,7 +40,7 @@ struct RelationshipPickerSheet: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .presentationDetents([.height(max(headerHeight + Spacing.l + listHeight, 200))])
         .presentationBackground(Palette.background)
         .sheet(item: $editing, onDismiss: {
@@ -87,7 +87,7 @@ struct RelationshipPickerSheet: View {
             if !relationship.isBuiltIn {
                 Button { editing = .edit(relationship) } label: {
                     TimiIcon("hugeicons-pencil-edit-01", size: RowMetrics.iconGlyph)
-                        .foregroundStyle(Palette.ink)
+                        .foregroundStyle(Palette.label)
                         .frame(width: ControlHeight.regular, height: ControlHeight.regular)
                         .contentShape(Rectangle())
                 }

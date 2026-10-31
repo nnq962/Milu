@@ -72,7 +72,7 @@ struct DesignSystemView: View {
             }
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Thư viện UI")
         .navigationBarTitleDisplayMode(.inline)
     }

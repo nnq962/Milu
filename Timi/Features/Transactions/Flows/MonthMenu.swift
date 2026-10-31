@@ -5,12 +5,12 @@ import SwiftUI
 /// one ticked), then "Tháng khác…" for the month-and-year wheels in a small sheet. The popover the
 /// wheels used to open in pointed an arrow at the button, which read as dated.
 ///
-/// The capsule is a flat fill (`FilledCapsule`); `compact` is moss words (14) for beside a section
+/// The capsule is a flat fill; `compact` is plain words (14, `HeaderLink`) for beside a section
 /// heading (Lịch thu chi on Tổng quan).
 struct MonthMenu: View {
     @Binding var month: Date
     var compact = false
-    /// The colour of the compact words: moss, or ink on the soft cards of Tổng quan.
+    /// The colour of the compact words.
     var tint: Color = Palette.primary
 
     @State private var isPicking = false
@@ -30,7 +30,7 @@ struct MonthMenu: View {
             Divider()
             Button("Tháng khác…") { isPicking = true }
         } label: {
-            if compact { HeaderCapsuleLabel(title: title, opensMenu: true, color: tint) } else { capsuleLabel(title) }
+            if compact { HeaderLink(title: title, opensMenu: true, color: tint) } else { capsuleLabel(title) }
         }
         .menuOrder(.fixed)
         .modifier(MonthMenuStyle(compact: compact))
@@ -86,7 +86,7 @@ struct MonthMenu: View {
                 .fixedSize()
             TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.inlineGlyph)
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         // Inside the label, so the whole capsule takes the tap, not only the words.
         .padding(.horizontal, Spacing.l)
         // At least the 44 of the circles beside it, taller with larger text.
@@ -96,7 +96,7 @@ struct MonthMenu: View {
     }
 }
 
-/// The menu's button: a filled capsule, or plain moss words for `compact`.
+/// The menu's button: a filled capsule, or plain words for `compact`.
 private struct MonthMenuStyle: ViewModifier {
     let compact: Bool
 

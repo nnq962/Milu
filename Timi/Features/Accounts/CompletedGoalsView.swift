@@ -21,7 +21,7 @@ struct CompletedGoalsView: View {
                             CompletedGoalRow(goal: goal, subtitle: completedText(goal))
                         }
                         .buttonStyle(.row)
-                        .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
+                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                     }
                 }
                 .listCard()
@@ -31,7 +31,7 @@ struct CompletedGoalsView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Hũ đã hoàn thành")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -67,7 +67,7 @@ private struct CompletedGoalRow: View {
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     Text(subtitle)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 }
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }

@@ -36,7 +36,7 @@ struct MoneyCalendarCard: View {
                 ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
                     Text(title)
                         .textRole(.footnote)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.xs)
                         .accessibilityHidden(true)
@@ -66,19 +66,19 @@ struct MoneyCalendarCard: View {
                 ForEach([0.08, 0.14, 0.20], id: \.self) { strength in
                     // The day cell's own shape, small.
                     RoundedRectangle(cornerRadius: Self.swatchRadius, style: .continuous)
-                        .fill(Palette.red.opacity(strength))
+                        .fill(Palette.negative.opacity(strength))
                         .frame(width: Self.swatchSize, height: Self.swatchSize)
                 }
                 Text("Chi càng nhiều càng đậm")
             }
             HStack(spacing: Spacing.xs) {
                 // The shared legend dot, as in each day (re-review 2026-10-31: drawn at 5).
-                LegendDot(color: Palette.ink)
+                LegendDot(color: Palette.label)
                 Text("Có tiền vào")
             }
         }
         .textRole(.footnote)
-        .foregroundStyle(Palette.secondaryText)
+        .foregroundStyle(Palette.secondaryLabel)
         .accessibilityHidden(true)
     }
 
@@ -88,19 +88,19 @@ struct MoneyCalendarCard: View {
         // Days still ahead: faint and not tappable, nothing can be on them yet.
         let isAhead = date > calendar.startOfDay(for: .now) && !today
         // Shaded by how much went out, deeper the more (user choice 2026-10-30): money in does not
-        // colour a day. Today is ringed in moss on top of its shade (UI review 2026-10-30: a solid
+        // colour a day. Today is ringed in the primary colour on top of its shade (UI review 2026-10-30: a solid
         // fill on today hid how much went out on it).
         let strength = expense >= 3_000_000 ? 0.20 : expense >= 1_000_000 ? 0.14 : 0.08
         // Today keeps a clear cell when nothing went out (a wash read as grey, UI review
-        // 2026-10-30); its moss ring and moss number mark it over any shade.
-        let fill = expense > 0 ? Palette.red.opacity(strength) : .clear
+        // 2026-10-30); its ring and number in the primary colour mark it over any shade.
+        let fill = expense > 0 ? Palette.negative.opacity(strength) : .clear
         return Button { onSelectDay(date) } label: {
             VStack(spacing: Spacing.xxs) {
                 Text("\(calendar.component(.day, from: date))")
                     .textRole(today ? .captionStrong : .caption)
                     .monospacedDigit()
-                    .foregroundStyle(today ? Palette.primary : Palette.ink)
-                LegendDot(color: Palette.ink)
+                    .foregroundStyle(today ? Palette.primary : Palette.label)
+                LegendDot(color: Palette.label)
                     .opacity(income > 0 ? 1 : 0)
             }
             .padding(.top, Spacing.xs)

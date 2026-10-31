@@ -5,21 +5,28 @@ struct FoundationPart: View {
     /// tried in "Màu (thử)" (strict review 2026-10-31: written by hand, it went stale).
     private var colors: [(name: String, color: Color)] {
         [
-            ("background", Palette.background), ("card", Palette.card), ("ink", Palette.ink),
-            ("primary", Palette.primary), ("green (dấu hiệu tốt)", Palette.green),
-            ("red (tiền ra)", Palette.red),
-            ("lime (nhấn)", Palette.lime), ("sky", Palette.sky), ("warning", Palette.warning),
-            ("chart[0]", Palette.chart[0]), ("chart[1]", Palette.chart[1]), ("chart[2]", Palette.chart[2]),
-            ("chart[3]", Palette.chart[3]), ("chartRest", Palette.chartRest),
-            ("secondary", Palette.secondary), ("secondaryText", Palette.secondaryText),
-            ("muted", Palette.muted), ("border", Palette.border), ("input", Palette.input),
+            // Surfaces
+            ("background", Palette.background), ("surface (thẻ)", Palette.surface),
+            ("surfaceMuted (khối nhạt)", Palette.surfaceMuted), ("separator (kẻ mảnh)", Palette.separator),
+            ("inputBackground", Palette.inputBackground),
+            // Words
+            ("label (chữ)", Palette.label), ("secondaryLabel", Palette.secondaryLabel),
+            ("tertiaryLabel (chevron)", Palette.tertiaryLabel),
+            // Actions
+            ("primary", Palette.primary), ("onPrimary", Palette.onPrimary),
             ("rowPressed", Palette.rowPressed), ("primaryTint", Palette.primaryTint),
             ("primaryTrack", Palette.primaryTrack), ("primaryDash", Palette.primaryDash),
             ("fill1", Palette.fill1), ("fill2", Palette.fill2), ("fill3", Palette.fill3),
-            // Words on a filled colour, the orange for words, the tint of native controls
-            // (re-review 2026-10-31: missing here).
-            ("onPrimary (chữ trên primary)", Palette.onPrimary), ("onRed (chữ trên red)", Palette.onRed),
-            ("onLime (chữ trên lime)", Palette.onLime), ("warningText (chữ cam)", Palette.warningText),
+            // Meaning
+            ("negative (tiền ra)", Palette.negative), ("onNegative", Palette.onNegative),
+            ("positive (dấu hiệu tốt)", Palette.positive),
+            ("warning", Palette.warning), ("warningLabel (chữ cam)", Palette.warningLabel),
+            ("info (cho vay, người)", Palette.info),
+            // Accent
+            ("accent (Pro)", Palette.accent), ("onAccent", Palette.onAccent),
+            // Data
+            ("chart[0]", Palette.chart[0]), ("chart[1]", Palette.chart[1]),
+            ("chart[2]", Palette.chart[2]), ("chart[3]", Palette.chart[3]), ("chartRest (Khác)", Palette.chartRest),
         ]
     }
 
@@ -53,10 +60,10 @@ struct FoundationPart: View {
                                 .frame(height: 48)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: CardCorners.icon, style: .continuous)
-                                        .strokeBorder(Palette.border, lineWidth: 1)
+                                        .strokeBorder(Palette.separator, lineWidth: 1)
                                 }
                             Text(item.name).textRole(.captionStrong).lineLimit(1).minimumScaleFactor(0.8)
-                            Text(Self.hex(item.color)).textRole(.footnote).foregroundStyle(Palette.secondaryText)
+                            Text(Self.hex(item.color)).textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                                 .monospacedDigit()
                         }
                     }
@@ -73,7 +80,7 @@ struct FoundationPart: View {
                                 .minimumScaleFactor(0.5)
                             Text("\(role.name) · \(role.size.formatted())pt · \(weightName(role.weight))")
                                 .textRole(.footnote)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                 }
@@ -85,12 +92,12 @@ struct FoundationPart: View {
                         HStack(spacing: Spacing.m) {
                             Text(step.name).textRole(.captionStrong).frame(width: 40, alignment: .leading)
                             Capsule().fill(Palette.primary).frame(width: step.value * 4, height: 8)
-                            Text("\(Int(step.value))").textRole(.footnote).foregroundStyle(Palette.secondaryText)
+                            Text("\(Int(step.value))").textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                     Text("Lề màn \(Int(Spacing.page)) · giữa các phần \(Int(Spacing.section)) · tiêu đề → thẻ \(Int(Spacing.headerGap)) · đệm thẻ \(Int(Spacing.card)) (thẻ đầu trang \(Int(Spacing.leadCard))) · dòng lùi \(Int(RowMetrics.horizontal))")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .padding(.top, Spacing.xs)
                 }
             }
@@ -100,10 +107,10 @@ struct FoundationPart: View {
                     ForEach(radii, id: \.name) { item in
                         VStack(spacing: Spacing.xs) {
                             RoundedRectangle(cornerRadius: item.value, style: .continuous)
-                                .fill(Palette.muted)
+                                .fill(Palette.surfaceMuted)
                                 .frame(height: 64)
                             Text(item.name).textRole(.captionStrong).lineLimit(1).minimumScaleFactor(0.7)
-                            Text("\(Int(item.value))").textRole(.footnote).foregroundStyle(Palette.secondaryText)
+                            Text("\(Int(item.value))").textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                 }
@@ -116,23 +123,23 @@ struct FoundationPart: View {
                             Text(item.name).textRole(.body)
                             Spacer(minLength: Spacing.s)
                             Text("\(Int(item.value))").textRole(.body).monospacedDigit()
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                         }
                     }
                     Text("Không thứ gì bấm được thấp hơn \(Int(ControlHeight.regular)), trừ chip trong nội dung.")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                 }
             }
 
             SampleCard(label: "Bóng · softCardShadow") {
                 HStack(spacing: Spacing.l) {
                     RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
-                        .fill(Palette.card)
+                        .fill(Palette.surface)
                         .frame(height: 64)
                         .softCardShadow()
                     RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
-                        .fill(Palette.card)
+                        .fill(Palette.surface)
                         .frame(height: 64)
                         .softCardShadow(false)
                 }

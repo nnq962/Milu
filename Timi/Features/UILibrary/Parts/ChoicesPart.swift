@@ -60,7 +60,7 @@ struct ChoicesPart: View {
                 .buttonStyle(.row)
             }
 
-            // The month: a flat capsule on a page, moss words ⌄ beside a heading.
+            // The month: a flat capsule on a page, plain words ⌄ beside a heading.
             SampleCard(label: "Tháng · MonthMenu (viên / compact)") {
                 HStack {
                     MonthMenu(month: $month)

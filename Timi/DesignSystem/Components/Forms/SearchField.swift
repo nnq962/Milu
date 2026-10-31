@@ -12,7 +12,7 @@ struct SearchField: View {
     var body: some View {
         HStack(spacing: Spacing.s) {
             TimiIcon("hugeicons-search-01", size: 18)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityHidden(true)
             TextField(prompt, text: $text)
                 .textRole(.body)
@@ -23,7 +23,7 @@ struct SearchField: View {
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Palette.secondary)
+                        .foregroundStyle(Palette.tertiaryLabel)
                         .frame(width: RowMetrics.toolbarGlyphFrame)
                         .frame(maxHeight: .infinity)
                         .contentShape(Rectangle())
@@ -37,9 +37,9 @@ struct SearchField: View {
         .padding(.vertical, Spacing.s)
         .frame(minHeight: ControlHeight.field)
         .fixedSize(horizontal: false, vertical: true)
-        .background(Palette.card, in: Capsule())
+        .background(Palette.surface, in: Capsule())
         // Inside the capsule, so a scroll view or a stack never clips half the line.
-        .overlay { Capsule().strokeBorder(Palette.border, lineWidth: 1) }
+        .overlay { Capsule().strokeBorder(Palette.separator, lineWidth: 1) }
         .contentShape(Capsule())
         .onTapGesture { isFocused.wrappedValue = true }
     }

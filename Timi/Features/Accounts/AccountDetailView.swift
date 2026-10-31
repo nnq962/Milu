@@ -29,7 +29,7 @@ struct AccountDetailView: View {
                         if let subtitle = Self.subtitle(for: account) {
                             Text(subtitle)
                                 .textRole(.caption)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                                 .padding(.top, Spacing.xs)
                         }
                     }
@@ -55,7 +55,7 @@ struct AccountDetailView: View {
                 .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle(account.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

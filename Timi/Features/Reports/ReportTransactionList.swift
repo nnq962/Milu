@@ -54,7 +54,7 @@ private struct AllReportTransactionsView: View {
         .contentMargins(.top, Spacing.s, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
     }

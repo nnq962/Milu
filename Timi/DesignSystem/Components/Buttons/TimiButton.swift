@@ -6,7 +6,7 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     case primary
     /// Secondary actions inside content.
     case secondary
-    /// Amber, for Pro only.
+    /// The accent (a black pill), for Pro only.
     case accent
     /// Delete next to Save in a sheet footer: light, so Save stays the main action.
     case destructive
@@ -39,19 +39,19 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         switch self {
         case .primary: Palette.primary
         case .secondary: Palette.fill2
-        case .accent: Palette.lime
-        case .destructive: Palette.red.opacity(0.14)
-        case .destructiveSolid: Palette.red
+        case .accent: Palette.accent
+        case .destructive: Palette.negative.opacity(0.14)
+        case .destructiveSolid: Palette.negative
         }
     }
 
     fileprivate var foreground: Color {
         switch self {
         case .primary: Palette.onPrimary
-        case .destructiveSolid: Palette.onRed
-        case .secondary: Palette.ink
-        case .accent: Palette.onLime
-        case .destructive: Palette.red
+        case .destructiveSolid: Palette.onNegative
+        case .secondary: Palette.label
+        case .accent: Palette.onAccent
+        case .destructive: Palette.negative
         }
     }
 }
@@ -100,7 +100,7 @@ struct TimiButton<Label: View>: View {
                 .font(Typography.font(.headline, size: size.fontSize, weight: .semibold))
                 // Disabled: every role turns into a grey pill with faint text, so it never reads
                 // as tappable.
-                .foregroundStyle(isEnabled ? role.foreground : Palette.secondary)
+                .foregroundStyle(isEnabled ? role.foreground : Palette.tertiaryLabel)
                 .lineLimit(1)
                 .padding(.horizontal, size.horizontalPadding)
                 .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: size.height)

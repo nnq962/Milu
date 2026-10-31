@@ -58,7 +58,7 @@ struct CategoriesView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Hạng mục")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -119,7 +119,7 @@ struct CategoryGroupView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle(group?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -167,7 +167,7 @@ struct HiddenCategoriesView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Hạng mục đã ẩn")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editing) { target in

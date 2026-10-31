@@ -37,7 +37,7 @@ struct SheetScaffold<Header: View, Content: View>: View {
             }
             .dismissesKeyboardOnTap()
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

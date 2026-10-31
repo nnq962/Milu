@@ -63,7 +63,7 @@ struct GoalDetailView: View {
                 .padding(.bottom, Spacing.xxl)
             }
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle(goal.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -168,15 +168,15 @@ struct GoalDetailView: View {
                 // Past its deadline: say so, as an overdue loan does, instead of "45tr/tháng".
                 StatusBadge(text: "Quá hạn · \(goal.progressText)", tone: .warning)
             } else {
-                (Text(goal.progressText).foregroundStyle(Palette.ink)
+                (Text(goal.progressText).foregroundStyle(Palette.label)
                     + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
                     .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
             }
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
             Text("Mục tiêu \(goal.target.vndCompact)")
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityLabel("Mục tiêu \(goal.target.vnd)")
         }
         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
@@ -198,7 +198,7 @@ struct GoalDetailView: View {
             if !rest.isEmpty {
                 Text(rest)
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

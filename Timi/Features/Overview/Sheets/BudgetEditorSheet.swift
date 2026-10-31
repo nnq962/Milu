@@ -38,7 +38,7 @@ struct BudgetEditorSheet: View {
             VStack(spacing: Spacing.xs) {
                 Text(caption)
                     .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.secondaryLabel)
                 // Quick chips (user request 2026-10-30): ready amounts before typing, then the field's own
                 // suggestions from the digits (5 → 5tr, 50tr…).
                 TimiAmountField(text: $input, focusesOnAppear: true, presets: presets)
@@ -49,7 +49,7 @@ struct BudgetEditorSheet: View {
                 } else if let note {
                     Text(note)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .multilineTextAlignment(.center)
                         .padding(.top, Spacing.s)
                 }

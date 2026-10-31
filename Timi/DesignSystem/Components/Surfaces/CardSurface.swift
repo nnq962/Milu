@@ -2,7 +2,7 @@ import SwiftUI
 
 extension View {
     /// Solid design color with Apple's continuous corners. Glass belongs to buttons only.
-    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.card, elevated: Bool = false) -> some View {
+    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, elevated: Bool = false) -> some View {
         // Clip the content (not the shadow) so a pressed row's grey follows the card's corners.
         clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .background {
@@ -28,13 +28,13 @@ extension View {
     /// (user report 2026-10-30: at 28 the corners crowded the first and last rows' icons).
     func listCard() -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
+            .cardSurface(radius: CardCorners.inset, color: Palette.surface, elevated: true)
     }
 
-    /// White Sleek card: p-5, large continuous corners and the soft shadow.
-    func sleekCard(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.large) -> some View {
+    /// The app's card: white, 20 inside, large continuous corners and the soft shadow.
+    func card(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.large) -> some View {
         self.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: radius, color: Palette.card, elevated: true)
+            .cardSurface(radius: radius, color: Palette.surface, elevated: true)
     }
 }

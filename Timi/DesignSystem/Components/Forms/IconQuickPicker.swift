@@ -66,7 +66,7 @@ struct IconChoiceLabel: View {
 
     var body: some View {
         TimiIcon(name, size: size / 2)
-            .foregroundStyle(isSelected ? Palette.onPrimary : Palette.ink)
+            .foregroundStyle(isSelected ? Palette.onPrimary : Palette.label)
             .frame(width: size, height: size)
             .background(Circle().fill(isSelected ? Palette.primary : .clear))
             .contentShape(Circle())

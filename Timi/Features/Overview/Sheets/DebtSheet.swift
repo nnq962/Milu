@@ -34,7 +34,7 @@ struct DebtSheet: View {
                             VStack(spacing: 0) {
                                 ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                                     AccountRow(account: account, showsChevron: false)
-                                        .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
+                                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                                 }
                             }
                             .listCard()
@@ -53,7 +53,7 @@ struct DebtSheet: View {
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .timiSheetStyle([.medium, .large])
         .sheet(item: $viewingLoan) { LoanDetailSheet(loanID: $0.id) }
     }

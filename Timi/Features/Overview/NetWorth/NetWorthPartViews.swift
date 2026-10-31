@@ -36,7 +36,7 @@ struct NetWorthPartView: View {
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle(part.title)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $viewingLoan) { LoanDetailSheet(loanID: $0.id) }
@@ -52,7 +52,7 @@ struct NetWorthPartView: View {
                     AccountRow(account: account)
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
+                .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
             }
         }
         .listCard()

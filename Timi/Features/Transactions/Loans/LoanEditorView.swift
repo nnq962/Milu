@@ -145,7 +145,7 @@ struct LoanEditorView: View {
                 } else if let moneyLockReason {
                     Text(moneyLockReason)
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                         .multilineTextAlignment(.center)
                 }
             }

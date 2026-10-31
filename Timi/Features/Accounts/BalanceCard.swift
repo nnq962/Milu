@@ -16,7 +16,7 @@ struct TotalBalanceHeader: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("Tổng số dư")
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             MoneyText(amount: store.paymentBalance, size: .display, tone: .negativeRed)
             if change != 0 || lockedMoney > 0 {
                 // Wraps onto a second line at large text instead of running off the edge.
@@ -25,7 +25,7 @@ struct TotalBalanceHeader: View {
                         Text("\(change > 0 ? "↑" : "↓") \(abs(change).vndCompact) trong tháng này")
                             .textRole(.captionStrong)
                             .monospacedDigit()
-                            .foregroundStyle(change > 0 ? Palette.green : Palette.red)
+                            .foregroundStyle(change > 0 ? Palette.positive : Palette.negative)
                             .padding(.trailing, Spacing.m)
                     }
                     if lockedMoney > 0 {
@@ -34,7 +34,7 @@ struct TotalBalanceHeader: View {
                             Text("Đã khoá \(lockedMoney.vndCompact)")
                         }
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                     }
                 }
             }
@@ -79,14 +79,14 @@ struct BalanceCard: View {
                          : "Âm \(abs(owed).vndCompact) ở \(negatives.count) tài khoản")
                 }
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.red)
+                .foregroundStyle(Palette.negative)
             }
         }
         // 16 at the sides, as the rows and headings below, so "Tổng số dư" starts on their edge
         // (re-review 2026-10-31: 20 put it 4pt in from the logos); 20 above and below.
         .padding(.horizontal, RowMetrics.horizontal)
         .padding(.vertical, Spacing.card)
-        .sleekCard(padding: 0)
+        .card(padding: 0)
         .accessibilityElement(children: .combine)
     }
 
@@ -131,7 +131,7 @@ struct BalanceCard: View {
                     LegendDot(color: ChartShades.color(at: index))
                     Text("\(part.name) \((part.amount / sum).percentText)")
                         .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                 }
                 .padding(.trailing, Spacing.s)
             }

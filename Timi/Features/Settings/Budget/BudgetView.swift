@@ -43,7 +43,7 @@ struct BudgetView: View {
                             BudgetAllocationView(month: month)
                         } label: {
                             summary(progress)
-                                .foregroundStyle(Palette.ink)
+                                .foregroundStyle(Palette.label)
                         }
                         // Pressed like every other card that opens something (strict review 2026-10-31).
                         .buttonStyle(.card)
@@ -106,7 +106,7 @@ struct BudgetView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Hạn mức chi tiêu")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isSettingMonth) { MonthBudgetEditor() }
@@ -121,7 +121,7 @@ struct BudgetView: View {
                 HStack {
                     Text(progress.isOver ? "Đã vượt" : "Còn lại")
                         .textRole(.captionStrong)
-                        .foregroundStyle(Palette.secondaryText)
+                        .foregroundStyle(Palette.secondaryLabel)
                     if progress.isOver {
                         StatusBadge(text: "Vượt hạn mức", tone: .warning)
                     } else if progress.isNearing {
@@ -147,7 +147,7 @@ struct BudgetView: View {
             }
             .textRole(.caption)
             .monospacedDigit()
-            .foregroundStyle(Palette.secondaryText)
+            .foregroundStyle(Palette.secondaryLabel)
 
             if let daily = progress.dailyAllowance(in: month) {
                 HStack {
@@ -191,7 +191,7 @@ struct BudgetView: View {
                         HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                             Text(progress.isOver ? "Vượt" : "Còn")
                                 .textRole(.caption)
-                                .foregroundStyle(Palette.secondaryText)
+                                .foregroundStyle(Palette.secondaryLabel)
                             MoneyText(amount: progress.isOver ? -abs(progress.left) : progress.left,
                                       size: .caption, tone: .negativeRed, compact: true)
                         }

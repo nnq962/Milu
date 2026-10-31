@@ -21,7 +21,7 @@ struct FormTextRow: View {
                 .fixedSize()
             TextField(prompt, text: $text)
                 .textRole(.body)
-                .foregroundStyle(Palette.ink)
+                .foregroundStyle(Palette.label)
                 .multilineTextAlignment(.trailing)
                 .keyboardType(keyboard)
                 .focused($isFocused)
@@ -63,10 +63,10 @@ struct FormAmountRow: View {
                     .multilineTextAlignment(.trailing)
                     .focused($isFocused)
                 Text("đ")
-                    .foregroundStyle(text.isEmpty ? Color(.placeholderText) : Palette.ink)
+                    .foregroundStyle(text.isEmpty ? Color(.placeholderText) : Palette.label)
             }
             .textRole(.amount)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
         }
         .formRowFrame()
         .onTapGesture { isFocused = true }
@@ -90,7 +90,7 @@ struct FormNoteText: View {
     var body: some View {
         Text(text)
             .textRole(.body)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .textSelection(.enabled)
             .padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, RowMetrics.vertical)
@@ -107,7 +107,7 @@ struct FormNoteRow: View {
     var body: some View {
         TextField(prompt, text: $text, axis: .vertical)
             .textRole(.body)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .lineLimit(3...6)
             .focused($isFocused)
             .padding(.horizontal, RowMetrics.horizontal)

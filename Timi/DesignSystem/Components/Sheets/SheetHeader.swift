@@ -45,7 +45,7 @@ struct SheetHeader: View {
         Button(role: .close) { dismiss() } label: { glyph("xmark") }
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
-            .tint(Palette.ink)
+            .tint(Palette.label)
             .accessibilityLabel("Đóng")
     }
 

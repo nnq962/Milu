@@ -21,29 +21,29 @@ enum BadgeTone: CaseIterable, Identifiable {
         switch self {
         case .neutral: Palette.fill2
         case .positive: Palette.fill2
-        case .accent: Palette.lime
+        case .accent: Palette.accent
         case .caution: Palette.warning.opacity(0.16)
-        case .warning: Palette.red.opacity(0.10)
+        case .warning: Palette.negative.opacity(0.10)
         }
     }
 
     fileprivate var foreground: Color {
         switch self {
-        case .warning: Palette.red
-        // Amber text on amber is too light to read: a deep amber.
-        case .caution: Palette.warningText
-        case .accent: Palette.onLime
-        default: Palette.ink
+        case .warning: Palette.negative
+        // Orange words on the orange tint are too light to read: the deep orange.
+        case .caution: Palette.warningLabel
+        case .accent: Palette.onAccent
+        default: Palette.label
         }
     }
 
     fileprivate var dot: Color {
         switch self {
-        case .neutral: Palette.secondary
-        case .positive: Palette.green
-        case .accent: Palette.ink
+        case .neutral: Palette.tertiaryLabel
+        case .positive: Palette.positive
+        case .accent: Palette.label
         case .caution: Palette.warning
-        case .warning: Palette.red
+        case .warning: Palette.negative
         }
     }
 }

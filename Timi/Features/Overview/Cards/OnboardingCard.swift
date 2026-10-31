@@ -60,7 +60,7 @@ struct OnboardingCard: View {
                     }
                 }
                 // A white card, as every card of Tổng quan (HIG pass 2026-10-31).
-                .sleekCard()
+                .card()
                 .contentShape(shape)
             }
             .buttonStyle(.card)
@@ -81,10 +81,10 @@ struct OnboardingCard: View {
         VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
             Text("Làm quen với Timi")
                 .textRole(.label)
-                .foregroundStyle(Palette.ink)
+                .foregroundStyle(Palette.label)
             Text(nextStep)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
                 .lineLimit(2)
         }
     }
@@ -98,7 +98,7 @@ struct OnboardingCard: View {
         }
     }
 
-    /// How many steps are done, "3/4" inside a moss ring.
+    /// How many steps are done, "3/4" inside a ring in the primary colour.
     private func progressRing(completed: Int, total: Int) -> some View {
         ZStack {
             ProgressRing(progress: Double(completed) / Double(total))

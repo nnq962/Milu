@@ -97,7 +97,7 @@ struct CategoryPickerSheet: View {
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
             .background(Palette.background)
-            .foregroundStyle(Palette.ink)
+            .foregroundStyle(Palette.label)
             .navigationTitle("Chọn hạng mục")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, prompt: "Tìm hạng mục")

@@ -80,7 +80,7 @@ struct ListsPart: View {
                     }
                     HStack(spacing: Spacing.l) {
                         legend("Ăn uống", Palette.primary)
-                        legend("Đi lại", Palette.sky)
+                        legend("Đi lại", Palette.info)
                         legend("Khác", Palette.chartRest)
                     }
                     // Between two halves of a card (Đã chi | Đã thu).
@@ -124,7 +124,7 @@ struct ListsPart: View {
     private func dividerSample(_ title: String, column: RowDivider.Column) -> some View {
         Text(title)
             .textRole(.caption)
-            .foregroundStyle(Palette.secondaryText)
+            .foregroundStyle(Palette.secondaryLabel)
             .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .leading)
             .padding(.horizontal, RowMetrics.horizontal)
             .overlay(alignment: .bottom) { RowDivider(column: column) }
@@ -134,7 +134,7 @@ struct ListsPart: View {
         VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
             Text(title)
                 .textRole(.captionStrong)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             amount
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -144,7 +144,7 @@ struct ListsPart: View {
         HStack {
             Text(title).textRole(.body)
             Spacer(minLength: Spacing.s)
-            Text(date.shortDay).textRole(.body).monospacedDigit().foregroundStyle(Palette.secondaryText)
+            Text(date.shortDay).textRole(.body).monospacedDigit().foregroundStyle(Palette.secondaryLabel)
         }
     }
 
@@ -152,7 +152,7 @@ struct ListsPart: View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             Text(title)
                 .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
+                .foregroundStyle(Palette.secondaryLabel)
             Spacer(minLength: Spacing.s)
             amount
         }

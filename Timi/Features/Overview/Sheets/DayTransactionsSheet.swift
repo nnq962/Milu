@@ -48,7 +48,7 @@ struct DayTransactionsSheet: View {
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollBounceBehavior(.basedOnSize)
         }
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .timiSheetStyle([.medium, .large])
         .sheet(item: $viewing) { TransactionDetailSheet(transactionID: $0.id) }
     }

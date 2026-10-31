@@ -45,7 +45,7 @@ struct LicensesView: View {
                     FormGroup(title: "\(work.name) · \(work.use)") {
                         Text(work.text)
                             .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryText)
+                            .foregroundStyle(Palette.secondaryLabel)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(RowMetrics.horizontal)
@@ -57,7 +57,7 @@ struct LicensesView: View {
             .padding(.bottom, Spacing.xxl)
         }
         .background(Palette.background)
-        .foregroundStyle(Palette.ink)
+        .foregroundStyle(Palette.label)
         .navigationTitle("Giấy phép mã nguồn mở")
         .navigationBarTitleDisplayMode(.inline)
     }
