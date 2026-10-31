@@ -1418,3 +1418,9 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Chip: nút 44 để chạm, viên 36 vẽ lùi 4 trên dưới.
 - Thư viện UI: bỏ `scrollPosition(id:)` (gắn vị trí cuộn vào `LazyVStack` làm trang giật về khi phần mới được dựng), chỉ theo dõi bằng `onScrollTargetVisibilityChange`.
 - Đối chiếu HIG còn lại ghi ở cuối `docs/design-system-plan.md`.
+
+## Sheet ngắn dùng thanh thật — 2026-10-31
+
+- Người dùng chọn chuyển 8 sheet ngắn (Thêm mới `OptionSheet`, `ChoiceSheet`, `NoteSheet`, lịch ngày/giờ, Mối quan hệ, Nợ, giao dịch trong ngày, mẫu Thư viện UI) từ thanh tự vẽ `SheetHeader` sang `NavigationStack` + toolbar của iOS qua `SheetScaffold`.
+- `SheetScaffold` thêm `fitsContent`: đo chiều cao nội dung (`onGeometryChange`) cộng thanh (safe area trên của scroll view) thành một detent `.height`; cuộn chỉ khi vượt màn (`scrollBounceBehavior(.basedOnSize)`). Xoá `SheetHeader.swift` và `timiFittedSheet()`.
+- Nợ: tổng đỏ nằm đầu nội dung thay vì dưới tiêu đề tự vẽ. Ghi chú: chữ lùi 16 như dòng.

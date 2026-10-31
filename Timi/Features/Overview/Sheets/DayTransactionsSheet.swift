@@ -13,42 +13,32 @@ struct DayTransactionsSheet: View {
     var body: some View {
         let day = Calendar.current.dateInterval(of: .day, for: date) ?? DateInterval(start: date, duration: 0)
         let items = store.reportableTransactions(in: day).sorted { $0.date > $1.date }
-        VStack(alignment: .leading, spacing: Spacing.l) {
-            SheetHeader(title: date.relativeDayTitle.capitalizedFirstLetter)
-                .padding(.horizontal, Spacing.page)
-            ScrollView {
-                if items.isEmpty {
-                    EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
-                                   message: "Thu chi của ngày này sẽ hiện ở đây.")
-                } else {
-                    VStack(spacing: 0) {
-                        // A row opens to read, then change or delete from its pencil, as on Giao dịch
-                        // (user report 2026-10-30: they did not open here).
-                        // A transfer fee or loan interest has no page of its own: it shows, not opens.
-                        ForEach(Array(items.enumerated()), id: \.element.id) { index, transaction in
-                            Group {
-                                if store.transaction(id: transaction.id) != nil {
-                                    Button { viewing = transaction } label: {
-                                        TransactionListRow(transaction: transaction, detail: .time)
-                                    }
-                                    .buttonStyle(.row)
-                                } else {
+        SheetScaffold(title: date.relativeDayTitle.capitalizedFirstLetter) {
+            if items.isEmpty {
+                EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
+                               message: "Thu chi của ngày này sẽ hiện ở đây.")
+            } else {
+                VStack(spacing: 0) {
+                    // A row opens to read, then change or delete from its pencil, as on Giao dịch
+                    // (user report 2026-10-30: they did not open here).
+                    // A transfer fee or loan interest has no page of its own: it shows, not opens.
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, transaction in
+                        Group {
+                            if store.transaction(id: transaction.id) != nil {
+                                Button { viewing = transaction } label: {
                                     TransactionListRow(transaction: transaction, detail: .time)
                                 }
+                                .buttonStyle(.row)
+                            } else {
+                                TransactionListRow(transaction: transaction, detail: .time)
                             }
-                            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                         }
+                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
                     }
-                    .listCard()
                 }
+                .listCard()
             }
-            // Margins inside the scroll view, so the list card's shadow is not cut at the sides
-            // (re-review 2026-10-31).
-            .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-            .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-            .scrollBounceBehavior(.basedOnSize)
         }
-        .foregroundStyle(Palette.label)
         .timiSheetStyle([.medium, .large])
         .sheet(item: $viewing) { TransactionDetailSheet(transactionID: $0.id) }
     }

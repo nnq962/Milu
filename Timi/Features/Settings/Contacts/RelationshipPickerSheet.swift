@@ -11,38 +11,23 @@ struct RelationshipPickerSheet: View {
     @State private var editing: RelationshipEditorView.Target?
     /// Set when a new one is saved: the sheet closes once the editor has.
     @State private var pickedNew = false
-    @State private var headerHeight: CGFloat = 60
-    @State private var listHeight: CGFloat = 400
 
     var body: some View {
         let relationships = store.relationships
-        // As tall as the list, like `timiFittedSheet`, but the list scrolls once it is taller than
-        // the screen (many added relationships): iOS caps the detent at full height.
-        VStack(alignment: .leading, spacing: Spacing.l) {
-            SheetHeader(title: "Mối quan hệ")
-                .padding(.horizontal, Spacing.page)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
-            ScrollView {
-                // No footer: the pencil names itself to VoiceOver (strict review 2026-10-31).
-                FormGroup {
-                    ForEach(Array(relationships.enumerated()), id: \.element.id) { index, relationship in
-                        row(relationship)
-                            .overlay(alignment: .top) { if index > 0 { FormDivider() } }
-                    }
-                    FormActionRow(title: "Thêm loại mới", icon: "hugeicons-add-01") {
-                        editing = .new
-                    }
-                    .overlay(alignment: .top) { FormDivider() }
+        // As tall as the list; it scrolls once taller than the screen (many added relationships).
+        SheetScaffold(title: "Mối quan hệ", fitsContent: true) {
+            // No footer: the pencil names itself to VoiceOver (strict review 2026-10-31).
+            FormGroup {
+                ForEach(Array(relationships.enumerated()), id: \.element.id) { index, relationship in
+                    row(relationship)
+                        .overlay(alignment: .top) { if index > 0 { FormDivider() } }
                 }
-                .padding(.horizontal, Spacing.page)
-                .padding(.bottom, Spacing.xxl)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { listHeight = $0 }
+                FormActionRow(title: "Thêm loại mới", icon: "hugeicons-add-01") {
+                    editing = .new
+                }
+                .overlay(alignment: .top) { FormDivider() }
             }
-            .scrollBounceBehavior(.basedOnSize)
         }
-        .foregroundStyle(Palette.label)
-        .presentationDetents([.height(max(headerHeight + Spacing.l + listHeight, 200))])
-        .presentationBackground(Palette.background)
         .sheet(item: $editing, onDismiss: {
             // The picked one was deleted: its people are "Khác" now, so is this form.
             if !store.relationships.contains(where: { $0.id == selection }) {

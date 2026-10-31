@@ -191,7 +191,7 @@ Checklist cho mỗi màn: tiêu đề native, section 28, `SectionHeader` lùi 1
 | Màu dữ liệu | chart 3,9 / 3,2 / 3,3 / 4,8:1; Khác 3,3:1 | ≥ 3:1 | Đạt sau khi sửa cam và Khác. |
 | Phối màu | đen trắng + đỏ/cam/xanh lá nhỏ + 4 màu đồ thị | Một màu nhấn, màu theo nghĩa | Tốt; 3 thứ cùng đen (tab chọn, nút chính, badge Pro) là chủ ý của Đơn sắc. |
 | Sheet form | `.sheet` + `NavigationStack` + toolbar ✕/✓ `role: .close/.confirm`, `.large`, nền `background` | Native | Đạt. |
-| Sheet ngắn | `timiFittedSheet`: đo chiều cao nội dung → `.height()`; thanh trên tự vẽ (`SheetHeader`: ✕/✓ kính tròn) | Apple dùng detent `.medium`/`.height` và toolbar thật | Hành vi (vuốt đóng, mờ nền, bo góc) native; thanh trên là tự vẽ nhưng dùng đúng nút kính hệ thống. Nếu muốn thuần native: bọc `NavigationStack` + toolbar, giữ `.height`. |
+| Sheet ngắn | `SheetScaffold(fitsContent: true)`: `NavigationStack` + toolbar thật, detent `.height()` = nội dung + thanh (chuyển 2026-10-31, bỏ `SheetHeader`) | Apple dùng detent `.medium`/`.height` và toolbar thật | Đạt. |
 | Sheet khác | Lịch ngày/giờ `timiFittedSheet`; chọn tháng `.height(320)` cứng; Lọc, Ngày, Nợ `.medium/.large` có grabber | Grabber khi đổi được cỡ | Đạt; 320 cứng chỉ hợp bánh xe cỡ mặc định. |
 | Tìm kiếm | `fullScreenCover` với ô tìm tự vẽ | HIG ưu tiên `.searchable` trên thanh | Lựa chọn của người dùng 2026-10-29; giữ. |
 | Thanh trên / tab | Tiêu đề native `.inlineLarge`, nút trơn trong `ToolbarItem`, tab bar + nút tìm-role | Liquid Glass lớp điều khiển | Đạt. |

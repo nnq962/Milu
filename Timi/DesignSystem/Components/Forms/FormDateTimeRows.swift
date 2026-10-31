@@ -106,12 +106,7 @@ private struct DateTimeSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.l) {
-            SheetHeader(title: title) {
-                date = draft
-                Haptics.success()
-                dismiss()
-            }
+        SheetScaffold(title: title, onConfirm: { date = draft; dismiss() }, fitsContent: true) {
             Group {
                 if component.contains(.date) {
                     DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
@@ -129,9 +124,5 @@ private struct DateTimeSheet: View {
             .tint(Palette.primary)
             .cardSurface(radius: CardCorners.inset, outlined: true)
         }
-        .foregroundStyle(Palette.label)
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.xxl)
-        .timiFittedSheet()
     }
 }

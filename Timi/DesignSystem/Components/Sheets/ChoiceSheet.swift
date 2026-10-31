@@ -12,8 +12,7 @@ struct ChoiceSheet<Value: Hashable>: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.l) {
-            SheetHeader(title: title)
+        SheetScaffold(title: title, fitsContent: true) {
             FormGroup {
                 ForEach(Array(options.enumerated()), id: \.element) { index, option in
                     Button {
@@ -30,9 +29,5 @@ struct ChoiceSheet<Value: Hashable>: View {
                 }
             }
         }
-        .foregroundStyle(Palette.label)
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.xxl)
-        .timiFittedSheet()
     }
 }

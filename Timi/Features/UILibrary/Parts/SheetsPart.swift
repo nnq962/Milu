@@ -15,7 +15,7 @@ struct SheetsPart: View {
                     TimiButton("Sheet form · Thêm tài khoản", role: .secondary, fullWidth: true) { isShowingForm = true }
                     TimiButton("Sheet form · Sửa tài khoản", role: .secondary, fullWidth: true) { isShowingEdit = true }
                     TimiButton("Sheet ngắn · OptionSheet", role: .secondary, fullWidth: true) { isShowingOptions = true }
-                    TimiButton("Sheet ngắn có ✓ · SheetHeader", role: .secondary, fullWidth: true) { isShowingConfirm = true }
+                    TimiButton("Sheet ngắn có ✓ · SheetScaffold(fitsContent:)", role: .secondary, fullWidth: true) { isShowingConfirm = true }
                     TimiButton("Ghi chú · NoteSheet", role: .secondary, fullWidth: true) { isShowingNote = true }
                     if let picked {
                         Text("Đã chọn: \(picked)")
@@ -54,7 +54,7 @@ struct SheetsPart: View {
     }
 }
 
-/// A short sheet that confirms with ✓ in its own header (`SheetHeader(onConfirm:)`).
+/// A short sheet that confirms with ✓: the same scaffold as a form, as tall as its one row.
 private struct SampleConfirmSheet: View {
     let onDone: (String) -> Void
 
@@ -62,19 +62,14 @@ private struct SampleConfirmSheet: View {
     @State private var on = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.l) {
-            SheetHeader(title: "Bộ lọc nhanh") {
-                onDone(on ? "Chỉ tiền ra" : "Tất cả")
-                dismiss()
-            }
+        SheetScaffold(title: "Bộ lọc nhanh", onConfirm: {
+            onDone(on ? "Chỉ tiền ra" : "Tất cả")
+            dismiss()
+        }, fitsContent: true) {
             FormGroup {
                 FormToggleRow(title: "Chỉ tiền ra", isOn: $on)
             }
         }
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.xxl)
-        .background(Palette.background)
-        .timiFittedSheet()
     }
 }
 
