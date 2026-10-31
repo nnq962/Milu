@@ -29,8 +29,8 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản
 ## Giao diện: Đơn sắc, một theme sáng (2026-10-31)
 
 - **Chỉ một giao diện sáng**: app khoá sáng bằng `UIUserInterfaceStyle = Light`. Dark mode để sau: token đặt theo vai trò nên khi làm chỉ thêm một bộ giá trị trong `Palette`.
-- **Bộ Đơn sắc** (người dùng 2026-10-31: "không dùng màu xanh rêu nữa", "không thích màu xám", mono như ảnh Iconly): chữ và mọi hành động là mực #111111 trên trang gần trắng #FAFAFA; xám chỉ còn ở khối nhạt #F3F3F4, kẻ mảnh #E8E8EA, chữ phụ #6E6E73 và chevron #AEAEB2. Màu chỉ mang nghĩa: tiền ra đỏ #B5543F, cảnh báo cam #E8890C, dấu hiệu tốt xanh lá #1E9E5A **chỉ cho chấm, mũi tên, chữ 13, không bao giờ làm nền**, thông tin (cho vay, người) xanh dương #2F7CF6, dữ liệu 4 màu tươi nhỏ (xanh dương · cam · san hô · tím) + "Khác" #D1D1D6. Nhấn (PRO, "+5 AI") là viên đen chữ trắng. Bảng rêu cũ và các combo thử đã xoá khỏi code 2026-10-31 (xem `docs/design-history.md`); `AccentColor` trong Assets = #111111.
-- **Token theo vai trò** (`Palette`, hằng số; đổi màu thì đổi giá trị, không đổi tên): nền `background` / `surface` (thẻ) / `surfaceMuted` / `separator` / `inputBackground`; chữ `label` / `secondaryLabel` / `tertiaryLabel`; hành động `primary` / `onPrimary` / `rowPressed` / `primaryTint` / `primaryTrack` / `primaryDash` / `fill1-3` (mực 4/6/10%); nghĩa `negative` / `onNegative` / `positive` / `warning` / `warningLabel` / `info`; nhấn `accent` / `onAccent`; dữ liệu `chart[4]` / `chartRest`. Thư viện UI (Cài đặt → Nhà phát triển) liệt kê đúng các token này với mã hex đọc từ màu.
+- **Bộ Đơn sắc** (người dùng 2026-10-31: "không dùng màu xanh rêu nữa", "không thích màu xám", mono như ảnh Iconly): chữ và mọi hành động là mực #111111 trên trang gần trắng #FAFAFA; xám chỉ còn ở khối nhạt #F3F3F4, kẻ mảnh #E8E8EA, chữ phụ #6E6E73 và chevron #AEAEB2. Màu chỉ mang nghĩa: tiền ra đỏ #B5543F, cảnh báo cam #E8890C, dấu hiệu tốt xanh lá #15803D **chỉ cho chấm, mũi tên, chữ 13, không bao giờ làm nền** (5:1 trên trắng), dữ liệu 4 màu nhỏ xanh dương #2F7CF6 · cam #D97706 · san hô #F5555D · tím #7C4DFF, "Khác" xám #8E8E93 (mỗi màu ≥ 3:1 trên trắng, HIG cho đồ hoạ mang nghĩa). PRO và "+5 AI" là viên `primary` đen chữ trắng, không có màu nhấn riêng. Bảng rêu cũ và các combo thử đã xoá khỏi code 2026-10-31 (xem `docs/design-history.md`); `AccentColor` trong Assets = #111111.
+- **Token theo vai trò** (`Palette`, hằng số; đổi màu thì đổi giá trị, không đổi tên). **Mỗi token phải có nơi gọi**, không có thì xoá (người dùng 2026-10-31: quá nhiều màu); hiện 23: nền `background` / `surface` (thẻ) / `surfaceMuted` (khối nhạt, ô chat) / `separator`; chữ `label` / `secondaryLabel` / `tertiaryLabel`; hành động `primary` / `onPrimary` / `primaryTint` (10%: ổ avatar, rãnh vòng) / `primaryDash` / `rowPressed` / `fill` (mực 6%: nút phụ, badge trung tính); nghĩa `negative` / `onNegative` / `positive` / `warning` / `warningLabel`; dữ liệu `chart[4]` / `chartRest`. Thư viện UI (Cài đặt → Nhà phát triển) liệt kê đúng các token này với mã hex đọc từ màu.
 - **Font** (2026-10-30): **Manrope** ở đúng độ đậm ghi trong code (`Typography.instance(for:)`), đã thử Be Vietnam Pro, Plus Jakarta Sans, Inter, SF Pro cạnh nhau. Tab bar Manrope SemiBold 10, segmented và tiêu đề thanh cũng Manrope.
 - **Mép thẻ** (người dùng 2026-10-31, đề xuất Q2 của `docs/design-system-plan.md`): mọi thẻ trắng tách khỏi nền bằng **viền mảnh 1pt `separator`, không bóng** (`cardSurface(outlined: true)`, `card()`, `listCard()`, bong bóng chat `cardOutline`, nút tròn trắng). Ô nhỏ trong thẻ không viền. Bóng mềm cũ đã bỏ: trên nền gần trắng thẻ tan vào nền.
 - **Bớt card** (người dùng 2026-10-30): mỗi section một thẻ; phần còn lại là tiêu đề phẳng trên nền. Không thẻ trong thẻ.
@@ -41,16 +41,16 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản
 ## Màu
 
 - Mọi màu lấy từ `Palette`; không viết cứng `.white` / `.black` / hex trong `Features/` (trừ `Color(.placeholderText)` của ô nhập).
-- `onPrimary` / `onNegative` / `onAccent` trắng; `positive` chỉ cho dấu nhỏ; `fill1/2/3` = mực 4/6/10%; `rowPressed` = `primary` 10%.
+- `onPrimary` / `onNegative` trắng; `positive` chỉ cho dấu nhỏ; `fill` = mực 6%; `rowPressed` = `primary` 10%.
 - `ProgressBar` mặc định `primary`. Thanh hạn mức (`budgetColor`): màu chữ < 80% (xanh dễ nhầm với màu chính), cam từ 80%, đỏ khi chạm/vượt 100%.
-- Badge (`StatusBadge`): trung tính `fill2`; **"Đã thu" trắng viền mảnh chấm `positive`** (2026-10-31: nền xám 12% trùng Trung tính); Pro `accent` đen chữ trắng; caution cam 16% chữ `warningLabel`; warning đỏ 10% chữ đỏ.
+- Badge (`StatusBadge`): trung tính `fill2`; **"Đã thu" trắng viền mảnh chấm `positive`** (2026-10-31: nền xám 12% trùng Trung tính); Pro (`.pro`) `primary` đen chữ trắng, chấm trắng; caution cam 16% chữ `warningLabel`; warning đỏ 10% chữ đỏ.
 
 ## Chữ & tiền tệ
 
 - **Thang `TextRole`** (chốt 2026-10-28, nội dung 16), co giãn theo Dynamic Type; không đặt cỡ tay trong `Features/`:
   - amountEntry 52 → 38 → 28 (số đang nhập, `TextRole.amountEntrySize(for:)`) · display 34 (số dẫn đầu, line box 42) · amountLarge 24 (số lớn trong thẻ, line box 32) · pageTitle 24 · heading 20
   - title 17 Bold (tiêu đề phần trên màn chính, thẻ, sheet, hộp thoại)
-  - body / amount / label 16 (tên dòng, giá trị, chữ gõ, số tiền cuối dòng) · accessory 14 (nút cạnh tiêu đề)
+  - body / amount / label 16 SemiBold (tên dòng, giá trị, chữ gõ, số tiền cuối dòng: **cùng độ đậm với tên**, người dùng 2026-10-31, trước là Bold) · accessory 14 (nút cạnh tiêu đề)
   - caption / captionStrong 13 (phụ đề, chú thích, lỗi, chip, badge, chú thích đồ thị) · overline 12 in hoa (tiêu đề nhóm) · footnote 11 (trục đồ thị)
 - Tiêu đề, số tiền, chữ hoa nhỏ `.bold` = Manrope Bold; chữ khác `.semibold`. Nút: 16 ở cỡ 44/56, 14 ở cỡ 36.
 - **Tiền:** đầy đủ `10.000.000đ`, rút gọn `10,3tr` (`25k`, `2,5tr`, `1,2tỷ`). Đơn vị liền số, cùng font/cỡ/weight/baseline; dấu chấm phân nhóm, dấu phẩy thập phân; không dùng `₫`. Formatter chung `vnd` / `vndCompact`; số tiền vẽ bằng `MoneyText` (dấu, màu theo nghĩa).
@@ -63,14 +63,14 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản
 - `CardCorners`: `large` 28 (thẻ có đệm 20: thẻ đầu trang, tổng, thẻ hũ) · `inset` 24 (nhóm form, thẻ Cài đặt, mọi `listCard`: đồng tâm với lề dòng 16 + góc icon ~9) · `flow` 20 (ô nhỏ trong thẻ, bong bóng chat) · `field` 12 · `icon` 10 · `calendarDay` 8.
 - `Spacing` bội 4: lề màn 20 (`page`); **giữa các phần 28 (`section`) ở mọi trang** (bỏ 36 của trang không thẻ, 2026-10-31); tiêu đề → thẻ 8 (`headerGap`); đệm thẻ 20 (`card`), thẻ đầu trang / trạng thái trống 24 (`leadCard`); nội dung sheet form cách nhau 24.
 - `RowMetrics`: lề 16; icon 20 trong cột 24; icon → chữ 14; vạch kẻ lùi theo cột icon (`RowDivider(column:)`); hàng một dòng đúng 52, có phụ đề ~62; `featureIcon` 44, `iconChoice` 52, `toolbarGlyph` 22 / `toolbarGlyphFrame` 28, `chevron` 16 (`RowChevron`), `linkChevron` 12 (› ⌄ × sau chữ), `inlineGlyph` 14, `listLogo` 32, `ringStroke` 3, `legendDot` 8.
-- `ControlHeight`: nút 36 / 44 / 56, ô nhập 44. Mọi thanh (`ProgressBar`, `SegmentedBar`) 8pt. Vùng chạm ≥ 44.
+- `ControlHeight`: nút 36 / 44 / 56, ô nhập 44. Mọi thanh (`ProgressBar`, `SegmentedBar`) 8pt. Vùng chạm ≥ 44 ở mọi control, kể cả chip 36 (vùng chạm rộng hơn hình).
 
 ## Thành phần
 
 - **Thẻ:** `card(padding:radius:)` (trắng, đệm 20, bo 28, viền mảnh) cho thẻ có nội dung tự do; `listCard()` (bo 24, không đệm) cho khối dòng; `cardSurface(radius:color:outlined:)` khi cần hình khác; `settingsCard()` ở Cài đặt (bo 24, chữ lùi 16). `SummaryCard` là thẻ đầu trang căn trái (nhãn nhỏ, `MoneyText(.display)`, icon phải).
 - **Hai cột (`SplitTotals`, 2026-10-31):** "Đã chi | Đã thu" (Thu chi, Tổng quan, Báo cáo), "Cho vay | Đi vay": nhãn `captionStrong` xám, `MoneyText(.large)`, dòng phụ tuỳ chọn (số người, so với kỳ trước), kẻ dọc `VerticalDivider`; cỡ trợ năng xếp dọc với `SplitLine`. Không tự dựng hai cột nữa.
 - **Thanh chia phần (`SegmentedBar` + `LegendRow`, 2026-10-31):** tiền ở đâu (Tài khoản), chi theo nhóm trên hạn mức (Tổng quan), hạn mức theo nhóm (Phân bổ); màu `ChartShades`, khe 2pt, phần trống là rãnh `surfaceMuted`, cao 8; chú thích chấm + tên (`FlowLayout`, `caption` xám).
-- **Nút (`TimiButton`):** Chính (`primary`) / Phụ (`fill2`) / Nổi bật (`accent` đen, chỉ Pro) / Xoá (đỏ 14%) / Xoá vĩnh viễn (đỏ); cỡ 36/44/56; nền phẳng, mờ khi nhấn; nút tắt viên xám chữ xám. Nút trên thanh là `Button` trơn trong `ToolbarItem`, glyph 22 trong khung 28; nút + luôn `hugeicons-add-circle`. Nút tròn phẳng trong nội dung `flatCircleButton` (‹ › Báo cáo, biểu đồ ở Thu chi).
+- **Nút (`TimiButton`):** Chính (`primary`) / Phụ (`fill`) / Xoá (đỏ 14%) / Xoá vĩnh viễn (đỏ) — bỏ "Nổi bật" 2026-10-31 vì trong Đơn sắc nó y hệt Chính; cỡ 36/44/56; nền phẳng, mờ khi nhấn; nút tắt viên xám chữ xám. Nút trên thanh là `Button` trơn trong `ToolbarItem`, glyph 22 trong khung 28; nút + luôn `hugeicons-add-circle`. Nút tròn phẳng trong nội dung `flatCircleButton` (‹ › Báo cáo, biểu đồ ở Thu chi).
 - **Nút thêm giao dịch:** nút + tròn tách riêng cạnh tab bar (`Tab(role: .search)`), có ở mọi tab, mở sheet chứ không đổi tab.
 - **Sheet form (`SheetScaffold`):** ✕ trái (huỷ), ✓ phải (lưu, màu chính) là nút hệ thống `role: .close / .confirm`; không chân sheet. ✓ luôn bấm được: thiếu thì giữ sheet, rung lỗi, nhãn dòng đỏ, `FormErrorText` hiện mượt (VoiceOver đọc). Chặn bấm ✓ hai lần. Sheet vừa nội dung (`timiFittedSheet`) dùng `SheetHeader` với ✕/✓ kính tròn. Ghi chú ngắn dùng `NoteSheet`. Nền sheet `background`; thanh nắm theo mặc định Apple.
 - **Phần đầu sheet tiền:** `SheetAmountHeader` (nhãn nhỏ + `TimiAmountField` cỡ `amountEntry`), cuộn cùng nội dung; mở bàn phím ngay khi thêm mới. Chip gợi ý: số đã gõ × 10³…10⁹, tối đa 5 chip `vndCompact`, `TagChip` phẳng trong `GlassEffectContainer`.
@@ -79,10 +79,10 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản
 - **Danh sách theo ngày (Thu chi, Tìm kiếm):** mỗi ngày một thẻ (`ActivityDayList`), tiêu đề ngày 17 Bold + tổng ngày gọn ("+850k  -120k"). Dòng phụ: ghi chú → nhóm hạng mục → tài khoản, không lặp tên dòng.
 - **Dòng danh sách:** `ListRow` (› `RowChevron`, `trailingSubtitle` dưới số tiền, `compactAmount`) trong `listCard()`, ngăn bằng `RowDivider`. Tài khoản ở mọi danh sách là `AccountRow` + `RowDivider(column: .logo)`: logo/ô 32, tên `body`, số rút gọn. Khoản vay `LoanRow` cùng cột 32. Bấm dòng `.row`; bấm thẻ `.card`.
 - **Logo & icon dòng:** `RowIcon` vẽ glyph hoặc logo ngân hàng/ví (`InstitutionLogo`) cùng một ô; logo không to hơn icon.
-- **Chip:** `ChipRow` đổi bộ lọc (chip chọn `primary`); `TagChip` thường / gợi ý / có × / nổi. Hàng chip chỉ cuộn ngang khi tràn (`NoScrollEdgeEffect`).
+- **Chip:** `ChipRow` đổi bộ lọc (chip chọn `primary`); `TagChip` thường / gợi ý / có × / nổi: viên 36 nhìn thấy, nút 44 để chạm (HIG, 2026-10-31). Hàng chip chỉ cuộn ngang khi tràn (`NoScrollEdgeEffect`).
 - **Badge (`StatusBadge`):** xem mục Màu; có biến thể icon.
 - **Trạng thái trống (`EmptyStateCard`):** icon trơn 44 màu chữ, một câu ngắn, **không nút** (thêm mới đi qua nút + của trang).
-- **Nút tháng (`MonthMenu`):** `Menu` native, viên phẳng `fill2` cao 44; dạng gọn ở Lịch thu chi là `HeaderLink` ⌄. Năm khác ghi "Tháng 9/2025".
+- **Nút tháng (`MonthMenu`):** `Menu` native, viên phẳng `fill` cao 44; dạng gọn ở Lịch thu chi là `HeaderLink` ⌄. Năm khác ghi "Tháng 9/2025".
 - **Thẻ tháng ở Thu chi:** một thẻ trắng ngay dưới segment: nút tháng (trái) + nút tròn phẳng biểu đồ mở Báo cáo (phải) cùng cao 44; dưới là `SplitTotals` Đã chi | Đã thu; dòng hạn mức (`BudgetStatusLine`) chỉ từ 80%.
 - **Vay nợ:** thẻ đầu trang `SplitTotals` "Cho vay" | "Đi vay" (đi vay đỏ "-"), số người dưới mỗi cột.
 - **Số tiền:** luôn `MoneyText` (cỡ `caption` / `row` / `heading` / `large` / `display`; tone `signedIncome` "+" mực, `signedExpense` "-" đỏ, `signedNet` theo dấu, `negativeRed`, `muted`), không tự viết `Text(x.vnd)`. Cảnh báo hạn mức một kiểu: `BudgetStatusLine`.

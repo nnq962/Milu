@@ -25,7 +25,8 @@ enum TextRole: CaseIterable, Identifiable {
     case label
     /// Rare emphasis inside body text. 16 SemiBold
     case bodyStrong
-    /// Amounts at the end of a row: same size as the title, a touch heavier, tabular. 16 Bold
+    /// Amounts at the end of a row: the title's size and weight, tabular (user 2026-10-31: no
+    /// heavier than the name beside it). 16
     case amount
     /// A control beside a section heading (the month of Lịch thu chi): clearly under the 17 title
     /// it sits by, its colour marks it (user choice 2026-10-30: 16 read as large as the title). 14
@@ -61,8 +62,8 @@ enum TextRole: CaseIterable, Identifiable {
         switch self {
         // Titles and figures Bold, every other text SemiBold: one step under the first mock-ups'
         // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
-        case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
-        case .body, .label, .accessory, .caption, .captionStrong, .footnote: .semibold
+        case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .overline: .bold
+        case .body, .label, .accessory, .caption, .captionStrong, .footnote, .amount: .semibold
         }
     }
 

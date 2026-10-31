@@ -249,7 +249,7 @@ struct SettingsView: View {
         } label: {
             HStack(spacing: RowMetrics.gap) {
                 TimiIcon("hugeicons-crown", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(Palette.primary)
                     .frame(width: RowMetrics.iconColumn, height: RowMetrics.iconGlyph)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {

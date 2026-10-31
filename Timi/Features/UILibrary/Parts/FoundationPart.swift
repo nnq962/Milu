@@ -3,28 +3,19 @@ import SwiftUI
 struct FoundationPart: View {
     /// The tokens themselves; the hex under each is read from the colour, so it follows a combo
     /// tried in "Màu (thử)" (strict review 2026-10-31: written by hand, it went stale).
+    /// Every token of `Palette`, each with a caller in the app, grouped by what it does.
     private var colors: [(name: String, color: Color)] {
         [
-            // Surfaces
-            ("background", Palette.background), ("surface (thẻ)", Palette.surface),
+            ("background (trang)", Palette.background), ("surface (thẻ)", Palette.surface),
             ("surfaceMuted (khối nhạt)", Palette.surfaceMuted), ("separator (kẻ mảnh)", Palette.separator),
-            ("inputBackground", Palette.inputBackground),
-            // Words
             ("label (chữ)", Palette.label), ("secondaryLabel", Palette.secondaryLabel),
             ("tertiaryLabel (chevron)", Palette.tertiaryLabel),
-            // Actions
-            ("primary", Palette.primary), ("onPrimary", Palette.onPrimary),
-            ("rowPressed", Palette.rowPressed), ("primaryTint", Palette.primaryTint),
-            ("primaryTrack", Palette.primaryTrack), ("primaryDash", Palette.primaryDash),
-            ("fill1", Palette.fill1), ("fill2", Palette.fill2), ("fill3", Palette.fill3),
-            // Meaning
+            ("primary (nút, Pro)", Palette.primary), ("onPrimary", Palette.onPrimary),
+            ("primaryTint", Palette.primaryTint), ("primaryDash", Palette.primaryDash),
+            ("rowPressed", Palette.rowPressed), ("fill (nút phụ)", Palette.fill),
             ("negative (tiền ra)", Palette.negative), ("onNegative", Palette.onNegative),
-            ("positive (dấu hiệu tốt)", Palette.positive),
-            ("warning", Palette.warning), ("warningLabel (chữ cam)", Palette.warningLabel),
-            ("info (cho vay, người)", Palette.info),
-            // Accent
-            ("accent (Pro)", Palette.accent), ("onAccent", Palette.onAccent),
-            // Data
+            ("positive (dấu nhỏ)", Palette.positive),
+            ("warning (thanh)", Palette.warning), ("warningLabel (chữ)", Palette.warningLabel),
             ("chart[0]", Palette.chart[0]), ("chart[1]", Palette.chart[1]),
             ("chart[2]", Palette.chart[2]), ("chart[3]", Palette.chart[3]), ("chartRest (Khác)", Palette.chartRest),
         ]

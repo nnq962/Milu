@@ -56,7 +56,7 @@ struct ButtonsPart: View {
                                 .padding(.horizontal, Spacing.l)
                                 .frame(minHeight: ControlHeight.regular)
                         }
-                        .flatCapsuleButton(fill: flatChoice == 0 ? Palette.primary : Palette.fill2)
+                        .flatCapsuleButton(fill: flatChoice == 0 ? Palette.primary : Palette.fill)
                         .accessibilityAddTraits(flatChoice == 0 ? .isSelected : [])
                     }
                     Text("FlatButtonStyle(fill:shape:) · nền fill2, đang chọn nền primary")

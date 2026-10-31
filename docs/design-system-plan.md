@@ -177,3 +177,23 @@ Checklist cho mỗi màn: tiêu đề native, section 28, `SectionHeader` lùi 1
 | Q4 | iOS tối thiểu: giữ 17.6 (và phải test 19 nhánh fallback trên iOS 17) hay nâng lên 26 (xoá hết fallback, chỉ còn một đường)? | **Nâng lên 26** nếu bạn chưa định phát hành rộng trong vài tháng tới; toàn bộ thiết kế đã dựa trên Liquid Glass và `Tab(role: .search)`. Nếu cần máy cũ, 18 là mức giữa (giữ `Tab`, bỏ nhánh 17). |
 | Q5 | Dark mode: để sau (bước 6) hay làm ngay? | **Để sau**, nhưng đặt tên token theo vai trò ngay từ bước 2 để lúc làm chỉ sửa một file. |
 | Q6 | `examples/` (HTML Sleek) và `docs/design-trials/`: xoá khỏi repo hay giữ? | **Xoá `examples/`** (git history còn), **commit `docs/design-trials/`** vì là bản thử có ngày của chính app. |
+
+## 6. Đối chiếu HIG sau khi dọn (duyệt khó tính 2026-10-31)
+
+| Mục | Hiện tại | So với HIG | Kết luận |
+|---|---|---|---|
+| Bo góc thẻ | 28 (thẻ đệm 20), 24 (khối dòng, form), 20 (ô trong thẻ chat), 12 ô nhập, `.continuous` | Nhóm danh sách iOS 26 ≈ 26; góc đồng tâm = góc ngoài − lề | Đạt. Ô chat 20 trong bong bóng 24 lề 16 chưa đồng tâm (8), chỉ ở Trợ lý AI, chấp nhận. |
+| Chiều cao | dòng 52 (phụ đề ~62), nút 36/44/56, ô nhập 44, chip 36 hình / 44 chạm, badge 24 (không chạm), ô lịch 44, thanh 8 | Chạm ≥ 44 × 44 | Đạt sau khi chip có vùng chạm 44. |
+| Khoảng cách | lề 20, phần 28, tiêu đề → thẻ 8, đệm thẻ 20/24 | Grouped list: lề 16–20, giữa nhóm ~35 | Đạt; 28 gọn hơn Apple một chút, nhất quán toàn app. |
+| Chữ | Manrope, body 16 SemiBold, title 17 Bold, co theo Dynamic Type, line box `.exact` | SF Pro, Body 17 Regular, Headline 17 SemiBold | Khác biệt lớn nhất với Apple là **mọi chữ SemiBold**; là lựa chọn thương hiệu, không lỗi. Dynamic Type đạt. |
+| Màu chữ | label 18,9:1, secondaryLabel 4,9:1, tertiaryLabel 2,2:1 (chỉ chevron) | Chữ ≥ 4,5:1 | Đạt. |
+| Màu nghĩa | negative 4,9:1; positive 5,0:1; warning 2,6:1 chỉ thanh, chữ dùng warningLabel 5,7:1 | Đồ hoạ mang nghĩa ≥ 3:1 | Đạt sau khi sửa positive. Đỏ #B5543F hơi ấm trên nền trung tính, có thể lạnh hơn (#C4453A) nếu muốn; chưa đổi. |
+| Màu dữ liệu | chart 3,9 / 3,2 / 3,3 / 4,8:1; Khác 3,3:1 | ≥ 3:1 | Đạt sau khi sửa cam và Khác. |
+| Phối màu | đen trắng + đỏ/cam/xanh lá nhỏ + 4 màu đồ thị | Một màu nhấn, màu theo nghĩa | Tốt; 3 thứ cùng đen (tab chọn, nút chính, badge Pro) là chủ ý của Đơn sắc. |
+| Sheet form | `.sheet` + `NavigationStack` + toolbar ✕/✓ `role: .close/.confirm`, `.large`, nền `background` | Native | Đạt. |
+| Sheet ngắn | `timiFittedSheet`: đo chiều cao nội dung → `.height()`; thanh trên tự vẽ (`SheetHeader`: ✕/✓ kính tròn) | Apple dùng detent `.medium`/`.height` và toolbar thật | Hành vi (vuốt đóng, mờ nền, bo góc) native; thanh trên là tự vẽ nhưng dùng đúng nút kính hệ thống. Nếu muốn thuần native: bọc `NavigationStack` + toolbar, giữ `.height`. |
+| Sheet khác | Lịch ngày/giờ `timiFittedSheet`; chọn tháng `.height(320)` cứng; Lọc, Ngày, Nợ `.medium/.large` có grabber | Grabber khi đổi được cỡ | Đạt; 320 cứng chỉ hợp bánh xe cỡ mặc định. |
+| Tìm kiếm | `fullScreenCover` với ô tìm tự vẽ | HIG ưu tiên `.searchable` trên thanh | Lựa chọn của người dùng 2026-10-29; giữ. |
+| Thanh trên / tab | Tiêu đề native `.inlineLarge`, nút trơn trong `ToolbarItem`, tab bar + nút tìm-role | Liquid Glass lớp điều khiển | Đạt. |
+| Nhấn | Nút hệ thống kính; nút tự vẽ mờ 0,6; dòng `rowPressed` | Giữ hiệu ứng Apple | Đạt (đã bỏ scale). |
+| Trợ năng | VoiceOver label, Reduce Motion, ↑/↓ và dấu −, cột xếp dọc ở AX | | Đạt ở mức đã xem; chưa duyệt đủ AX5 mọi màn. |

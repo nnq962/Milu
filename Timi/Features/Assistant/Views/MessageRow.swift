@@ -114,7 +114,7 @@ struct MessageRow: View {
 
     /// A flat capsule at least 44 tall: no Liquid Glass inside the chat, which scrolls (re-review
     /// 2026-10-31: glass, and ~34 tall).
-    private func cardButton(_ title: String, icon: String? = nil, color: Color, fill: Color = Palette.fill2,
+    private func cardButton(_ title: String, icon: String? = nil, color: Color, fill: Color = Palette.fill,
                             role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
         Button(role: role, action: action) {
             HStack(spacing: Spacing.xs) {

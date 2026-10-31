@@ -80,7 +80,7 @@ extension View {
 /// floating +, since glass in a scrolling card trailed it): a flat fill in `shape`, dimmed while
 /// pressed as the system's plain buttons are, nothing more.
 struct FlatButtonStyle<S: Shape>: ButtonStyle {
-    var fill: Color = Palette.fill2
+    var fill: Color = Palette.fill
     let shape: S
     /// A fixed square for round buttons; nil lets the label size the button.
     var diameter: CGFloat? = nil
@@ -98,12 +98,12 @@ struct FlatButtonStyle<S: Shape>: ButtonStyle {
 
 extension View {
     /// A round flat button `diameter` wide (‹ › on Báo cáo, the report circle on Thu chi).
-    func flatCircleButton(diameter: CGFloat = ControlHeight.regular, fill: Color = Palette.fill2) -> some View {
+    func flatCircleButton(diameter: CGFloat = ControlHeight.regular, fill: Color = Palette.fill) -> some View {
         buttonStyle(FlatButtonStyle(fill: fill, shape: Circle(), diameter: diameter))
     }
 
     /// A flat capsule button; size the label yourself (at least `ControlHeight.regular` to tap).
-    func flatCapsuleButton(fill: Color = Palette.fill2) -> some View {
+    func flatCapsuleButton(fill: Color = Palette.fill) -> some View {
         buttonStyle(FlatButtonStyle(fill: fill, shape: Capsule()))
     }
 }

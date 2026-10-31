@@ -1408,3 +1408,13 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Bước 2: token đặt theo vai trò (`label`, `surface`, `separator`, `negative`, `positive`, `info`, `accent`, `chart`…) thay tên theo màu (`ink`, `card`, `border`, `red`, `green`, `sky`, `lime`); `sleekCard` → `card`, `HeaderCapsuleLabel` → `HeaderLink`, `headerCapsuleGlass` → `headerLinkButton`, `AccountRowDivider` → `RowDivider(column: .logo)`. Thư viện UI liệt kê token theo nhóm vai trò.
 - Bước 3: `SplitTotals` thay 4 bản hai cột tự dựng; `SegmentedBar` + `LegendRow` thay 3 thanh chia phần (thanh Tổng quan từ 12 về 8); `cardSurface(outlined:)` viền mảnh thay `softCardShadow`; `CardButtonStyle` bỏ scale; nhãn dưới nút nhanh và lưới hạng mục vào trong `Button`; badge "Đã thu" trắng viền chấm xanh; `TextRole.amountEntry` 52/38/28, `display`/`amountLarge` có line box 42/32; Reduce Motion ở ô tiền, dòng giá trị, dòng hạn mức, danh sách Thu chi, kiểu nhấn; `ProgressRing`, `FlowLayout`, `SplitLine`, `ChartShades` về DesignSystem.
 - Bước 4: xem Tổng quan, Tài khoản, Thu chi, Vay nợ, Báo cáo, sheet Thêm giao dịch trên Simulator ở cỡ mặc định và AX-large (hai cột xếp dọc đúng).
+
+## Duyệt khó tính Thư viện UI — 2026-10-31
+
+- Người dùng xem Thư viện UI: quá nhiều màu, nút Chính và Nổi bật giống nhau, badge Pro chấm đen trên nền đen, cuộn trang bị giật về, số tiền trong danh sách không cần đậm hơn tên.
+- Màu: xoá `fill1`, `fill3`, `info`, `accent`, `onAccent`, `inputBackground`, `primaryTrack` (không ai gọi hoặc trùng giá trị); `fill2` → `fill`. Còn 23 token, mỗi token có nơi gọi. Đo tương phản: `positive` #1E9E5A chỉ 3,45:1 → #15803D (5,0:1); cam đồ thị #F5A623 2,0:1 → #D97706 (3,2:1); "Khác" #D1D1D6 1,5:1 → #8E8E93 (3,3:1). Đỏ #B5543F 4,9:1, chữ phụ 4,9:1 đạt.
+- Nút: bỏ vai trò "Nổi bật". Badge Pro: tone `.pro`, nền `primary`, chấm trắng.
+- Chữ: `amount` 16 SemiBold như `body` (trước Bold).
+- Chip: nút 44 để chạm, viên 36 vẽ lùi 4 trên dưới.
+- Thư viện UI: bỏ `scrollPosition(id:)` (gắn vị trí cuộn vào `LazyVStack` làm trang giật về khi phần mới được dựng), chỉ theo dõi bằng `onScrollTargetVisibilityChange`.
+- Đối chiếu HIG còn lại ghi ở cuối `docs/design-system-plan.md`.

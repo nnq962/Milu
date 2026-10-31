@@ -6,8 +6,6 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     case primary
     /// Secondary actions inside content.
     case secondary
-    /// The accent (a black pill), for Pro only.
-    case accent
     /// Delete next to Save in a sheet footer: light, so Save stays the main action.
     case destructive
     /// The final confirmation of something that cannot be undone.
@@ -19,7 +17,6 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         switch self {
         case .primary: "Chính"
         case .secondary: "Phụ"
-        case .accent: "Nổi bật"
         case .destructive: "Xoá"
         case .destructiveSolid: "Xoá vĩnh viễn"
         }
@@ -29,7 +26,6 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         switch self {
         case .primary: "Một nút chính mỗi màn: Lưu, Thêm"
         case .secondary: "Hành động phụ trong nội dung"
-        case .accent: "Chỉ cho Timi Pro"
         case .destructive: "Xoá nhẹ, cạnh một nút chính"
         case .destructiveSolid: "Bước cuối không hoàn tác được"
         }
@@ -38,8 +34,7 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     fileprivate var fill: Color {
         switch self {
         case .primary: Palette.primary
-        case .secondary: Palette.fill2
-        case .accent: Palette.accent
+        case .secondary: Palette.fill
         case .destructive: Palette.negative.opacity(0.14)
         case .destructiveSolid: Palette.negative
         }
@@ -50,7 +45,6 @@ enum TimiButtonRole: CaseIterable, Identifiable {
         case .primary: Palette.onPrimary
         case .destructiveSolid: Palette.onNegative
         case .secondary: Palette.label
-        case .accent: Palette.onAccent
         case .destructive: Palette.negative
         }
     }
@@ -105,7 +99,7 @@ struct TimiButton<Label: View>: View {
                 .padding(.horizontal, size.horizontalPadding)
                 .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: size.height)
         }
-        .flatCapsuleButton(fill: isEnabled ? role.fill : Palette.fill2)
+        .flatCapsuleButton(fill: isEnabled ? role.fill : Palette.fill)
     }
 }
 

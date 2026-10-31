@@ -93,7 +93,7 @@ struct OnboardingCard: View {
     private var reward: some View {
         HStack(spacing: Spacing.m) {
             // The shared badge and ›, not a hand-made pill (strict review 2026-10-31).
-            StatusBadge(text: "+5 AI", tone: .accent, showsDot: false)
+            StatusBadge(text: "+5 AI", tone: .pro, showsDot: false)
             RowChevron()
         }
     }

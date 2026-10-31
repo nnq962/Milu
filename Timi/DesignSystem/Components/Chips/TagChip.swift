@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// The one chip of the app (not glass, user choice 2026-10-31): white capsule, thin outline; filled
-/// in the primary colour when chosen or prominent.
+/// in the primary colour when chosen or prominent. The capsule is 36 tall, the button 44 (HIG:
+/// nothing to tap under 44), the difference clear above and below.
 /// With `onRemove` it is a filter that is on ("Chi ×"): the chip opens it, × drops it. Without, a
 /// suggestion in grey that one tap turns on. `isProminent` is the filled one ("Bộ lọc · 2", the chosen filter).
 struct TagChip: View {
@@ -27,10 +28,10 @@ struct TagChip: View {
                 .foregroundStyle(isProminent ? Palette.onPrimary : isSuggestion ? Palette.secondaryLabel : Palette.label)
                 .padding(.leading, Spacing.m)
                 .padding(.trailing, onRemove == nil ? Spacing.m : Spacing.xxs)
-                // At least 36, taller with larger text (Dynamic Type).
+                // At least 44 to tap, taller with larger text (Dynamic Type).
                 .padding(.vertical, Spacing.xs)
-                .frame(minHeight: ControlHeight.small)
-                .contentShape(Capsule())
+                .frame(minHeight: ControlHeight.regular)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityHint(hint ?? "")
@@ -48,7 +49,16 @@ struct TagChip: View {
             }
         }
         .fixedSize(horizontal: false, vertical: true)
-        .background(isProminent ? Palette.primary : Palette.surface, in: Capsule())
-        .overlay { if !isProminent { Capsule().strokeBorder(Palette.separator, lineWidth: 1) } }
+        // The capsule drawn 4 in from the top and bottom of the 44 button.
+        .background {
+            Capsule().fill(isProminent ? Palette.primary : Palette.surface)
+                .padding(.vertical, Spacing.xs)
+        }
+        .overlay {
+            if !isProminent {
+                Capsule().strokeBorder(Palette.separator, lineWidth: 1)
+                    .padding(.vertical, Spacing.xs)
+            }
+        }
     }
 }

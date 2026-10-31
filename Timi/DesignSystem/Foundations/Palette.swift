@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// Design tokens shared by every screen, named by what they do (as iOS's own `label`,
-/// `separator`, `systemFill`), not by their hue, so a change of colours changes no names.
+/// `separator`, `systemFill`), not by their hue, so a change of colours changes no names. Every
+/// token here has a caller; one was pruned as soon as it had none (user 2026-10-31: too many).
 ///
 /// One light theme, the monochrome set chosen 2026-10-31 (the moss theme of 2026-10-30 is kept
 /// in `docs/design-history.md`): near-black words and actions on a near-white page, grey only as a
 /// faint block, a hairline and secondary words; colour kept for money out (`negative`), a limit
 /// getting close (`warning`), good signs (`positive`, small marks only) and the hues that tell
-/// data apart (`chart`, `info`). Plain constants, so a token costs nothing to read.
+/// data apart (`chart`). The PRO badge and crown use `primary`: a black pill with white words.
+/// Plain constants, so a token costs nothing to read.
 ///
 /// The one copy outside this file is `AccentColor` in Assets (system alerts), set to `primary`.
 enum Palette {
@@ -21,8 +23,6 @@ enum Palette {
     static let surfaceMuted = rgb(243, 243, 244)
     /// Hairlines between rows, the edge of a chip or a logo tile.
     static let separator = rgb(232, 232, 234)
-    /// The chat input field.
-    static let inputBackground = rgb(245, 245, 246)
 
     // MARK: Words
 
@@ -42,20 +42,12 @@ enum Palette {
     static let onPrimary = Color.white
     /// A list row under the finger: a faint wash of the primary colour.
     static let rowPressed = primary.opacity(0.10)
-    /// A tile in the primary colour, thin (the avatar in Cài đặt, the chosen icon's disc).
+    /// A tile in the primary colour, thin: the avatar in Cài đặt, the empty part of a progress ring.
     static let primaryTint = primary.opacity(0.10)
-    /// The empty part of a progress ring.
-    static let primaryTrack = primary.opacity(0.12)
     /// A dashed outline in the primary colour (a "new" tile).
     static let primaryDash = primary.opacity(0.35)
-
-    // Ink laid thin, like iOS systemFill: one tint that suits page, card and sheet.
-    /// Text fields, neutral icon tiles.
-    static let fill1 = label.opacity(0.04)
-    /// Grey buttons, tracks, the neutral badge.
-    static let fill2 = label.opacity(0.06)
-    /// Pressed grey, a switch turned off.
-    static let fill3 = label.opacity(0.10)
+    /// Ink laid thin, like iOS systemFill: grey buttons and the neutral badge, on page and card alike.
+    static let fill = label.opacity(0.06)
 
     // MARK: Meaning
 
@@ -65,30 +57,21 @@ enum Palette {
     static let onNegative = Color.white
     /// Good signs: growth, a limit well within, a loan settled, a day with more in than out.
     /// Small marks only (a dot, an arrow, a 13pt line), never a fill (user rule 2026-10-31: no
-    /// grey, and no colour but small vivid marks).
-    static let positive = rgb(30, 158, 90)
-    /// A limit getting close (from 80%): bars and glyphs.
+    /// grey, and no colour but small vivid marks). 5:1 on white, so the 13pt line reads.
+    static let positive = rgb(21, 128, 61)
+    /// A limit getting close (from 80%): bars and glyphs; words take `warningLabel`.
     static let warning = rgb(232, 137, 12)
     /// Words in the warning colour, deep enough to read on white and on `warning` 16%.
     static let warningLabel = rgb(138, 75, 8)
-    /// The second hue, for information: money lent, people, a transfer.
-    static let info = rgb(47, 124, 246)
-
-    // MARK: Accent
-
-    /// The one accent, used sparingly: the PRO badge and crown, the "+5 AI" reward. A black pill
-    /// with white words, as the floating button of the Iconly mock-ups.
-    static let accent = rgb(17, 17, 17)
-    /// Text and glyphs on `accent`.
-    static let onAccent = Color.white
 
     // MARK: Data
 
     /// The chart's shades, largest group first: blue, orange, coral, violet, as the storage bar of
-    /// the mock-ups; small vivid marks that tell data apart, never words.
-    static let chart = [rgb(47, 124, 246), rgb(245, 166, 35), rgb(245, 85, 93), rgb(124, 77, 255)]
-    /// The groups after the fourth, as one ("Khác").
-    static let chartRest = rgb(209, 209, 214)
+    /// the mock-ups; small vivid marks that tell data apart, never words. Each at least 3:1 on
+    /// white (HIG: graphics that carry meaning), which is why the orange is deeper than the mock-up's.
+    static let chart = [rgb(47, 124, 246), rgb(217, 119, 6), rgb(245, 85, 93), rgb(124, 77, 255)]
+    /// The groups after the fourth, as one ("Khác"): iOS's own grey, 3:1 on white.
+    static let chartRest = rgb(142, 142, 147)
 
     private static func rgb(_ red: Double, _ green: Double, _ blue: Double) -> Color {
         Color(red: red / 255, green: green / 255, blue: blue / 255)

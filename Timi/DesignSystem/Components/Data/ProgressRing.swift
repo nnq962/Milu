@@ -5,7 +5,7 @@ struct ProgressRing: View {
     let progress: Double
     var color: Color = Palette.primary
     /// The empty part: thin primary by default, a grey for a ring in another colour.
-    var track: Color = Palette.primaryTrack
+    var track: Color = Palette.primaryTint
     var lineWidth: CGFloat = RowMetrics.ringStroke
 
     var body: some View {

@@ -3,7 +3,7 @@ import SwiftUI
 /// Meaning of a badge; colour is used sparingly, red only for real warnings. "Thông tin" was dropped
 /// (2026-10-29): its grey could not be told from Trung tính, and no screen used it.
 enum BadgeTone: CaseIterable, Identifiable {
-    case neutral, positive, accent, caution, warning
+    case neutral, positive, pro, caution, warning
 
     var id: Self { self }
 
@@ -11,7 +11,7 @@ enum BadgeTone: CaseIterable, Identifiable {
         switch self {
         case .neutral: "Trung tính"
         case .positive: "Đã thu"
-        case .accent: "Pro"
+        case .pro: "Pro"
         case .caution: "Sắp đến hạn"
         case .warning: "Quá hạn"
         }
@@ -19,11 +19,11 @@ enum BadgeTone: CaseIterable, Identifiable {
 
     fileprivate var background: Color {
         switch self {
-        case .neutral: Palette.fill2
+        case .neutral: Palette.fill
         // White with a hairline (`isOutlined`): a grey pill read as neutral, and a green tint is a
         // fill the monochrome set has none of; the dot carries the meaning.
         case .positive: Palette.surface
-        case .accent: Palette.accent
+        case .pro: Palette.primary
         case .caution: Palette.warning.opacity(0.16)
         case .warning: Palette.negative.opacity(0.10)
         }
@@ -36,7 +36,7 @@ enum BadgeTone: CaseIterable, Identifiable {
         case .warning: Palette.negative
         // Orange words on the orange tint are too light to read: the deep orange.
         case .caution: Palette.warningLabel
-        case .accent: Palette.onAccent
+        case .pro: Palette.onPrimary
         default: Palette.label
         }
     }
@@ -45,7 +45,8 @@ enum BadgeTone: CaseIterable, Identifiable {
         switch self {
         case .neutral: Palette.tertiaryLabel
         case .positive: Palette.positive
-        case .accent: Palette.label
+        // White on the black pill (user report 2026-10-31: it was ink on ink).
+        case .pro: Palette.onPrimary
         case .caution: Palette.warning
         case .warning: Palette.negative
         }

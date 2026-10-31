@@ -180,7 +180,7 @@ struct AssistantView: View {
         .padding(Spacing.xxs)
         // A capsule while one line; a rounded rectangle of the same end radius once it grows, not
         // an oval (re-review 2026-10-31).
-        .background(Palette.inputBackground, in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
         // The page margin, the same as the messages above (strict review 2026-10-31: 16 here
         // and 20 there put the bar 4pt past the bubbles on each side).
         .padding(.horizontal, Spacing.page)

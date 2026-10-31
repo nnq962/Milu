@@ -222,6 +222,6 @@ private struct FilledCapsule: ViewModifier {
     func body(content: Content) -> some View {
         content
             .buttonStyle(.plain)
-            .background(Palette.fill2, in: Capsule())
+            .background(Palette.fill, in: Capsule())
     }
 }

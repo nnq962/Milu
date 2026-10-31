@@ -61,7 +61,11 @@ struct DesignSystemView: View {
                 .padding(.bottom, Spacing.xxl)
                 .keyboardDismissArea()
             }
-            .scrollPosition(id: $visible, anchor: .top)
+            // Only watched, never driven: binding the scroll position to a lazy stack made the page
+            // snap back as parts were laid out (user report 2026-10-31).
+            .onScrollTargetVisibilityChange(idType: Part.self, threshold: 0.2) { parts in
+                if let first = parts.first { visible = first }
+            }
             .dismissesKeyboardOnTap()
             // The chip index stays under the bar; as a safe-area inset, scrolling to a part stops below it.
             .safeAreaInset(edge: .top, spacing: 0) {
