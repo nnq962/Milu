@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage(StorageKey.dailyReminder) private var dailyReminder = true
     @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = true
     @AppStorage(StorageKey.news) private var news = false
+    @AppStorage(StorageKey.appearance) private var appearance = AppAppearance.system
 
     @State private var note: Note?
     /// The profile's initial: 44 like a header icon, larger with the text inside it, so the letter
@@ -80,6 +81,16 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.row)
                     }
+
+                    // Changes at once, the whole screen fading across (user request 2026-10-31).
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Giao diện", style: .group)
+                        ScaledSegmentedPicker(title: "Giao diện", selection: $appearance,
+                                              options: AppAppearance.allCases) { $0.title }
+                            .controlSize(.large)
+                    }
+                    .sensoryFeedback(.selection, trigger: appearance)
+                    .onChange(of: appearance) { _, new in new.apply(animated: true) }
 
                     // No footers here: a footer only carries a computed figure or an error
                     // (strict review 2026-10-31).
@@ -239,13 +250,12 @@ struct SettingsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// A short Timi Pro invite: a white card with a plain crown in the accent colour. The crown is a row's
+    /// A short Timi Pro invite: a card with a plain crown in the accent colour. The crown is a row's
     /// glyph in a row's column, so the words start at 54 like every row (re-review 2026-10-31: 24
     /// and 12, words at 52).
     private var proInvite: some View {
         Button {
-            note = Note(title: "Timi Pro · Sắp ra mắt",
-                        message: "Timi Pro có \(AIQuota.monthlyPro) lượt AI mỗi tháng, xuất báo cáo PDF, Excel và đồng bộ trên mọi thiết bị. Gói đang được chuẩn bị, chưa mở đăng ký hoặc thanh toán.")
+            note = Note(title: TimiProNote.title, message: TimiProNote.message)
         } label: {
             HStack(spacing: RowMetrics.gap) {
                 TimiIcon("hugeicons-crown", size: RowMetrics.iconGlyph)
@@ -279,7 +289,7 @@ struct SettingsView: View {
 }
 
 extension View {
-    /// A white card of words in Cài đặt and its pages (the cards atop Cài đặt, the month's card on
+    /// A card of words in Cài đặt and its pages (the cards atop Cài đặt, the month's card on
     /// Hạn mức): corners 24 and words 16 from the edge, like the form groups and headings around
     /// it, so the left edges line up (strict review 2026-10-31: 20 in, corners 28).
     func settingsCard() -> some View {

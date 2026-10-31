@@ -34,7 +34,7 @@ struct BudgetView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.section) {
                 VStack(alignment: .leading, spacing: Spacing.m) {
-                    MonthMenu(month: $month)
+                    MonthPickerButton(month: $month)
                     if monthlyBudget > 0 {
                         // The card opens how the limit is split among the groups (user choice 2026-10-30).
                         NavigationLink {

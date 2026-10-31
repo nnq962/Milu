@@ -2,17 +2,15 @@ import SwiftUI
 
 /// "Làm quen với Timi": four first steps, ticked from what is really in the app, as one slim row
 /// on a warm block (user request 2026-10-30: fewer words, no mint): a ring with how many are done,
-/// the next step not done yet, and +5 lượt AI. Tapping it starts that step: add an account, a
-/// transaction or a loan, or open Trợ lý AI. It goes away once all four are done.
+/// the next step not done yet, and +5 lượt AI. Tapping it opens the steps in a sheet, empty for
+/// now (user request 2026-10-31). It goes away once all four are done.
 struct OnboardingCard: View {
-    let onAskAI: () -> Void
-
     @Environment(FinanceStore.self) private var store
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
-    @State private var step: Step?
+    @State private var isShowingSteps = false
     /// The ring grows with the "3/4" inside it, which spilled out of a fixed 44 at large sizes (HIG
     /// review 2026-10-30).
-    @ScaledMetric(relativeTo: .caption2) private var ringSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .caption2) private var ringSize = RowMetrics.featureIcon
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// The steps done, by name; each pays its +5 lượt AI once (`AIQuota.claim`).
@@ -21,23 +19,17 @@ struct OnboardingCard: View {
          ("loan", !store.loans.isEmpty), ("askAI", askedAI)].filter(\.1).map(\.0)
     }
 
-    private enum Step: String, Identifiable {
-        case account, transaction, loan
-        var id: Self { self }
-    }
-
     var body: some View {
-        let steps: [(title: String, done: Bool, start: () -> Void)] = [
-            // "tài khoản": it opens the bank account form (re-review 2026-10-31: said "ví").
-            ("Thêm tài khoản đầu tiên", !store.accounts.isEmpty, { step = .account }),
-            ("Ghi một khoản thu chi", !store.transactions.isEmpty, { step = .transaction }),
-            ("Ghi một khoản cho vay", !store.loans.isEmpty, { step = .loan }),
-            ("Hỏi AI một câu hỏi", hasAskedAI, onAskAI),
+        let steps: [(title: String, done: Bool)] = [
+            ("Thêm tài khoản đầu tiên", !store.accounts.isEmpty),
+            ("Ghi một khoản thu chi", !store.transactions.isEmpty),
+            ("Ghi một khoản cho vay", !store.loans.isEmpty),
+            ("Hỏi AI một câu hỏi", hasAskedAI),
         ]
         let completed = steps.filter(\.done).count
         if let next = steps.first(where: { !$0.done }) {
             let shape = RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
-            Button(action: next.start) {
+            Button { isShowingSteps = true } label: {
                 Group {
                     // At the accessibility sizes the words go under the ring and the reward, which
                     // squeezed them into a narrow column in one row (HIG review 2026-10-30).
@@ -59,7 +51,7 @@ struct OnboardingCard: View {
                         }
                     }
                 }
-                // A white card, as every card of Tổng quan (HIG pass 2026-10-31).
+                // A card, as every card of Tổng quan (HIG pass 2026-10-31).
                 .card()
                 .contentShape(shape)
             }
@@ -67,12 +59,10 @@ struct OnboardingCard: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Làm quen với Timi, xong \(completed) trên \(steps.count) bước")
             .accessibilityHint("Bước tiếp theo: \(next.title), thêm 5 lượt AI")
-            .sheet(item: $step) { step in
-                switch step {
-                case .account: AddAccountView(type: .bank)
-                case .transaction: AddTransactionView()
-                case .loan: LoanEditorView(loan: nil)
-                }
+            .sheet(isPresented: $isShowingSteps) {
+                // Empty for now: the steps come later (user request 2026-10-31).
+                SheetScaffold(title: "Làm quen với Timi") { EmptyView() }
+                    .timiSheetStyle([.medium, .large])
             }
         }
     }
@@ -93,7 +83,9 @@ struct OnboardingCard: View {
     private var reward: some View {
         HStack(spacing: Spacing.m) {
             // The shared badge and ›, not a hand-made pill (strict review 2026-10-31).
-            StatusBadge(title: "+5 AI", tone: .pro, showsDot: false)
+            // Neutral, so the reward does not outweigh the title (review 2026-10-31: the black pill
+            // was the heaviest thing on the card).
+            StatusBadge(title: "+5 AI", tone: .neutral, showsDot: false)
             RowChevron()
         }
     }

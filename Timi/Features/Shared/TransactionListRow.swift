@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// One transaction as a design-system `ListRow`: category icon, title, a subtitle and the signed
-/// amount (income "+", spending "-" in red); with a day or time, that goes under the amount. Rows on a white card; put `RowDivider` between them.
+/// amount (income "+", spending "-" in red); with a day or time, that goes under the amount. Rows on a card; put `RowDivider` between them.
 struct TransactionListRow: View {
     let transaction: FinanceTransaction
     /// What follows the category in the subtitle: the account, or the day when the account is known.

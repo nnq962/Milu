@@ -69,7 +69,7 @@ extension Array where Element == Loan {
     }
 }
 
-/// A loan as a row in its section's white block, like the accounts on Tài khoản (user request
+/// A loan as a row in its section's block, like the accounts on Tài khoản (user request
 /// 2026-10-30: a big card per loan, each with a badge and a bar, read as clutter). The person's
 /// initial, their name with the deadline and how much is repaid under it; on the right what is
 /// left, with how near the deadline is in its colour (red overdue, orange within a week).
@@ -146,7 +146,7 @@ struct LoanRow: View {
     }
 }
 
-/// Loans as rows in one white block, hairlines between them; tapping one hands it back.
+/// Loans as rows in one block, hairlines between them; tapping one hands it back.
 struct LoanRowList: View {
     let loans: [Loan]
     var today = Date.now

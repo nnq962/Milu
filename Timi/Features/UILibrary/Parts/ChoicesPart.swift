@@ -61,11 +61,11 @@ struct ChoicesPart: View {
             }
 
             // The month: a flat capsule on a page, plain words ⌄ beside a heading.
-            SampleCard(label: "Tháng · MonthMenu (viên / compact)") {
+            SampleCard(label: "Tháng · MonthPickerButton (viên / compact)") {
                 HStack {
-                    MonthMenu(month: $month)
+                    MonthPickerButton(month: $month)
                     Spacer(minLength: Spacing.s)
-                    MonthMenu(month: $month, compact: true)
+                    MonthPickerButton(month: $month, compact: true)
                 }
             }
         }

@@ -26,7 +26,7 @@ enum Spacing {
     ]
 }
 
-/// Every row on a white card (form, list, option sheet) shares these, so rows line up everywhere:
+/// Every row on a card (form, list, option sheet) shares these, so rows line up everywhere:
 /// 16 side margin, at least 10 above and below, 14 between icon and text. Every one-line row is
 /// exactly 52 whatever sits on the right (text, 30pt pill, the 31pt native switch); a row with a
 /// 13pt subtitle is ~62. Apply the min height after the padding, or it never takes effect.

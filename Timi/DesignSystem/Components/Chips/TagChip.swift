@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The one chip of the app (not glass, user choice 2026-10-31): white capsule, thin outline; filled
+/// The one chip of the app (not glass, user choice 2026-10-31): a capsule in the card colour, thin outline; filled
 /// in the primary colour when chosen or prominent. The capsule is 36 tall, the button 44 (HIG:
 /// nothing to tap under 44), the difference clear above and below.
 /// With `onRemove` it is a filter that is on ("Chi ×"): the chip opens it, × drops it. Without, a

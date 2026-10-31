@@ -24,7 +24,7 @@ struct ButtonsPart: View {
                 }
             }
 
-            // Every button inside content is flat (user choice 2026-10-31): a fill2 circle or capsule,
+            // Every button inside content is flat (user choice 2026-10-31): a `fill` circle or capsule,
             // the chosen one in the primary colour with onPrimary words (re-review 2026-10-31: the
             // catalogue still showed glass in its cards).
             SampleCard(label: "Phẳng · flatCircleButton, flatCapsuleButton") {
@@ -51,7 +51,7 @@ struct ButtonsPart: View {
                         .flatCapsuleButton(fill: flatChoice == 0 ? Palette.primary : Palette.fill)
                         .accessibilityAddTraits(flatChoice == 0 ? .isSelected : [])
                     }
-                    Text("FlatButtonStyle(fill:shape:) · nền fill2, đang chọn nền primary")
+                    Text("FlatButtonStyle(fill:shape:) · nền fill, đang chọn nền primary")
                         .textRole(.footnote)
                         .foregroundStyle(Palette.secondaryLabel)
                 }

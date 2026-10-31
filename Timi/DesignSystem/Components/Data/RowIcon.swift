@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A bank or wallet logo in its own colours: a rounded tile on white with a hairline edge, so
+/// A bank or wallet logo in its own colours: a rounded tile in the card colour with a hairline edge, so
 /// logos of any shape and colour sit evenly in a list (Wallet-style). The mark sits 14% in from
 /// the edge: many logos are drawn edge to edge (Vietcombank), and would otherwise touch the border.
 struct InstitutionLogo: View {
@@ -33,7 +33,7 @@ struct RowIcon: View {
     let name: String
     /// Colour of a glyph (logos keep their own).
     var tint: Color = Palette.label
-    /// A glyph on the same white tile as the logos, so a list mixing cash and banks lines up
+    /// A glyph on the same tile as the logos, so a list mixing cash and banks lines up
     /// (lists of accounts, `AccountRow`).
     var tiled = false
 

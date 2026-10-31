@@ -58,10 +58,12 @@ enum TextRole: CaseIterable, Identifiable {
 
     var weight: Font.Weight {
         switch self {
-        // Titles and figures Bold, every other text SemiBold: one step under the first mock-ups'
-        // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
+        // Titles and figures Bold; the words of the content Medium, one step under the SemiBold
+        // they had, which read heavy on the Pro card (user request 2026-10-31); Regular read as
+        // faded (2026-10-30). `captionStrong` keeps SemiBold, so it is stronger than `caption`.
         case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .overline: .bold
-        case .body, .accessory, .caption, .captionStrong, .footnote, .amount: .semibold
+        case .captionStrong: .semibold
+        case .body, .accessory, .caption, .footnote, .amount: .medium
         }
     }
 

@@ -63,7 +63,7 @@ struct FormDateTimeRow: View {
     }
 }
 
-/// The calendar or the time wheel in a white card. Works on a copy: ✓ saves, ✕ discards.
+/// The calendar or the time wheel in a card. Works on a copy: ✓ saves, ✕ discards.
 private struct DateTimeSheet: View {
     let title: String
     @Binding var date: Date

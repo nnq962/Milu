@@ -176,7 +176,7 @@ struct TransactionsView: View {
         return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
-    /// The month in a white card right under the segments, balanced (user request 2026-10-30: a big
+    /// The month in a card right under the segments, balanced (user request 2026-10-30: a big
     /// spending figure over a small income line read lopsided). A top row of two controls the same
     /// height: the month as a capsule, and a circle opening the month's report, both flat fills. Under
     /// it what went out and what came in side by side at one size, as on Báo cáo. The limit shows
@@ -187,7 +187,7 @@ struct TransactionsView: View {
         let earned = reported.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
         return VStack(alignment: .leading, spacing: Spacing.l) {
             HStack {
-                MonthMenu(month: $displayedMonth)
+                MonthPickerButton(month: $displayedMonth)
                 Spacer(minLength: Spacing.s)
                 // The month in detail: by group, against last month, per account.
                 NavigationLink {
@@ -241,7 +241,7 @@ struct TransactionsView: View {
     }
 
     /// "Tháng 9" this year, "Tháng 9/2025" another: the words of the month button and its menu.
-    private var monthName: String { MonthMenu.name(of: displayedMonth) }
+    private var monthName: String { MonthPickerButton.name(of: displayedMonth) }
 
     /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.
     private var hasNothingRecorded: Bool {

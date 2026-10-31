@@ -208,7 +208,7 @@ struct AssistantView: View {
             }
             Spacer(minLength: 0)
         }
-        // A white card like every other, with the shared shadow (strict review 2026-10-31).
+        // A card like every other, with the shared shadow (strict review 2026-10-31).
         .padding(RowMetrics.horizontal)
         .cardSurface(radius: CardCorners.inset)
         .padding(.horizontal, Spacing.page)

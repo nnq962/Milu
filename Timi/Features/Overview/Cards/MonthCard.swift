@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Tháng này": one white card under its section heading (2026-10-31), with this month's two
+/// "Tháng này": one card under its section heading (2026-10-31), with this month's two
 /// figures side by side (`SplitTotals`), a hairline, then the spending bar (`SegmentedBar`): one
 /// part per group in the chart's shades, largest first, the rest in the "Khác" grey, and the empty
 /// part what the month's limit still allows. The legend names the four biggest groups. Tapping
@@ -23,10 +23,10 @@ struct MonthCard: View {
         let rest = groups.dropFirst(Self.shown).reduce(0) { $0 + $1.amount }
         Button(action: onOpenReport) {
             VStack(alignment: .leading, spacing: Spacing.l) {
-                // The two totals, as on Thu chi's month card.
+                // The two totals in the order of Thu chi's month card and Báo cáo (review 2026-10-31).
                 SplitTotals(items: [
-                    .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .neutral),
                     .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .neutral),
+                    .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .neutral),
                 ])
                 if spent > 0 {
                     VStack(alignment: .leading, spacing: Spacing.s) {
@@ -73,7 +73,7 @@ struct MonthCard: View {
     }
 
     private func label(earned: Double, spent: Double, top: [CategoryTotal]) -> String {
-        var words = "Tháng này đã thu \(earned.vnd), đã chi \(spent.vnd)"
+        var words = "Tháng này đã chi \(spent.vnd), đã thu \(earned.vnd)"
         if monthlyBudget > 0 { words += " trên hạn mức \(monthlyBudget.vnd)" }
         if !top.isEmpty { words += ", nhiều nhất " + top.map { "\($0.name) \($0.amount.vndCompact)" }.joined(separator: ", ") }
         return words

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Rows on a white card, with an optional heading above (the app's one heading style, as on
+/// Rows on a card, with an optional heading above (the app's one heading style, as on
 /// "Hũ tiết kiệm") and note below. Forms and sheets may use the heading too.
 /// Put `FormDivider()` between rows. `error` replaces the note with a red message saying what to
 /// fix; mark the row it is about with `isInvalid`.

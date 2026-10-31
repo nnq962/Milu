@@ -38,7 +38,7 @@ struct AccountsView: View {
         NavigationStack {
             ScrollView {
                 // The total in a card with a bar of where the money is, the accounts as rows in one
-                // white block (fine for any number of them), the goals as tiles scrolling sideways
+                // block (fine for any number of them), the goals as tiles scrolling sideways
                 // (user choice 2026-10-30, "A + B" of the layouts tried). Sections 28 apart, as on
                 // every tab.
                 VStack(alignment: .leading, spacing: Spacing.section) {

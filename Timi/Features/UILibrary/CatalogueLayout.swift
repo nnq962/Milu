@@ -24,7 +24,7 @@ struct PartSection<Content: View>: View {
     }
 }
 
-/// A white card naming the sample inside it in small capitals.
+/// A card naming the sample inside it in small capitals.
 struct SampleCard<Content: View>: View {
     let label: String
     @ViewBuilder var content: Content
@@ -40,7 +40,7 @@ struct SampleCard<Content: View>: View {
     }
 }
 
-/// The name of a sample over a white list card (`listCard`), the way the app heads its lists.
+/// The name of a sample over a list card (`listCard`), the way the app heads its lists.
 struct SampleList<Content: View>: View {
     let label: String
     @ViewBuilder var content: Content

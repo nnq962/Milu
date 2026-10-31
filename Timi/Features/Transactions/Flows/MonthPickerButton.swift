@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// Month button: "Tháng 5 ⌄", a native menu (user choice 2026-10-30): on iOS 26 it opens out of the
-/// button as a glass panel with no arrow, the last six months to pick in one tap (the chosen
-/// one ticked), then "Tháng khác…" for the month-and-year wheels in a small sheet. The popover the
-/// wheels used to open in pointed an arrow at the button, which read as dated.
+/// Month button: "Tháng 5 ⌄". Tapping it opens the month-and-year wheels in a small sheet
+/// (`MonthPickerSheet`), the page following as they turn (user choice 2026-10-31). It was a native
+/// menu of the last six months: as the menu closed without a pick, iOS shrank its glass back into
+/// the button over the words, which read as the words being squeezed.
 ///
 /// The capsule is a flat fill; `compact` is plain words (14, `HeaderLink`) for beside a section
 /// heading (Lịch thu chi on Tổng quan).
-struct MonthMenu: View {
+struct MonthPickerButton: View {
     @Binding var month: Date
     var compact = false
 
@@ -17,57 +17,33 @@ struct MonthMenu: View {
         let calendar = Calendar.current
         let year = calendar.component(.year, from: month)
         let number = calendar.component(.month, from: month)
-        // The button says what its menu says ("Tháng 9/2025", not "T9/2025") (strict review 2026-10-31).
         let title = Self.name(of: month)
-        Menu {
-            Picker("Tháng", selection: chosenMonth) {
-                ForEach(recentMonths, id: \.self) { start in
-                    Text(Self.name(of: start)).tag(start)
-                }
+        Group {
+            if compact {
+                Button { isPicking = true } label: { HeaderLink(title: title, opensMenu: true) }
+                    .headerLinkButton()
+            } else {
+                Button { isPicking = true } label: { capsuleLabel(title) }
+                    // A flat fill, as the report circle beside it. Glass here, inside a scrolling
+                    // card, trailed behind the card as the page scrolled (user report 2026-10-31).
+                    .flatCapsuleButton()
             }
-            Divider()
-            Button("Tháng khác…") { isPicking = true }
-        } label: {
-            if compact { HeaderLink(title: title, opensMenu: true) } else { capsuleLabel(title) }
         }
-        .menuOrder(.fixed)
-        .modifier(MonthMenuStyle(compact: compact))
-        // A new button for each month: the menu kept the old label's width, so "Tháng 9" ↔
-        // "Tháng 10" came out cut short, overlapping or too wide (user report 2026-10-31). It swaps
-        // at once: a fade left the old month showing through the new one.
+        // A new button for each month: the old label's width stayed, so "Tháng 9" ↔ "Tháng 10"
+        // came out cut short or too wide (user report 2026-10-31). It swaps at once: a fade left
+        // the old month showing through the new one.
         .id(title)
         .transition(.identity)
         .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
         .sheet(isPresented: $isPicking) {
-            MonthPickerPopover(month: $month)
+            MonthPickerSheet(month: $month)
                 // Apple's own sheet: one height, so iOS shows no grabber, as on every other one.
                 .presentationDetents([.height(320)])
                 .presentationBackground(Palette.background)
         }
     }
 
-    /// The month shown, as the first of it; picking one moves the page there.
-    private var chosenMonth: Binding<Date> {
-        Binding {
-            month.startOfMonth
-        } set: { start in
-            Haptics.selection()
-            withAnimation(.smooth(duration: 0.3)) { month = start }
-        }
-    }
-
-    /// This month and the five before it, newest first (twelve made the menu scroll and hid
-    /// "Tháng khác…"); an older month being shown is added at
-    /// the end so it still shows ticked.
-    private var recentMonths: [Date] {
-        let calendar = Calendar.current
-        let now = Date.now.startOfMonth
-        var months = (0..<6).compactMap { calendar.date(byAdding: .month, value: -$0, to: now) }
-        if !months.contains(month.startOfMonth) { months.append(month.startOfMonth) }
-        return months
-    }
-
-    /// "Tháng 9" this year, "Tháng 9/2025" another: the button, its menu, and the page's empty state.
+    /// "Tháng 9" this year, "Tháng 9/2025" another: the button and the page's empty state.
     static func name(of start: Date) -> String {
         let calendar = Calendar.current
         let number = calendar.component(.month, from: start)
@@ -90,35 +66,20 @@ struct MonthMenu: View {
         // At least the 44 of the circles beside it, taller with larger text.
         .padding(.vertical, Spacing.xs)
         .frame(minHeight: ControlHeight.regular)
-        .contentShape(Capsule())
-    }
-}
-
-/// The menu's button: a filled capsule, or plain words for `compact`.
-private struct MonthMenuStyle: ViewModifier {
-    let compact: Bool
-
-    func body(content: Content) -> some View {
-        if compact {
-            // Plain words, as every control on a heading's row (user request 2026-10-30).
-            content.buttonStyle(.plain)
-        } else {
-            content.modifier(FilledCapsule())
-        }
     }
 }
 
 /// Picks a month on the iOS month-and-year wheels (user choice 2026-10-30: native, over the drawn
-/// grid of twelve months), in a small sheet from "Tháng khác…" of `MonthMenu`. The page follows
+/// grid of twelve months), in the small sheet `MonthPickerButton` opens. The page follows
 /// the wheels as they turn; a swipe down or a tap outside closes it. Months still ahead
 /// cannot be reached. "Tháng này" goes back to the current month.
-struct MonthPickerPopover: View {
+struct MonthPickerSheet: View {
     @Binding var month: Date
 
     @Environment(\.dismiss) private var dismiss
     @Environment(FinanceStore.self) private var store
     /// Whether "Tháng này" shows, decided as it opens: turning the wheels changes `month`, and the
-    /// button must not pop in and out (and the popover resize) while they turn.
+    /// button must not pop in and out (and the sheet resize) while they turn.
     @State private var showsThisMonth: Bool
 
     private let calendar = Calendar.current
@@ -210,16 +171,5 @@ private struct MonthYearWheels: UIViewRepresentable {
 private extension Date {
     var startOfMonth: Date {
         Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: self)) ?? self
-    }
-}
-
-/// The month button's look: a flat fill, as the report circle beside it. Glass here, inside a
-/// scrolling card, trailed behind the card as the page scrolled just after a month was picked
-/// (user report 2026-10-31); Apple keeps glass for the bars above the content.
-private struct FilledCapsule: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .buttonStyle(.plain)
-            .background(Palette.fill, in: Capsule())
     }
 }

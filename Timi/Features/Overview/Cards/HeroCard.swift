@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The lead card of Tổng quan, a white card (HIG pass 2026-10-31: content on solid surfaces,
+/// The lead card of Tổng quan, a card (HIG pass 2026-10-31: content on solid surfaces,
 /// glass only on the bars and controls): "Tài sản ròng" and a chevron
 /// at the far right, net worth in large type, how much it moved since the chart's first month in
 /// small green words, and the growth line over a faint wash. Tapping it opens "Tài sản ròng",
@@ -9,6 +9,9 @@ struct HeroCard: View {
     let onOpen: () -> Void
 
     @Environment(FinanceStore.self) private var store
+
+    /// The growth line's height.
+    private static let chartHeight: CGFloat = 48
 
     var body: some View {
         let history = store.netWorthHistory()
@@ -31,7 +34,7 @@ struct HeroCard: View {
                     }
                 }
                 NetWorthChart(points: history, compact: true)
-                    .frame(height: 48)
+                    .frame(height: Self.chartHeight)
                     .accessibilityHidden(true)
             }
             .card(padding: Spacing.leadCard)

@@ -22,6 +22,8 @@ struct ContentView: View {
             .tint(Palette.primary)
             .background {
                 InstantTabSwitch { isAddingTransaction = true }.frame(width: 0, height: 0)
+                // The saved "Giao diện", before the first frame shows.
+                SavedAppearanceSetter().frame(width: 0, height: 0)
             }
             .environment(addContext)
             .sheet(isPresented: $isAddingTransaction) {

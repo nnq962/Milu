@@ -18,12 +18,16 @@ import UIKit
 enum Palette {
     // MARK: Surfaces
 
-    /// The page: a step whiter than iOS's grouped grey (user request 2026-10-31); black at night.
-    static let background = dynamic((250, 250, 250), dark: (0, 0, 0))
-    /// Cards, list blocks, chips at rest.
-    static let surface = dynamic((255, 255, 255), dark: (28, 28, 30))
+    /// The page: a pale grey, a step whiter than iOS's grouped grey; black at night. Grey enough
+    /// for the card's white `rim` to show (soft cards 2026-10-31, measured on the user's
+    /// mock-ups: page #F3F3F3, card #F7–FA, rim white; at #FAFAFA under a pure white card it vanished).
+    static let background = dynamic((243, 243, 244), dark: (0, 0, 0))
+    /// Cards, list blocks, chips at rest: a hair off white, so the white `rim` reads as a lit edge.
+    static let surface = dynamic((249, 249, 250), dark: (28, 28, 30))
+    /// The lit edge of a card, whiter than the card itself; a hairline at night.
+    static let rim = dynamic((255, 255, 255), dark: (56, 56, 58))
     /// A quiet block on a card or page: the track of a progress bar, an avatar's disc, the chat field.
-    static let surfaceMuted = dynamic((243, 243, 244), dark: (44, 44, 46))
+    static let surfaceMuted = dynamic((236, 236, 238), dark: (44, 44, 46))
     /// Hairlines between rows, the edge of a chip or a logo tile; the edge of a card at night.
     static let separator = dynamic((232, 232, 234), dark: (56, 56, 58))
 
@@ -54,18 +58,18 @@ enum Palette {
 
     // MARK: Meaning
 
-    /// Money out, over a limit, delete. Coral deepened so text on white reaches 4.5:1; lighter at night.
+    /// Money out, over a limit, delete. Coral deepened so text on the card reaches 4.5:1; lighter at night.
     static let negative = dynamic((181, 84, 63), dark: (240, 130, 110))
     /// Text and glyphs on `negative` (a destructive button).
     static let onNegative = dynamic((255, 255, 255), dark: (17, 17, 17))
     /// Good signs: growth, a limit well within, a loan settled, a day with more in than out.
     /// Small marks only (a dot, an arrow, a 13pt line), never a fill (user rule 2026-10-31: no
-    /// grey, and no colour but small vivid marks). 5:1 on white, so the 13pt line reads.
+    /// grey, and no colour but small vivid marks). 5:1 on the card, so the 13pt line reads.
     static let positive = dynamic((21, 128, 61), dark: (74, 222, 128))
-    /// A limit getting close (from 80%): bars and dots, 3.2:1 on white as a graphic that carries
+    /// A limit getting close (from 80%): bars and dots, 3.2:1 on the card as a graphic that carries
     /// meaning must be (review 2026-10-31: #E8890C was 2.6:1); words take `warningLabel`.
     static let warning = dynamic((217, 119, 6), dark: (245, 158, 11))
-    /// Words in the warning colour, deep enough to read on white and on `warning` 16%.
+    /// Words in the warning colour, deep enough to read on the card and on `warning` 16%.
     static let warningLabel = dynamic((138, 75, 8), dark: (251, 191, 36))
 
     // MARK: Data
@@ -80,7 +84,7 @@ enum Palette {
         dynamic((245, 85, 93), dark: (255, 107, 114)),
         dynamic((124, 77, 255), dark: (156, 123, 255)),
     ]
-    /// The groups after the fourth, as one ("Khác"): iOS's own grey, 3:1 on white and on the dark card.
+    /// The groups after the fourth, as one ("Khác"): iOS's own grey, 3:1 on the light and the dark card.
     static let chartRest = dynamic((142, 142, 147), dark: (142, 142, 147))
 
     // MARK: UIKit

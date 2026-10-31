@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A search field drawn by the app (a screen of its own, not the bar's): magnifier, the words, a
-/// clear button once something is typed, on a white capsule with a thin outline. No correction,
+/// clear button once something is typed, on a capsule in the card colour with a thin outline. No correction,
 /// "Tìm" on the keyboard.
 struct SearchField: View {
     let prompt: String

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// An account in a list, the same on every page that lists accounts (tab Tài khoản, Lưu trữ,
-/// Tài sản ròng, Nợ): a `ListRow` with its logo or glyph on a white tile in the icon column, the
+/// Tài sản ròng, Nợ): a `ListRow` with its logo or glyph on a tile in the icon column, the
 /// name, the balance in short form, › (strict review 2026-10-31: the same account was drawn
 /// three ways; review 2026-10-31: then the row itself was drawn by hand).
 struct AccountRow: View {

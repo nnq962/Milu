@@ -32,7 +32,7 @@ struct DesignSystemView: View {
             case .chips: "Lọc nhanh, gắn nhãn, báo trạng thái."
             case .choices: "Dòng chọn và ngày mở sheet cho rộng; công tắc là control native."
             case .inputs: "Kiểu iOS: nhãn trái, giá trị phải, các ô chung một thẻ."
-            case .lists: "Dòng dữ liệu trên thẻ trắng, icon không nền, › khi chạm được. Tiền ra đỏ có -, tiền vào mực có +."
+            case .lists: "Dòng dữ liệu trên thẻ, icon không nền, › khi chạm được. Tiền ra đỏ có -, tiền vào mực có +."
             case .progress: "Thanh một cỡ \(Int(ProgressBar.height))pt, hạn mức đổi màu theo mức; vòng cho hũ."
             case .sheets: "Sheet chuẩn iOS: ✕ trái, ✓ màu chính bên phải, luôn bấm được."
             case .empty: "Icon trơn, tiêu đề, một câu ngắn nói thứ sẽ hiện ở đây; không nhắc nút."

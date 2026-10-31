@@ -45,7 +45,7 @@ struct QuickCategoryGrid: View {
         .animation(.snappy(duration: 0.2), value: selection)
     }
 
-    /// A flat white circle with a hairline ring, as a `TagChip`; filled in the primary colour when
+    /// A flat circle in the card colour with a hairline ring, as a `TagChip`; filled in the primary colour when
     /// chosen (user choice 2026-10-31: no glass inside content, it trailed the sheet's scroll). The
     /// name under it is part of the button: one control (design-system pass 2026-10-31).
     private func cell(_ item: Category, isChosen: Bool) -> some View {

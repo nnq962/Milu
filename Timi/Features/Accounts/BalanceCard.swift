@@ -43,7 +43,7 @@ struct TotalBalanceHeader: View {
     }
 }
 
-/// The head of Tài khoản: the total in a white card, with a bar of where the money is, like the
+/// The head of Tài khoản: the total in a card, with a bar of where the money is, like the
 /// storage bar in iPhone Settings (`SegmentedBar`). The bar splits only money that is there: each counted account
 /// with a balance above zero and the money in goals, the four biggest in the chart colours, the
 /// rest as "Khác". Accounts below zero cannot be a length on a bar, so a red line under it names

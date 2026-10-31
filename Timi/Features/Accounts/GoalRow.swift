@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A savings goal as a row in Tài khoản's white list, like the accounts above it (HIG review
+/// A savings goal as a row in Tài khoản's list, like the accounts above it (HIG review
 /// 2026-10-30: two big tiles read as a second layout on the page and went uneven with an odd
 /// count). A small ring of how far along with the goal's icon in it, the name and when it is due,
 /// what is saved of the target and the percent. The ring turns red when the goal is overdue.

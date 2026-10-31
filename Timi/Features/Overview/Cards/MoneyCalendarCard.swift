@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// "Lịch thu chi": a month grid and its legend; the page puts them on a white card under the
-/// section heading that holds the month menu (2026-10-31). Each day shows only its number, shaded by how much went out and with a green dot if
+/// "Lịch thu chi": a month grid and its legend; the page puts them on a card under the
+/// section heading that holds the month menu (2026-10-31). Each day shows only its number, shaded by how much went out and with a dot in ink if
 /// money came in; tapping a day hands its date to `onSelectDay`, where the figures are.
 struct MoneyCalendarCard: View {
     /// The month shown; the page owns it, since the month menu sits on the section heading
@@ -12,11 +12,17 @@ struct MoneyCalendarCard: View {
     @Environment(FinanceStore.self) private var store
     /// Every day the same height: the day and a dot for money in (user choice 2026-10-30: the
     /// figures in each day read as clutter; tap a day for them).
-    @ScaledMetric(relativeTo: .caption) private var dayHeight = 44
+    @ScaledMetric(relativeTo: .caption) private var dayHeight = ControlHeight.regular
     /// A shade swatch in the legend: a day cell in small, so it rounds like one.
     private static let swatchSize: CGFloat = 12
     /// Its corner: a named radius, not the spacing token `xxs` it borrowed (re-review 2026-10-31).
     private static let swatchRadius: CGFloat = 2
+    /// The ring round today.
+    private static let todayRing: CGFloat = 1.5
+    /// How deep a day is shaded by what went out: under 1tr, under 3tr, more. Far enough apart to
+    /// tell at a glance; 8 / 14 / 20% read as one pale red, the first near invisible (review
+    /// 2026-10-31).
+    private static let shades = [0.12, 0.24, 0.40]
     /// Between the day cells, across and down.
     private static let cellGap = Spacing.xs
 
@@ -63,7 +69,7 @@ struct MoneyCalendarCard: View {
     private var legend: some View {
         HStack(spacing: Spacing.l) {
             HStack(spacing: Spacing.xs) {
-                ForEach([0.08, 0.14, 0.20], id: \.self) { strength in
+                ForEach(Self.shades, id: \.self) { strength in
                     // The day cell's own shape, small.
                     RoundedRectangle(cornerRadius: Self.swatchRadius, style: .continuous)
                         .fill(Palette.negative.opacity(strength))
@@ -77,7 +83,8 @@ struct MoneyCalendarCard: View {
                 Text("Có tiền vào")
             }
         }
-        .textRole(.footnote)
+        // A chart's legend, as `LegendRow` under the bars: caption (footnote is for axes).
+        .textRole(.caption)
         .foregroundStyle(Palette.secondaryLabel)
         .accessibilityHidden(true)
     }
@@ -90,7 +97,7 @@ struct MoneyCalendarCard: View {
         // Shaded by how much went out, deeper the more (user choice 2026-10-30): money in does not
         // colour a day. Today is ringed in the primary colour on top of its shade (UI review 2026-10-30: a solid
         // fill on today hid how much went out on it).
-        let strength = expense >= 3_000_000 ? 0.20 : expense >= 1_000_000 ? 0.14 : 0.08
+        let strength = expense >= 3_000_000 ? Self.shades[2] : expense >= 1_000_000 ? Self.shades[1] : Self.shades[0]
         // Today keeps a clear cell when nothing went out (a wash read as grey, UI review
         // 2026-10-30); its ring and number in the primary colour mark it over any shade.
         let fill = expense > 0 ? Palette.negative.opacity(strength) : .clear
@@ -109,7 +116,7 @@ struct MoneyCalendarCard: View {
             .overlay {
                 if today {
                     RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
-                        .strokeBorder(Palette.primary, lineWidth: 1.5)
+                        .strokeBorder(Palette.primary, lineWidth: Self.todayRing)
                 }
             }
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))

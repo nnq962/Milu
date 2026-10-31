@@ -11,6 +11,8 @@ enum StorageKey {
     static let dailyReminder = "settings.dailyReminder"
     static let budgetAlerts = "settings.budgetAlerts"
     static let news = "settings.news"
+    /// "Giao diện": `AppAppearance` (Hệ thống, Sáng, Tối).
+    static let appearance = "settings.appearance"
     /// The account the last transaction was added to, picked first next time.
     static let lastAccountID = "transactions.lastAccountID"
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.

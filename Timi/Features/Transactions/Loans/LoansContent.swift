@@ -28,7 +28,7 @@ enum LoanFilter: String, CaseIterable, Identifiable {
 /// Opens "Khoản vay đã tất toán".
 struct SettledLoansRoute: Hashable {}
 
-/// The head of "Vay nợ", a white card like Thu chi's (user request 2026-10-30): what others owe you
+/// The head of "Vay nợ", a card like Thu chi's (user request 2026-10-30): what others owe you
 /// and what you owe, side by side at one size, with how many people under each. Loans with people
 /// only: a credit card's debt stays on Tài khoản.
 struct LoansSummaryCard: View {

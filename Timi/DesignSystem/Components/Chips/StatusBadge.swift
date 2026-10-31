@@ -26,7 +26,7 @@ enum BadgeTone: CaseIterable, Identifiable {
         case .pro: Palette.primary
         case .caution: Palette.warning.opacity(0.16)
         // White with a hairline too: red words on a red tint were 4.3:1, under 4.5 for 13pt
-        // (review 2026-10-31); on white they are 4.9:1.
+        // (review 2026-10-31); on the card they are 4.9:1.
         case .warning: Palette.surface
         }
     }
