@@ -4,7 +4,7 @@ extension View {
     /// Closes the keyboard when the content is dragged, the way modern apps do; no "Xong" bar
     /// above the keyboard (removed at the user's request 2026-10-28). Put it on the scroll view and
     /// `keyboardDismissArea()` on its content, so a tap on empty space closes it too.
-    func dismissesKeyboardOnTap() -> some View {
+    func dismissesKeyboardOnDrag() -> some View {
         scrollDismissesKeyboard(.interactively)
     }
 

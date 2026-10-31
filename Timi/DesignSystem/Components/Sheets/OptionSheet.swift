@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// One choice in a short option sheet.
+/// One choice in a short option sheet; the title names it (review 2026-10-31: a fresh UUID on
+/// every build broke the rows' identity).
 struct SheetOption: Identifiable {
-    let id = UUID()
+    var id: String { title }
     let icon: String
     let title: String
     var subtitle: String? = nil

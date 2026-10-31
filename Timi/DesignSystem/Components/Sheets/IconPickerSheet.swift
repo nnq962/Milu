@@ -11,26 +11,12 @@ struct IconPickerSheet: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.m), count: 5)
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
-                    ForEach(IconCatalog.groups) { group in
-                        VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                            SectionHeader(title: group.title, style: .group)
-                            grid(group.icons)
-                        }
-                    }
+        SheetScaffold(title: "Biểu tượng") {
+            ForEach(IconCatalog.groups) { group in
+                VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                    SectionHeader(title: group.title, style: .group)
+                    grid(group.icons)
                 }
-            }
-            .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-            .contentMargins(.top, Spacing.s, for: .scrollContent)
-            .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-            .background(Palette.background)
-            .foregroundStyle(Palette.label)
-            .navigationTitle("Biểu tượng")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
         }
         .timiSheetStyle()

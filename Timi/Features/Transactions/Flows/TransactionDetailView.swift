@@ -30,7 +30,7 @@ struct TransactionDetailView: View {
 
     var body: some View {
         let transaction = store.transaction(id: transactionID)
-        DetailScaffold(title: transaction.map(store.title(of:)) ?? "Giao dịch", showsClose: isRoot,
+        SheetPage(title: transaction.map(store.title(of:)) ?? "Giao dịch", showsClose: isRoot,
                        canEdit: transaction.map(store.isEditable) ?? false, onEdit: { isEditing = true }) {
             if let transaction {
                 lead(transaction)
@@ -164,7 +164,7 @@ struct TransferDetailSheet: View {
     var body: some View {
         let transfer = store.accountTransfer(id: transferID)
         NavigationStack {
-            DetailScaffold(title: "Chuyển khoản", showsClose: true,
+            SheetPage(title: "Chuyển khoản", showsClose: true,
                            canEdit: transfer.map { store.readOnlyReason($0) == nil } ?? false,
                            onEdit: { isEditing = true }) {
                 if let transfer {
@@ -210,41 +210,6 @@ struct TransferDetailSheet: View {
 
     private func name(_ id: Account.ID) -> String { store.account(id: id)?.name ?? "Tài khoản đã xoá" }
     private func icon(_ id: Account.ID) -> String { store.account(id: id)?.iconName ?? "hugeicons-wallet-01" }
-}
-
-/// The frame both detail sheets share: the scrolling page, the name in the bar, ✕ on the first
-/// screen, and the pencil when it can change.
-struct DetailScaffold<Content: View>: View {
-    let title: String
-    let showsClose: Bool
-    let canEdit: Bool
-    let onEdit: () -> Void
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        ScrollView {
-            // The gap between groups of the form sheets (`SheetScaffold`, strict review 2026-10-31).
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
-                content
-            }
-            .padding(.horizontal, Spacing.page)
-            // The first card as high as in the form sheets (`SheetScaffold`).
-            .padding(.top, Spacing.s)
-            .padding(.bottom, Spacing.xxl)
-        }
-        .background(Palette.background)
-        .foregroundStyle(Palette.label)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if showsClose {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
-            }
-            if canEdit {
-                ToolbarItem(placement: .topBarTrailing) { EditToolbarButton(action: onEdit) }
-            }
-        }
-    }
 }
 
 #Preview {

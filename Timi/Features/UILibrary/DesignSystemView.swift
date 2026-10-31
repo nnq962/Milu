@@ -66,7 +66,7 @@ struct DesignSystemView: View {
             .onScrollTargetVisibilityChange(idType: Part.self, threshold: 0.2) { parts in
                 if let first = parts.first { visible = first }
             }
-            .dismissesKeyboardOnTap()
+            .dismissesKeyboardOnDrag()
             // The chip index stays under the bar; as a safe-area inset, scrolling to a part stops below it.
             .safeAreaInset(edge: .top, spacing: 0) {
                 ChipRow(selection: chosen(proxy), options: Part.allCases) { $0.title }

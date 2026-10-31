@@ -32,7 +32,7 @@ struct LoanDetailSheet: View {
         let loan = store.loan(id: loanID)
         NavigationStack {
             // Money on an archived account is frozen: the form keeps who, when and the rate.
-            DetailScaffold(title: loan?.name ?? "Khoản vay", showsClose: true, canEdit: loan != nil,
+            SheetPage(title: loan?.name ?? "Khoản vay", showsClose: true, canEdit: loan != nil,
                            onEdit: { editingLoan = store.loan(id: loanID) }) {
                 if let loan {
                     summary(loan)

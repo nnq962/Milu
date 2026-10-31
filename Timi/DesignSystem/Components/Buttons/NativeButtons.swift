@@ -37,8 +37,10 @@ struct EditToolbarButton: View {
 
 /// A control on a heading's row ("Lưu trữ (2) ›", "Xoá", the month of Lịch thu chi): 14 words in
 /// the primary colour, no fill and no glass (user request 2026-10-30, after trying small glass
-/// capsules), 44 tall to tap. Its words end where the heading's row ends, so it lines up with the
-/// card's right edge.
+/// capsules). Its words end where the heading's row ends, so it lines up with the card's right
+/// edge; the area that takes a tap reaches 12 past the words each way, so it is at least 44 at
+/// any text size without making the row taller (review 2026-10-31: a 44 frame and a -10 padding
+/// assumed a 24pt line).
 struct HeaderLink: View {
     let title: String
     /// "›" after the words when it opens a page.
@@ -60,18 +62,14 @@ struct HeaderLink: View {
             }
         }
         .foregroundStyle(Palette.primary)
-        // 44 each way to tap, even for a short word ("Xoá").
-        .frame(minWidth: ControlHeight.regular, minHeight: ControlHeight.regular, alignment: .trailing)
-        .contentShape(Rectangle())
+        .contentShape(Rectangle().inset(by: -Spacing.m))
     }
 }
 
 extension View {
-    /// A plain button for a `HeaderLink`; it reaches above and below the heading rather than
-    /// making the row taller.
+    /// A plain button for a `HeaderLink`.
     func headerLinkButton() -> some View {
         buttonStyle(.plain)
-            .padding(.vertical, -10)
     }
 }
 

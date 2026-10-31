@@ -4,67 +4,112 @@ import SwiftUI
 /// ✕ on the left, the title centred and ✓ on the right to save; scrolling content. No footer:
 /// deleting an existing item is a red `FormDestructiveRow` at the end of the content.
 ///
+/// `SheetScaffold` is the sheet itself (its `NavigationStack`, background, hidden scroll
+/// indicators and, for a short sheet, the detent that fits its content). `SheetPage` is one
+/// screen inside it: the first one, or one pushed from it (a transaction opened from "Cùng hạng
+/// mục"), which has ‹ instead of ✕. A detail screen puts its pencil in `trailing`.
+///
 /// `header` holds what the form is about (the big amount, the kind switch), first in the scroll
 /// view so it scrolls with the rows (user choice 2026-10-28, over pinning it under the bar).
-///
-/// A short sheet (a choice, a note, the calendar) sets `fitsContent`: the sheet is then as tall
-/// as its rows plus the bar, and scrolls only once that is taller than the screen. The bar used
-/// to be drawn by hand in those (`SheetHeader`); one scaffold since 2026-10-31, so iOS owns the
-/// bar everywhere.
-struct SheetScaffold<Header: View, Content: View>: View {
+struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
     let title: String
     var canConfirm = true
     /// Checked when ✓ is tapped: false keeps the sheet open and buzzes an error, so the form can
     /// show what is missing. Prefer this to `canConfirm` when the user should learn why.
     var validate: (() -> Bool)? = nil
     var onConfirm: (() -> Void)? = nil
-    /// As tall as the content; callers then set no detents of their own.
+    /// As tall as the content (a choice, a note, the calendar); callers then set no detents of
+    /// their own.
     var fitsContent = false
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
+    @ViewBuilder var trailing: Trailing
 
-    /// Set by the first ✓: a second tap while the sheet slides away saves nothing twice.
-    @State private var hasConfirmed = false
-    /// For `fitsContent`: the rows with their margins, and the bar above them.
-    @State private var contentHeight: CGFloat = 300
-    @State private var barHeight: CGFloat = ControlHeight.regular
+    /// For `fitsContent`: the rows with their margins plus the bar, reported by the page.
+    @State private var fittedHeight: CGFloat?
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.xxl) {
-                    if Header.self != EmptyView.self {
-                        VStack(spacing: Spacing.l) { header }
-                            .frame(maxWidth: .infinity)
-                    }
-                    content
+            SheetPage(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
+                      measuresHeight: fitsContent, header: { header }, content: { content }, trailing: { trailing })
+        }
+        .onPreferenceChange(SheetHeightKey.self) { if fitsContent { fittedHeight = $0 } }
+        .modifier(FittedDetent(isOn: fitsContent, height: fittedHeight))
+        // The sheet's own chrome, so no caller has to remember it (review 2026-10-31: five short
+        // sheets had no `timiSheetStyle` and could show a scroll bar).
+        .presentationBackground(Palette.background)
+        .scrollIndicators(.hidden, axes: .vertical)
+    }
+}
+
+extension SheetScaffold where Trailing == EmptyView {
+    init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
+         fitsContent: Bool = false, @ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) {
+        self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
+                  fitsContent: fitsContent, header: header, content: content, trailing: { EmptyView() })
+    }
+}
+
+extension SheetScaffold where Header == EmptyView, Trailing == EmptyView {
+    init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
+         fitsContent: Bool = false, @ViewBuilder content: () -> Content) {
+        self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
+                  fitsContent: fitsContent, header: { EmptyView() }, content: content, trailing: { EmptyView() })
+    }
+}
+
+/// One screen of a sheet: the bar (✕ or ‹, the title, ✓ or `trailing`) and the scrolling content.
+struct SheetPage<Header: View, Content: View, Trailing: View>: View {
+    let title: String
+    var canConfirm = true
+    var validate: (() -> Bool)? = nil
+    var onConfirm: (() -> Void)? = nil
+    /// ✕ on the left: the first screen of a sheet has it; one pushed from it has only ‹.
+    var showsClose = true
+    /// Reports its height for a sheet that fits its content (`SheetScaffold(fitsContent:)`).
+    var measuresHeight = false
+    @ViewBuilder var header: Header
+    @ViewBuilder var content: Content
+    @ViewBuilder var trailing: Trailing
+
+    /// Set by the first ✓: a second tap while the sheet slides away saves nothing twice. Cleared
+    /// a moment later, so a ✓ that kept the sheet open (a save that failed) works again.
+    @State private var hasConfirmed = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.xxl) {
+                if Header.self != EmptyView.self {
+                    VStack(spacing: Spacing.l) { header }
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.s)
-                .padding(.bottom, Spacing.xxl)
-                .frame(maxWidth: .infinity)
-                .keyboardDismissArea()
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+                content
             }
-            // The bar is the scroll view's top safe area inside the sheet.
-            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { barHeight = $0 }
-            .scrollBounceBehavior(fitsContent ? .basedOnSize : .automatic)
-            .dismissesKeyboardOnTap()
-            .background(Palette.background)
-            .foregroundStyle(Palette.label)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { closeButton }
-                if let onConfirm {
-                    ToolbarItem(placement: .confirmationAction) { confirmButton(onConfirm) }
-                }
+            .padding(.horizontal, Spacing.page)
+            .padding(.top, Spacing.s)
+            .padding(.bottom, Spacing.xxl)
+            .frame(maxWidth: .infinity)
+            .keyboardDismissArea()
+        }
+        .modifier(HeightReport(isOn: measuresHeight))
+        .scrollBounceBehavior(measuresHeight ? .basedOnSize : .automatic)
+        .dismissesKeyboardOnDrag()
+        .background(Palette.background)
+        .foregroundStyle(Palette.label)
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if showsClose {
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+            }
+            if let onConfirm {
+                ToolbarItem(placement: .confirmationAction) { confirmButton(onConfirm) }
+            }
+            if Trailing.self != EmptyView.self {
+                ToolbarItem(placement: .topBarTrailing) { trailing }
             }
         }
-        .modifier(FittedDetent(isOn: fitsContent, height: contentHeight + barHeight))
     }
-
-    private var closeButton: some View { SheetCloseButton() }
 
     /// iOS draws ✓ on a filled glass circle in the tint (the primary colour); it greys itself out when disabled.
     private func confirmButton(_ confirm: @escaping () -> Void) -> some View {
@@ -77,6 +122,10 @@ struct SheetScaffold<Header: View, Content: View>: View {
             hasConfirmed = true
             Haptics.success()
             confirm()
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                hasConfirmed = false
+            }
         }
         return Button(role: .confirm, action: action)
             .tint(Palette.primary)
@@ -85,25 +134,53 @@ struct SheetScaffold<Header: View, Content: View>: View {
     }
 }
 
-extension SheetScaffold where Header == EmptyView {
-    init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
-         fitsContent: Bool = false, @ViewBuilder content: () -> Content) {
-        self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
-                  fitsContent: fitsContent, header: { EmptyView() }, content: content)
+extension SheetPage where Header == EmptyView, Trailing == EditToolbarButton? {
+    /// A detail screen: ✕ on the first one, and the pencil when the item can be changed.
+    init(title: String, showsClose: Bool, canEdit: Bool, onEdit: @escaping () -> Void,
+         @ViewBuilder content: () -> Content) {
+        self.init(title: title, showsClose: showsClose, header: { EmptyView() }, content: content,
+                  trailing: { canEdit ? EditToolbarButton(action: onEdit) : nil })
     }
 }
 
-/// The one detent of a short sheet: its content's height. Ignores the zero reported before layout;
-/// iOS caps a detent taller than the screen, where the content then scrolls.
-private struct FittedDetent: ViewModifier {
+/// The content with its margins plus the bar above it, for `SheetScaffold`'s fitted detent.
+struct SheetHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat? = nil
+    static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) { value = nextValue() ?? value }
+}
+
+/// Measures the scroll view's content and bar only on a sheet that fits its content, so other
+/// sheets never redraw on a change of height (review 2026-10-31: every keystroke in the amount
+/// field re-laid the whole form).
+private struct HeightReport: ViewModifier {
     let isOn: Bool
-    let height: CGFloat
+
+    @State private var contentHeight: CGFloat?
+    @State private var barHeight: CGFloat?
 
     func body(content: Content) -> some View {
         if isOn {
             content
-                .presentationDetents([.height(max(height, 1))])
-                .presentationBackground(Palette.background)
+                // The content is the scroll view's one child; the bar is its top safe area.
+                .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, new in contentHeight = new }
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { barHeight = $0 }
+                .preference(key: SheetHeightKey.self,
+                            value: contentHeight.map { $0 + (barHeight ?? ControlHeight.regular) })
+        } else {
+            content
+        }
+    }
+}
+
+/// The one detent of a short sheet: its content's height, once known. iOS caps a detent taller
+/// than the screen, where the content then scrolls.
+private struct FittedDetent: ViewModifier {
+    let isOn: Bool
+    let height: CGFloat?
+
+    func body(content: Content) -> some View {
+        if isOn {
+            content.presentationDetents([.height(max(height ?? 300, 1))])
         } else {
             content
         }
