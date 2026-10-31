@@ -1,6 +1,6 @@
 # Kế hoạch: dọn theme cũ và chuẩn hoá Design System theo Apple HIG
 
-> Viết 2026-10-31 sau khi rà toàn bộ `Timi/DesignSystem` (41 file, 3.655 dòng) và cách `Features/` dùng nó. Đây là **kế hoạch**, chưa sửa code. Khi làm xong từng phần thì cập nhật `DESIGN_NOTES.md` (quy tắc hiện hành) và `docs/design-history.md` (nhật ký) như thường lệ.
+> Viết 2026-10-31 sau khi rà toàn bộ `Timi/DesignSystem` (41 file, 3.655 dòng) và cách `Features/` dùng nó. **Đã thực hiện cùng ngày** theo 6 đề xuất ở mục 5 (bước 0–5, mỗi bước một commit; bước 6 dark mode để sau). Quy tắc hiện hành nằm ở `DESIGN_NOTES.md`, nhật ký ở `docs/design-history.md`; file này giữ lại làm lý do của các quyết định.
 
 ## 0. Hiện trạng
 
