@@ -1,11 +1,17 @@
 import SwiftUI
 
 /// A circle with a person's initial, standing in for profile photos: 44 on its own (a sheet's
-/// header), `RowMetrics.listLogo` in a list, like an account's logo. The letter scales with the
-/// circle, so it never spills out at large text.
+/// header), `RowMetrics.listLogo` in a list, like an account's logo. The circle grows with the
+/// text on its own and the letter with it, so it never spills out at large text.
 struct InitialsAvatar: View {
     let name: String
-    var size: CGFloat = RowMetrics.featureIcon
+
+    @ScaledMetric private var size: CGFloat
+
+    init(name: String, size: CGFloat = RowMetrics.featureIcon) {
+        self.name = name
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+    }
 
     var body: some View {
         Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())

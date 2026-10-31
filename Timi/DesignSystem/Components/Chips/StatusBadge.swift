@@ -25,11 +25,13 @@ enum BadgeTone: CaseIterable, Identifiable {
         case .positive: Palette.surface
         case .pro: Palette.primary
         case .caution: Palette.warning.opacity(0.16)
-        case .warning: Palette.negative.opacity(0.10)
+        // White with a hairline too: red words on a red tint were 4.3:1, under 4.5 for 13pt
+        // (review 2026-10-31); on white they are 4.9:1.
+        case .warning: Palette.surface
         }
     }
 
-    fileprivate var isOutlined: Bool { self == .positive }
+    fileprivate var isOutlined: Bool { self == .positive || self == .warning }
 
     fileprivate var foreground: Color {
         switch self {
@@ -67,6 +69,8 @@ struct StatusBadge: View {
     var showsDot = true
     var icon: String? = nil
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         HStack(spacing: Self.gap) {
             if let icon {
@@ -74,9 +78,13 @@ struct StatusBadge: View {
             } else if showsDot {
                 Circle().fill(tone.dot).frame(width: Self.dot, height: Self.dot)
             }
-            Text(text).textRole(.captionStrong).lineLimit(1).monospacedDigit()
+            // One line, two at the accessibility sizes; cut short with "…" rather than pushed
+            // past the screen (review 2026-10-31: `fixedSize` let long badges overflow).
+            Text(text)
+                .textRole(.captionStrong)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .monospacedDigit()
         }
-        .fixedSize(horizontal: true, vertical: false)
         .foregroundStyle(tone.foreground)
         .padding(.horizontal, Self.horizontalPadding)
         // At least 24, taller with large text instead of spilling out of the pill.

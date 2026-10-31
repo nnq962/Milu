@@ -11,6 +11,7 @@ struct IconQuickPicker: View {
     let suggestions: [String]
 
     @State private var isShowingAll = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let count = 11
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 6)
@@ -25,7 +26,6 @@ struct IconQuickPicker: View {
             ForEach(shown, id: \.self) { name in
                 IconChoice(name: name, isSelected: name == selection) {
                     selection = name
-                    Haptics.selection()
                 }
                 .accessibilityLabel(IconCatalog.icon(named: name)?.title ?? "")
             }
@@ -36,7 +36,9 @@ struct IconQuickPicker: View {
             .accessibilityLabel("Xem tất cả biểu tượng")
         }
         .padding(Spacing.l)
-        .animation(.smooth(duration: 0.2), value: selection)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: selection)
+        // A change that stays on screen ticks through `sensoryFeedback`, as the rule says.
+        .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isShowingAll) {
             IconPickerSheet(selection: $selection)
         }

@@ -34,12 +34,26 @@ struct MoneyText: View {
         }
     }
 
+    /// What VoiceOver says: the full figure and "đồng", "cộng" or "trừ" before it as the sign
+    /// shows (review 2026-10-31: "10,3tr", "1,2tỷ" and "đ" were read as written).
+    private var spoken: String {
+        let figure = abs(amount).formatted(.number.locale(.vietnam).precision(.fractionLength(0)))
+        let sign: String
+        switch tone {
+        case .signedIncome: sign = "cộng "
+        case .signedExpense: sign = "trừ "
+        case .signedNet, .plain, .negativeRed, .muted: sign = amount < 0 ? "trừ " : (tone == .signedNet && amount > 0 ? "cộng " : "")
+        }
+        return "\(sign)\(figure) đồng"
+    }
+
     var body: some View {
         Text(text)
             .modifier(MoneyFont(size: size))
             .foregroundStyle(color)
             .lineLimit(1)
             .minimumScaleFactor(size == .large || size == .display ? 0.5 : 0.8)
+            .accessibilityLabel(spoken)
     }
 }
 

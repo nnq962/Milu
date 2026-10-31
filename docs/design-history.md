@@ -1424,3 +1424,12 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Người dùng chọn chuyển 8 sheet ngắn (Thêm mới `OptionSheet`, `ChoiceSheet`, `NoteSheet`, lịch ngày/giờ, Mối quan hệ, Nợ, giao dịch trong ngày, mẫu Thư viện UI) từ thanh tự vẽ `SheetHeader` sang `NavigationStack` + toolbar của iOS qua `SheetScaffold`.
 - `SheetScaffold` thêm `fitsContent`: đo chiều cao nội dung (`onGeometryChange`) cộng thanh (safe area trên của scroll view) thành một detent `.height`; cuộn chỉ khi vượt màn (`scrollBounceBehavior(.basedOnSize)`). Xoá `SheetHeader.swift` và `timiFittedSheet()`.
 - Nợ: tổng đỏ nằm đầu nội dung thay vì dưới tiêu đề tự vẽ. Ghi chú: chữ lùi 16 như dòng.
+
+## Đợt 1 sau rà soát: trợ năng và tương phản — 2026-10-31
+
+- `RowIcon`, `InitialsAvatar`, `FormRowIcon` tự co theo Dynamic Type; bỏ 9 `@ScaledMetric` lẻ ở caller; `FormDivider` = `RowDivider` (lùi theo icon đã co); xoá `RowMetrics.dividerInset`, `AccountRow.dividerInset`.
+- `AdaptiveStack` mới: `FormTextRow`, `FormAmountRow`, `FormValueLabel` xếp dọc ở cỡ trợ năng; ô nhập mang `accessibilityLabel(title)`.
+- `Palette.warning` #E8890C → #D97706 (3,2:1). Badge "Quá hạn" trắng viền mảnh chữ đỏ (4,9:1) thay chữ đỏ trên đỏ 10% (4,3:1); badge bỏ `fixedSize`, 2 dòng ở AX.
+- `TimiButton` một cỡ 44, chữ `textRole(.body)`; xoá `TimiButtonSize`. `SearchField` nút xoá rộng 44, `secondaryLabel`, icon `iconGlyph`.
+- `MoneyText` có nhãn VoiceOver "trừ 10.300.000 đồng". Reduce Motion ở `FlatButtonStyle`, `FormGroup`, `FormErrorText`, `IconQuickPicker`. Bỏ `GlassEffectContainer` quanh chip ô tiền. `IconQuickPicker` rung bằng `sensoryFeedback`.
+- Còn lại của mục 1 (12, 14, 15, 16) cần thử VoiceOver trên máy, để đợt sau.

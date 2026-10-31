@@ -83,8 +83,6 @@ struct LoanRow: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// The same column as an account's logo; grows with the text so the letter stays inside.
-    @ScaledMetric(relativeTo: .body) private var avatar = RowMetrics.listLogo
 
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
@@ -93,7 +91,7 @@ struct LoanRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
             : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.s))
         HStack(spacing: RowMetrics.gap) {
-            InitialsAvatar(name: loan.name, size: avatar)
+            InitialsAvatar(name: loan.name, size: RowMetrics.listLogo)
             layout {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text(loan.name)

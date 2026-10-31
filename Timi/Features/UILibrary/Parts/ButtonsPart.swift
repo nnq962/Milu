@@ -16,14 +16,6 @@ struct ButtonsPart: View {
                 }
             }
 
-            SampleCard(label: "Cỡ · 36 / 44 / 56") {
-                HStack(spacing: Spacing.s) {
-                    TimiButton("Nhỏ", role: .primary, size: .small) {}
-                    TimiButton("Thường", role: .primary) {}
-                    TimiButton("Lớn", role: .primary, size: .large) {}
-                }
-            }
-
             SampleCard(label: "Có icon · tắt") {
                 VStack(spacing: Spacing.m) {
                     TimiButton("Thêm giao dịch", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {}

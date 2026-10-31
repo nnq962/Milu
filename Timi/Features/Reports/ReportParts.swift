@@ -130,14 +130,11 @@ struct BreakdownRowLabel: View {
     var opensMore = true
     var isAccount = false
 
-    /// The icon grows with the text beside it, as in `ListRow` and `AccountRow`.
-    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.iconColumn
-    @ScaledMetric(relativeTo: .body) private var logoSize = RowMetrics.listLogo
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(spacing: RowMetrics.gap) {
-            RowIcon(name: icon, size: isAccount ? logoSize : iconSize, tiled: isAccount)
+            RowIcon(name: icon, size: isAccount ? RowMetrics.listLogo : RowMetrics.iconColumn, tiled: isAccount)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 // A second line at the accessibility sizes, where one cut the name short.
                 Text(title)

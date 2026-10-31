@@ -159,11 +159,7 @@ struct TimiAmountField: View {
         }
     }
 
-    /// One glass layer for all chips, as `ChipRow`: separate glass chips in a scroll view each
-    /// sample the page and draw a darker band behind the row on iOS 26.
-    private var suggestionChips: some View {
-        GlassEffectContainer { chipStack }
-    }
+    private var suggestionChips: some View { chipStack }
 
     /// Presets until the user types their own figure.
     private var shownPresets: [AmountPreset] { typedBase == nil ? presets : [] }

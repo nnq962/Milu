@@ -62,8 +62,6 @@ enum RowMetrics {
     static let ringStroke: CGFloat = 3
     /// A legend dot beside a chart or a split bar (`LegendDot`).
     static let legendDot: CGFloat = 8
-    /// Where a divider starts when rows have icons: margin + icon column + gap.
-    static let dividerInset: CGFloat = horizontal + iconColumn + gap
 }
 
 /// Heights of tappable things; nothing smaller than 44 unless it is a chip inside content.

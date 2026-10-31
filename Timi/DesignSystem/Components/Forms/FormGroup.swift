@@ -10,12 +10,14 @@ struct FormGroup<Content: View>: View {
     var error: String? = nil
     @ViewBuilder var content: Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
+        // 8 from heading to card (`headerGap`) and from card to its note.
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
             if let title {
                 // The light group heading: inside a sheet the sheet title is the strong one.
                 SectionHeader(title: title, style: .group)
-                    .padding(.bottom, Spacing.headerGap - Spacing.s)
             }
             VStack(spacing: 0) { content }
                 .cardSurface(radius: CardCorners.inset, outlined: true)
@@ -26,7 +28,7 @@ struct FormGroup<Content: View>: View {
                 FormFooter(text: footer)
             }
         }
-        .animation(.easeOut(duration: 0.2), value: error)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: error)
     }
 }
 
@@ -35,15 +37,19 @@ struct FormGroup<Content: View>: View {
 struct FormErrorText: View {
     let text: String
 
+    /// The glyph before the words, as on `BudgetStatusLine`, growing with them.
+    @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.inlineGlyph
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         Label {
             Text(text)
         } icon: {
-            TimiIcon("hugeicons-alert-circle", size: 16)
+            TimiIcon("hugeicons-alert-circle", size: glyph)
         }
         .textRole(.caption)
         .foregroundStyle(Palette.negative)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
         .accessibilityAddTraits(.isStaticText)
         .onAppear { AccessibilityNotification.Announcement(text).post() }
         .onChange(of: text) { _, new in AccessibilityNotification.Announcement(new).post() }
@@ -63,14 +69,14 @@ struct FormFooter: View {
     }
 }
 
-/// Hairline between form rows, lined up with the title after the icon.
+/// Hairline between form rows, lined up with the title after the icon: the list's `RowDivider`,
+/// whose inset grows with the icons (review 2026-10-31: a fixed 54 here started before the titles
+/// at large text, the bug the lists had already fixed).
 struct FormDivider: View {
     var hasIcon = true
 
     var body: some View {
-        Palette.separator
-            .frame(height: 1)
-            .padding(.leading, hasIcon ? RowMetrics.dividerInset : RowMetrics.horizontal)
+        RowDivider(column: hasIcon ? .icon : .none)
     }
 }
 
@@ -102,15 +108,12 @@ struct FormRowLabel: View {
 }
 
 /// A form row's icon: a glyph in ink, no tile, as in iOS Settings (user choice 2026-10-28), in the
-/// same column as a list row's icon. The tiled style had no caller left and went (strict review
-/// 2026-10-31).
+/// same column as a list row's icon, growing with the text as that one does.
 struct FormRowIcon: View {
     let icon: String
 
     var body: some View {
-        TimiIcon(icon, size: RowMetrics.iconGlyph)
-            .foregroundStyle(Palette.label)
-            .frame(width: RowMetrics.iconColumn, height: RowMetrics.iconGlyph)
+        RowIcon(name: icon)
     }
 }
 

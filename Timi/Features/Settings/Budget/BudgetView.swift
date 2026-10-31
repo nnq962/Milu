@@ -15,8 +15,6 @@ struct BudgetView: View {
 
     @State private var month: Date
     @State private var isSettingMonth = false
-    /// A group's icon grows with its name, as in every list row.
-    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.iconColumn
 
     /// `month`: the one to show first (Báo cáo opens the month it is showing).
     init(month: Date = .now) {
@@ -181,7 +179,7 @@ struct BudgetView: View {
         } label: {
             HStack(spacing: RowMetrics.gap) {
                 // Grows with the text, as on Báo cáo (re-review 2026-10-31: a fixed 24).
-                RowIcon(name: group.icon, size: iconSize)
+                RowIcon(name: group.icon)
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     HStack {
                         Text(group.name)

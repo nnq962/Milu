@@ -85,6 +85,8 @@ struct FlatButtonStyle<S: Shape>: ButtonStyle {
     /// A fixed square for round buttons; nil lets the label size the button.
     var diameter: CGFloat? = nil
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             // The fill takes the whole button, not only the glyph inside it.
@@ -92,7 +94,7 @@ struct FlatButtonStyle<S: Shape>: ButtonStyle {
             .background(fill, in: shape)
             .contentShape(shape)
             .opacity(configuration.isPressed ? 0.6 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 

@@ -67,11 +67,10 @@ private struct ContactRowLabel: View {
     let name: String
     let subtitle: String
 
-    @ScaledMetric(relativeTo: .body) private var avatarSize = RowMetrics.listLogo
 
     var body: some View {
         HStack(spacing: RowMetrics.gap) {
-            InitialsAvatar(name: name, size: avatarSize)
+            InitialsAvatar(name: name, size: RowMetrics.listLogo)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(name)
                     .textRole(.body)

@@ -89,6 +89,10 @@ Nền tảng đã vững: 23 token màu đều có nơi gọi, không còn màu 
 
 `fill2` (DESIGN_NOTES dòng 10, 46; `ButtonsPart`), `StatusBadge .accent` → `.pro`, "vòng xanh" của `IconQuickPicker`, `CardCorners.field` "ô nhập 44" nhưng chỉ `AttentionCard` dùng; comment "17 SemiBold" ở `TextRole`/`SectionHeader`, "amount 16 Bold" ở `ListRow`, "40pt figure" và "web CurrencyInput" ở `TimiAmountField`, `FormTimeRow` không tồn tại, doc "multi-line note" đặt nhầm lên `FormNoteText`, alert "Huỷ" nhưng code "OK", `Metrics` "bội 4" nhưng `xxs = 2`, `SearchField` có nút xoá chữ trong khi ghi chú nói "không nút xoá nhanh trong ô".
 
+## Tiến độ
+
+- **Đợt 1 làm 2026-10-31:** 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13 và `FormValueLabel` xếp dọc (`AdaptiveStack` mới, mục 18 làm một phần). Còn 12, 14, 15, 16 cần thử VoiceOver trên máy.
+
 ## Đề xuất thứ tự làm
 
 1. **Trợ năng (1–5, 9, 10, 11):** một buổi, không đổi API, sửa xong là app đúng ở chữ lớn và đạt tương phản.

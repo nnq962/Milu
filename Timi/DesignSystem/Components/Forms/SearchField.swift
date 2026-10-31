@@ -11,7 +11,7 @@ struct SearchField: View {
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            TimiIcon("hugeicons-search-01", size: 18)
+            TimiIcon("hugeicons-search-01", size: RowMetrics.iconGlyph)
                 .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityHidden(true)
             TextField(prompt, text: $text)
@@ -22,9 +22,11 @@ struct SearchField: View {
                 .onSubmit(onSubmit)
             if !text.isEmpty {
                 Button { text = "" } label: {
+                    // 44 wide to tap and dark enough to see as a control (review 2026-10-31:
+                    // 28 wide in the chevron grey).
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Palette.tertiaryLabel)
-                        .frame(width: RowMetrics.toolbarGlyphFrame)
+                        .foregroundStyle(Palette.secondaryLabel)
+                        .frame(width: ControlHeight.regular)
                         .frame(maxHeight: .infinity)
                         .contentShape(Rectangle())
                 }

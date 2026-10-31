@@ -27,14 +27,24 @@ struct InstitutionLogo: View {
 /// under `Institutions/`, the bank or wallet logo. Both fill the same square, `size` (24 in a row,
 /// the icon column), so a logo is never bigger than a plain icon: the logo tile takes the whole
 /// square and the glyph its usual 20/24 of it (Hugeicons glyphs carry their own inner margin).
+/// `size` is the size at the default text size; the icon grows with the text on its own, so no
+/// caller has to remember to (review 2026-10-31: fifteen did, the forms did not).
 struct RowIcon: View {
     let name: String
-    var size: CGFloat = RowMetrics.iconColumn
     /// Colour of a glyph (logos keep their own).
     var tint: Color = Palette.label
     /// A glyph on the same white tile as the logos, so a list mixing cash and banks lines up
     /// (lists of accounts, `AccountRow`).
     var tiled = false
+
+    @ScaledMetric private var size: CGFloat
+
+    init(name: String, size: CGFloat = RowMetrics.iconColumn, tint: Color = Palette.label, tiled: Bool = false) {
+        self.name = name
+        self.tint = tint
+        self.tiled = tiled
+        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+    }
 
     var body: some View {
         Group {

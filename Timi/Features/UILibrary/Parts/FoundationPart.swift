@@ -31,7 +31,7 @@ struct FoundationPart: View {
         ("Glyph trên thanh", RowMetrics.toolbarGlyph), ("Khung glyph trên thanh", RowMetrics.toolbarGlyphFrame),
         ("Mũi tên › cuối dòng", RowMetrics.chevron), ("› ⌄ × sau chữ", RowMetrics.linkChevron),
         ("Glyph trước dòng chữ", RowMetrics.inlineGlyph), ("Chấm chú thích", RowMetrics.legendDot),
-        ("Nét vòng tiến độ", RowMetrics.ringStroke), ("Vạch kẻ lùi (cột icon)", RowMetrics.dividerInset),
+        ("Nét vòng tiến độ", RowMetrics.ringStroke),
     ]
 
     private let radii: [(name: String, value: CGFloat)] = [

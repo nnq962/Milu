@@ -43,8 +43,6 @@ struct ListRow: View {
     /// Tài sản ròng) shows the short form, so one account reads the same everywhere.
     var compactAmount = false
 
-    /// The icon grows with the text beside it (HIG review 2026-10-30: 24 by large text looked lost).
-    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.iconColumn
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Titles take a second line at the accessibility text sizes, where one cut "Cho vay" to "Ch…".
     private var titleLines: Int { dynamicTypeSize.isAccessibilitySize ? 2 : 1 }
@@ -52,7 +50,7 @@ struct ListRow: View {
     var body: some View {
         HStack(spacing: RowMetrics.gap) {
             // No tile, coloured ones neither; amounts carry the meaning.
-            RowIcon(name: icon, size: iconSize)
+            RowIcon(name: icon)
                 .overlay(alignment: .bottomTrailing) {
                     if isLocked { LockBadge().offset(x: 5, y: 5) }
                 }

@@ -14,17 +14,22 @@ struct FormTextRow: View {
     var focusesOnAppear = false
 
     @FocusState private var isFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: Spacing.m) {
+        // The label keeps its width beside the field; at the accessibility sizes the field goes
+        // under it and the typing starts at the left (review 2026-10-31: a fixed label crushed
+        // the field). VoiceOver names the field by the label, not its placeholder.
+        AdaptiveStack(spacing: Spacing.m) {
             FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
-                .fixedSize()
+                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
             TextField(prompt, text: $text)
                 .textRole(.body)
                 .foregroundStyle(Palette.label)
-                .multilineTextAlignment(.trailing)
+                .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                 .keyboardType(keyboard)
                 .focused($isFocused)
+                .accessibilityLabel(title)
                 .onChange(of: text) { _, new in
                     if let maxLength, new.count > maxLength { text = String(new.prefix(maxLength)) }
                 }
@@ -52,16 +57,18 @@ struct FormAmountRow: View {
     var focusesOnAppear = false
 
     @FocusState private var isFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: Spacing.m) {
+        AdaptiveStack(spacing: Spacing.m) {
             FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
-                .fixedSize()
+                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: false)
             HStack(spacing: 0) {
                 TextField("0", text: $text)
                     .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
+                    .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                     .focused($isFocused)
+                    .accessibilityLabel(title)
                 Text("đ")
                     .foregroundStyle(text.isEmpty ? Color(.placeholderText) : Palette.label)
             }

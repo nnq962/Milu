@@ -16,20 +16,14 @@ struct AccountRow: View {
     /// 2026-10-31: named instead of written in place).
     static let lockOverhang: CGFloat = LockBadge.size / 3
 
-    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.listLogo
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    /// Where the hairline between account rows starts: under the names.
-    static func dividerInset(iconSize: CGFloat = RowMetrics.listLogo) -> CGFloat {
-        RowMetrics.horizontal + iconSize + RowMetrics.gap
-    }
 
     var body: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.xs))
             : AnyLayout(HStackLayout(spacing: Spacing.s))
         HStack(spacing: RowMetrics.gap) {
-            RowIcon(name: account.iconName, size: iconSize, tiled: true)
+            RowIcon(name: account.iconName, size: RowMetrics.listLogo, tiled: true)
                 .overlay(alignment: .bottomTrailing) {
                     if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
                 }

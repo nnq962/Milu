@@ -59,8 +59,9 @@ enum Palette {
     /// Small marks only (a dot, an arrow, a 13pt line), never a fill (user rule 2026-10-31: no
     /// grey, and no colour but small vivid marks). 5:1 on white, so the 13pt line reads.
     static let positive = rgb(21, 128, 61)
-    /// A limit getting close (from 80%): bars and glyphs; words take `warningLabel`.
-    static let warning = rgb(232, 137, 12)
+    /// A limit getting close (from 80%): bars and dots, 3.2:1 on white as a graphic that carries
+    /// meaning must be (review 2026-10-31: #E8890C was 2.6:1); words take `warningLabel`.
+    static let warning = rgb(217, 119, 6)
     /// Words in the warning colour, deep enough to read on white and on `warning` 16%.
     static let warningLabel = rgb(138, 75, 8)
 

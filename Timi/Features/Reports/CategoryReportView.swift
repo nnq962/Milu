@@ -13,7 +13,6 @@ struct CategoryReportView: View {
     @State private var period: ReportPeriod
     @State private var isEditingLimit = false
     /// The icon grows with the text beside it, as in `ListRow`.
-    @ScaledMetric(relativeTo: .body) private var iconSize = RowMetrics.iconColumn
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(groupID: String, period: ReportPeriod) {
@@ -132,7 +131,7 @@ struct CategoryReportView: View {
     /// row's own edge, so the bar stops at the amount (strict review 2026-10-31).
     private func itemRow(_ item: CategoryTotal, share: Double) -> some View {
         HStack(spacing: RowMetrics.gap) {
-            RowIcon(name: item.icon, size: iconSize)
+            RowIcon(name: item.icon)
             VStack(alignment: .leading, spacing: Spacing.s) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                     Text(item.name)

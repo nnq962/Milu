@@ -55,22 +55,30 @@ struct FormValueLabel: View {
     var showsChevron = true
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
-            Spacer(minLength: Spacing.s)
-            if let valueIcon {
-                RowIcon(name: valueIcon)
+            // Value at the right of the label; under it at the accessibility sizes, where one
+            // line cut "Hôm nay, 13:…" short (review 2026-10-31).
+            AdaptiveStack(spacing: Spacing.s) {
+                FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
+                if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
+                HStack(spacing: Spacing.s) {
+                    if let valueIcon {
+                        RowIcon(name: valueIcon)
+                    }
+                    // A new date, time or choice rolls in, so the change is easy to notice (not
+                    // under Reduce Motion).
+                    Text(value)
+                        .textRole(.body)
+                        .foregroundStyle(Palette.secondaryLabel)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: value)
+                }
             }
-            // A new date, time or choice rolls in, so the change is easy to notice (not under
-            // Reduce Motion).
-            Text(value)
-                .textRole(.body)
-                .foregroundStyle(Palette.secondaryLabel)
-                .lineLimit(1)
-                .contentTransition(reduceMotion ? .identity : .numericText())
-                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: value)
+            .frame(maxWidth: .infinity, alignment: .leading)
             if showsChevron {
                 RowChevron()
             }

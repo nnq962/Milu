@@ -50,37 +50,18 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     }
 }
 
-enum TimiButtonSize: CaseIterable, Identifiable {
-    case small, regular, large
-
-    var id: Self { self }
-
-    var height: CGFloat {
-        switch self {
-        case .small: ControlHeight.small
-        case .regular: ControlHeight.regular
-        case .large: ControlHeight.large
-        }
-    }
-
-    /// Body size (16) on the 44 and 56 buttons, 14 on the small 36 one.
-    fileprivate var fontSize: CGFloat { self == .small ? 14 : TextRole.body.size }
-    fileprivate var horizontalPadding: CGFloat { self == .small ? Spacing.m : Spacing.xl }
-}
-
-/// A pill button: a flat fill in the role's colour, Manrope SemiBold, at least the size's height.
+/// A pill button: a flat fill in the role's colour, the body role's words, 44 tall (one size:
+/// the 36 and 56 of before had no caller, and 36 was under the touch target; review 2026-10-31).
 /// Not glass: these sit in content (user choice 2026-10-31, glass only on the bars).
 struct TimiButton<Label: View>: View {
     let role: TimiButtonRole
-    var size: TimiButtonSize = .regular
     var fullWidth = false
     let action: () -> Void
     @ViewBuilder var label: Label
 
-    init(role: TimiButtonRole, size: TimiButtonSize = .regular, fullWidth: Bool = false,
+    init(role: TimiButtonRole, fullWidth: Bool = false,
          action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
         self.role = role
-        self.size = size
         self.fullWidth = fullWidth
         self.action = action
         self.label = label()
@@ -91,22 +72,22 @@ struct TimiButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .font(Typography.font(.headline, size: size.fontSize, weight: .semibold))
+                .textRole(.body)
                 // Disabled: every role turns into a grey pill with faint text, so it never reads
                 // as tappable.
                 .foregroundStyle(isEnabled ? role.foreground : Palette.tertiaryLabel)
                 .lineLimit(1)
-                .padding(.horizontal, size.horizontalPadding)
-                .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: size.height)
+                .padding(.horizontal, Spacing.xl)
+                .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: ControlHeight.regular)
         }
         .flatCapsuleButton(fill: isEnabled ? role.fill : Palette.fill)
     }
 }
 
 extension TimiButton where Label == TimiButtonTitle {
-    init(_ title: String, icon: String? = nil, role: TimiButtonRole, size: TimiButtonSize = .regular,
+    init(_ title: String, icon: String? = nil, role: TimiButtonRole,
          fullWidth: Bool = false, action: @escaping () -> Void) {
-        self.init(role: role, size: size, fullWidth: fullWidth, action: action) {
+        self.init(role: role, fullWidth: fullWidth, action: action) {
             TimiButtonTitle(title: title, icon: icon)
         }
     }
