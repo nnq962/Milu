@@ -54,16 +54,12 @@ struct AssistantView: View {
         .safeAreaInset(edge: .bottom) {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
-        // iOS 26 draws the title and its subtitle natively (`TabHeading`), so they slide with the back
+        // iOS draws the title and its subtitle natively (`TabHeading`), so they slide with the back
         // button rather than showing as a glass rectangle (user report 2026-10-30).
         .navigationTitle("Timi")
         .modifier(TabHeading(subtitle: "Trợ lý tài chính · Bản thử nghiệm"))
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
-            if #unavailable(iOS 26.0) {
-                ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
-                ToolbarItem(placement: .topBarLeading) { heading }
-            }
             // A plain menu: the bar draws its glass, which then takes part in push and pop.
             ToolbarItem(placement: .topBarTrailing) { historyMenu }
         }
@@ -93,19 +89,6 @@ struct AssistantView: View {
     }
 
     // MARK: - Đầu trang
-
-    private var heading: some View {
-        VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-            Text("Timi")
-                .textRole(.pageTitle)
-                .accessibilityAddTraits(.isHeader)
-            Text("Trợ lý tài chính · Bản thử nghiệm")
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryText)
-        }
-        .foregroundStyle(Palette.ink)
-        .fixedSize()
-    }
 
     private var historyMenu: some View {
         Menu {

@@ -73,7 +73,7 @@ struct MoneyCalendarCard: View {
             }
             HStack(spacing: Spacing.xs) {
                 // The shared legend dot, as in each day (re-review 2026-10-31: drawn at 5).
-                LegendDot(color: Palette.income)
+                LegendDot(color: Palette.ink)
                 Text("Có tiền vào")
             }
         }
@@ -100,7 +100,7 @@ struct MoneyCalendarCard: View {
                     .textRole(today ? .captionStrong : .caption)
                     .monospacedDigit()
                     .foregroundStyle(today ? Palette.primary : Palette.ink)
-                LegendDot(color: Palette.income)
+                LegendDot(color: Palette.ink)
                     .opacity(income > 0 ? 1 : 0)
             }
             .padding(.top, Spacing.xs)

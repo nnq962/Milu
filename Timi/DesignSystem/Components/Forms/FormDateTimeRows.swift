@@ -126,7 +126,7 @@ private struct DateTimeSheet: View {
             .labelsHidden()
             .padding(Spacing.m)
             .environment(\.locale, .vietnam)
-            .tint(Palette.controlTint)
+            .tint(Palette.primary)
             .cardSurface(radius: CardCorners.inset, color: Palette.card, elevated: true)
         }
         .foregroundStyle(Palette.ink)

@@ -88,16 +88,12 @@ struct ChangeLabel: View {
     }
 }
 
-/// The chart colours of Báo cáo and Phân bổ hạn mức, from the user's "TổngQuan" theme
-/// (2026-10-30): the four largest groups in moss, mint, gold and coral, the rest share sage
-/// ("Khác"). Taken from `Palette`, so they follow a change of colours. What is not split (Chưa
-/// phân bổ) is the empty track, marked by a hollow dot.
+/// The chart colours of Báo cáo, Phân bổ hạn mức and the bars of Tổng quan and Tài khoản: the
+/// four largest groups in `Palette.chart`, the rest share one grey ("Khác"). What is not split
+/// (Chưa phân bổ) is the empty track, marked by a hollow dot.
 enum ChartShades {
-    // Read each time: they follow the combo being tried (`AccentTrial`).
-    static var steps: [Color] {
-        AccentTrial.shared.choice.hues.chartSteps ?? [Palette.primary, Palette.sky, Palette.lime, Palette.chartCoral]
-    }
-    static var rest: Color { Palette.chartRest }
+    static let steps = Palette.chart
+    static let rest = Palette.chartRest
 
     /// Whether a colour is the shared "Khác" one, whose dot gets an edge so it stays visible.
     static func isRest(at index: Int) -> Bool { index >= steps.count }

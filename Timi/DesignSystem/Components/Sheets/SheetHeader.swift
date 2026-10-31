@@ -40,37 +40,20 @@ struct SheetHeader: View {
             .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
     }
 
-    @ViewBuilder
     private var closeButton: some View {
-        if #available(iOS 26.0, *) {
-            // Outside a toolbar the close role shows the word "Đóng", so the ✕ is given.
-            Button(role: .close) { dismiss() } label: { glyph("xmark") }
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .tint(Palette.ink)
-                .accessibilityLabel("Đóng")
-        } else {
-            Button { dismiss() } label: { glyph("xmark") }
-            .nativeCircleButton(diameter: Self.button)
+        // Outside a toolbar the close role shows the word "Đóng", so the ✕ is given.
+        Button(role: .close) { dismiss() } label: { glyph("xmark") }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
             .tint(Palette.ink)
             .accessibilityLabel("Đóng")
-        }
     }
 
-    @ViewBuilder
     private func confirmButton(_ action: @escaping () -> Void) -> some View {
-        if #available(iOS 26.0, *) {
-            Button(role: .confirm, action: action) { glyph("checkmark") }
-                .buttonStyle(.glassProminent)
-                .buttonBorderShape(.circle)
-                .tint(Palette.primary)
-                .accessibilityLabel("Xong")
-        } else {
-            Button(action: action) { glyph("checkmark").foregroundStyle(Palette.onPrimary) }
-            .buttonStyle(.borderedProminent)
+        Button(role: .confirm, action: action) { glyph("checkmark") }
+            .buttonStyle(.glassProminent)
             .buttonBorderShape(.circle)
             .tint(Palette.primary)
             .accessibilityLabel("Xong")
-        }
     }
 }

@@ -1,16 +1,11 @@
 import SwiftUI
 
-/// ✕ in a sheet's navigation bar: Apple's close button on iOS 26, an "xmark" before.
+/// ✕ in a sheet's navigation bar: Apple's own close button.
 struct SheetCloseButton: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        if #available(iOS 26.0, *) {
-            Button(role: .close) { dismiss() }
-        } else {
-            Button { dismiss() } label: { Image(systemName: "xmark") }
-                .accessibilityLabel("Đóng")
-        }
+        Button(role: .close) { dismiss() }
     }
 }
 

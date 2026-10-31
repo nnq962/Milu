@@ -15,7 +15,7 @@
 2. Chọn scheme `Timi` và một iPhone Simulator, sau đó nhấn Run (`⌘R`).
 3. Nếu chạy trên iPhone thật, chọn Development Team của bạn trong Signing & Capabilities.
 
-Deployment target hiện tại là iOS 17.6. Project không dùng thư viện bên ngoài.
+Deployment target là iOS 26.0 (Liquid Glass, `Tab(role: .search)`); không có nhánh tương thích iOS cũ. Project không dùng thư viện bên ngoài.
 
 Chạy test: `⌘U` trong Xcode (scheme `Timi`), hoặc:
 

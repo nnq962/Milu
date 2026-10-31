@@ -51,7 +51,7 @@ struct TimiAmountField: View {
     private var color: Color {
         if isNegative { return Palette.red }
         switch kind {
-        case .income: return Palette.income
+        case .income: return Palette.ink
         case .expense: return Palette.red
         case nil: return Palette.ink
         }
@@ -166,13 +166,8 @@ struct TimiAmountField: View {
 
     /// One glass layer for all chips, as `ChipRow`: separate glass chips in a scroll view each
     /// sample the page and draw a darker band behind the row on iOS 26.
-    @ViewBuilder
     private var suggestionChips: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer { chipStack }
-        } else {
-            chipStack
-        }
+        GlassEffectContainer { chipStack }
     }
 
     /// Presets until the user types their own figure.

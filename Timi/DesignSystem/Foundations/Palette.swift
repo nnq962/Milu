@@ -1,89 +1,75 @@
 import SwiftUI
 
-/// Design tokens shared by every screen. One light theme since 2026-10-30 (user request: dark
-/// mode removed, the app is locked to light by `UIUserInterfaceStyle`).
+/// Design tokens shared by every screen: one light theme, the monochrome set chosen 2026-10-31
+/// (after the moss theme of 2026-10-30, kept in `docs/design-history.md`): near-black words and
+/// actions on a near-white page, grey only as a faint block and a hairline, colour kept for money
+/// out (red), a limit getting close (orange) and the small marks that tell data apart (the
+/// chart's four hues). Plain constants, so a token costs nothing to read.
 ///
-/// Palette from the user's "TổngQuan" theme (2026-10-30): moss green (#3E5B3F) for primary
-/// actions, deep green (#1E5A48) for money in, coral red for money out, warm gold as the one
-/// accent, on a warm off-white page (#FAF7F2).
-///
-/// To change the look, change the few base colours at the top; everything below them follows.
-/// The words and the other hues read from `AccentTrial` too since 2026-10-31, so the monochrome
-/// set can swap them all. The one copy outside this file is `AccentColor` in Assets (system
-/// alerts), set to the moss `primary`.
+/// The one copy outside this file is `AccentColor` in Assets (system alerts), set to `primary`.
 enum Palette {
     // MARK: Base colours
 
-    /// Warm off-white (#FAF7F2) unless another combo is being tried (`AccentTrial`).
-    static var background: Color { AccentTrial.shared.choice.background }
+    /// The page, a step whiter than iOS's grouped grey (user request 2026-10-31).
+    static let background = rgb(250, 250, 250)
     static let card = rgb(255, 255, 255)
-    /// Words: warm green-black, or plain near-black in the monochrome set (`AccentTrial`).
-    static var ink: Color { AccentTrial.shared.choice.neutrals.ink }
+    /// Words.
+    static let ink = rgb(17, 17, 17)
     /// Solid fills of primary actions (main button, selected chip, switch on, chosen tab), the
-    /// header icons. Moss (#3E5B3F) unless another is being tried (`AccentTrial`).
-    static var primary: Color { AccentTrial.shared.choice.color }
-    /// Good signs (growth, a limit well within, settled) and the tiles behind money lent.
-    static var green: Color { AccentTrial.shared.choice.hues.green }
-    /// Money out, over a limit, delete. Coral like the theme, deepened so text on white reaches
-    /// 4.5:1 (the theme's #D9725B is 3.2:1).
+    /// header icons: ink.
+    static let primary = rgb(17, 17, 17)
+    /// Good signs (growth, a limit well within, settled): ink in the monochrome set.
+    static let green = rgb(17, 17, 17)
+    /// Money out, over a limit, delete. Coral deepened so text on white reaches 4.5:1.
     static let red = rgb(181, 84, 63)
-    /// The one accent, used sparingly: the PRO badge and crown, the onboarding reward. Electric
-    /// lime (#C9F26B) since 2026-10-31 (was gold #E0A840).
-    static var lime: Color { AccentTrial.shared.choice.hues.lime }
-    /// The second hue: money lent, people, info tiles.
-    static var sky: Color { AccentTrial.shared.choice.hues.sky }
-    /// Orange: a limit getting close (apart from the gold accent).
+    /// The one accent, used sparingly: the PRO badge and crown, the "+5 AI" reward. A black pill
+    /// with white words, as the floating button of the Iconly mock-ups.
+    static let lime = rgb(17, 17, 17)
+    /// The second hue: money lent, people, info.
+    static let sky = rgb(47, 124, 246)
+    /// Orange: a limit getting close.
     static let warning = rgb(232, 137, 12)
     /// Deep orange text on a warning badge.
     static let warningText = rgb(138, 75, 8)
-    /// Charts: the fourth group, then "Khác" (the first three are `primary`, `sky`, `lime`).
-    static var chartCoral: Color { AccentTrial.shared.choice.hues.chartCoral }
-    static var chartRest: Color { AccentTrial.shared.choice.hues.chartRest }
+    /// The chart's four shades, largest group first: blue, orange, coral, violet, as the storage
+    /// bar of the mock-ups; then "Khác".
+    static let chart = [rgb(47, 124, 246), rgb(245, 166, 35), rgb(245, 85, 93), rgb(124, 77, 255)]
+    static let chartRest = rgb(209, 209, 214)
 
-    // Warm neutrals.
-    static var muted: Color { AccentTrial.shared.choice.muted }
-    // Chat input field.
-    static var input: Color { AccentTrial.shared.choice.input }
-    static var border: Color { AccentTrial.shared.choice.border }
+    // Neutrals: the only greys, for blocks, hairlines and secondary words.
+    static let muted = rgb(243, 243, 244)
+    /// Chat input field.
+    static let input = rgb(245, 245, 246)
+    static let border = rgb(232, 232, 234)
     /// Chevrons and faint glyphs.
-    static var secondary: Color { AccentTrial.shared.choice.neutrals.secondary }
-    /// The theme's #7A7266, one step darker so it stays 4.5:1 on the page.
-    static var secondaryText: Color { AccentTrial.shared.choice.neutrals.secondaryText }
+    static let secondary = rgb(174, 174, 178)
+    /// Secondary words, 4.5:1 on the page.
+    static let secondaryText = rgb(110, 110, 115)
 
     // MARK: Derived: follow the base colours
 
-    /// Money in: ink, with its "+" (user choice 2026-10-30, as Wallet and Cake do). The deep
-    /// green read too close to the moss of buttons and tabs; only money out keeps a colour.
-    /// `green` stays for good signs: growth, a limit well within, a loan settled.
-    static var income: Color { ink }
-    /// Text and glyphs on `primary`: white, or ink on a light one being tried.
-    static var onPrimary: Color { AccentTrial.shared.choice.isLight ? ink : .white }
+    /// Text and glyphs on `primary`.
+    static let onPrimary = Color.white
     /// Text and glyphs on red (a destructive button).
     static let onRed = Color.white
-    /// Text and glyphs on the accent: the dark ink.
-    static var onLime: Color { AccentTrial.shared.choice.hues.onLime }
-    /// Switches turned on and the chosen day in a calendar.
-    static var controlTint: Color { primary }
-    /// Tile behind money coming in (Đang cho vay): the money-in colour, thin.
-    static var incomeTile: Color { green.opacity(0.12) }
+    /// Text and glyphs on the accent.
+    static let onLime = Color.white
 
     // Ink laid thin, like iOS systemFill: one tint that suits page, card and sheet.
     /// Text fields, neutral icon tiles, a row under the finger.
-    static var fill1: Color { ink.opacity(0.04) }
+    static let fill1 = ink.opacity(0.04)
     /// Grey buttons, tracks.
-    static var fill2: Color { ink.opacity(0.06) }
+    static let fill2 = ink.opacity(0.06)
     /// Pressed grey, a switch turned off.
-    static var fill3: Color { ink.opacity(0.10) }
+    static let fill3 = ink.opacity(0.10)
     /// A list row under the finger: a faint wash of the primary colour.
-    static var rowPressed: Color { primary.opacity(0.10) }
+    static let rowPressed = primary.opacity(0.10)
     /// A tile in the primary colour, thin (the avatar in Cài đặt).
-    static var primaryTint: Color { primary.opacity(0.10) }
+    static let primaryTint = primary.opacity(0.10)
     /// The empty part of a progress ring.
-    static var primaryTrack: Color { primary.opacity(0.12) }
+    static let primaryTrack = primary.opacity(0.12)
     /// A dashed outline in the primary colour (a "new" tile).
-    static var primaryDash: Color { primary.opacity(0.35) }
-    /// A tile in the accent, thin (Pro, a caution badge).
-    static var limeTile: Color { lime.opacity(0.16) }
+    static let primaryDash = primary.opacity(0.35)
 
     private static func rgb(_ red: Double, _ green: Double, _ blue: Double) -> Color {
         Color(red: red / 255, green: green / 255, blue: blue / 255)

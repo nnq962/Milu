@@ -21,8 +21,6 @@ enum Spacing {
     static let card: CGFloat = 20
     /// Inside a card that leads a page or stands alone (an empty state).
     static let leadCard: CGFloat = 24
-    /// Between the parts of a page with no cards around its lists (Tổng quan, Tài khoản).
-    static let flatSection: CGFloat = 36
 
     static let scale: [(name: String, value: CGFloat)] = [
         ("xxs", xxs), ("xs", xs), ("s", s), ("m", m), ("l", l), ("xl", xl), ("xxl", xxl), ("xxxl", xxxl),
@@ -74,8 +72,6 @@ enum ControlHeight {
     static let regular: CGFloat = 44
     static let small: CGFloat = 36
     static let field: CGFloat = 44
-    static let row: CGFloat = 52
-    static let floating: CGFloat = 56
 }
 
 /// Corner radii. Every card one radius, 28 (UI review 2026-10-30: cards were 22, 26 and 32 side
@@ -91,6 +87,4 @@ enum CardCorners {
     static let field: CGFloat = 12
     static let icon: CGFloat = 10
     static let calendarDay: CGFloat = 8
-    /// Top corners of a custom sheet; system sheets keep Apple's own.
-    static let sheet: CGFloat = 32
 }

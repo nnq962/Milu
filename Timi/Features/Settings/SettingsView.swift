@@ -131,10 +131,6 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.row)
                         FormDivider()
-                        AccentTrialRow()
-                        FormDivider()
-                        AccountsLayoutTrialRow()
-                        FormDivider()
                         // The version shows here only: a line under the last group repeated it (re-review 2026-10-31).
                         FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
                             note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")

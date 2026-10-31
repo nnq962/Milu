@@ -10,13 +10,8 @@ private struct DesignLineHeight: ViewModifier {
         _height = ScaledMetric(wrappedValue: height, relativeTo: style)
     }
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.lineHeight(.exact(points: height))
-        } else {
-            content.frame(minHeight: height)
-        }
+        content.lineHeight(.exact(points: height))
     }
 }
 
@@ -117,21 +112,19 @@ enum Typography {
         // The line under a native title (Trợ lý AI): the `caption` role, muted. Only an appearance
         // carries it; a transparent one, as iOS 26 bars have no background of their own, with the
         // same title fonts as above.
-        if #available(iOS 26.0, *) {
-            let caption = UIFont(name: instance(for: TextRole.caption.weight), size: TextRole.caption.size) ?? regular.withSize(TextRole.caption.size)
-            let subtitle: [NSAttributedString.Key: Any] = [
-                .font: UIFontMetrics(forTextStyle: .caption1).scaledFont(for: caption),
-                .foregroundColor: UIColor(Palette.secondaryText),
-            ]
-            let bar = UINavigationBarAppearance()
-            bar.configureWithTransparentBackground()
-            bar.titleTextAttributes = navigation.titleTextAttributes ?? [:]
-            bar.largeTitleTextAttributes = navigation.largeTitleTextAttributes ?? [:]
-            bar.subtitleTextAttributes = subtitle
-            bar.largeSubtitleTextAttributes = subtitle
-            navigation.standardAppearance = bar
-            navigation.scrollEdgeAppearance = bar
-            navigation.compactAppearance = bar
-        }
+        let caption = UIFont(name: instance(for: TextRole.caption.weight), size: TextRole.caption.size) ?? regular.withSize(TextRole.caption.size)
+        let subtitle: [NSAttributedString.Key: Any] = [
+            .font: UIFontMetrics(forTextStyle: .caption1).scaledFont(for: caption),
+            .foregroundColor: UIColor(Palette.secondaryText),
+        ]
+        let bar = UINavigationBarAppearance()
+        bar.configureWithTransparentBackground()
+        bar.titleTextAttributes = navigation.titleTextAttributes ?? [:]
+        bar.largeTitleTextAttributes = navigation.largeTitleTextAttributes ?? [:]
+        bar.subtitleTextAttributes = subtitle
+        bar.largeSubtitleTextAttributes = subtitle
+        navigation.standardAppearance = bar
+        navigation.scrollEdgeAppearance = bar
+        navigation.compactAppearance = bar
     }
 }

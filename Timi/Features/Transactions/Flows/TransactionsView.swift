@@ -78,8 +78,8 @@ struct TransactionsView: View {
             }
             .background(Palette.background)
             .foregroundStyle(Palette.ink)
-            // The visible title on iOS 26 (`TabHeading`), which shrinks to the middle of the bar as
-            // the page scrolls, as on Tài khoản; earlier iOS shows `heading` instead.
+            // The visible title (`TabHeading`) shrinks to the middle of the bar as the page scrolls,
+            // as on Tài khoản.
             .navigationTitle("Giao dịch")
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
@@ -89,23 +89,14 @@ struct TransactionsView: View {
                 // The month is picked on the page, beside "Đã chi" (user choice 2026-10-30): out of
                 // the bar, the title has room to shrink to the middle as on Tài khoản.
                 // Search opens a screen of its own (TransactionSearchView).
-                if #available(iOS 26.0, *) {
-                    // Plain items: the bar draws their glass, which then takes part in push and pop
-                    // (glass drawn inside the item showed as a square mid-transition). The spacer
-                    // gives each its own glass rather than one shared pill.
-                    if segment == .loans {
-                        ToolbarItem(placement: .topBarTrailing) { addLoanButton }
-                        ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                    }
-                    ToolbarItem(placement: .topBarTrailing) { searchButton }
-                } else {
-                    ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
-                    ToolbarItem(placement: .topBarLeading) { heading }
-                    if segment == .loans {
-                        ToolbarItem(placement: .topBarTrailing) { addLoanButton }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) { searchButton }
+                // Plain items: the bar draws their glass, which then takes part in push and pop
+                // (glass drawn inside the item showed as a square mid-transition). The spacer
+                // gives each its own glass rather than one shared pill.
+                if segment == .loans {
+                    ToolbarItem(placement: .topBarTrailing) { addLoanButton }
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
+                ToolbarItem(placement: .topBarTrailing) { searchButton }
             }
             .fullScreenCover(isPresented: $isSearching) {
                 TransactionSearchView(segment: segment)
@@ -148,14 +139,6 @@ struct TransactionsView: View {
             displayedMonth = now
         }
         today = now
-    }
-
-    private var heading: some View {
-        Text("Giao dịch")
-            .textRole(.pageTitle)
-            .foregroundStyle(Palette.ink)
-            .fixedSize()
-            .accessibilityAddTraits(.isHeader)
     }
 
     private var searchButton: some View {

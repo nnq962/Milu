@@ -17,8 +17,6 @@ struct AccountsView: View {
     /// Picked in the "Thêm mới" sheet; its form opens once that sheet has gone.
     @State private var pendingNew: NewItem?
     @State private var newItem: NewItem?
-    /// The layout being tried (`AccountsLayoutTrialRow`, Cài đặt → Nhà phát triển).
-    @AppStorage(StorageKey.accountsLayout) private var layout = AccountsLayout.both
 
     /// What the + button can add.
     enum NewItem: String, Identifiable, CaseIterable {
@@ -39,17 +37,12 @@ struct AccountsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                // The total large on the page, the accounts as rows in one white block (fine for any
-                // number of them), the goals as rings two to a row (user choice 2026-10-30). Parts
-                // of a page without cards stand 36 apart, as on Tổng quan (strict review 2026-10-31).
-                VStack(alignment: .leading, spacing: Spacing.flatSection) {
-                    if layout.showsBalanceCard {
-                        BalanceCard()
-                    } else {
-                        // Starts where the headings and rows start.
-                        TotalBalanceHeader()
-                            .padding(.horizontal, RowMetrics.horizontal)
-                    }
+                // The total in a card with a bar of where the money is, the accounts as rows in one
+                // white block (fine for any number of them), the goals as tiles scrolling sideways
+                // (user choice 2026-10-30, "A + B" of the layouts tried). Sections 28 apart, as on
+                // every tab.
+                VStack(alignment: .leading, spacing: Spacing.section) {
+                    BalanceCard()
                     paymentSection
                     goalsSection
                 }
@@ -63,10 +56,6 @@ struct AccountsView: View {
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                if #unavailable(iOS 26.0) {
-                    ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
-                    ToolbarItem(placement: .topBarLeading) { heading }
-                }
                 // A plain button: the bar draws its glass, which then takes part in push and pop.
                 ToolbarItem(placement: .topBarTrailing) { addMenu }
             }
@@ -99,14 +88,6 @@ struct AccountsView: View {
                 }
             }
         }
-    }
-
-    private var heading: some View {
-        Text("Tài khoản")
-            .textRole(.pageTitle)
-            .foregroundStyle(Palette.ink)
-            .fixedSize()
-            .accessibilityAddTraits(.isHeader)
     }
 
     private var addMenu: some View {
@@ -166,9 +147,9 @@ struct AccountsView: View {
                 EmptyStateCard(icon: "hugeicons-piggy-bank",
                                title: store.completedGoals.isEmpty ? "Chưa có hũ nào" : "Chưa có hũ đang để dành",
                                message: "Các hũ để dành sẽ hiện ở đây.")
-            } else if layout.showsGoalCarousel {
-                // Kiểu B: tiles scrolling sideways, then "+ Hũ mới". Reaches to the screen's edges so
-                // the next tile shows it can scroll.
+            } else {
+                // Tiles scrolling sideways, then "+ Hũ mới". Reaches to the screen's edges so the
+                // next tile shows it can scroll.
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: Spacing.m) {
                         ForEach(store.activeGoals) { goal in
@@ -187,18 +168,6 @@ struct AccountsView: View {
                 // Let the tiles' soft shadow show past the row's edges instead of being cut off.
                 .scrollClipDisabled()
                 .padding(.horizontal, -Spacing.page)
-            } else {
-                // Rows in a white block like the accounts: one way of showing things on the page.
-                VStack(spacing: 0) {
-                    ForEach(Array(store.activeGoals.enumerated()), id: \.element.id) { index, goal in
-                        // Tapping opens the goal (deposit, withdraw, history); editing is in its toolbar.
-                        NavigationLink(value: GoalRoute(id: goal.id)) { GoalRow(goal: goal) }
-                            .buttonStyle(.row)
-                            // The ring is as wide as an account's logo: the same hairline.
-                            .overlay(alignment: .top) { if index > 0 { AccountRowDivider() } }
-                    }
-                }
-                .listCard()
             }
         }
     }

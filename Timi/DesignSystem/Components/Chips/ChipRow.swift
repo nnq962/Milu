@@ -38,10 +38,6 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
 /// iOS 26 draws a soft edge band behind a horizontal scroll view's content; a chip row needs none.
 struct NoScrollEdgeEffect: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.scrollEdgeEffectHidden(true, for: .all)
-        } else {
-            content
-        }
+        content.scrollEdgeEffectHidden(true, for: .all)
     }
 }

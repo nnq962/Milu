@@ -3,12 +3,11 @@ import SwiftUI
 /// Named text roles: one scale for the whole app, built around a 16pt body (user choice 2026-10-28,
 /// after trying 17 and 14). Manrope is wide, so 16 reads close to SF Pro's 17 Body. Each step is
 /// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 14 · 13 · 12 · 11.
+/// The amount being typed (`TimiAmountField`) is the one figure outside it, 52 shrinking as it grows.
 /// Use `.textRole(_:)` instead of raw sizes. Manrope at the weight named (see Typography).
 enum TextRole: CaseIterable, Identifiable {
     /// The screen's lead figure (Tài sản ròng). 34
     case display
-    /// The amount being typed in a form. 40
-    case hero
     /// Big figures inside a card (Đã chi / Đã thu). 24
     case amountLarge
     /// Screen titles in the toolbar. 24
@@ -38,19 +37,16 @@ enum TextRole: CaseIterable, Identifiable {
     /// Small capitals naming a group of rows in a sheet or form (`SectionHeader` `.group`).
     /// 12 Bold
     case overline
-    /// Text typed into a field: 16, same as the body it sits beside.
-    case input
 
     var id: Self { self }
 
     var size: CGFloat {
         switch self {
         case .display: 34
-        case .hero: 40
         case .amountLarge, .pageTitle: 24
         case .heading: 20
         case .title: 17
-        case .body, .label, .bodyStrong, .amount, .input: 16
+        case .body, .label, .bodyStrong, .amount: 16
         case .accessory: 14
         case .caption, .captionStrong: 13
         case .overline: 12
@@ -62,15 +58,15 @@ enum TextRole: CaseIterable, Identifiable {
         switch self {
         // Titles and figures Bold, every other text SemiBold: one step under the Sleek examples'
         // ExtraBold and Bold, which read too heavy (user request 2026-10-30); Regular read as faded.
-        case .display, .hero, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
-        case .body, .label, .accessory, .caption, .captionStrong, .footnote, .input: .semibold
+        case .display, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .amount, .overline: .bold
+        case .body, .label, .accessory, .caption, .captionStrong, .footnote: .semibold
         }
     }
 
     /// Design line box; nil keeps the font's own metrics (figures that may shrink to fit).
     var lineHeight: CGFloat? {
         switch self {
-        case .display, .hero, .amountLarge, .input: nil
+        case .display, .amountLarge: nil
         case .pageTitle: 32
         case .heading: 26
         case .title: 24
@@ -84,18 +80,18 @@ enum TextRole: CaseIterable, Identifiable {
 
     var textStyle: Font.TextStyle {
         switch self {
-        case .display, .hero: .largeTitle
+        case .display: .largeTitle
         case .amountLarge, .pageTitle: .title2
         case .heading: .title3
         case .title: .headline
-        case .body, .label, .bodyStrong, .amount, .input: .body
+        case .body, .label, .bodyStrong, .amount: .body
         case .accessory: .subheadline
         case .caption, .captionStrong, .overline: .caption
         case .footnote: .caption2
         }
     }
 
-    var isNumeric: Bool { [.display, .hero, .amountLarge, .amount].contains(self) }
+    var isNumeric: Bool { [.display, .amountLarge, .amount].contains(self) }
     var tracking: CGFloat { self == .overline ? 0.6 : 0 }
 
     var font: Font { Typography.font(textStyle, size: size, weight: weight) }
@@ -104,7 +100,6 @@ enum TextRole: CaseIterable, Identifiable {
     var name: String {
         switch self {
         case .display: "Số dẫn đầu"
-        case .hero: "Số tiền đang nhập"
         case .amountLarge: "Số lớn trong thẻ"
         case .pageTitle: "Tên màn"
         case .heading: "Tiêu đề phần"
@@ -118,7 +113,6 @@ enum TextRole: CaseIterable, Identifiable {
         case .captionStrong: "Chip · badge"
         case .footnote: "Chữ rất nhỏ"
         case .overline: "Nhãn nhóm trong sheet"
-        case .input: "Chữ trong ô"
         }
     }
 }

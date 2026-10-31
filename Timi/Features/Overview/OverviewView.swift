@@ -77,16 +77,10 @@ struct OverviewView: View {
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
             // Plain buttons: the bar draws their glass circles, so they take part in its push and
-            // pop. Earlier iOS shows the heading as a leading item, as the other tabs do.
+            // pop.
             .toolbar {
-                if #unavailable(iOS 26.0) {
-                    ToolbarItem(placement: .principal) { HiddenToolbarTitle() }
-                    ToolbarItem(placement: .topBarLeading) { heading }
-                }
                 ToolbarItem(placement: .topBarTrailing) { profileButton }
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                }
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { notificationButton }
             }
             // Here, not on the card: the card goes away as its last step is done.
@@ -103,14 +97,6 @@ struct OverviewView: View {
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
         }
-    }
-
-    private var heading: some View {
-        Text("Tổng quan")
-            .textRole(.pageTitle)
-            .foregroundStyle(Palette.ink)
-            .fixedSize()
-            .accessibilityAddTraits(.isHeader)
     }
 
     // Native navigation-bar items: iOS owns their glass and the scroll-edge backdrop.

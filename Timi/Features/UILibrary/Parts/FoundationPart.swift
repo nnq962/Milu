@@ -7,20 +7,19 @@ struct FoundationPart: View {
         [
             ("background", Palette.background), ("card", Palette.card), ("ink", Palette.ink),
             ("primary", Palette.primary), ("green (dấu hiệu tốt)", Palette.green),
-            ("income (tiền vào)", Palette.income), ("red (tiền ra)", Palette.red),
-            ("lime (xanh chanh)", Palette.lime), ("sky", Palette.sky), ("warning", Palette.warning),
-            ("chartCoral", Palette.chartCoral), ("chartRest", Palette.chartRest),
+            ("red (tiền ra)", Palette.red),
+            ("lime (nhấn)", Palette.lime), ("sky", Palette.sky), ("warning", Palette.warning),
+            ("chart[0]", Palette.chart[0]), ("chart[1]", Palette.chart[1]), ("chart[2]", Palette.chart[2]),
+            ("chart[3]", Palette.chart[3]), ("chartRest", Palette.chartRest),
             ("secondary", Palette.secondary), ("secondaryText", Palette.secondaryText),
             ("muted", Palette.muted), ("border", Palette.border), ("input", Palette.input),
             ("rowPressed", Palette.rowPressed), ("primaryTint", Palette.primaryTint),
             ("primaryTrack", Palette.primaryTrack), ("primaryDash", Palette.primaryDash),
-            ("limeTile", Palette.limeTile), ("incomeTile", Palette.incomeTile),
             ("fill1", Palette.fill1), ("fill2", Palette.fill2), ("fill3", Palette.fill3),
             // Words on a filled colour, the orange for words, the tint of native controls
             // (re-review 2026-10-31: missing here).
             ("onPrimary (chữ trên primary)", Palette.onPrimary), ("onRed (chữ trên red)", Palette.onRed),
             ("onLime (chữ trên lime)", Palette.onLime), ("warningText (chữ cam)", Palette.warningText),
-            ("controlTint (control native)", Palette.controlTint),
         ]
     }
 
@@ -38,7 +37,7 @@ struct FoundationPart: View {
     ]
 
     private let radii: [(name: String, value: CGFloat)] = [
-        ("sheet", CardCorners.sheet), ("large", CardCorners.large),
+        ("large", CardCorners.large),
         ("inset", CardCorners.inset), ("flow", CardCorners.flow), ("field", CardCorners.field),
         ("icon", CardCorners.icon), ("calendarDay", CardCorners.calendarDay),
     ]
@@ -89,7 +88,7 @@ struct FoundationPart: View {
                             Text("\(Int(step.value))").textRole(.footnote).foregroundStyle(Palette.secondaryText)
                         }
                     }
-                    Text("Lề màn \(Int(Spacing.page)) · giữa các phần \(Int(Spacing.section)) (trang không thẻ \(Int(Spacing.flatSection))) · tiêu đề → thẻ \(Int(Spacing.headerGap)) · đệm thẻ \(Int(Spacing.card)) (thẻ đầu trang \(Int(Spacing.leadCard))) · dòng lùi \(Int(RowMetrics.horizontal))")
+                    Text("Lề màn \(Int(Spacing.page)) · giữa các phần \(Int(Spacing.section)) · tiêu đề → thẻ \(Int(Spacing.headerGap)) · đệm thẻ \(Int(Spacing.card)) (thẻ đầu trang \(Int(Spacing.leadCard))) · dòng lùi \(Int(RowMetrics.horizontal))")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryText)
                         .padding(.top, Spacing.xs)

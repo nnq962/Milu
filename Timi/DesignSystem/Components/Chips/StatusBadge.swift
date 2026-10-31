@@ -20,7 +20,7 @@ enum BadgeTone: CaseIterable, Identifiable {
     fileprivate var background: Color {
         switch self {
         case .neutral: Palette.fill2
-        case .positive: Palette.incomeTile
+        case .positive: Palette.fill2
         case .accent: Palette.lime
         case .caution: Palette.warning.opacity(0.16)
         case .warning: Palette.red.opacity(0.10)

@@ -51,8 +51,7 @@ struct SheetScaffold<Header: View, Content: View>: View {
 
     private var closeButton: some View { SheetCloseButton() }
 
-    /// iOS 26 draws ✓ on a filled glass circle in the tint (the primary colour); it greys itself out when disabled.
-    @ViewBuilder
+    /// iOS draws ✓ on a filled glass circle in the tint (the primary colour); it greys itself out when disabled.
     private func confirmButton(_ confirm: @escaping () -> Void) -> some View {
         let action = {
             guard !hasConfirmed else { return }
@@ -64,17 +63,10 @@ struct SheetScaffold<Header: View, Content: View>: View {
             Haptics.success()
             confirm()
         }
-        if #available(iOS 26.0, *) {
-            Button(role: .confirm, action: action)
-                .tint(Palette.primary)
-                .disabled(!canConfirm)
-                .accessibilityLabel("Lưu")
-        } else {
-            Button("Lưu", action: action)
-                .fontWeight(.semibold)
-                .tint(Palette.primary)
-                .disabled(!canConfirm)
-        }
+        return Button(role: .confirm, action: action)
+            .tint(Palette.primary)
+            .disabled(!canConfirm)
+            .accessibilityLabel("Lưu")
     }
 }
 
