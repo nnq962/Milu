@@ -5,31 +5,23 @@ import UIKit
 /// `separator`, `systemFill`), not by their hue, so a change of colours changes no names. Every
 /// token here has a caller; one was pruned as soon as it had none (user 2026-10-31: too many).
 ///
-/// Two sets of values, light and dark, picked by the system (dark mode 2026-10-31, as the HIG
-/// expects; the app no longer locks itself to light). Both keep the monochrome idea chosen
-/// 2026-10-31: words and actions in one near-black (light) or near-white (dark) on a plain page,
-/// grey only as a faint block, a hairline and secondary words; colour kept for money out
-/// (`negative`), a limit getting close (`warning`), good signs (`positive`, small marks only) and
-/// the hues that tell data apart (`chart`). The PRO badge and crown use `primary`. Each dark value
-/// reads at least 4.5:1 on the dark card for words and 3:1 for marks, as the light ones do.
+/// Light mode keeps the monochrome palette; dark mode uses darker monochrome surfaces (2026-10-31).
+/// Near-white words and actions sit on neutral backgrounds, with brighter surfaces
+/// distinguishing cards and inset content. Semantic and chart colours keep their meanings.
 ///
 /// The one copy outside this file is `AccentColor` in Assets (system alerts), light and dark, set
 /// to `primary`.
 enum Palette {
     // MARK: Surfaces
 
-    /// The page: a pale grey, a step whiter than iOS's grouped grey; black at night. Grey enough
-    /// for the card's white `rim` to show (soft cards 2026-10-31, measured on the user's
-    /// mock-ups: page #F3F3F3, card #F7–FA, rim white; at #FAFAFA under a pure white card it vanished).
+    /// Pale grey in light mode, pure black in dark mode.
     static let background = dynamic((243, 243, 244), dark: (0, 0, 0))
-    /// Cards, list blocks, chips at rest: a hair off white, so the white `rim` reads as a lit edge.
-    static let surface = dynamic((249, 249, 250), dark: (28, 28, 30))
-    /// The lit edge of a card, whiter than the card itself; a hairline at night.
-    static let rim = dynamic((255, 255, 255), dark: (56, 56, 58))
+    /// Cards, list blocks, chips at rest: off-white by day, #18181A at night.
+    static let surface = dynamic((249, 249, 250), dark: (24, 24, 26))
     /// A quiet block on a card or page: the track of a progress bar, an avatar's disc, the chat field.
-    static let surfaceMuted = dynamic((236, 236, 238), dark: (44, 44, 46))
-    /// Hairlines between rows, the edge of a chip or a logo tile; the edge of a card at night.
-    static let separator = dynamic((232, 232, 234), dark: (56, 56, 58))
+    static let surfaceMuted = dynamic((236, 236, 238), dark: (38, 38, 40))
+    /// Hairlines between rows and outlines of chips or logo tiles.
+    static let separator = dynamic((232, 232, 234), dark: (46, 46, 48))
 
     // MARK: Words
 
@@ -47,13 +39,16 @@ enum Palette {
     static let primary = dynamic((17, 17, 17), dark: (242, 242, 247))
     /// Text and glyphs on `primary`.
     static let onPrimary = dynamic((255, 255, 255), dark: (17, 17, 17))
+    /// Native switches keep a white thumb in both appearances; their on-track needs its own tint.
+    // Light tint sampled from the reference image in sRGB; dark tint is slightly brighter.
+    static let switchOn = dynamic((72, 126, 198), dark: (88, 143, 216))
     /// A list row under the finger: a faint wash of the primary colour.
     static let rowPressed = primary.opacity(0.10)
     /// A tile in the primary colour, thin: the avatar in Cài đặt, the empty part of a progress ring.
     static let primaryTint = primary.opacity(0.10)
     /// A dashed outline in the primary colour (a "new" tile).
     static let primaryDash = primary.opacity(0.35)
-    /// Ink laid thin, like iOS systemFill: grey buttons and the neutral badge, on page and card alike.
+    /// A faint label-coloured fill for secondary buttons and neutral badges.
     static let fill = label.opacity(0.06)
 
     // MARK: Meaning

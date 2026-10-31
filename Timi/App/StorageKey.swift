@@ -9,8 +9,9 @@ enum StorageKey {
     /// Hạn mức của từng nhóm hạng mục (`CategoryBudgets`).
     static let categoryBudgets = "budget.categoryLimits"
     static let dailyReminder = "settings.dailyReminder"
+    /// Local wall-clock time, stored as minutes after midnight (default 21:00).
+    static let dailyReminderMinutes = "settings.dailyReminderMinutes"
     static let budgetAlerts = "settings.budgetAlerts"
-    static let news = "settings.news"
     /// "Giao diện": `AppAppearance` (Hệ thống, Sáng, Tối).
     static let appearance = "settings.appearance"
     /// The account the last transaction was added to, picked first next time.

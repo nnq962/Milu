@@ -1465,3 +1465,149 @@ Thay Solar. Solar thiên về icon giao diện, thiếu nhiều icon đời số
 - Làm theo `docs/dark-mode-plan.md`: `Palette` thành `Color` động hai giá trị (`dynamic(light, dark:)` qua `UIColor { traits }`), thêm `uiLabel`/`uiSecondaryLabel` cho thanh và segmented; bỏ `INFOPLIST_KEY_UIUserInterfaceStyle = Light`; `AccentColor` thêm bản tối #F2F2F7; `cardEdge` đọc `colorScheme`: tối thì viền `separator`, không bóng. Thư viện UI có chip Tối/Sáng (`preferredColorScheme`).
 - Xem trên Simulator ở chế độ tối: Tổng quan, Tài khoản, Thu chi, sheet Thêm giao dịch, Cài đặt; không chỗ nào mất tương phản. Logo ngân hàng nằm trên ô #1C1C1E, vẫn rõ.
 - Dark mode từng bị bỏ 2026-10-30 vì khó duy trì hai bảng; với token theo vai trò thì là một cột giá trị trong một file.
+
+
+## Bộ chọn giao diện có hình mẫu — 2026-10-31
+
+- Theo ảnh tham chiếu của người dùng, thay segmented trong Cài đặt bằng `AppearancePicker`: Sáng, Tối và Hệ thống chia chéo hai theme. Dùng token màu, chữ, khoảng cách, bo góc và kiểu nhấn của design system; viền và dấu chọn màu chính đơn sắc.
+- Giữ `AppStorage` và chuyển giao diện cả cửa sổ; thêm trạng thái selected cho VoiceOver và bố cục dọc ở cỡ chữ trợ năng. Thư viện UI có mẫu tương tác riêng, không đổi giao diện toàn app.
+
+
+## Hình mẫu giao diện phải là Timi — 2026-10-31
+
+- Người dùng nhắc phải bám giao diện app: bỏ hai vạch và chấm màu bê từ ảnh tham chiếu. Hình mẫu nay là Cài đặt Timi thu nhỏ, tái sử dụng các dòng Hạng mục / Danh bạ, icon Hugeicons, font và bề mặt thẻ của app. Giữ ba lựa chọn và đường chia chéo của Hệ thống.
+
+
+## Hình mẫu giao diện dạng minh hoạ — 2026-10-31
+
+- Người dùng làm rõ: bên trong chỉ là hình mô tả, không phải màn Cài đặt thu nhỏ. Giữ nền và thẻ của Timi, hai nét đơn sắc tượng trưng chữ chính/phụ; bỏ chữ thật, icon và chấm màu.
+
+
+## Chốt bộ chọn giao diện: Một thẻ phẳng — 2026-10-31
+
+- Người dùng chọn mẫu 3 của bản so sánh gọn: một thẻ ngang 62 × 35 với hai nét, Hệ thống chia đôi theo chiều dọc. Bỏ khung ngoài và viền chọn quanh hình, giữ dấu ✓ cạnh nhãn; giảm chiều cao phần hình xuống 44. Dùng Palette và các thành phần hiện có, giữ nguyên lưu lựa chọn và chuyển theme.
+
+
+## Viền chọn giao diện thay dấu tick — 2026-10-31
+
+- Theo yêu cầu người dùng: bỏ dấu ✓ cạnh tên, dùng viền `primary` 2pt bao ngoài hình đang chọn. Giữ kích thước và vị trí cả ba hình, nhãn căn giữa; VoiceOver vẫn đọc trạng thái selected.
+
+
+## Thẻ nâng cấp Pro trong Cài đặt — 2026-10-31
+
+- Dùng chung `ProUpgradeCard` với Tổng quan, thêm kiểu `.compact` cho Cài đặt: nền đậm, vương miện mờ, tiêu đề rõ và nhấn 300 lượt AI/tháng; báo cáo và đồng bộ gộp một dòng. Bo 24, đệm 20; ban đêm nền xám nâng nhẹ, chữ trắng.
+- Giữ cả thẻ là một nút mở thông tin sắp ra mắt, kiểu nhấn phủ nhẹ không gây nháy. Nội dung tự xuống dòng với cỡ chữ trợ năng; bản đầy đủ ở Tổng quan giữ bố cục hiện có.
+
+
+## Rút gọn nội dung Pro trong Cài đặt — 2026-10-31
+
+- Sau phản hồi không hài lòng của người dùng: bỏ số 300 phóng lớn và cụm quyền lợi rời rạc; dùng tiêu đề "Nâng cấp Timi Pro" và câu "Thêm lượt AI, xuất báo cáo và đồng bộ dữ liệu.". Bỏ gradient và vương miện nền ở bản compact; giữ vương miện nhỏ, căn chữ cùng cột các dòng Cài đặt.
+
+
+## Giữ đủ lợi ích Pro trên card native — 2026-10-31
+
+- Người dùng yêu cầu card trong app và đầy đủ quyền lợi: bỏ câu gộp, hiện lại cả ba lợi ích dùng chung nguồn với Tổng quan (300 lượt AI/tháng; xuất báo cáo PDF, Excel; đồng bộ trên mọi thiết bị). Mỗi lợi ích một dòng, chữ body, dấu tích nét; tiêu đề/các dòng cùng cột. Không làm web thay cho giao diện SwiftUI.
+
+
+## Gộp nâng cấp vào hạn mức AI — 2026-10-31
+
+- Người dùng đổi ý: bỏ card Pro riêng trong Cài đặt; thêm một nút "Nâng cấp" trong thẻ Lượt AI tháng này, dưới thông tin sử dụng. Dùng `TimiButton` primary, rộng hết thẻ, mở thông tin Pro hiện có. Bỏ biến thể compact không còn dùng; card Tổng quan giữ nguyên.
+
+
+## Nâng cấp nhỏ gọn, hồ sơ hiện email — 2026-10-31
+
+- Người dùng muốn nút nhỏ và lồng ghép tinh tế: chuyển "Nâng cấp" thành HeaderLink ở góc phải tiêu đề lượt AI, bỏ nút dài dưới thẻ; ngày làm mới chuyển xuống dòng đã dùng. Giữ vùng chạm mở rộng và nút riêng cho VoiceOver.
+- Dòng dưới tên đổi sang email; người dùng cho dùng email mẫu nên hiển thị `quyet@example.com` (chưa có đăng nhập).
+
+
+## Nút nâng cấp dạng viên nhỏ — 2026-10-31
+
+- Người dùng chưa hài lòng với nút chữ trơn: chuyển sang viên nền xám nhẹ `Palette.fill`, vương miện nét 14 và chữ captionStrong 13, đệm 12 × 4, giữ ở góc phải tiêu đề thẻ AI. Vùng chạm mở rộng như HeaderLink; hiệu ứng nhấn theo design system.
+
+
+## Nút nâng cấp tiêu chuẩn cạnh số lượt — 2026-10-31
+
+- Người dùng muốn trở lại button bình thường nền trắng và đặt hợp lý: dùng TimiButton primary cao 44, không kéo toàn chiều rộng, bên phải số lượt còn lại. Bỏ viên nhỏ/vương miện, lượt thưởng dưới số, ngày làm mới ở hàng tiêu đề. Giữ bố cục dọc khi dùng cỡ chữ trợ năng.
+
+
+## Thu gọn nút nâng cấp ở cuối card — 2026-10-31
+- Nút cao 44 đặt cạnh số lượt quá nổi và làm mất cân đối cụm số liệu. Chuyển nút xuống góc phải dưới thanh tiến độ, chung hàng với thông tin đã dùng.
+- Thêm cỡ compact vào TimiButton: nền 36, chữ captionStrong, đệm ngang 12; vùng chạm vẫn tối thiểu 44. Nền primary trắng ở chế độ tối, không icon; giữ hiệu ứng mờ khi nhấn. Thêm mẫu vào thư viện UI.
+- Build Debug iPhone 17 thành công; kiểm tra bố cục tối và bấm mở thông tin Timi Pro trên Simulator.
+
+
+## Thiết kế lại toàn bộ card hạn mức AI — 2026-10-31
+- Người dùng yêu cầu làm lại layout card thay vì tiếp tục di chuyển riêng button. Bỏ cột icon, dùng toàn bộ bề ngang với đệm 20.
+- Ba hàng rõ ràng: tiêu đề + nút nâng cấp compact; số lượt còn lại + lượt thưởng; thanh tiến độ và hai thông tin đã dùng/ngày làm mới ở dưới. Giữ màu và typography của design system, nền trắng của nút trong chế độ tối.
+- Giữ cách tính: tổng còn lại gồm thưởng, thanh tiến độ chỉ biểu diễn phần miễn phí đã dùng.
+
+
+## Mẫu card hạn mức gọn để xem trước — 2026-10-31
+- Theo đề xuất đã trình bày, người dùng yêu cầu xem mẫu: dựng trực tiếp trong app, đệm 16, dòng tổng còn lại dùng heading 20 thay display 34; phân bổ miễn phí/thưởng màu xám dưới số; nút trắng compact góc trên phải. Card khoảng 144pt ở cỡ chữ mặc định.
+- Đây là mẫu đang chờ phản hồi, chưa phải lựa chọn đã được người dùng chốt. Build thành công, kiểm tra hình trên iPhone 17 Simulator.
+
+
+## Card hạn mức theo nhóm cài đặt — 2026-10-31
+- Làm lại theo yêu cầu sau khi đối chiếu HIG: chia card thành phần sử dụng và hàng quản lý gói, dùng RowDivider và các token hiện có. Tổng lượt còn lại trên hàng tiêu đề, số đã dùng và lượt thưởng dưới thanh tiến độ; gói và ngày làm mới cùng nút nâng cấp ở hàng cuối.
+- Nút trắng compact được giữ; thêm đệm dọc vào TimiButton để Dynamic Type lớn vẫn có khoảng trống quanh chữ (không thay kích thước mặc định).
+- Kiểm tra trên iPhone 17: giao diện sáng/tối và cỡ chữ accessibility-large; card xếp dọc, không cắt chữ. Khôi phục cỡ chữ large và giao diện tối sau kiểm tra.
+
+
+## Thử bảng màu Ink cho dark mode — 2026-10-31
+- Người dùng muốn thử đề xuất Ink: nền trang #0C1017, card #171D29, khối nhạt #252E3D, separator/rim #2D3645, chữ chính/nút #F0F3F8, chữ phụ #A4AFBF. Chevron #778398 và chữ trên nút #0C1017 theo cùng bảng màu.
+- Đổi tại Palette; đồng bộ UIKit và AccentColor tối. Các giá trị sáng và màu mang nghĩa không đổi.
+- Kiểm tra tính toán tương phản: chữ chính/phụ và chữ semantic đều đạt ít nhất 4,5:1 trên ba nền tối; cặp màu nút đạt 4,5:1.
+- Build Debug thành công. Đã xem trực tiếp Tổng quan và Cài đặt trên Simulator; ảnh mẫu: build/overview-ink.png và build/settings-ink.png.
+
+
+## Thử Graphite thay Ink — 2026-10-31
+- Người dùng yêu cầu thử Graphite: nền trang #101114, thẻ #1B1D22, khối nhạt #272930, rim/separator #353840. Chữ chính/nút #F2F3F5, chữ phụ #A9ADB6, chevron #7C828F; chữ trên nút #101114.
+- Đồng bộ Palette, UIKit và AccentColor dark; giữ bảng màu sáng và layout hiện tại. Ảnh Ink vẫn ở build/settings-ink.png để so sánh.
+- Build Debug thành công; kiểm tra trực tiếp Cài đặt trên Simulator. Chữ chính/phụ và chữ semantic đạt tối thiểu 4,5:1 trên các nền tối; ảnh: build/settings-graphite.png.
+
+
+## Trở lại đơn sắc, giảm xám nhẹ — 2026-10-31
+- Theo yêu cầu người dùng: trả nền trang về #000000 và chữ/nút về bảng màu gốc. Card từ #1C1C1E xuống #18181A; khối nhạt từ #2C2C2E xuống #262628; rim/separator từ #38383A xuống #2E2E30.
+- Giữ bố cục card đã được chấp nhận; các giá trị sáng không đổi. Đồng bộ UIKit và AccentColor tối.
+- Build Debug thành công; kiểm tra Cài đặt trên Simulator và tương phản chữ chính/phụ/semantic trên ba nền tối (tối thiểu 4,5:1). Ảnh: build/settings-neutral-darker.png.
+
+
+## Thử bỏ viền card dark mode — 2026-10-31
+- Theo yêu cầu người dùng, CardEdge bỏ nét bao ngoài khi colorScheme là dark. Các card và bề mặt dùng CardEdge phân lớp bằng màu nền; giữ hiệu ứng viền/bóng chế độ sáng, đường chia hàng và viền chọn giao diện.
+- Build Debug thành công, xem trực tiếp Cài đặt trên Simulator: các card không còn nét bao ngoài. Ảnh: build/settings-borderless.png.
+
+
+## Bỏ viền card cả chế độ sáng — 2026-10-31
+- Người dùng yêu cầu bỏ viền ở white mode: xoá lớp stroke của bề mặt card, giữ bóng nhẹ ở chế độ sáng. Dark mode tiếp tục không viền, không bóng.
+- Dọn API thành cardShadow()/cardSurface(shadowed:), bỏ token rim không còn dùng; cập nhật thư viện UI.
+- Build Debug thành công, kiểm tra giao diện sáng trên Simulator: card không còn viền trắng, giữ bóng nhẹ. Ảnh: build/settings-borderless-light.png.
+
+
+## Đổi thứ tự Tổng quan — 2026-10-31
+- Theo yêu cầu người dùng, đưa Lịch thu chi lên trước Tháng này, ngay sau Làm quen. Các thành phần và hành động trong hai phần giữ nguyên.
+
+
+## Sắp nhóm Cài đặt theo cấu trúc mới — 2026-10-31
+- Đổi Chung thành Quản lý tài chính, thứ tự Hạn mức chi tiêu → Hạng mục → Danh bạ → Báo cáo. Giữ Giao diện và Thông báo thành nhóm riêng.
+- Hỗ trợ gồm FAQ, góp ý, liên hệ hỗ trợ. Về Timi gồm Lịch sử phiên bản, Quyền riêng tư, Điều khoản và Giấy phép mã nguồn mở.
+- Nhóm Nhà phát triển chỉ biên dịch vào Debug, gồm Thư viện UI và Đặt lại dữ liệu mẫu.
+- Build Debug và Release thành công. Kiểm tra cây trợ năng của Cài đặt trên Simulator: các nhóm và thứ tự mới đúng; nhóm Nhà phát triển được giới hạn bằng #if DEBUG.
+
+
+## Bỏ Tin từ Timi và sửa màu switch — 2026-10-31
+- Xoá dòng Tin từ Timi cùng AppStorage và StorageKey không còn sử dụng.
+- FormToggleRow dùng token switchOn mới: #4E6E94 ở sáng, #647F9F ở tối. Con trượt native màu trắng tách khỏi nền bật; áp dụng chung cho switch trong app. Thêm mẫu token vào thư viện UI.
+- Build Debug thành công. Kiểm tra bật/tắt trên Simulator, giao diện sáng và tối; khôi phục hai switch đang bật và giao diện tối. Tương phản trắng/nền bật: sáng 5,27:1; tối 4,14:1.
+
+
+## Màu switch theo ảnh mẫu — 2026-10-31
+- Người dùng gửi mẫu switch xanh cho light theme: lấy màu nền ở phần trong của ảnh, chuyển từ profile Color LCD sang sRGB, chọn #487EC6.
+- Dark theme dùng sắc xanh sáng hơn #588FD8 để nổi trên card tối và vẫn tách rõ con trượt trắng. Cập nhật token switchOn chung.
+- Build Debug thành công, kiểm tra trực tiếp sáng/tối trên Simulator. Tương phản con trượt trắng/nền bật: 4,14:1 ở sáng và 3,31:1 ở tối.
+
+
+## Chọn giờ nhắc ghi chi tiêu — 2026-10-31
+- Thêm Giờ nhắc dưới switch Nhắc ghi chi tiêu, chỉ hiện khi bật. Dùng FormTimeRow trong design system, sheet bánh xe giờ/phút native với ✓ lưu và ✕ huỷ.
+- Lưu phút tính từ nửa đêm vào settings.dailyReminderMinutes, mặc định 21:00; giữ lựa chọn khi tắt/bật lời nhắc và khi mở lại app. Lưu giờ địa phương thay vì timestamp.
+- Phạm vi hiện tại là giao diện và lưu cấu hình; app chưa có dịch vụ lập lịch/gửi thông báo.
+- Build Debug thành công. Kiểm tra Simulator: đổi/lưu 22:01, xác nhận UserDefaults lưu 1321 phút, mở lại đúng giờ, thay đổi rồi huỷ không ghi đè, tắt/bật ẩn/hiện dòng giờ. Khôi phục 21:00 sau kiểm tra.

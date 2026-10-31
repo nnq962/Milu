@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Month button: "Tháng 5 ⌄". Tapping it opens the month-and-year wheels in a small sheet
-/// (`MonthPickerSheet`), the page following as they turn (user choice 2026-10-31). It was a native
+/// (`MonthPickerSheet`) with ✕ and ✓ (user choice 2026-10-31). It was a native
 /// menu of the last six months: as the menu closed without a pick, iOS shrank its glass back into
 /// the button over the words, which read as the words being squeezed.
 ///
@@ -38,12 +38,7 @@ struct MonthPickerButton: View {
         .id(title)
         .transition(.identity)
         .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
-        .sheet(isPresented: $isPicking) {
-            MonthPickerSheet(month: $month)
-                // Apple's own sheet: one height, so iOS shows no grabber, as on every other one.
-                .presentationDetents([.height(320)])
-                .presentationBackground(Palette.background)
-        }
+        .sheet(isPresented: $isPicking) { MonthPickerSheet(month: $month) }
     }
 
     /// "Tháng 9" this year, "Tháng 9/2025" another: the button and the page's empty state.
@@ -73,24 +68,27 @@ struct MonthPickerButton: View {
 }
 
 /// Picks a month on the iOS month-and-year wheels (user choice 2026-10-30: native, over the drawn
-/// grid of twelve months), in the small sheet `MonthPickerButton` opens. The page follows
-/// the wheels as they turn; a swipe down or a tap outside closes it. Months still ahead
-/// cannot be reached. "Tháng này" goes back to the current month.
+/// grid of twelve months), in the short sheet `MonthPickerButton` opens. Like every sheet of the
+/// app (`SheetScaffold`, user choice 2026-10-31): "Chọn tháng" with ✕ and ✓, the wheels on a card,
+/// and the page changes on ✓ only (it used to follow the wheels, with no ✓, as a leftover of the
+/// month menu's "Tháng khác…"). Months still ahead cannot be reached. "Tháng này" goes straight
+/// back to the current month.
 struct MonthPickerSheet: View {
     @Binding var month: Date
 
     @Environment(\.dismiss) private var dismiss
     @Environment(FinanceStore.self) private var store
-    /// Whether "Tháng này" shows, decided as it opens: turning the wheels changes `month`, and the
-    /// button must not pop in and out (and the sheet resize) while they turn.
-    @State private var showsThisMonth: Bool
+    /// The month on the wheels; written to `month` on ✓.
+    @State private var draft: Date
+    /// Whether "Tháng này" shows: only while another month is open.
+    private let showsThisMonth: Bool
 
-    private let calendar = Calendar.current
-    private static let wheelsSize = CGSize(width: 300, height: 216)
+    private static let wheelsHeight: CGFloat = 216
 
     init(month: Binding<Date>) {
         _month = month
-        _showsThisMonth = State(initialValue: !Calendar.current.isDate(month.wrappedValue, equalTo: .now, toGranularity: .month))
+        _draft = State(initialValue: month.wrappedValue.startOfMonth)
+        showsThisMonth = !Calendar.current.isDate(month.wrappedValue, equalTo: .now, toGranularity: .month)
     }
 
     private var earliest: Date { Self.earliest(in: store) }
@@ -105,30 +103,35 @@ struct MonthPickerSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: Spacing.s) {
-            // UIDatePicker wheels have no size of their own in SwiftUI: 216 is their standard
-            // height, and the width keeps month and year close together in the middle of the sheet
-            // rather than flung to its edges.
-            MonthYearWheels(month: $month, range: earliest...Date.now)
-                .frame(width: Self.wheelsSize.width, height: Self.wheelsSize.height)
-            if showsThisMonth {
-                Button {
-                    Haptics.selection()
-                    withAnimation(.smooth(duration: 0.3)) { month = .now.startOfMonth }
-                    dismiss()
-                } label: {
-                    // The frame inside the label, so all 44 take the tap (strict review 2026-10-31).
-                    Text("Tháng này")
-                        .padding(.horizontal, Spacing.l)
-                        .frame(minHeight: ControlHeight.regular)
-                        .contentShape(Rectangle())
+        SheetScaffold(title: "Chọn tháng", onConfirm: {
+            withAnimation(.smooth(duration: 0.3)) { month = draft }
+            dismiss()
+        }, fitsContent: true) {
+            VStack(spacing: Spacing.s) {
+                // UIDatePicker wheels have no size of their own in SwiftUI: 216 is their standard
+                // height. On a card, as the time wheels of `FormTimeRow`.
+                MonthYearWheels(month: $draft, range: earliest...Date.now)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: Self.wheelsHeight)
+                    .padding(Spacing.m)
+                    .cardSurface(radius: CardCorners.inset)
+                if showsThisMonth {
+                    Button {
+                        Haptics.selection()
+                        withAnimation(.smooth(duration: 0.3)) { month = Date.now.startOfMonth }
+                        dismiss()
+                    } label: {
+                        // The frame inside the label, so all 44 take the tap (strict review 2026-10-31).
+                        Text("Tháng này")
+                            .padding(.horizontal, Spacing.l)
+                            .frame(minHeight: ControlHeight.regular)
+                            .contentShape(Rectangle())
+                    }
+                    .textRole(.bodyStrong)
+                    .tint(Palette.primary)
                 }
-                .textRole(.bodyStrong)
-                .tint(Palette.primary)
             }
         }
-        .padding(.vertical, Spacing.s)
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -166,7 +169,7 @@ private struct MonthYearWheels: UIViewRepresentable {
 
         // The wheels tick on their own, so no haptic here.
         @objc func changed(_ picker: UIDatePicker) {
-            withAnimation(.smooth(duration: 0.3)) { month.wrappedValue = picker.date.startOfMonth }
+            month.wrappedValue = picker.date.startOfMonth
         }
     }
 }

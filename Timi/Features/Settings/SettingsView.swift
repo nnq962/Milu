@@ -1,18 +1,20 @@
 import SwiftUI
 
 /// Cài đặt, opened from the avatar on Tổng quan as a full sheet (like the account sheet in Apple's
-/// own apps). Redone 2026-10-29: the profile card, this month's lượt AI, a Timi Pro invite, then
-/// Chung, Thông báo, Hỗ trợ and Nhà phát triển, where the UI library lives. Rows the app cannot do yet open a short note.
+/// own apps). The profile card, this month's lượt AI with its upgrade button, then
+/// Quản lý tài chính, Giao diện, Thông báo, Hỗ trợ and Về Timi. Developer tools appear only
+/// in Debug builds. Rows the app cannot do yet open a short note.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
     @AppStorage(StorageKey.dailyReminder) private var dailyReminder = true
+    @AppStorage(StorageKey.dailyReminderMinutes) private var dailyReminderMinutes = 21 * 60
     @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = true
-    @AppStorage(StorageKey.news) private var news = false
     @AppStorage(StorageKey.appearance) private var appearance = AppAppearance.system
 
     @State private var note: Note?
@@ -36,6 +38,18 @@ struct SettingsView: View {
         return "\(short) (\(build))"
     }
 
+    /// Persist a local time rather than a timestamp, so changing time zones keeps the selected hour.
+    private var reminderTime: Binding<Date> {
+        Binding {
+            let minutes = min(max(dailyReminderMinutes, 0), 24 * 60 - 1)
+            return Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0,
+                                         of: Date(timeIntervalSinceReferenceDate: 0)) ?? .now
+        } set: { date in
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+            dailyReminderMinutes = (parts.hour ?? 21) * 60 + (parts.minute ?? 0)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -43,10 +57,17 @@ struct SettingsView: View {
                     VStack(spacing: Spacing.l) {
                         profile
                         aiQuotaCard
-                        proInvite
                     }
 
-                    FormGroup(title: "Chung") {
+                    FormGroup(title: "Quản lý tài chính") {
+                        NavigationLink {
+                            BudgetView()
+                        } label: {
+                            NavigationRowContent(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
+                                               value: monthlyBudget > 0 ? monthlyBudget.vnd : "Chưa đặt")
+                        }
+                        .buttonStyle(.row)
+                        FormDivider()
                         NavigationLink {
                             CategoriesView()
                         } label: {
@@ -72,22 +93,12 @@ struct SettingsView: View {
                             NavigationRowContent(title: "Báo cáo", icon: "hugeicons-pie-chart")
                         }
                         .buttonStyle(.row)
-                        FormDivider()
-                        NavigationLink {
-                            BudgetView()
-                        } label: {
-                            NavigationRowContent(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
-                                               value: monthlyBudget > 0 ? monthlyBudget.vnd : "Chưa đặt")
-                        }
-                        .buttonStyle(.row)
                     }
 
                     // Changes at once, the whole screen fading across (user request 2026-10-31).
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Giao diện", style: .group)
-                        ScaledSegmentedPicker(title: "Giao diện", selection: $appearance,
-                                              options: AppAppearance.allCases) { $0.title }
-                            .controlSize(.large)
+                        AppearancePicker(selection: $appearance)
                     }
                     .sensoryFeedback(.selection, trigger: appearance)
                     .onChange(of: appearance) { _, new in new.apply(animated: true) }
@@ -95,14 +106,22 @@ struct SettingsView: View {
                     // No footers here: a footer only carries a computed figure or an error
                     // (strict review 2026-10-31).
                     FormGroup(title: "Thông báo") {
-                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "21:00 mỗi ngày",
+                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "Mỗi ngày",
                                       icon: "hugeicons-notification-01", isOn: $dailyReminder)
+                        // Its hour only while the reminder is on, sliding in and out with the card
+                        // (user report 2026-10-31: it popped in with no animation).
+                        if dailyReminder {
+                            VStack(spacing: 0) {
+                                FormDivider()
+                                FormTimeRow(title: "Giờ nhắc", icon: "hugeicons-clock-01", date: reminderTime)
+                            }
+                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                        }
                         FormDivider()
                         FormToggleRow(title: "Cảnh báo hạn mức", subtitle: "Khi dùng 80% và 100%",
                                       icon: "hugeicons-alert-circle", isOn: $budgetAlerts)
-                        FormDivider()
-                        FormToggleRow(title: "Tin từ Timi", icon: "hugeicons-star", isOn: $news)
                     }
+                    .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: dailyReminder)
 
                     FormGroup(title: "Hỗ trợ") {
                         FormNavigationRow(title: "Câu hỏi thường gặp", icon: "hugeicons-help-circle") {
@@ -113,16 +132,22 @@ struct SettingsView: View {
                             mail(subject: "Góp ý cho Timi iOS")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Email hỗ trợ", subtitle: Self.supportEmail, icon: "hugeicons-mail-01") {
+                        FormNavigationRow(title: "Liên hệ hỗ trợ", subtitle: Self.supportEmail, icon: "hugeicons-mail-01") {
                             mail(subject: "Hỗ trợ Timi iOS")
                         }
-                        FormDivider()
-                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02") {
-                            note = Note(title: "Điều khoản sử dụng", message: "Sắp có trong app.")
+                    }
+
+                    FormGroup(title: "Về Timi") {
+                        FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
+                            note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
                         }
                         FormDivider()
                         FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check") {
                             note = Note(title: "Chính sách quyền riêng tư", message: "Dữ liệu trong bản thử nghiệm chỉ nằm trên máy và được đặt lại khi mở lại app. Chính sách đầy đủ sắp có.")
+                        }
+                        FormDivider()
+                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02") {
+                            note = Note(title: "Điều khoản sử dụng", message: "Sắp có trong app.")
                         }
                         FormDivider()
                         NavigationLink {
@@ -133,6 +158,7 @@ struct SettingsView: View {
                         .buttonStyle(.row)
                     }
 
+                    #if DEBUG
                     FormGroup(title: "Nhà phát triển") {
                         NavigationLink {
                             DesignSystemView()
@@ -142,12 +168,6 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.row)
                         FormDivider()
-                        // The version shows here only: a line under the last group repeated it (re-review 2026-10-31).
-                        FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
-                            note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
-                        }
-                        // The red row has its bin icon, so its hairline starts at the text too.
-                        FormDivider()
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
                                            message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ và hạn mức bạn đã thêm hoặc sửa sẽ bị xoá.") {
                             store.resetToSampleData()
@@ -156,6 +176,7 @@ struct SettingsView: View {
                             UserDefaults.standard.removeObject(forKey: StorageKey.categoryBudgets)
                         }
                     }
+                    #endif
 
                 }
                 .padding(.horizontal, Spacing.page)
@@ -188,7 +209,8 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text("Quyet")
                     .textRole(.heading)
-                Text("Dữ liệu mẫu · lưu trên máy")
+                // Placeholder until the app has an authenticated profile.
+                Text("quyet@example.com")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryLabel)
             }
@@ -199,23 +221,22 @@ struct SettingsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// This month's lượt AI: what is left of the 20 and the bonus from Làm quen, then the bar of
-    /// what has been used with its words right under it, so an empty bar reads "nothing used"
-    /// (user report 2026-10-31: the bar was what is left, full at 0/20, and read as "all used").
-    /// Icon and words as a form row's: a 20 glyph in the 24 column, the words at 54 like the
-    /// rows below (re-review 2026-10-31).
+    /// "Hạn mức AI tháng này" (user's words, 2026-10-31): what is left, large, over the bar of
+    /// what has been used and one quiet line of the details, then a plain "Nâng cấp" button
+    /// across the card. What Pro gives is not listed here: the plans sheet will show it (user
+    /// choice 2026-10-31). The remaining total includes the bonus; the bar measures only the free
+    /// lượt.
     private var aiQuotaCard: some View {
         let used = quota.usedThisMonth
-        let renews = quota.renewsOn.shortDay
-        return HStack(alignment: .top, spacing: RowMetrics.gap) {
-            FormRowIcon(icon: "hugeicons-ai-magic")
-                .accessibilityHidden(true)
+        let details = ["Đã dùng \(used)/\(AIQuota.monthlyFree) lượt",
+                       quota.bonus > 0 ? "+\(quota.bonus) lượt thưởng" : nil].compactMap { $0 }
+        return VStack(alignment: .leading, spacing: Spacing.l) {
             VStack(alignment: .leading, spacing: Spacing.m) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Lượt AI tháng này")
+                AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                    Text("Hạn mức AI tháng này")
                         .textRole(.bodyStrong)
-                    Spacer(minLength: Spacing.s)
-                    Text("Làm mới \(renews)")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Làm mới \(quota.renewsOn.shortDay)")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                 }
@@ -227,57 +248,29 @@ struct SettingsView: View {
                     Text("lượt còn lại")
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryLabel)
-                    if quota.bonus > 0 {
-                        Spacer(minLength: Spacing.s)
-                        Text("+\(quota.bonus) lượt thưởng")
-                            .textRole(.caption)
-                            .foregroundStyle(Palette.positive)
-                    }
                 }
+                .accessibilityElement(children: .combine)
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     // Fills as lượt are used; orange once 3 or fewer free ones are left.
                     ProgressBar(value: Double(used) / Double(AIQuota.monthlyFree),
                                 color: quota.monthlyLeft <= 3 ? Palette.warning : Palette.primary)
                         .accessibilityHidden(true)
-                    Text("Đã dùng \(used)/\(AIQuota.monthlyFree) lượt miễn phí")
+                    Text(details.joined(separator: " · "))
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-        }
-        .settingsCard()
-        .accessibilityElement(children: .combine)
-    }
-
-    /// A short Timi Pro invite: a card with a plain crown in the accent colour. The crown is a row's
-    /// glyph in a row's column, so the words start at 54 like every row (re-review 2026-10-31: 24
-    /// and 12, words at 52).
-    private var proInvite: some View {
-        Button {
-            note = Note(title: TimiProNote.title, message: TimiProNote.message)
-        } label: {
-            HStack(spacing: RowMetrics.gap) {
-                TimiIcon("hugeicons-crown", size: RowMetrics.iconGlyph)
-                    .foregroundStyle(Palette.primary)
-                    .frame(width: RowMetrics.iconColumn, height: RowMetrics.iconGlyph)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                    Text("Nâng cấp Timi Pro")
-                        .textRole(.bodyStrong)
-                        .foregroundStyle(Palette.label)
-                    Text("\(AIQuota.monthlyPro) lượt AI mỗi tháng, báo cáo, đồng bộ")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .lineLimit(2)
-                }
-                Spacer(minLength: Spacing.s)
-                RowChevron()
+            TimiButton("Nâng cấp", role: .primary, fullWidth: true) {
+                note = Note(title: TimiProNote.title, message: TimiProNote.message)
             }
-            .settingsCard()
-            .contentShape(RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
+            .accessibilityHint("Xem gói Timi Pro")
         }
-        .buttonStyle(.card)
+        .padding(.horizontal, RowMetrics.horizontal)
+        .padding(.vertical, Spacing.card)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardSurface(radius: CardCorners.inset)
     }
 
     private func mail(subject: String) {

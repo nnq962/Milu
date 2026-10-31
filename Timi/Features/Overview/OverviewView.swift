@@ -1,10 +1,10 @@
 import SwiftUI
 
 /// Home tab, in the order of the user's design (2026-10-31): the date and a greeting scrolling
-/// with the page, the net worth, the shortcuts, the first steps, this month, the calendar and
-/// Timi Pro last; Q and the bell on the bar. Liquid Glass stays on the tab bar and the + beside it, as the HIG keeps
-/// it for the controls layer; content sits on solid surfaces. One file per card in `Cards/`, with
-/// the sheets they open.
+/// with the page, the net worth with Timi's strip at its foot (the way into the assistant), the
+/// first steps, the calendar, this month and Timi Pro last; Q and the bell on the bar. Liquid
+/// Glass stays on the tab bar and the + beside it, as the HIG keeps it for the controls layer;
+/// content sits on solid surfaces. One file per card in `Cards/`, with the sheets they open.
 struct OverviewView: View {
     /// "Cần chú ý" on the page; off for now (user request 2026-10-30).
     private static let showsAttention = false
@@ -39,10 +39,21 @@ struct OverviewView: View {
                     // The greeting heads the net worth card, closer than a section (20, as drawn).
                     VStack(alignment: .leading, spacing: Spacing.xl) {
                         GreetingHeader(name: "Quyet")
-                        HeroCard { path.append(NetWorthRoute()) }
+                        HeroCard {
+                            path.append(NetWorthRoute())
+                        } onOpenAssistant: {
+                            path.append(AssistantRoute())
+                        }
                     }
-                    QuickActions { path.append(AssistantRoute()) }
                     OnboardingCard()
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Lịch thu chi") {
+                            // The month as plain words, as every control on a heading's row.
+                            MonthPickerButton(month: $calendarMonth, compact: true)
+                        }
+                        MoneyCalendarCard(displayedMonth: $calendarMonth) { selectedDay = CalendarDay(date: $0) }
+                            .card()
+                    }
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Tháng này") {
                             Button { path.append(ReportRoute(month: month)) } label: {
@@ -55,14 +66,6 @@ struct OverviewView: View {
                     // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
                     // `showsAttention` back to true to bring it back.
                     if Self.showsAttention { AttentionCard() }
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Lịch thu chi") {
-                            // The month as plain words, as every control on a heading's row.
-                            MonthPickerButton(month: $calendarMonth, compact: true)
-                        }
-                        MoneyCalendarCard(displayedMonth: $calendarMonth) { selectedDay = CalendarDay(date: $0) }
-                            .card()
-                    }
                     // Last, at the foot of the page (user request 2026-10-31).
                     ProUpgradeCard {
                         information = Information(title: TimiProNote.title, message: TimiProNote.message)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChoicesPart: View {
     @State private var segment: TransactionSegment = .flows
+    @State private var appearance = AppAppearance.system
     @State private var accountType = "Ngân hàng"
     @State private var reminders = true
     @State private var locked = false
@@ -11,6 +12,11 @@ struct ChoicesPart: View {
 
     var body: some View {
         PartSection(part: .choices) {
+            VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                SectionHeader(title: "Giao diện · AppearancePicker", style: .group)
+                AppearancePicker(selection: $appearance)
+            }
+
             // Its words grow with the text size, unlike the bare segmented Picker.
             SampleCard(label: "Segmented · ScaledSegmentedPicker") {
                 ScaledSegmentedPicker(title: "Loại", selection: $segment,
@@ -49,6 +55,8 @@ struct ChoicesPart: View {
                 FormDateTimeRow(title: "Thời gian", date: $date, latest: .now)
                 FormDivider(hasIcon: false)
                 FormDateRow(title: "Hạn trả", date: $deadline)
+                FormDivider(hasIcon: false)
+                FormTimeRow(title: "Giờ nhắc", date: $date)
             }
 
             // A row that opens a picker sheet: label, grey value, ›.

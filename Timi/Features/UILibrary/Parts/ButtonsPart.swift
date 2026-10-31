@@ -16,6 +16,10 @@ struct ButtonsPart: View {
                 }
             }
 
+            SampleCard(label: "Gọn trong thẻ · vùng chạm 44") {
+                TimiButton("Nâng cấp", role: .primary, size: .compact) {}
+            }
+
             SampleCard(label: "Có icon · tắt") {
                 VStack(spacing: Spacing.m) {
                     TimiButton("Thêm giao dịch", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {}

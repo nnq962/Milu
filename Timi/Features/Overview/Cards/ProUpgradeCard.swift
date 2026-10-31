@@ -20,8 +20,9 @@ struct ProUpgradeCard: View {
         "Xuất báo cáo PDF, Excel",
         "Đồng bộ trên mọi thiết bị",
     ]
+
     /// The crown watermark in the bottom trailing corner, partly off the card.
-    private static let watermarkSize: CGFloat = 168
+    private let watermarkSize: CGFloat = 168
     private static let watermarkTilt = Angle.degrees(-14)
 
     /// The tick's disc grows with the benefit's words.
@@ -43,46 +44,51 @@ struct ProUpgradeCard: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
         Button(action: onUpgrade) {
-            VStack(alignment: .leading, spacing: Spacing.xl) {
-                VStack(alignment: .leading, spacing: Spacing.s) {
-                    proMark
-                    Text("Nâng cấp Timi Pro")
-                        .textRole(.heading)
-                    Text("Dùng Timi trọn vẹn, không lo hết lượt AI.")
-                        .textRole(.caption)
-                        .foregroundStyle(mutedText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                VStack(alignment: .leading, spacing: Spacing.m) {
-                    ForEach(Self.benefits, id: \.self) { benefit in
-                        HStack(spacing: Spacing.m) {
-                            TimiIcon("hugeicons-tick-02", size: RowMetrics.inlineGlyph)
-                                .frame(width: tickSize, height: tickSize)
-                                .background(tint, in: Circle())
-                            Text(benefit)
-                                .textRole(.body)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                Text("Tìm hiểu thêm")
-                    .textRole(.bodyStrong)
-                    .foregroundStyle(buttonText)
-                    .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
-                    .background(ink, in: Capsule())
-            }
+            standardContent
             .foregroundStyle(ink)
             .padding(Spacing.leadCard)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background { decoration }
             // A solid fill, no rim: the ink already parts it from the page.
-            .cardSurface(radius: CardCorners.large, color: fill, outlined: false)
+            .cardSurface(radius: CardCorners.large, color: fill, shadowed: false)
             .contentShape(shape)
         }
         .buttonStyle(ProCardButtonStyle(wash: ink))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Nâng cấp Timi Pro: " + Self.benefits.joined(separator: ", "))
         .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Tìm hiểu về Timi Pro, sắp ra mắt")
+    }
+
+    private var standardContent: some View {
+        VStack(alignment: .leading, spacing: Spacing.xl) {
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                proMark
+                Text("Nâng cấp Timi Pro")
+                    .textRole(.heading)
+                Text("Dùng Timi trọn vẹn, không lo hết lượt AI.")
+                    .textRole(.caption)
+                    .foregroundStyle(mutedText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                ForEach(Self.benefits, id: \.self) { benefit in
+                    HStack(spacing: Spacing.m) {
+                        TimiIcon("hugeicons-tick-02", size: RowMetrics.inlineGlyph)
+                            .frame(width: tickSize, height: tickSize)
+                            .background(tint, in: Circle())
+                        Text(benefit)
+                            .textRole(.body)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            Text("Tìm hiểu thêm")
+                .textRole(.bodyStrong)
+                .foregroundStyle(buttonText)
+                .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
+                .background(ink, in: Capsule())
+        }
     }
 
     /// "♛ PRO" on a faint pill over the title.
@@ -102,10 +108,10 @@ struct ProUpgradeCard: View {
         ZStack {
             RadialGradient(colors: [ink.opacity(isDark ? 0.08 : 0.16), .clear],
                            center: .topTrailing, startRadius: 0, endRadius: 220)
-            TimiIcon("hugeicons-crown", size: Self.watermarkSize)
+            TimiIcon("hugeicons-crown", size: watermarkSize)
                 .foregroundStyle(ink.opacity(0.06))
                 .rotationEffect(Self.watermarkTilt)
-                .offset(x: Self.watermarkSize * 0.28, y: Self.watermarkSize * 0.22)
+                .offset(x: watermarkSize * 0.28, y: watermarkSize * 0.22)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
         .accessibilityHidden(true)

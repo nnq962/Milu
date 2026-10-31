@@ -11,6 +11,7 @@ struct FoundationPart: View {
             ("label (chữ)", Palette.label), ("secondaryLabel", Palette.secondaryLabel),
             ("tertiaryLabel (chevron)", Palette.tertiaryLabel),
             ("primary (nút, Pro)", Palette.primary), ("onPrimary", Palette.onPrimary),
+            ("switchOn (công tắc bật)", Palette.switchOn),
             ("primaryTint", Palette.primaryTint), ("primaryDash", Palette.primaryDash),
             ("rowPressed", Palette.rowPressed), ("fill (nút phụ)", Palette.fill),
             ("negative (tiền ra)", Palette.negative), ("onNegative", Palette.onNegative),
@@ -123,15 +124,15 @@ struct FoundationPart: View {
                 }
             }
 
-            SampleCard(label: "Mép thẻ · cardSurface(outlined:)") {
-                // With the edge (shadow and white rim), as every card on a page; plain, as a tile inside a card.
+            SampleCard(label: "Bóng thẻ · cardSurface(shadowed:)") {
+                // Light-mode shadow on the left, flat surface on the right; neither has a border.
                 HStack(spacing: Spacing.l) {
                     Color.clear
                         .frame(height: 64)
                         .cardSurface(radius: CardCorners.flow)
                     Color.clear
                         .frame(height: 64)
-                        .cardSurface(radius: CardCorners.flow, outlined: false)
+                        .cardSurface(radius: CardCorners.flow, shadowed: false)
                 }
                 .padding(Spacing.s)
                 .background(Palette.background, in: RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))

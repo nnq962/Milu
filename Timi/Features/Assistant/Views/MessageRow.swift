@@ -147,7 +147,7 @@ private struct TransactionCard: View {
 
     var body: some View {
         TransactionListRow(transaction: transaction, detail: .day)
-            .cardSurface(radius: CardCorners.flow, color: Palette.surfaceMuted, outlined: false)
+            .cardSurface(radius: CardCorners.flow, color: Palette.surfaceMuted, shadowed: false)
             .accessibilityElement(children: .combine)
     }
 }
@@ -166,6 +166,6 @@ enum Bubble {
                                            bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
         return shape
             .fill(Palette.surface)
-            .cardEdge(shape)
+            .cardShadow()
     }
 }

@@ -38,7 +38,7 @@ struct FormToggleRow: View {
         Toggle(isOn: $isOn) {
             FormRowLabel(title: title, subtitle: subtitle, icon: icon)
         }
-        .tint(Palette.primary)
+        .tint(Palette.switchOn)
         .formRowFrame()
     }
 }

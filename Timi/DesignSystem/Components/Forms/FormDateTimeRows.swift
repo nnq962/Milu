@@ -34,6 +34,32 @@ struct FormDateRow: View {
     }
 }
 
+/// A time-only row ("Giờ nhắc", "21:00" and ›), like every picker row; tapping it opens the
+/// hour-and-minute wheels in a short sheet with ✓ and ✕, as the other date rows do (user choice
+/// 2026-10-31, over a compact pill in the row).
+struct FormTimeRow: View {
+    let title: String
+    var icon: String? = nil
+    @Binding var date: Date
+
+    @State private var isPicking = false
+
+    private var valueText: String {
+        date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
+    }
+
+    var body: some View {
+        Button { isPicking = true } label: {
+            FormValueRowContent(title: title, icon: icon, value: valueText)
+        }
+        .buttonStyle(.row)
+        .accessibilityValue(valueText)
+        .sheet(isPresented: $isPicking) {
+            DateTimeSheet(title: title, date: $date, component: .hourAndMinute)
+        }
+    }
+}
+
 /// The day and the time on one row ("Hôm nay, 17:07" and ›); tapping it opens the calendar with
 /// the time under it (user request 2026-10-30: two rows for one moment).
 struct FormDateTimeRow: View {
@@ -107,15 +133,27 @@ private struct DateTimeSheet: View {
 
     var body: some View {
         SheetScaffold(title: title, onConfirm: { date = draft; dismiss() }, fitsContent: true) {
-            // Apple's calendar, with the time under it when asked for (`component`).
-            DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
-                       displayedComponents: component)
-            .datePickerStyle(.graphical)
+            Group {
+                if component.contains(.date) {
+                    // Apple's calendar, with the time under it when asked for (`component`).
+                    picker.datePickerStyle(.graphical)
+                } else {
+                    // A time alone: the hour and minute wheels at their standard height.
+                    picker.datePickerStyle(.wheel)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 216)
+                }
+            }
             .labelsHidden()
             .padding(Spacing.m)
             .environment(\.locale, .vietnam)
             .tint(Palette.primary)
             .cardSurface(radius: CardCorners.inset)
         }
+    }
+
+    private var picker: some View {
+        DatePicker(title, selection: $draft, in: (earliest ?? .distantPast)...latestDay,
+                   displayedComponents: component)
     }
 }
