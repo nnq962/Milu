@@ -64,7 +64,7 @@ struct NetWorthPartView: View {
         let goals = store.activeGoals.sorted { $0.saved > $1.saved }
         return VStack(spacing: 0) {
             ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
-                NavigationLink(value: GoalRoute(id: goal.id)) {
+                GoalSheetLink(goalID: goal.id) {
                     GoalRow(goal: goal)
                 }
                 .buttonStyle(.row)

@@ -1,19 +1,14 @@
 import SwiftUI
 
-/// Pushes a goal's screen; its own type so it does not clash with `Account.ID` (both UUIDs).
-struct GoalRoute: Hashable {
-    let id: SavingsGoal.ID
-}
 
-/// Pushes the list of goals that reached their target.
-struct CompletedGoalsRoute: Hashable {}
-
-/// Pushes the list of archived accounts.
-struct ArchivedAccountsRoute: Hashable {}
 
 struct AccountsView: View {
     @Environment(FinanceStore.self) private var store
     @State private var isChoosingNew = false
+    /// "Lưu trữ (n) ›" and "Đã xong (n) ›" open their lists in a sheet, as an account and a goal
+    /// open (user choice 2026-11-01).
+    @State private var isShowingArchived = false
+    @State private var isShowingCompleted = false
     /// Picked in the "Thêm mới" sheet; its form opens once that sheet has gone.
     @State private var pendingNew: NewItem?
     @State private var newItem: NewItem?
@@ -59,15 +54,8 @@ struct AccountsView: View {
                 // A plain button: the bar draws its glass, which then takes part in push and pop.
                 ToolbarItem(placement: .topBarTrailing) { addMenu }
             }
-            .navigationDestination(for: GoalRoute.self) { route in
-                GoalDetailView(goalID: route.id)
-            }
-            .navigationDestination(for: CompletedGoalsRoute.self) { _ in
-                CompletedGoalsView()
-            }
-            .navigationDestination(for: ArchivedAccountsRoute.self) { _ in
-                ArchivedAccountsView()
-            }
+            .sheet(isPresented: $isShowingArchived) { ArchivedAccountsSheet() }
+            .sheet(isPresented: $isShowingCompleted) { CompletedGoalsSheet() }
             .sheet(isPresented: $isChoosingNew, onDismiss: {
                 newItem = pendingNew
                 pendingNew = nil
@@ -108,7 +96,7 @@ struct AccountsView: View {
             // Not "Tài khoản" again under the page title of that name (HIG review 2026-10-30).
             SectionHeader(title: "Ví & ngân hàng") {
                 if archived > 0 {
-                    NavigationLink(value: ArchivedAccountsRoute()) { HeaderLink(title: "Lưu trữ (\(archived))", opensPage: true) }
+                    Button { isShowingArchived = true } label: { HeaderLink(title: "Lưu trữ (\(archived))", opensPage: true) }
                         .headerLinkButton()
                         .accessibilityLabel("Tài khoản đã lưu trữ, \(archived)")
                 }
@@ -134,7 +122,7 @@ struct AccountsView: View {
         return VStack(alignment: .leading, spacing: Spacing.headerGap) {
             SectionHeader(title: "Hũ tiết kiệm") {
                 if completed > 0 {
-                    NavigationLink(value: CompletedGoalsRoute()) { HeaderLink(title: "Đã xong (\(completed))", opensPage: true) }
+                    Button { isShowingCompleted = true } label: { HeaderLink(title: "Đã xong (\(completed))", opensPage: true) }
                         .headerLinkButton()
                         .accessibilityLabel("Hũ đã hoàn thành, \(completed)")
                 }
@@ -150,7 +138,7 @@ struct AccountsView: View {
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: Spacing.m) {
                         ForEach(store.activeGoals) { goal in
-                            NavigationLink(value: GoalRoute(id: goal.id)) { GoalCarouselTile(goal: goal) }
+                            GoalSheetLink(goalID: goal.id) { GoalCarouselTile(goal: goal) }
                                 .buttonStyle(.card)
                         }
                         Button { newItem = .goal } label: { NewGoalTile() }

@@ -16,7 +16,9 @@ struct ArchivedAccountsView: View {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         // The one account row of the app, as on the tab (strict review 2026-10-31:
                         // here the icon went untiled and the balance in full).
-                        AccountSheetLink(accountID: account.id) {
+                        // Slides over the list inside the same sheet, ‹ back to it (user choice
+                        // 2026-11-01: one sheet, not one on top of another).
+                        NavigationLink { AccountDetailView(accountID: account.id) } label: {
                             AccountRow(account: account,
                                        subtitle: account.archivedAt.map { "Đã lưu trữ \($0.shortDay)" },
                                        isMuted: true)
@@ -35,5 +37,16 @@ struct ArchivedAccountsView: View {
         .foregroundStyle(Palette.label)
         .navigationTitle("Tài khoản đã lưu trữ")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+        }
+    }
+}
+
+/// "Lưu trữ (n) ›" on Tài khoản: the list in a sheet, as an account opens (user choice 2026-11-01).
+struct ArchivedAccountsSheet: View {
+    var body: some View {
+        NavigationStack { ArchivedAccountsView() }
+            .timiSheetStyle()
     }
 }

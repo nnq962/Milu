@@ -195,7 +195,7 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản
 - Mở thêm từ Cài đặt → Chung → Báo cáo (2026-10-30).
 - So sánh với **cùng số ngày** của kỳ trước khi kỳ đang chạy (`ReportPeriod.comparison`, ghi "so với cùng kỳ tháng trước"); kỳ đã qua so với cả kỳ trước. Thay đổi trên 100% ghi bằng số tiền ("↑ 4,3tr") thay vì %. Kỳ đang chạy ghi ngắn "↑ 80% · cùng kỳ" cho vừa một dòng (VoiceOver đọc đủ).
 - Thẻ tổng thêm "TB mỗi ngày" (chia số ngày đã qua) và "Lớn nhất" (khoản chi lớn nhất + hạng mục); xem theo tháng có thêm dòng hạn mức tháng + thanh, bấm mở Hạn mức chi tiêu đúng tháng đang xem.
-- Dòng "Theo tài khoản" bấm mở tài khoản (sheet) hoặc trang hũ.
+- Dòng "Theo tài khoản" bấm mở tài khoản hoặc hũ (sheet).
 - 6 kỳ đều trống thì thay đồ thị bằng dòng "Chưa có thu chi trong 6 tuần này."
 
 ## Để sau
@@ -207,9 +207,9 @@ App iPhone SwiftUI, tiếng Việt, tiền VND. 3 tab: Tổng quan, Tài khoản
 - Logo ngân hàng/ví là thương hiệu: xem lại nguồn và quy định trước khi phát hành.
 - Rung và hiệu ứng bấm cần thử lại trên máy thật; cỡ chữ trợ năng mới xem qua AX-large trên Simulator (2026-10-31), chưa duyệt đủ mọi màn ở AX5.
 
-## Mở một tài khoản
+## Mở một tài khoản hoặc hũ
 
-- **Sheet trượt lên như mở giao dịch** (`AccountDetailSheet`, người dùng 2026-11-01): ✕ trái, bút chì phải, vuốt xuống để đóng; không còn đẩy trang nên tab bar không hiện dưới nó. Mọi danh sách tài khoản (tab Tài khoản, Đã lưu trữ, Tài sản ròng, Báo cáo) mở qua `AccountSheetLink`. Hũ vẫn là trang đẩy.
+- **Sheet trượt lên như mở giao dịch** (`AccountDetailSheet`, người dùng 2026-11-01): ✕ trái, bút chì phải, vuốt xuống để đóng; không còn đẩy trang nên tab bar không hiện dưới nó. Mọi danh sách tài khoản (tab Tài khoản, Đã lưu trữ, Tài sản ròng, Báo cáo) mở qua `AccountSheetLink`. **Hũ cũng vậy** (`GoalDetailSheet` qua `GoalSheetLink`, người dùng 2026-11-01): ô hũ ở tab Tài khoản, Tài sản ròng, Báo cáo. **"Lưu trữ (n) ›" và "Đã xong (n) ›"** mở danh sách trong một sheet (`ArchivedAccountsSheet`, `CompletedGoalsSheet`, ✕ trái); bấm một mục thì trượt sang trong cùng sheet, ‹ để quay lại danh sách, không chồng sheet lên sheet (người dùng 2026-11-01).
 
 ## Ghi chú kỹ thuật
 

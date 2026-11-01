@@ -337,11 +337,10 @@ struct ReportView: View {
                                                   amount: account.expense,
                                                   tone: account.expense > 0 ? .signedExpense : .neutral,
                                                   isAccount: true)
-                    // A hũ opens as a page; an account in a sheet, as from every list (user choice
-                    // 2026-11-01).
+                    // A hũ or an account in a sheet, as from every list (user choices 2026-11-01).
                     Group {
                         if store.goal(id: account.id) != nil {
-                            NavigationLink { GoalDetailView(goalID: account.id) } label: { label }
+                            GoalSheetLink(goalID: account.id) { label }
                         } else {
                             AccountSheetLink(accountID: account.id) { label }
                         }

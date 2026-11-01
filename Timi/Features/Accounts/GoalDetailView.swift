@@ -12,6 +12,8 @@ struct GoalDetailView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     let goalID: SavingsGoal.ID
+    /// ✕ on the left: the first screen of `GoalDetailSheet`.
+    var showsClose = false
 
     @State private var isEditing = false
     /// The form opened from "Mục tiêu mới": the target gets the keyboard.
@@ -67,6 +69,9 @@ struct GoalDetailView: View {
             .navigationTitle(goal.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if showsClose {
+                    ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     EditToolbarButton {
                         editsTarget = false
@@ -297,6 +302,32 @@ struct GoalTransferRow: View {
             let goal = store.goal(id: transfer.goalID)?.name ?? "Hũ đã xoá"
             return deposit ? "\(account) → \(goal)" : "\(goal) → \(account)"
         }
+    }
+}
+
+/// A goal opened from a list: a sheet sliding up, as an account and a transaction open, so the
+/// tab bar is not left showing under it (user request 2026-11-01). ✕ or a swipe down closes it.
+struct GoalDetailSheet: View {
+    let goalID: SavingsGoal.ID
+
+    var body: some View {
+        NavigationStack {
+            GoalDetailView(goalID: goalID, showsClose: true)
+        }
+        .timiSheetStyle()
+    }
+}
+
+/// A row or tile that opens its goal in `GoalDetailSheet`, from every list of goals.
+struct GoalSheetLink<Label: View>: View {
+    let goalID: SavingsGoal.ID
+    @ViewBuilder var label: Label
+
+    @State private var isOpen = false
+
+    var body: some View {
+        Button { isOpen = true } label: { label }
+            .sheet(isPresented: $isOpen) { GoalDetailSheet(goalID: goalID) }
     }
 }
 

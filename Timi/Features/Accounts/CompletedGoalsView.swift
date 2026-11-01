@@ -17,7 +17,9 @@ struct CompletedGoalsView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
-                        NavigationLink(value: GoalRoute(id: goal.id)) {
+                        // Slides over the list inside the same sheet, ‹ back to it (user choice
+                        // 2026-11-01: one sheet, not one on top of another).
+                        NavigationLink { GoalDetailView(goalID: goal.id) } label: {
                             CompletedGoalRow(goal: goal, subtitle: completedText(goal))
                         }
                         .buttonStyle(.row)
@@ -34,6 +36,9 @@ struct CompletedGoalsView: View {
         .foregroundStyle(Palette.label)
         .navigationTitle("Hũ đã hoàn thành")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+        }
     }
 
     /// "Đã dùng: Mua xe · 29/10": how it ended and the day it closed.
@@ -60,5 +65,13 @@ private struct CompletedGoalRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, subtitle, "mục tiêu \(goal.target.vnd)"].joined(separator: ", "))
         .accessibilityHint("Xem hũ")
+    }
+}
+
+/// "Đã xong (n) ›" on Tài khoản: the list in a sheet, as a goal opens (user choice 2026-11-01).
+struct CompletedGoalsSheet: View {
+    var body: some View {
+        NavigationStack { CompletedGoalsView() }
+            .timiSheetStyle()
     }
 }
