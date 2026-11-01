@@ -100,14 +100,16 @@ enum TextRole: CaseIterable, Identifiable {
 
     var isNumeric: Bool { [.display, .amountEntry, .amountLarge, .amount].contains(self) }
 
-    /// The amount being typed shrinks as it grows: 52 up to ten digits with their dots, 38 to
-    /// thirteen, 28 beyond (user request 2026-10-30: larger than before, the amount is what the
-    /// form is for).
+    /// The amount being typed shrinks as it grows: 52 up to seven characters with their dots
+    /// ("500.000"), 40 to ten, 32 to thirteen, 26 beyond (user request 2026-10-30: larger than
+    /// before, the amount is what the form is for). One step sooner than at first, so the figure
+    /// keeps clear of the ⓧ at the row's end (user request 2026-11-01).
     static func amountEntrySize(for count: Int) -> CGFloat {
         switch count {
-        case ..<11: 52
-        case ..<14: 38
-        default: 28
+        case ..<8: 52
+        case ..<11: 40
+        case ..<14: 32
+        default: 26
         }
     }
     var tracking: CGFloat { self == .overline ? 0.6 : 0 }

@@ -34,9 +34,6 @@ struct TransactionsView: View {
     @State private var editingLoan: Loan?
     /// A row tapped to read it (then change or delete it from its sheet).
     @State private var editingItem: AccountDetailView.Activity?
-    /// The visible height of the page: the list keeps at least that, so a short filter does not
-    /// pull the page back up.
-    @State private var viewportHeight: CGFloat = 0
     /// Where the chip row is on screen: below the bar means the user has scrolled past it.
     @State private var chipsTop: CGFloat = 0
 
@@ -69,7 +66,6 @@ struct TransactionsView: View {
                     .padding(.top, Spacing.l)
                     .padding(.bottom, Spacing.xxl)
                 }
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
                 // Scrolled down into the list: a new chip glides back to the chips, so what it
                 // shows starts in view.
                 .onChange(of: listIdentity) {
@@ -124,11 +120,20 @@ struct TransactionsView: View {
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { chipsTop = $0 }
     }
 
+    /// The old list and the new one in the same place, one fading out over the other fading in:
+    /// stacked in the page's column, the new list came in under the old and then jumped up (user
+    /// report 2026-11-01: chips felt jerky).
     private func listContainer(@ViewBuilder _ list: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.section) { list() }
-            .id(listIdentity)
-            .transition(.opacity.combined(with: .offset(y: 12)))
-            .frame(minHeight: viewportHeight, alignment: .top)
+        ZStack(alignment: .top) {
+            // At least the visible height, so a short filter does not pull the page back up. By
+            // layout, not a measured height kept in state: a keyboard in a sheet over this page
+            // changed that height, and redrawing here rebuilt the form in the sheet, which lost its
+            // focus and its edits (user report 2026-11-01).
+            Color.clear.containerRelativeFrame(.vertical)
+            VStack(alignment: .leading, spacing: Spacing.section) { list() }
+                .id(listIdentity)
+                .transition(.opacity)
+        }
     }
 
     /// A new day: the chart lights it, and a page that showed the month just ended shows the new

@@ -48,7 +48,7 @@ struct NetWorthPartView: View {
         let accounts = store.countedAccounts.filter { $0.balance > 0 }.sorted { $0.balance > $1.balance }
         return VStack(spacing: 0) {
             ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
-                NavigationLink(value: account.id) {
+                AccountSheetLink(accountID: account.id) {
                     AccountRow(account: account)
                 }
                 .buttonStyle(.row)

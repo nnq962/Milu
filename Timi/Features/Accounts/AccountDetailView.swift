@@ -9,6 +9,8 @@ struct AccountDetailView: View {
     /// Tells the + beside the tab bar which account to start on (absent in previews).
     @Environment(AddTransactionContext.self) private var addContext: AddTransactionContext?
     let accountID: Account.ID
+    /// ✕ on the left: the first screen of `AccountDetailSheet`.
+    var showsClose = false
     @State private var isEditing = false
     /// Set by "Lưu trữ" / "Xoá" in the edit form; the account goes once that form has closed.
     @State private var leave: AddAccountView.Leave?
@@ -55,6 +57,9 @@ struct AccountDetailView: View {
             .navigationTitle(account.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                if showsClose {
+                    ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     EditToolbarButton { isEditing = true }
                 }
@@ -138,12 +143,38 @@ extension AccountDetailView {
     }
 }
 
-#Preview {
-    NavigationStack {
-        AccountDetailView(accountID: SampleData.vietcombank.id)
+/// An account opened from a list: a sheet sliding up, as a transaction opens, so the tab bar is
+/// not left showing under it (user choice 2026-11-01, over pushing a page). ✕ or a swipe down
+/// closes it.
+struct AccountDetailSheet: View {
+    let accountID: Account.ID
+
+    var body: some View {
+        NavigationStack {
+            AccountDetailView(accountID: accountID, showsClose: true)
+        }
+        .timiSheetStyle()
     }
-    .environment(FinanceStore())
-    .environment(\.locale, .vietnam)
+}
+
+/// A row that opens its account in `AccountDetailSheet`: every list of accounts (Tài khoản, the
+/// archived ones, Tài sản ròng, Báo cáo) opens it the same way.
+struct AccountSheetLink<Label: View>: View {
+    let accountID: Account.ID
+    @ViewBuilder var label: Label
+
+    @State private var isOpen = false
+
+    var body: some View {
+        Button { isOpen = true } label: { label }
+            .sheet(isPresented: $isOpen) { AccountDetailSheet(accountID: accountID) }
+    }
+}
+
+#Preview {
+    AccountDetailSheet(accountID: SampleData.vietcombank.id)
+        .environment(FinanceStore())
+        .environment(\.locale, .vietnam)
 }
 
 /// One history row; tapping it opens `ActivityEditor`, unless `isEditable` is false (a closed

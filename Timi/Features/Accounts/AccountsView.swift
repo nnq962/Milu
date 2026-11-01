@@ -59,9 +59,6 @@ struct AccountsView: View {
                 // A plain button: the bar draws its glass, which then takes part in push and pop.
                 ToolbarItem(placement: .topBarTrailing) { addMenu }
             }
-            .navigationDestination(for: Account.ID.self) { accountID in
-                AccountDetailView(accountID: accountID)
-            }
             .navigationDestination(for: GoalRoute.self) { route in
                 GoalDetailView(goalID: route.id)
             }
@@ -122,7 +119,7 @@ struct AccountsView: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
-                        NavigationLink(value: account.id) { AccountRow(account: account) }
+                        AccountSheetLink(accountID: account.id) { AccountRow(account: account) }
                             .buttonStyle(.row)
                             .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                     }

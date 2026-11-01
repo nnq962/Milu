@@ -332,18 +332,19 @@ struct ReportView: View {
             ReportSection(title: "Theo tài khoản") {
                 ForEach(Array(totals.enumerated()), id: \.element.id) { index, account in
                     // Opens the account or hũ, like a group opens its detail (review fix 2026-10-30).
-                    NavigationLink {
+                    let label = BreakdownRowLabel(icon: account.icon, title: account.name,
+                                                  detail: account.income > 0 ? "Thu +\(account.income.vnd)" : "Không có khoản thu",
+                                                  amount: account.expense,
+                                                  tone: account.expense > 0 ? .signedExpense : .neutral,
+                                                  isAccount: true)
+                    // A hũ opens as a page; an account in a sheet, as from every list (user choice
+                    // 2026-11-01).
+                    Group {
                         if store.goal(id: account.id) != nil {
-                            GoalDetailView(goalID: account.id)
+                            NavigationLink { GoalDetailView(goalID: account.id) } label: { label }
                         } else {
-                            AccountDetailView(accountID: account.id)
+                            AccountSheetLink(accountID: account.id) { label }
                         }
-                    } label: {
-                        BreakdownRowLabel(icon: account.icon, title: account.name,
-                                          detail: account.income > 0 ? "Thu +\(account.income.vnd)" : "Không có khoản thu",
-                                          amount: account.expense,
-                                          tone: account.expense > 0 ? .signedExpense : .neutral,
-                                          isAccount: true)
                     }
                     .buttonStyle(.row)
                     // Accounts as drawn everywhere: a tile in the logo column (user report 2026-10-31).

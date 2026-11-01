@@ -23,7 +23,7 @@ struct TransactionDetailView: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    @State private var isEditing = false
+    @State private var editing: FinanceTransaction?
 
     /// How many others of the same category are listed.
     static let similarLimit = 5
@@ -31,7 +31,7 @@ struct TransactionDetailView: View {
     var body: some View {
         let transaction = store.transaction(id: transactionID)
         SheetPage(title: transaction.map(store.title(of:)) ?? "Giao dịch", showsClose: isRoot,
-                       canEdit: transaction.map(store.isEditable) ?? false, onEdit: { isEditing = true }) {
+                       canEdit: transaction.map(store.isEditable) ?? false, onEdit: { editing = transaction }) {
             if let transaction {
                 lead(transaction)
                 details(transaction)
@@ -45,13 +45,10 @@ struct TransactionDetailView: View {
                                message: "Giao dịch này không còn trong lịch sử.")
             }
         }
-        .sheet(isPresented: $isEditing, onDismiss: {
+        // By item, the transaction as it was when the pencil was tapped.
+        .sheet(item: $editing, onDismiss: {
             if store.transaction(id: transactionID) == nil { dismiss() }
-        }) {
-            if let transaction = store.transaction(id: transactionID) {
-                TransactionEditSheet(transaction: transaction)
-            }
-        }
+        }) { TransactionEditSheet(transaction: $0) }
     }
 
     /// "Chi tiêu" or "Thu nhập", the signed amount and the category's icon (the category itself is

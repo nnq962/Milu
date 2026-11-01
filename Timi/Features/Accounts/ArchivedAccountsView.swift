@@ -16,7 +16,7 @@ struct ArchivedAccountsView: View {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         // The one account row of the app, as on the tab (strict review 2026-10-31:
                         // here the icon went untiled and the balance in full).
-                        NavigationLink(value: account.id) {
+                        AccountSheetLink(accountID: account.id) {
                             AccountRow(account: account,
                                        subtitle: account.archivedAt.map { "Đã lưu trữ \($0.shortDay)" },
                                        isMuted: true)

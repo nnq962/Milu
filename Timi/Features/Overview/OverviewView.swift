@@ -103,7 +103,6 @@ struct OverviewView: View {
             }
             .navigationDestination(for: ReportRoute.self) { ReportView(period: ReportPeriod(.month, containing: $0.month)) }
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
-            .navigationDestination(for: Account.ID.self) { AccountDetailView(accountID: $0) }
             .navigationDestination(for: GoalRoute.self) { GoalDetailView(goalID: $0.id) }
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }

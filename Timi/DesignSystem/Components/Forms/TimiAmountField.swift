@@ -52,6 +52,9 @@ struct TimiAmountField: View {
         }
     }
 
+    /// The width kept for the ⓧ at the row's end (and on the left, to keep the figure centred).
+    private static let clearWidth: CGFloat = 36
+
     /// The largest amount the field takes (12 digits, as `groupedVNDInput`).
     private static let maxAmount: Double = 999_999_999_999
 
@@ -106,9 +109,31 @@ struct TimiAmountField: View {
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: heroSize)
             .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: sign)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: color)
+            // Room for the ⓧ on the right and as much on the left, so the figure stays centred.
+            .padding(.horizontal, Self.clearWidth)
             .frame(maxWidth: .infinity, minHeight: ControlHeight.large)
             .contentShape(Rectangle())
             .onTapGesture { isFocused = true }
+            // ⓧ to empty a large figure at once, as a search field has (user request 2026-11-01),
+            // at the end of the row, over nothing, so the figure stays centred; only while there is one to clear.
+            .overlay(alignment: .trailing) {
+                if !text.isEmpty && isFocused {
+                    Button {
+                        text = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: RowMetrics.iconGlyph))
+                            .foregroundStyle(Color(.tertiaryLabel))
+                            .frame(width: Self.clearWidth, height: ControlHeight.regular)
+                            // 44 to tap, reaching past the row's end into the page margin.
+                            .contentShape(Rectangle().inset(by: -Spacing.xs))
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .accessibilityLabel("Xoá số tiền")
+                }
+            }
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: !text.isEmpty && isFocused)
 
             // The row stays in place even when empty; chips fade in and out with SwiftUI's
             // default transition (user choice 2026-10-28, over a staggered pop-in).
@@ -163,11 +188,15 @@ struct TimiAmountField: View {
                 .fixedSize()
                 .accessibilityLabel(preset.title.isEmpty ? preset.value.vnd : "\(preset.title) \(preset.value.vnd)")
             }
-            ForEach(suggestions, id: \.self) { value in
+            // Kept by place, not by amount: typing 5 → 55 changes the figures in the same three
+            // chips, which roll to them and widen, instead of three chips fading out while three
+            // new ones fade in (user report 2026-11-01: the chips did not change smoothly).
+            ForEach(Array(suggestions.enumerated()), id: \.offset) { _, value in
                 TagChip(title: value.vnd, isProminent: value == amount) {
                     text = String(Int(value)).groupedVNDInput
                     picks += 1
                 }
+                .contentTransition(reduceMotion ? .identity : .numericText(value: value))
                 .fixedSize()
                 .accessibilityLabel(value.vnd)
             }
