@@ -114,15 +114,8 @@ struct LoansContent: View {
                 if !settledLoans.isEmpty { settledSection }
             }
         } else {
-            switch filter {
-            case .all:
-                lentSection
-                borrowedSection
-            case .lent:
-                lentSection
-            case .borrowed:
-                borrowedSection
-            }
+            if filter != .borrowed { lentSection }
+            if filter != .lent { borrowedSection }
             settledEntry
         }
     }

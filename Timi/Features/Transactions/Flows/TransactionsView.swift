@@ -61,7 +61,9 @@ struct TransactionsView: View {
                             listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                         }
                     }
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: listIdentity)
+                    // A new month or segment fades over; a new chip shows its list at once, no
+                    // animation (user request 2026-11-01: every animation tried felt jerky).
+                    .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: pageIdentity)
                     .padding(.horizontal, Spacing.page)
                     .padding(.top, Spacing.l)
                     .padding(.bottom, Spacing.xxl)
@@ -120,9 +122,8 @@ struct TransactionsView: View {
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { chipsTop = $0 }
     }
 
-    /// The old list and the new one in the same place, one fading out over the other fading in:
-    /// stacked in the page's column, the new list came in under the old and then jumped up (user
-    /// report 2026-11-01: chips felt jerky).
+    /// A new month or segment is another list: the old fades out over the new one in the same
+    /// place, not stacked under it. A new chip just shows its rows.
     private func listContainer(@ViewBuilder _ list: () -> some View) -> some View {
         ZStack(alignment: .top) {
             // At least the visible height, so a short filter does not pull the page back up. By
@@ -131,7 +132,7 @@ struct TransactionsView: View {
             // focus and its edits (user report 2026-11-01).
             Color.clear.containerRelativeFrame(.vertical)
             VStack(alignment: .leading, spacing: Spacing.section) { list() }
-                .id(listIdentity)
+                .id(pageIdentity)
                 .transition(.opacity)
         }
     }
@@ -174,7 +175,14 @@ struct TransactionsView: View {
         store.monthlyTransactions(for: displayedMonth)
     }
 
-    /// What the list shows: a new chip, month or segment redraws it with a fade.
+    /// The list as a whole: a new month or segment is another list, faded over.
+    private var pageIdentity: String {
+        if segment == .loans { return "loans" }
+        let parts = Calendar.current.dateComponents([.year, .month], from: displayedMonth)
+        return "\(parts.year ?? 0)-\(parts.month ?? 0)"
+    }
+
+    /// What the list shows, chip included: what the page animates and scrolls back to the chips for.
     private var listIdentity: String {
         if segment == .loans { return "loans-\(loanFilter.rawValue)" }
         let parts = Calendar.current.dateComponents([.year, .month], from: displayedMonth)

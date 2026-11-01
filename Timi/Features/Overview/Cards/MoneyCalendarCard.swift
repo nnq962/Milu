@@ -17,8 +17,8 @@ struct MoneyCalendarCard: View {
     private static let swatchSize: CGFloat = 12
     /// Its corner: a named radius, not the spacing token `xxs` it borrowed (re-review 2026-10-31).
     private static let swatchRadius: CGFloat = 2
-    /// The ring round today.
-    private static let todayRing: CGFloat = 1.5
+    /// The ring round today: whole points, so at any screen scale it covers whole pixels.
+    private static let todayRing: CGFloat = 2
     /// How deep a day is shaded by what went out: under 1tr, under 3tr, more. Far enough apart to
     /// tell at a glance; 8 / 14 / 20% read as one pale red, the first near invisible (review
     /// 2026-10-31).
@@ -115,8 +115,7 @@ struct MoneyCalendarCard: View {
             .background(fill, in: RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
             .overlay {
                 if today {
-                    RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
-                        .strokeBorder(Palette.primary, lineWidth: Self.todayRing)
+                    PixelAlignedRing(lineWidth: Self.todayRing)
                 }
             }
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
@@ -136,5 +135,27 @@ struct MoneyCalendarCard: View {
         if income > 0 { figures.append("thu \(income.vnd)") }
         if expense > 0 { figures.append("chi \(expense.vnd)") }
         return name + ", " + (figures.isEmpty ? "không có thu chi" : figures.joined(separator: ", "))
+    }
+}
+
+/// Today's ring laid on whole pixels. Seven equal columns put a cell's edges between pixels, so a
+/// ring drawn there blurred unevenly: one side doubled, the corners stepped (user report
+/// 2026-11-01). It snaps its frame to the screen's pixels before drawing.
+private struct PixelAlignedRing: View {
+    let lineWidth: CGFloat
+
+    @Environment(\.displayScale) private var scale
+
+    var body: some View {
+        GeometryReader { proxy in
+            let frame = proxy.frame(in: .global)
+            let snap = { (value: CGFloat) in (value * scale).rounded() / scale }
+            let minX = snap(frame.minX), minY = snap(frame.minY)
+            RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
+                .strokeBorder(Palette.primary, lineWidth: lineWidth)
+                .frame(width: snap(frame.maxX) - minX, height: snap(frame.maxY) - minY)
+                .offset(x: minX - frame.minX, y: minY - frame.minY)
+        }
+        .allowsHitTesting(false)
     }
 }
