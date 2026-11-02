@@ -34,6 +34,8 @@ struct LicensesView: View {
     private let works = [
         Work(name: "Hugeicons", use: "MIT", file: "Hugeicons-LICENSE"),
         Work(name: "Manrope", use: "SIL Open Font License 1.1", file: "OFL"),
+        // The 3D pictures of Tổng quan (`Fluent3D` in Assets).
+        Work(name: "Fluent Emoji (Microsoft)", use: "MIT", file: "FluentEmoji-LICENSE"),
     ]
 
     var body: some View {

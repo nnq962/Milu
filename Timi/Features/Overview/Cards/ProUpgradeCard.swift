@@ -2,15 +2,15 @@ import SwiftUI
 
 /// "Timi Pro", last on Tổng quan: a plain white card, the user's pick "3B" (2026-11-02: no more ink
 /// card, fewer icons; its lime glow dropped in the Overview review the same day, lime was on every
-/// card). "TIMI PRO" in small capitals, "Dùng Timi trọn vẹn" and one line under it, the crown on a
-/// lime disc beside them, its one icon (user request 2026-11-02), and "Tìm hiểu thêm" in lime across
+/// card). "TIMI PRO" in small capitals, "Dùng Timi trọn vẹn" and one line under it, the 3D crown beside
+/// them, its one picture (user request 2026-11-02), and "Tìm hiểu thêm" in lime across
 /// the foot: Pro is not on sale yet, so the button says what a tap does (review 2026-10-31). The
 /// whole card is one button; the pill only says what it does.
 struct ProUpgradeCard: View {
     let onUpgrade: () -> Void
 
-    /// The crown's disc; it grows with the words beside it.
-    @ScaledMetric(relativeTo: .body) private var crownSize: CGFloat = 48
+    /// The 3D crown, the size of every 3D picture on the page; it grows with the words beside it.
+    @ScaledMetric(relativeTo: .body) private var crownSize: CGFloat = RowMetrics.picture
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
@@ -21,8 +21,10 @@ struct ProUpgradeCard: View {
                         Text("TIMI PRO")
                             .textRole(.overline)
                             .foregroundStyle(Palette.secondaryLabel)
+                        // The 17 SemiBold of every card's title on the page (font pass 2026-11-02:
+                        // it was the 20 heading, the only card set larger).
                         Text("Dùng Timi trọn vẹn")
-                            .textRole(.heading)
+                            .textRole(.title)
                             .foregroundStyle(Palette.label)
                         Text("Không lo hết lượt AI.")
                             .textRole(.caption)
@@ -32,8 +34,10 @@ struct ProUpgradeCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     crown
                 }
-                Text("Tìm hiểu thêm")
-                    .textRole(.bodyStrong)
+                // Drawn as the first step's `TimiButton(role: .primary)`, its twin on this page; not a
+                // button of its own, the whole card is one.
+                TimiButtonTitle(title: "Tìm hiểu thêm", icon: nil)
+                    .textRole(.body)
                     .foregroundStyle(Palette.onAccent)
                     .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
                     .background(Palette.accent, in: Capsule())
@@ -50,12 +54,14 @@ struct ProUpgradeCard: View {
         .accessibilityHint("Tìm hiểu về Timi Pro, sắp ra mắt")
     }
 
-    /// The card's one icon (user request 2026-11-02): the crown in ink on a lime disc.
+    /// The card's one picture: Fluent Emoji's 3D crown, tilted a little, on nothing (user request
+    /// 2026-11-02: the 3D pictures, after a lime disc with a line crown).
     private var crown: some View {
-        TimiIcon("hugeicons-crown", size: RowMetrics.toolbarGlyph)
-            .foregroundStyle(Palette.onAccent)
+        Image("fluent-crown")
+            .resizable()
+            .scaledToFit()
             .frame(width: crownSize, height: crownSize)
-            .background(Palette.accent, in: Circle())
+            .rotationEffect(.degrees(12))
             .accessibilityHidden(true)
     }
 }

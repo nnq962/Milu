@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// Home tab, in the order of the user's design (2026-10-31): the date and a greeting scrolling
-/// with the page, the net worth, the first steps, the calendar, this month and Timi Pro last; Q,
-/// Timi's ✦ and the bell on the bar. Liquid
-/// Glass stays on the tab bar and the + beside it, as the HIG keeps it for the controls layer;
-/// content sits on solid surfaces. One file per card in `Cards/`, with the sheets they open.
+/// Home tab (redone 2026-11-02 after the user's references: blocks on a soft coloured ground): the
+/// head on its ground (`OverviewHeader`: a greeting, the net worth and how it moved), then the
+/// first steps, what Timi noticed, the calendar, this month and Timi Pro last;
+/// Q, Timi's ✦ and the bell on the bar. One file per card in `Cards/`, with the sheets they open.
 struct OverviewView: View {
     /// "Cần chú ý" on the page; off for now (user request 2026-10-30).
     private static let showsAttention = false
@@ -18,6 +17,10 @@ struct OverviewView: View {
     @State private var selectedDay: CalendarDay?
     /// The month Lịch thu chi shows.
     @State private var calendarMonth = Date.now
+    /// What a first step's button opens (`OnboardingCard`).
+    @State private var adding: AddTransactionView.Mode?
+    @State private var isAddingAccount = false
+    @State private var isAddingLoan = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
@@ -38,14 +41,18 @@ struct OverviewView: View {
             ScrollView {
                 // Sections 28 apart, as on every tab; a heading 8 above its card.
                 VStack(alignment: .leading, spacing: Spacing.section) {
-                    // The greeting heads the net worth card, closer than a section (20, as drawn).
-                    VStack(alignment: .leading, spacing: Spacing.xl) {
-                        GreetingHeader(name: "Quyet")
-                        HeroCard {
-                            path.append(NetWorthRoute())
+                    OverviewHeader {
+                        path.append(NetWorthRoute())
+                    }
+                    OnboardingCard { step in
+                        switch step {
+                        case .account: isAddingAccount = true
+                        case .transaction: adding = .expense
+                        case .loan: isAddingLoan = true
+                        case .askAI: isShowingAssistant = true
                         }
                     }
-                    OnboardingCard()
+                    InsightsCard()
                     HeaderCard(title: "Lịch thu chi", inset: Spacing.card, radius: CardCorners.large) {
                         // The month as plain words, as every control on a heading's row.
                         MonthPickerButton(month: $calendarMonth, compact: true)
@@ -73,7 +80,7 @@ struct OverviewView: View {
                 .padding(.top, Spacing.xs)
                 .padding(.bottom, Spacing.xxl)
             }
-            .background(Palette.background)
+            .background { OverviewBackdrop() }
             .foregroundStyle(Palette.label)
             // The greeting heads the page, so the bar shows no title; it stays as the page's name
             // for the back button and VoiceOver.
@@ -88,6 +95,10 @@ struct OverviewView: View {
             // place of its card). The spacer gives each its own glass rather than one shared pill.
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { profileButton }
+                // The greeting beside the avatar, in words on the ground, not in a glass pill
+                // (user request 2026-11-02: out of the page, up by the avatar).
+                ToolbarItem(placement: .topBarLeading) { greeting }
+                    .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) { assistantButton }
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { notificationButton }
@@ -105,6 +116,9 @@ struct OverviewView: View {
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
+            .sheet(item: $adding) { AddTransactionView(mode: $0) }
+            .sheet(isPresented: $isAddingAccount) { AddAccountView(type: .bank) }
+            .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
         }
     }
@@ -141,6 +155,19 @@ struct OverviewView: View {
         .tint(Palette.primary)
         .accessibilityLabel("Hỏi Timi")
         .accessibilityHint("Mở trợ lý AI")
+    }
+
+    private var greeting: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(Greeting.salutation(at: .now))
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryLabel)
+            Text("Quyet")
+                .textRole(.bodyStrong)
+                .foregroundStyle(Palette.label)
+        }
+        .fixedSize()
+        .accessibilityElement(children: .combine)
     }
 
     private var notificationButton: some View {

@@ -91,6 +91,11 @@ enum Palette {
 
     /// A pale wash of the lime, behind something the brand marks.
     static let accentSoft = dynamic((241, 249, 214), dark: (44, 54, 22))
+    /// The head of Tổng quan: lime light from the top trailing corner and a cool sky from the
+    /// leading one over the page colour, so the white blocks on it stand out (the user's references
+    /// 2026-11-02: blocks on a soft coloured ground). Quieter at night.
+    static let heroGlow = dynamic((228, 247, 166), dark: (38, 48, 18))
+    static let heroSky = dynamic((221, 240, 255), dark: (20, 30, 42))
 
     // MARK: Progress
 
