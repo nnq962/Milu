@@ -5,7 +5,13 @@ struct SheetCloseButton: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Button(role: .close) { dismiss() }
+        if #available(iOS 26.0, *) {
+            Button(role: .close) { dismiss() }
+        } else {
+            // Before iOS 26 there is no close role: the ✕ drawn by hand.
+            Button { dismiss() } label: { Image(systemName: "xmark") }
+                .accessibilityLabel("Đóng")
+        }
     }
 }
 

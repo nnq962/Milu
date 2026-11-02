@@ -86,23 +86,9 @@ struct OverviewView: View {
             // for the back button and VoiceOver.
             .navigationTitle("Tổng quan")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(removing: .title)
             .toolbar(.visible, for: .navigationBar)
-            // Plain buttons: the bar draws their glass circles, so they take part in its push and
-            // pop.
-            // The avatar on the leading side, the bell on the trailing one (user request 2026-10-31),
-            // Timi's ✦ just before the bell, the way into the assistant (user request 2026-11-02, in
-            // place of its card). The spacer gives each its own glass rather than one shared pill.
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) { profileButton }
-                // The greeting beside the avatar, in words on the ground, not in a glass pill
-                // (user request 2026-11-02: out of the page, up by the avatar).
-                ToolbarItem(placement: .topBarLeading) { greeting }
-                    .sharedBackgroundVisibility(.hidden)
-                ToolbarItem(placement: .topBarTrailing) { assistantButton }
-                ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                ToolbarItem(placement: .topBarTrailing) { notificationButton }
-            }
+            .modifier(OverviewBar(profile: profileButton, greeting: greeting,
+                                  assistant: assistantButton, bell: notificationButton))
             // Here, not on the card: the card goes away as its last step is done.
             .onChange(of: OnboardingCard.completedSteps(store, askedAI: hasAskedAI), initial: true) { _, steps in
                 steps.forEach(quota.claim)
@@ -180,6 +166,44 @@ struct OverviewView: View {
         .buttonBorderShape(.circle)
         .tint(Palette.primary)
         .accessibilityLabel("Thông báo")
+    }
+}
+
+/// The bar of Tổng quan. Plain buttons: the bar draws their glass circles, so they take part in
+/// its push and pop. The avatar and the greeting on the leading side (the greeting in words on
+/// the ground, not in a glass pill, user request 2026-11-02), Timi's ✦ and the bell on the
+/// trailing one, a spacer giving each its own glass. Before iOS 26 there is no glass to share or
+/// hide, so the items simply sit in the bar; before iOS 18 the hidden title is an empty middle.
+private struct OverviewBar<Profile: View, Greeting: View, Assistant: View, Bell: View>: ViewModifier {
+    let profile: Profile
+    let greeting: Greeting
+    let assistant: Assistant
+    let bell: Bell
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .toolbar(removing: .title)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) { profile }
+                    ToolbarItem(placement: .topBarLeading) { greeting }
+                        .sharedBackgroundVisibility(.hidden)
+                    ToolbarItem(placement: .topBarTrailing) { assistant }
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                    ToolbarItem(placement: .topBarTrailing) { bell }
+                }
+        } else {
+            content
+                .toolbar {
+                    ToolbarItem(placement: .principal) { Color.clear }
+                    ToolbarItem(placement: .topBarLeading) {
+                        HStack(spacing: Spacing.s) { profile; greeting }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        HStack(spacing: Spacing.m) { assistant; bell }
+                    }
+                }
+        }
     }
 }
 

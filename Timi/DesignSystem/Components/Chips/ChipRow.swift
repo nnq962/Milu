@@ -18,7 +18,7 @@ struct ChipRow<Option: Hashable & Identifiable>: View {
                     .padding(.horizontal, Spacing.page)
             }
             .scrollIndicators(.hidden)
-            .scrollEdgeEffectHidden(true, for: .all)
+            .scrollEdgeEffectHiddenIfAvailable(true)
             // Bleed to the screen edges: the page margin, in and out.
             .padding(.horizontal, -Spacing.page)
         }

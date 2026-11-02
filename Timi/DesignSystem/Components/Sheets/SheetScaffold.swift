@@ -127,10 +127,17 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
                 hasConfirmed = false
             }
         }
-        return Button(role: .confirm, action: action)
-            .tint(Palette.primary)
-            .disabled(!canConfirm)
-            .accessibilityLabel("Lưu")
+        return Group {
+            if #available(iOS 26.0, *) {
+                Button(role: .confirm, action: action)
+            } else {
+                // Before iOS 26 there is no confirm role: the ✓ drawn by hand.
+                Button(action: action) { Image(systemName: "checkmark").fontWeight(.semibold) }
+            }
+        }
+        .tint(Palette.primary)
+        .disabled(!canConfirm)
+        .accessibilityLabel("Lưu")
     }
 }
 
@@ -159,7 +166,8 @@ private struct HeightReport: ViewModifier {
     @State private var barHeight: CGFloat?
 
     func body(content: Content) -> some View {
-        if isOn {
+        // Measuring the scroll view needs iOS 18; before it a fitted sheet keeps its fallback detent.
+        if isOn, #available(iOS 18.0, *) {
             content
                 // The content is the scroll view's one child; the bar is its top safe area.
                 .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, new in contentHeight = new }

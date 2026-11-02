@@ -10,8 +10,14 @@ private struct DesignLineHeight: ViewModifier {
         _height = ScaledMetric(wrappedValue: height, relativeTo: style)
     }
 
+    // The exact line box on iOS 26; before it, the font's own (a little tighter for 2-line text).
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content.lineHeight(.exact(points: height))
+        if #available(iOS 26.0, *) {
+            content.lineHeight(.exact(points: height))
+        } else {
+            content
+        }
     }
 }
 
@@ -121,8 +127,10 @@ enum Typography {
         bar.configureWithTransparentBackground()
         bar.titleTextAttributes = navigation.titleTextAttributes ?? [:]
         bar.largeTitleTextAttributes = navigation.largeTitleTextAttributes ?? [:]
-        bar.subtitleTextAttributes = subtitle
-        bar.largeSubtitleTextAttributes = subtitle
+        if #available(iOS 26.0, *) {
+            bar.subtitleTextAttributes = subtitle
+            bar.largeSubtitleTextAttributes = subtitle
+        }
         navigation.standardAppearance = bar
         navigation.scrollEdgeAppearance = bar
         navigation.compactAppearance = bar

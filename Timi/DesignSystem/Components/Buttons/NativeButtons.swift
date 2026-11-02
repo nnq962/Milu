@@ -2,23 +2,37 @@ import SwiftUI
 
 extension View {
     /// Floating action button: Apple's prominent glass tinted with the primary colour (the send
-    /// button of Trợ lý AI).
+    /// button of Trợ lý AI); a solid disc of that colour before iOS 26.
+    @ViewBuilder
     func nativeFloatingButton(diameter: CGFloat, tint: Color) -> some View {
-        buttonStyle(.glassProminent)
-            .buttonBorderShape(.circle)
-            .buttonSizing(.flexible)
-            .tint(tint)
-            .frame(width: diameter, height: diameter)
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glassProminent)
+                .buttonBorderShape(.circle)
+                .buttonSizing(.flexible)
+                .tint(tint)
+                .frame(width: diameter, height: diameter)
+        } else {
+            buttonStyle(.plain)
+                .frame(width: diameter, height: diameter)
+                .background(tint, in: Circle())
+        }
     }
 
     /// A glass circle of the system's, `diameter` wide, outside a toolbar (the close button of
-    /// the search screen).
+    /// the search screen); a blurred material disc before iOS 26.
+    @ViewBuilder
     func nativeCircleButton(diameter: CGFloat) -> some View {
-        buttonStyle(.glass)
-            .buttonBorderShape(.circle)
-            .buttonSizing(.flexible)
-            .controlSize(.regular)
-            .frame(width: diameter, height: diameter)
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glass)
+                .buttonBorderShape(.circle)
+                .buttonSizing(.flexible)
+                .controlSize(.regular)
+                .frame(width: diameter, height: diameter)
+        } else {
+            buttonStyle(.plain)
+                .frame(width: diameter, height: diameter)
+                .background(.regularMaterial, in: Circle())
+        }
     }
 }
 

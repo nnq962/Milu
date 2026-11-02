@@ -13,7 +13,7 @@ struct TabHeading: ViewModifier {
         // iOS's own soft scroll-edge effect, as on Tổng quan: one top edge on every tab (user
         // request 2026-10-30, after a hard one here only).
         if let subtitle {
-            content.toolbarTitleDisplayMode(.inlineLarge).navigationSubtitle(subtitle)
+            content.toolbarTitleDisplayMode(.inlineLarge).navigationSubtitleIfAvailable(subtitle)
         } else {
             content.toolbarTitleDisplayMode(.inlineLarge)
         }

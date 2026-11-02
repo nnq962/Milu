@@ -56,7 +56,7 @@ struct TransactionSearchView: View {
             }
             .scrollDismissesKeyboard(.immediately)
             // No bar above it: iOS 26's soft top edge drew a light band behind the chips.
-            .scrollEdgeEffectHidden(true, for: .all)
+            .scrollEdgeEffectHiddenIfAvailable(true)
         }
         .background(Palette.background)
         .foregroundStyle(Palette.label)

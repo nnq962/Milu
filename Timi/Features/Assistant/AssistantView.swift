@@ -53,9 +53,7 @@ struct AssistantView: View {
                 Color.clear.frame(height: 0).id(Self.endID)
             }
             .scrollDismissesKeyboard(.interactively)
-            .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY > Self.awayDistance
-            } action: { _, away in
+            .onAwayFromEnd(by: Self.awayDistance) { away in
                 withAnimation(.spring(duration: 0.3)) { isAwayFromEnd = away }
             }
             // ↓ in glass over the chat, centred just above the field, as in Claude and ChatGPT
@@ -70,7 +68,7 @@ struct AssistantView: View {
                             .foregroundStyle(Palette.label)
                             // A full 44 of glass: the glass button style drew a 32 circle inside it.
                             .frame(width: ControlHeight.regular, height: ControlHeight.regular)
-                            .glassEffect(.regular.interactive(), in: Circle())
+                            .interactiveGlass(in: Circle())
                             .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -92,14 +90,14 @@ struct AssistantView: View {
         .background { Palette.background.ignoresSafeArea() }
         .foregroundStyle(Palette.label)
         // A bar of the system's: the chat scrolls under the glass, behind iOS's own edge fade.
-        .safeAreaBar(edge: .bottom) {
+        .bottomBar {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
         // iOS draws the title and its subtitle natively, not a glass rectangle (user report 2026-10-30).
         .navigationTitle("Timi")
         // Small and centred, as on every sheet, so ✕ keeps its place on the left.
         .toolbarTitleDisplayMode(.inline)
-        .navigationSubtitle("Trợ lý tài chính · Bản thử nghiệm")
+        .navigationSubtitleIfAvailable("Trợ lý tài chính · Bản thử nghiệm")
         .toolbar(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
@@ -231,7 +229,7 @@ struct AssistantView: View {
         // The field itself is the hit area: a tap anywhere on the glass starts typing.
         .contentShape(RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
         .onTapGesture { isInputFocused = true }
-        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        .interactiveGlass(in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
         .padding(.horizontal, Spacing.l)
         .padding(.bottom, Spacing.s)
     }

@@ -67,9 +67,7 @@ struct DesignSystemView: View {
             }
             // Only watched, never driven: binding the scroll position to a lazy stack made the page
             // snap back as parts were laid out (user report 2026-10-31).
-            .onScrollTargetVisibilityChange(idType: Part.self, threshold: 0.2) { parts in
-                if let first = parts.first { visible = first }
-            }
+            .trackingVisiblePart { visible = $0 }
             .dismissesKeyboardOnDrag()
             // The chip index stays under the bar; as a safe-area inset, scrolling to a part stops below it.
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -128,4 +126,18 @@ struct DesignSystemView: View {
     }
     .environment(\.locale, .vietnam)
     .environment(FinanceStore())
+}
+
+private extension View {
+    /// The first part on screen, for the chip index (iOS 18); the index just stays put before it.
+    @ViewBuilder
+    func trackingVisiblePart(_ onChange: @escaping (DesignSystemView.Part) -> Void) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollTargetVisibilityChange(idType: DesignSystemView.Part.self, threshold: 0.2) { parts in
+                if let first = parts.first { onChange(first) }
+            }
+        } else {
+            self
+        }
+    }
 }

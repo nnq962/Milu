@@ -31,7 +31,36 @@ struct ContentView: View {
             }
     }
 
+    @ViewBuilder
     private var tabs: some View {
+        if #available(iOS 18.0, *) {
+            modernTabs
+        } else {
+            legacyTabs
+        }
+    }
+
+    /// Before iOS 18: the same three tabs and a fourth "+" tab at the end (no search-role circle
+    /// apart from the bar); picking it opens the add sheet through `tabSelection`.
+    private var legacyTabs: some View {
+        TabView(selection: tabSelection) {
+            OverviewView()
+                .tabItem { tabLabel("Tổng quan", symbol: "house", tab: .overview) }
+                .tag(AppTab.overview)
+            AccountsView()
+                .tabItem { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
+                .tag(AppTab.accounts)
+            TransactionsView()
+                .tabItem { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
+                .tag(AppTab.transactions)
+            Color.clear
+                .tabItem { Label("Thêm giao dịch", systemImage: "plus.circle.fill") }
+                .tag(AppTab.add)
+        }
+    }
+
+    @available(iOS 18.0, *)
+    private var modernTabs: some View {
         TabView(selection: tabSelection) {
             Tab(value: AppTab.overview) {
                 OverviewView()

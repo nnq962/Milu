@@ -93,6 +93,8 @@ struct TransactionsView: View {
                 // gives each its own glass rather than one shared pill.
                 if segment == .loans {
                     ToolbarItem(placement: .topBarTrailing) { addLoanButton }
+                }
+                if #available(iOS 26.0, *), segment == .loans {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
                 ToolbarItem(placement: .topBarTrailing) { searchButton }

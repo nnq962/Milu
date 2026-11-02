@@ -255,7 +255,7 @@ struct TransactionFilterSheet: View {
                     kindChips
                     ScrollView(.horizontal) { kindChips }
                         .scrollIndicators(.hidden)
-                        .scrollEdgeEffectHidden(true, for: .all)
+                        .scrollEdgeEffectHiddenIfAvailable(true)
                 }
                 .sensoryFeedback(.selection, trigger: draft.kind)
             }

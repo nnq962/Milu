@@ -143,7 +143,12 @@ private struct MonthYearWheels: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UIDatePicker {
         let picker = UIDatePicker()
-        picker.datePickerMode = .yearAndMonth
+        // Month and year wheels from iOS 17.4; before it the date wheels, read as their month.
+        if #available(iOS 17.4, *) {
+            picker.datePickerMode = .yearAndMonth
+        } else {
+            picker.datePickerMode = .date
+        }
         picker.preferredDatePickerStyle = .wheels
         picker.locale = .vietnam
         picker.addTarget(context.coordinator, action: #selector(Coordinator.changed(_:)), for: .valueChanged)
