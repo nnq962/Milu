@@ -140,8 +140,8 @@ struct LoanRow: View {
         switch urgency {
         case .overdue: Palette.negative
         case .soon: Palette.warning
-        case .settled: Palette.positive
-        default: loan.direction == .borrowed ? Palette.negative : Palette.primary
+        case .settled: Palette.progressDone
+        default: loan.direction == .borrowed ? Palette.negative : Palette.progress
         }
     }
 }

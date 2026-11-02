@@ -43,8 +43,7 @@ struct GoalDetailView: View {
                 VStack(alignment: .leading, spacing: Spacing.section) {
                     summary(goal)
 
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Lịch sử")
+                    HeaderCard(title: "Lịch sử") {
                         if activity.isEmpty {
                             // One short line, what will show here (strict review 2026-10-31).
                             EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa nạp lần nào",
@@ -151,7 +150,7 @@ struct GoalDetailView: View {
                 closedLine(goal)
                     .padding(.top, Spacing.m)
             } else {
-                ProgressBar(value: goal.progress)
+                ProgressBar(value: goal.progress, color: goal.isReached ? Palette.progressDone : Palette.progress)
                     .padding(.top, Spacing.l)
                 progressLine(goal)
                     .padding(.top, Spacing.s)

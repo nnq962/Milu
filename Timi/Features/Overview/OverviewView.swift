@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Home tab, in the order of the user's design (2026-10-31): the date and a greeting scrolling
-/// with the page, the net worth with Timi's strip at its foot (the way into the assistant), the
-/// first steps, the calendar, this month and Timi Pro last; Q and the bell on the bar. Liquid
+/// with the page, the net worth, the first steps, the calendar, this month and Timi Pro last; Q,
+/// Timi's ✦ and the bell on the bar. Liquid
 /// Glass stays on the tab bar and the + beside it, as the HIG keeps it for the controls layer;
 /// content sits on solid surfaces. One file per card in `Cards/`, with the sheets they open.
 struct OverviewView: View {
@@ -11,7 +11,7 @@ struct OverviewView: View {
 
     @State private var information: Information?
     @State private var isShowingSettings = false
-    /// Trợ lý AI, over everything from the foot of the net worth card.
+    /// Trợ lý AI, over everything from the ✦ on the bar.
     @State private var isShowingAssistant = false
     /// Every page Tổng quan opens goes by value: Tài sản ròng and its parts, Báo cáo.
     @State private var path = NavigationPath()
@@ -43,26 +43,22 @@ struct OverviewView: View {
                         GreetingHeader(name: "Quyet")
                         HeroCard {
                             path.append(NetWorthRoute())
-                        } onOpenAssistant: {
-                            isShowingAssistant = true
                         }
                     }
                     OnboardingCard()
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Lịch thu chi") {
-                            // The month as plain words, as every control on a heading's row.
-                            MonthPickerButton(month: $calendarMonth, compact: true)
-                        }
+                    HeaderCard(title: "Lịch thu chi", inset: Spacing.card, radius: CardCorners.large) {
+                        // The month as plain words, as every control on a heading's row.
+                        MonthPickerButton(month: $calendarMonth, compact: true)
+                    } content: {
                         MoneyCalendarCard(displayedMonth: $calendarMonth) { selectedDay = CalendarDay(date: $0) }
                             .card()
                     }
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Tháng này") {
-                            Button { path.append(ReportRoute(month: month)) } label: {
-                                HeaderLink(title: "Báo cáo", opensPage: true)
-                            }
-                            .headerLinkButton()
+                    HeaderCard(title: "Tháng này", inset: Spacing.card, radius: CardCorners.large) {
+                        Button { path.append(ReportRoute(month: month)) } label: {
+                            HeaderLink(title: "Báo cáo", opensPage: true)
                         }
+                        .headerLinkButton()
+                    } content: {
                         MonthCard(month: month) { path.append(ReportRoute(month: month)) }
                     }
                     // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
@@ -87,9 +83,13 @@ struct OverviewView: View {
             .toolbar(.visible, for: .navigationBar)
             // Plain buttons: the bar draws their glass circles, so they take part in its push and
             // pop.
-            // The avatar on the leading side, the bell on the trailing one (user request 2026-10-31).
+            // The avatar on the leading side, the bell on the trailing one (user request 2026-10-31),
+            // Timi's ✦ just before the bell, the way into the assistant (user request 2026-11-02, in
+            // place of its card). The spacer gives each its own glass rather than one shared pill.
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { profileButton }
+                ToolbarItem(placement: .topBarTrailing) { assistantButton }
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .topBarTrailing) { notificationButton }
             }
             // Here, not on the card: the card goes away as its last step is done.
@@ -128,6 +128,19 @@ struct OverviewView: View {
         .tint(Palette.primary)
         .accessibilityLabel("Hồ sơ của Quyet")
         .accessibilityHint("Mở cài đặt")
+    }
+
+    private var assistantButton: some View {
+        Button {
+            isShowingAssistant = true
+        } label: {
+            TimiIcon("hugeicons-ai-magic", size: RowMetrics.toolbarGlyph)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+        }
+        .buttonBorderShape(.circle)
+        .tint(Palette.primary)
+        .accessibilityLabel("Hỏi Timi")
+        .accessibilityHint("Mở trợ lý AI")
     }
 
     private var notificationButton: some View {

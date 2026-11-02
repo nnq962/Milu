@@ -158,8 +158,7 @@ struct ReportView: View {
     private func categories(_ groups: [CategoryTotal], spent: Double, before: [String: Double]) -> some View {
         if groups.isEmpty {
             // Its heading stays, as on the empty trend below (strict review 2026-10-31).
-            VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                SectionHeader(title: "Chi theo hạng mục")
+            HeaderCard(title: "Chi theo hạng mục") {
                 EmptyStateCard(icon: "hugeicons-pie-chart", title: "Chưa có chi tiêu",
                                message: "Khoản chi trong kỳ sẽ hiện ở đây.")
             }
@@ -229,8 +228,7 @@ struct ReportView: View {
         let unit = period.unit.title.lowercased()
         // Nothing in all six: a short line, not an empty chart that looks broken (review 2026-10-30).
         if periods.allSatisfy({ store.reportableTransactions(in: $0.interval).isEmpty }) {
-            VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                SectionHeader(title: "Thu chi \(periods.count) \(unit) gần đây")
+            HeaderCard(title: "Thu chi \(periods.count) \(unit) gần đây") {
                 EmptyStateCard(icon: "hugeicons-chart-increase", title: "Chưa có thu chi",
                                message: "Thu chi từng \(unit) sẽ hiện ở đây.")
             }

@@ -103,9 +103,11 @@ enum Typography {
         // The tabs' own titles (`TabHeading`, inline large): the `pageTitle` role, 24, scaled with
         // Dynamic Type like the rest.
         let pageTitle = UIFont(name: instance(for: TextRole.pageTitle.weight), size: TextRole.pageTitle.size) ?? regular.withSize(TextRole.pageTitle.size)
+        // No colour of our own: a bar whose tab is not on screen kept the colour of the old
+        // appearance after a switch of theme, dark words on the dark page until scrolled (user
+        // report 2026-11-02). iOS's own label colour follows the theme in every bar.
         navigation.largeTitleTextAttributes = [
             .font: UIFontMetrics(forTextStyle: .title2).scaledFont(for: pageTitle),
-            .foregroundColor: Palette.uiLabel,
         ]
         // The line under a native title (Trợ lý AI): the `caption` role, muted. Only an appearance
         // carries it; a transparent one, as iOS 26 bars have no background of their own, with the

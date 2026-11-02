@@ -11,8 +11,7 @@ struct ReportTransactionList: View {
 
     var body: some View {
         // A main page's heading, as every part of Báo cáo (strict review 2026-10-31).
-        VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            SectionHeader(title: "Giao dịch · \(transactions.count)")
+        HeaderCard(title: "Giao dịch · \(transactions.count)") {
             VStack(spacing: 0) {
                 TransactionRows(transactions: Array(transactions.prefix(limit)))
                 if transactions.count > limit {

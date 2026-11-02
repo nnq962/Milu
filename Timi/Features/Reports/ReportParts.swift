@@ -98,9 +98,11 @@ struct ReportSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            SectionHeader(title: title)
-            VStack(spacing: 0) { content }
-                .listCard()
+            // The heading inside the card; the footer stays under it, on the page.
+            HeaderCard(title: title) {
+                VStack(spacing: 0) { content }
+                    .listCard()
+            }
             if let footer {
                 FormFooter(message: footer)
             }

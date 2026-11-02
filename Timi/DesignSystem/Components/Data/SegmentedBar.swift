@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The chart colours of Báo cáo, Phân bổ hạn mức and the bars of Tổng quan and Tài khoản: the
-/// four largest groups in `Palette.chart`, the rest share one grey ("Khác"). What is not split
+/// five largest groups in `Palette.chart`, the rest share one grey ("Khác"). What is not split
 /// (Chưa phân bổ) is the empty track, marked by a hollow dot.
 enum ChartShades {
     static let steps = Palette.chart
@@ -45,7 +45,7 @@ struct SegmentedBar: View {
             }
         }
         .frame(height: ProgressBar.height)
-        .background(Palette.surfaceMuted)
+        .background(Palette.progressTrack)
         .clipShape(Capsule())
         .accessibilityHidden(true)
     }

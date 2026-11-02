@@ -60,8 +60,7 @@ struct BudgetView: View {
                 // Headings and list cards as on Báo cáo, which these rows open into: this is a page
                 // of figures, not a form (re-review 2026-10-31: small-caps form groups).
                 if !limited.isEmpty {
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Theo hạng mục")
+                    HeaderCard(title: "Theo hạng mục") {
                         VStack(spacing: 0) {
                             ForEach(Array(limited.enumerated()), id: \.element.id) { index, group in
                                 groupRow(group, progress: BudgetProgress(limit: categoryBudgets[group.id],
@@ -75,8 +74,7 @@ struct BudgetView: View {
 
                 if !others.isEmpty {
                     let othersSpent = others.reduce(0) { $0 + (spentByGroup[$1.id]?.amount ?? 0) }
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Chưa có hạn mức")
+                    HeaderCard(title: "Chưa có hạn mức") {
                         VStack(spacing: 0) {
                             ForEach(Array(others.enumerated()), id: \.element.id) { index, group in
                                 let spent = spentByGroup[group.id]?.amount ?? 0

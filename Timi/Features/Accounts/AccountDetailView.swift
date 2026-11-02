@@ -37,8 +37,7 @@ struct AccountDetailView: View {
                     }
 
                     if activity.isEmpty {
-                        VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                            SectionHeader(title: "Lịch sử")
+                        HeaderCard(title: "Lịch sử") {
                             EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
                                            message: "Giao dịch của tài khoản sẽ hiện ở đây.")
                         }
@@ -265,7 +264,7 @@ struct AccountTransferRow: View {
         switch viewedAccount {
         case nil:
             title = "Chuyển khoản"
-            tone = .neutral
+            tone = .transfer
         default:
             title = outgoing ? "Chuyển đến \(to)" : "Nhận từ \(from)"
             tone = outgoing ? .signedExpense : .signedIncome

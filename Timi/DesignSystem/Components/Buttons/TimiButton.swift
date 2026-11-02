@@ -29,15 +29,15 @@ enum TimiButtonRole: CaseIterable, Identifiable {
 
     fileprivate var fill: Color {
         switch self {
-        case .primary: Palette.primary
+        case .primary: Palette.accent
         case .secondary: Palette.fill
-        case .destructive: Palette.negative.opacity(0.14)
+        case .destructive: Palette.expenseSoft
         }
     }
 
     fileprivate var foreground: Color {
         switch self {
-        case .primary: Palette.onPrimary
+        case .primary: Palette.onAccent
         case .secondary: Palette.label
         case .destructive: Palette.negative
         }

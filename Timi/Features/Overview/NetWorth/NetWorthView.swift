@@ -64,8 +64,7 @@ struct NetWorthView: View {
         let accounts = store.countedAccounts.filter { $0.balance > 0 }
         let saved = store.totalSaved
         let lent = store.loans.filter { $0.direction == .lent && $0.outstanding > 0 }
-        return VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            SectionHeader(title: "Gồm")
+        return HeaderCard(title: "Gồm") {
             VStack(spacing: 0) {
                 // Hidden with no account above zero, like Hũ and Cho vay: it opened an empty list
                 // (strict review 2026-10-31).

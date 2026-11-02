@@ -332,6 +332,14 @@ final class FinanceDatabase {
 
     /// Deletes every row, then seeds again: Cài đặt → Nhà phát triển → Đặt lại dữ liệu mẫu.
     func resetToSampleData() {
+        UserDefaults.standard.set(false, forKey: StorageKey.sampleDataOff)
+        deleteEverything()
+        seed()
+    }
+
+    /// Xoá mọi dòng của mọi bảng, để trống như lúc mới cài: dùng cho "Xoá toàn bộ dữ liệu"
+    /// (`DataReset`) và cho đặt lại dữ liệu mẫu.
+    func deleteEverything() {
         do {
             try context.delete(model: TransactionRecord.self)
             try context.delete(model: AccountRecord.self)
@@ -347,7 +355,6 @@ final class FinanceDatabase {
         } catch {
             log.error("Reset failed: \(error)")
         }
-        seed()
     }
 
     // MARK: - Nội bộ

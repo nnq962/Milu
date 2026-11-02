@@ -20,22 +20,22 @@ enum BadgeTone: CaseIterable, Identifiable {
     fileprivate var background: Color {
         switch self {
         case .neutral: Palette.fill
-        // White with a hairline (`isOutlined`): a grey pill read as neutral, and a green tint is a
-        // fill the monochrome set has none of; the dot carries the meaning.
-        case .positive: Palette.surface
+        // The palette's pale backgrounds (2026-11-02): green on its own wash, 4.9:1.
+        case .positive: Palette.incomeSoft
         case .pro: Palette.primary
-        case .caution: Palette.warning.opacity(0.16)
+        case .caution: Palette.warningSoft
         // White with a hairline too: red words on a red tint were 4.3:1, under 4.5 for 13pt
         // (review 2026-10-31); on the card they are 4.9:1.
         case .warning: Palette.surface
         }
     }
 
-    fileprivate var isOutlined: Bool { self == .positive || self == .warning }
+    fileprivate var isOutlined: Bool { self == .warning }
 
     fileprivate var foreground: Color {
         switch self {
         case .warning: Palette.negative
+        case .positive: Palette.income
         // Orange words on the orange tint are too light to read: the deep orange.
         case .caution: Palette.warningLabel
         case .pro: Palette.onPrimary

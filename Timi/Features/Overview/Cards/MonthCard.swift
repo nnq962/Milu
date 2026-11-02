@@ -3,7 +3,7 @@ import SwiftUI
 /// "Tháng này": one card under its section heading (2026-10-31), with this month's two
 /// figures side by side (`SplitTotals`), a hairline, then the spending bar (`SegmentedBar`): one
 /// part per group in the chart's shades, largest first, the rest in the "Khác" grey, and the empty
-/// part what the month's limit still allows. The legend names the four biggest groups. Tapping
+/// part what the month's limit still allows. The legend names the biggest groups, one per chart shade. Tapping
 /// the card opens the month's report.
 struct MonthCard: View {
     let month: Date
@@ -12,8 +12,8 @@ struct MonthCard: View {
     @Environment(FinanceStore.self) private var store
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
 
-    /// Groups named on the bar and in the legend; the rest is "Khác".
-    private static let shown = 4
+    /// Groups named on the bar and in the legend, one per chart shade; the rest is "Khác".
+    private static let shown = ChartShades.steps.count
 
     var body: some View {
         let groups = store.expensesByCategory(inMonthOf: month)

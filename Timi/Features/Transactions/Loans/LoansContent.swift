@@ -150,13 +150,12 @@ struct LoansContent: View {
     private var isOverview: Bool { filter == .all && !isSearching }
 
     private var lentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+        HeaderCard(title: "Cho vay") {
             // What is left beside the heading once there is a loan: no "Còn 0đ" over the empty card.
-            SectionHeader(title: "Cho vay") {
-                if !lentLoans.isEmpty && !isOverview {
-                    remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .neutral)
-                }
+            if !lentLoans.isEmpty && !isOverview {
+                remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .neutral)
             }
+        } content: {
             if lentLoans.isEmpty {
                 // One short sentence, no button named (strict review 2026-10-31).
                 EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
@@ -169,12 +168,11 @@ struct LoansContent: View {
     }
 
     private var borrowedSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            SectionHeader(title: "Đi vay") {
-                if !borrowedLoans.isEmpty && !isOverview {
-                    remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }, tone: .signedExpense)
-                }
+        HeaderCard(title: "Đi vay") {
+            if !borrowedLoans.isEmpty && !isOverview {
+                remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }, tone: .signedExpense)
             }
+        } content: {
             if borrowedLoans.isEmpty {
                 // The same card on every chip (user choice 2026-10-31, after a single line on "Tất cả").
                 EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
@@ -188,8 +186,7 @@ struct LoansContent: View {
 
     /// Search only: the page keeps these behind `settledEntry`.
     private var settledSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            SectionHeader(title: "Đã tất toán")
+        HeaderCard(title: "Đã tất toán") {
             LoanRowList(loans: settledLoans, today: today, onOpen: onEdit)
         }
     }

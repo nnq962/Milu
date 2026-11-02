@@ -44,8 +44,9 @@ struct ActivityDayList: View {
 
     var body: some View {
         ForEach(groups, id: \.day) { group in
-            VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                dayHeader(group)
+            HeaderCard(title: group.day.transactionDayTitle) {
+                dayTotals(group)
+            } content: {
                 VStack(spacing: 0) {
                     ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
                         ActivityRow(item: item, side: viewedAccount == nil ? .list : .account, viewedAccount: viewedAccount,
@@ -58,18 +59,17 @@ struct ActivityDayList: View {
         }
     }
 
-    /// The day and its totals, as every heading over a card (`SectionHeader`: inset to the rows,
-    /// on one baseline, the totals under the day at the accessibility text sizes). A day of one row
-    /// shows no total: it was the row's own amount again, just above it (review 2026-10-31).
-    private func dayHeader(_ group: (day: Date, items: [AccountDetailView.Activity])) -> some View {
-        SectionHeader(title: group.day.transactionDayTitle) {
-            if group.items.count > 1 {
-                // The day's spending and income: its transactions. A transfer, fee and all, is a
-                // thing of its own (user choice 2026-10-29), so it adds nothing here.
-                DayTotals(items: group.items.compactMap {
-                    if case .transaction(let transaction) = $0 { transaction } else { nil }
-                })
-            }
+    /// The day's totals beside its heading, in the card's header as every heading (`HeaderCard`).
+    /// A day of one row shows no total: it was the row's own amount again, just below it (review
+    /// 2026-10-31).
+    @ViewBuilder
+    private func dayTotals(_ group: (day: Date, items: [AccountDetailView.Activity])) -> some View {
+        if group.items.count > 1 {
+            // The day's spending and income: its transactions. A transfer, fee and all, is a
+            // thing of its own (user choice 2026-10-29), so it adds nothing here.
+            DayTotals(items: group.items.compactMap {
+                if case .transaction(let transaction) = $0 { transaction } else { nil }
+            })
         }
     }
 }

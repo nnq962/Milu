@@ -25,7 +25,7 @@ struct TagChip: View {
                         .monospacedDigit()
                         .lineLimit(1)
                 }
-                .foregroundStyle(isProminent ? Palette.onPrimary : isSuggestion ? Palette.secondaryLabel : Palette.label)
+                .foregroundStyle(isProminent ? Palette.onAccent : isSuggestion ? Palette.secondaryLabel : Palette.label)
                 .padding(.leading, Spacing.m)
                 .padding(.trailing, onRemove == nil ? Spacing.m : Spacing.xxs)
                 // At least 44 to tap, taller with larger text (Dynamic Type).
@@ -53,7 +53,7 @@ struct TagChip: View {
         .fixedSize(horizontal: false, vertical: true)
         // The capsule drawn 4 in from the top and bottom of the 44 button.
         .background {
-            Capsule().fill(isProminent ? Palette.primary : Palette.surface)
+            Capsule().fill(isProminent ? Palette.accent : Palette.surface)
                 .padding(.vertical, Spacing.xs)
         }
         .overlay {

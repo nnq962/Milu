@@ -92,15 +92,14 @@ struct AccountsView: View {
 
     private var paymentSection: some View {
         let archived = store.archivedAccounts.count
-        return VStack(alignment: .leading, spacing: Spacing.headerGap) {
+        return HeaderCard(title: "Ví & ngân hàng") {
             // Not "Tài khoản" again under the page title of that name (HIG review 2026-10-30).
-            SectionHeader(title: "Ví & ngân hàng") {
-                if archived > 0 {
-                    Button { isShowingArchived = true } label: { HeaderLink(title: "Lưu trữ (\(archived))", opensPage: true) }
-                        .headerLinkButton()
-                        .accessibilityLabel("Tài khoản đã lưu trữ, \(archived)")
-                }
+            if archived > 0 {
+                Button { isShowingArchived = true } label: { HeaderLink(title: "Lưu trữ (\(archived))", opensPage: true) }
+                    .headerLinkButton()
+                    .accessibilityLabel("Tài khoản đã lưu trữ, \(archived)")
             }
+        } content: {
             if accounts.isEmpty {
                 EmptyStateCard(icon: "hugeicons-wallet-01", title: "Chưa có tài khoản",
                                message: "Tiền mặt, ngân hàng và ví sẽ hiện ở đây.")
@@ -119,22 +118,21 @@ struct AccountsView: View {
 
     private var goalsSection: some View {
         let completed = store.completedGoals.count
-        return VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            SectionHeader(title: "Hũ tiết kiệm") {
-                if completed > 0 {
-                    Button { isShowingCompleted = true } label: { HeaderLink(title: "Đã xong (\(completed))", opensPage: true) }
-                        .headerLinkButton()
-                        .accessibilityLabel("Hũ đã hoàn thành, \(completed)")
-                }
+        return HeaderCard(title: "Hũ tiết kiệm") {
+            if completed > 0 {
+                Button { isShowingCompleted = true } label: { HeaderLink(title: "Đã xong (\(completed))", opensPage: true) }
+                    .headerLinkButton()
+                    .accessibilityLabel("Hũ đã hoàn thành, \(completed)")
             }
+        } content: {
             if store.activeGoals.isEmpty {
                 // Every goal may be done already: then the empty card invites the next one.
                 EmptyStateCard(icon: "hugeicons-piggy-bank",
                                title: store.completedGoals.isEmpty ? "Chưa có hũ nào" : "Chưa có hũ đang để dành",
                                message: "Các hũ để dành sẽ hiện ở đây.")
             } else {
-                // Tiles scrolling sideways, then "+ Hũ mới". Reaches to the screen's edges so the
-                // next tile shows it can scroll.
+                // Grey tiles scrolling sideways inside the card, then "+ Hũ mới". Reaches to the
+                // card's edges so the next tile shows it can scroll.
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: Spacing.m) {
                         ForEach(store.activeGoals) { goal in
@@ -146,13 +144,11 @@ struct AccountsView: View {
                             .accessibilityLabel("Thêm hũ tiết kiệm")
                     }
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, Spacing.page)
-                    .padding(.vertical, Spacing.xs)
+                    .padding(.horizontal, RowMetrics.horizontal)
+                    .padding(.top, Spacing.s)
+                    .padding(.bottom, RowMetrics.horizontal)
                 }
                 .scrollIndicators(.hidden)
-                // Let the tiles' shadow show past the row's edges instead of being cut off.
-                .scrollClipDisabled()
-                .padding(.horizontal, -Spacing.page)
             }
         }
     }

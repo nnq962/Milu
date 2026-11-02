@@ -18,4 +18,7 @@ enum StorageKey {
     static let lastAccountID = "transactions.lastAccountID"
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
     static let askedAI = "onboarding.askedAI"
+    /// True after "Xoá toàn bộ dữ liệu": an empty database stays empty, the sample data is not
+    /// seeded again (user report 2026-11-02: it came straight back, so erasing seemed to do nothing).
+    static let sampleDataOff = "data.sampleDataOff"
 }

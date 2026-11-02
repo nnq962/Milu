@@ -55,8 +55,10 @@ struct GoalRing: View {
     }
 
     var body: some View {
+        // Red when overdue, lime once full or closed (`progressDone`), ink on the way.
         ProgressRing(progress: goal.isClosed ? 1 : goal.progress,
-                     color: goal.isOverdue ? Palette.negative : Palette.primary)
+                     color: goal.isOverdue ? Palette.negative
+                         : goal.isClosed || goal.isReached ? Palette.progressDone : Palette.progress)
             .overlay {
                 TimiIcon(goal.icon, size: size / 2)
                     .foregroundStyle(Palette.label)

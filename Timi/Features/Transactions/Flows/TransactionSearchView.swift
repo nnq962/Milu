@@ -252,15 +252,14 @@ struct TransactionSearchView: View {
                 .foregroundStyle(Palette.secondaryLabel)
                 .padding(.horizontal, RowMetrics.horizontal)
         } else {
-            VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            HeaderCard(title: "Tìm kiếm gần đây") {
                 // A full page's heading, as the days of the results (strict review 2026-10-31).
-                SectionHeader(title: "Tìm kiếm gần đây") {
-                    Button { withAnimation(.smooth(duration: 0.25)) { historyText = "" } } label: {
-                        HeaderLink(title: "Xoá")
-                    }
-                    .headerLinkButton()
-                    .accessibilityLabel("Xoá lịch sử tìm kiếm")
+                Button { withAnimation(.smooth(duration: 0.25)) { historyText = "" } } label: {
+                    HeaderLink(title: "Xoá")
                 }
+                .headerLinkButton()
+                .accessibilityLabel("Xoá lịch sử tìm kiếm")
+            } content: {
                 VStack(spacing: 0) {
                     ForEach(Array(history.enumerated()), id: \.element) { index, item in
                         HStack(spacing: 0) {

@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A heading over a card, `Spacing.headerGap` above it. Two weights (user choice 2026-10-28):
+/// A heading: inside a card's top on main screens (`HeaderCard`, user request 2026-11-02), over a
+/// group of rows in sheets and forms. Two weights (user choice 2026-10-28):
 /// - `.section` names a part of a main screen ("Hũ tiết kiệm", "Hôm nay, 28/10"): 17 SemiBold
 ///   ink, so it stands out among the cards on the page.
 /// - `.group` names a group of rows inside a sheet or form ("THÔNG BÁO" in Settings): small grey

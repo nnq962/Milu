@@ -52,7 +52,7 @@ struct QuickCategoryGrid: View {
     }
 
     /// A rounded tile of the quiet block colour with the item's glyph, its name in ink under it;
-    /// filled in the primary colour when chosen. Flat: no glass inside content, it trailed the
+    /// filled in the accent when chosen. Flat: no glass inside content, it trailed the
     /// sheet's scroll (2026-10-31). The name under it is part of the button: one control.
     private func cell(_ item: Category, isChosen: Bool) -> some View {
         let tile = RoundedRectangle(cornerRadius: CardCorners.field + Spacing.xs, style: .continuous)
@@ -60,9 +60,9 @@ struct QuickCategoryGrid: View {
         return Button { selection = item.id } label: {
             VStack(spacing: Spacing.s) {
                 TimiIcon(item.icon, size: glyph)
-                    .foregroundStyle(isChosen ? Palette.onPrimary : Palette.label)
+                    .foregroundStyle(isChosen ? Palette.onAccent : Palette.label)
                     .frame(width: tileSize, height: tileSize)
-                    .background(isChosen ? Palette.primary : Palette.surfaceMuted, in: tile)
+                    .background(isChosen ? Palette.accent : Palette.surfaceMuted, in: tile)
                 Text(item.name)
                     .textRole(isChosen ? .captionStrong : .caption)
                     .foregroundStyle(Palette.label)

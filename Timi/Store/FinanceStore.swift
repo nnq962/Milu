@@ -57,9 +57,11 @@ final class FinanceStore {
     }
 
     /// The app's store: opens the saved data, seeding the sample data on the very first launch.
+    /// After "Xoá toàn bộ dữ liệu" (`StorageKey.sampleDataOff`) an empty database gets only the
+    /// default categories, once, and stays empty.
     init(database: FinanceDatabase) {
         self.database = database
-        if database.isEmpty {
+        if database.isEmpty && !UserDefaults.standard.bool(forKey: StorageKey.sampleDataOff) {
             database.seed()
         } else if !database.defaultCategoriesAdded {
             // A database from V1: its 12 categories became groups; add their items once.

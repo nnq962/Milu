@@ -47,8 +47,7 @@ struct BudgetAllocationView: View {
 
                 // Headings and list cards as on Báo cáo, which these rows open into (re-review
                 // 2026-10-31: small-caps form groups on a page of figures).
-                VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                    SectionHeader(title: "Phân bổ")
+                HeaderCard(title: "Phân bổ") {
                     VStack(spacing: 0) {
                         ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
                             NavigationLink {
@@ -70,8 +69,7 @@ struct BudgetAllocationView: View {
                 }
 
                 if !restGroups.isEmpty {
-                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                        SectionHeader(title: "Chi từ phần chưa phân bổ")
+                    HeaderCard(title: "Chi từ phần chưa phân bổ") {
                         VStack(spacing: 0) {
                             ForEach(Array(restGroups.enumerated()), id: \.element.id) { index, group in
                                 NavigationLink {

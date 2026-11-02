@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.eraseAllData) private var eraseAllData
 
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
     @AppStorage(StorageKey.dailyReminder) private var dailyReminder = true
@@ -178,6 +179,14 @@ struct SettingsView: View {
                     }
                     #endif
 
+                    // Cuối trang, chữ đỏ, như "Xoá iPhone" cuối Cài đặt chung của iOS; hỏi lại trước khi xoá.
+                    FormGroup {
+                        FormDestructiveRow(title: "Xoá toàn bộ dữ liệu", question: "Xoá toàn bộ dữ liệu?",
+                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và cài đặt sẽ bị xoá, app trở về như lúc mới tải. Không thể hoàn tác.") {
+                            eraseAllData()
+                        }
+                    }
+
                 }
                 .padding(.horizontal, Spacing.page)
                 // The same top and bottom as every page under Cài đặt and the main tabs.
@@ -253,7 +262,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     // Fills as lượt are used; orange once 3 or fewer free ones are left.
                     ProgressBar(value: Double(used) / Double(AIQuota.monthlyFree),
-                                color: quota.monthlyLeft <= 3 ? Palette.warning : Palette.primary)
+                                color: quota.monthlyLeft <= 3 ? Palette.warning : Palette.progress)
                         .accessibilityHidden(true)
                     Text(details.joined(separator: " · "))
                         .textRole(.caption)

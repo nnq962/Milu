@@ -17,8 +17,9 @@ struct MoneyCalendarCard: View {
     private static let swatchSize: CGFloat = 12
     /// Its corner: a named radius, not the spacing token `xxs` it borrowed (re-review 2026-10-31).
     private static let swatchRadius: CGFloat = 2
-    /// The ring round today: whole points, so at any screen scale it covers whole pixels.
-    private static let todayRing: CGFloat = 2
+    /// The ring round today: whole points, so at any screen scale it covers whole pixels. One, not
+    /// two: at 2 it was the heaviest thing on the card (Overview review 2026-11-02).
+    private static let todayRing: CGFloat = 1
     /// How deep a day is shaded by what went out: under 1tr, under 3tr, more. Far enough apart to
     /// tell at a glance; 8 / 14 / 20% read as one pale red, the first near invisible (review
     /// 2026-10-31).

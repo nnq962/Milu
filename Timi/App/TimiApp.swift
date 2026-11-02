@@ -14,6 +14,9 @@ struct TimiApp: App {
     @State private var store: FinanceStore
     @State private var quota = AIQuota()
     @State private var chats = AssistantChats()
+    /// Tăng mỗi lần xoá toàn bộ dữ liệu: `ContentView` mang id mới nên được dựng lại từ đầu (về tab
+    /// Tổng quan, đóng mọi sheet đang mở).
+    @State private var generation = 0
 
     init() {
         Typography.configureNativeAppearance()
@@ -25,6 +28,7 @@ struct TimiApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .id(generation)
                 // The body role (16 SemiBold), so a Text with no role still matches the scale
                 // (strict review 2026-10-31: 17 Regular sat outside it).
                 .font(TextRole.body.font)
@@ -34,6 +38,19 @@ struct TimiApp: App {
                 .environment(chats)
                 .modelContainer(container)
                 .environment(\.locale, .vietnam)
+                .environment(\.eraseAllData, EraseAllDataAction(action: eraseAllData))
         }
+    }
+
+    /// Xoá sạch rồi dựng lại mọi thứ như lần mở đầu tiên sau khi cài (`DataReset`).
+    private func eraseAllData() {
+        DataReset.eraseEverything(database: store.database)
+        // Store mới trên database trống: tự thêm hạng mục mặc định và dữ liệu mẫu như lúc mới cài.
+        store = FinanceStore(database: FinanceDatabase(context: container.mainContext))
+        quota = AIQuota()
+        chats = AssistantChats()
+        // Giao diện về "Hệ thống" ngay, không đợi mở lại app.
+        AppAppearance.system.apply(animated: false)
+        generation += 1
     }
 }
