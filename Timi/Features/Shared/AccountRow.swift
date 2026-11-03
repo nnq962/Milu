@@ -23,7 +23,11 @@ struct AccountRow: View {
                     if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
                 }
         } trailing: {
-            ListRowAmount(amount: account.balance, tone: account.isLocked || isMuted ? .muted : .balance)
+            // A step stronger than the name, as in Wallet: the figure is what the row is for
+            // (Tài khoản review 2026-11-03: name and amount read the same).
+            ListRowTrailing(note: nil) {
+                MoneyText(amount: account.balance, size: .rowStrong, tone: account.isLocked || isMuted ? .muted : .balance)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([account.name, account.balance.vnd, account.isLocked ? "đã khoá" : nil, subtitle]

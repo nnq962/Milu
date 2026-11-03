@@ -8,7 +8,11 @@ struct SummaryCard<Content: View>: View {
     let amount: Double
     var icon: String? = nil
     var tone: MoneyText.Tone = .balance
+    /// A 3D picture in the icon's place (a goal, 2026-11-03).
+    var picture: String? = nil
     @ViewBuilder var content: Content
+
+    @ScaledMetric(relativeTo: .body) private var pictureSize = RowMetrics.picture
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -20,7 +24,13 @@ struct SummaryCard<Content: View>: View {
                     MoneyText(amount: amount, size: .display, tone: tone)
                 }
                 Spacer(minLength: 0)
-                if let icon {
+                if let picture {
+                    Image(picture)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: pictureSize, height: pictureSize)
+                        .accessibilityHidden(true)
+                } else if let icon {
                     RowIcon(name: icon, size: RowMetrics.featureIcon)
                 }
             }

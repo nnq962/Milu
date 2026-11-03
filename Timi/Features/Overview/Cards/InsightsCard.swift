@@ -55,8 +55,6 @@ struct Insight: Identifiable {
     let id: String
     /// The `Fluent3D` picture, without its "fluent-" prefix.
     let picture: String
-    /// The pale tile behind the picture.
-    let wash: Color
     let label: String
     let title: String
     let figure: String
@@ -81,8 +79,7 @@ struct Insight: Identifiable {
             let before = store.expenses(inGroup: top.groupID, in: .month(of: lastMonth)).count
             // Orange only for more times than last month; fewer, or nothing to compare, is a plain count.
             let isMore = before > 0 && count > before
-            result.append(Insight(id: "top", picture: pictures.contains(top.groupID) ? top.groupID : "money",
-                                  wash: Palette.warningSoft, label: top.name.uppercased(),
+            result.append(Insight(id: "top", picture: pictures.contains(top.groupID) ? top.groupID : "money", label: top.name.uppercased(),
                                   title: "\(top.name) ngốn ví nhiều nhất tháng này",
                                   figure: top.amount.vndCompact,
                                   note: isMore ? "+\(count - before) lần so với tháng trước" : "\(count) lần trong tháng",
@@ -104,7 +101,7 @@ struct Insight: Identifiable {
             let weekend = week[5...].reduce(0, +) / 2
             if weekday > 0, weekend / weekday >= 1.3 {
                 let times = weekend / weekday
-                result.append(Insight(id: "weekend", picture: "calendar", wash: Palette.accentSoft,
+                result.append(Insight(id: "weekend", picture: "calendar",
                                       label: "CUỐI TUẦN", title: "Cuối tuần bạn chi mạnh tay hơn hẳn",
                                       figure: "×\(times.formatted(.number.precision(.fractionLength(1)).locale(.vietnam)))",
                                       note: "so với ngày thường", noteColor: Palette.secondaryLabel,
@@ -115,7 +112,7 @@ struct Insight: Identifiable {
         // The goal nearest full, while it is not yet.
         if let goal = store.activeGoals.filter({ $0.target > 0 && $0.saved < $0.target })
             .max(by: { $0.saved / $0.target < $1.saved / $1.target }) {
-            result.append(Insight(id: "goal", picture: "goal", wash: Palette.incomeSoft,
+            result.append(Insight(id: "goal", picture: "goal",
                                   // "Hũ tiết kiệm" already says "Hũ": not "Hũ Hũ tiết kiệm".
                                   label: "HŨ TIẾT KIỆM",
                                   title: "\(goal.name.lowercased().hasPrefix("hũ") ? goal.name : "Hũ \(goal.name)") sắp đầy rồi",
@@ -137,9 +134,8 @@ private struct InsightRow: View {
             Image("fluent-\(insight.picture)")
                 .resizable()
                 .scaledToFit()
-                .padding(tile * 0.14)
+                // On nothing: a pale tile behind each picture was one more colour (2026-11-03).
                 .frame(width: tile, height: tile)
-                .background(insight.wash, in: RoundedRectangle(cornerRadius: CardCorners.field + Spacing.xs, style: .continuous))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(insight.label)

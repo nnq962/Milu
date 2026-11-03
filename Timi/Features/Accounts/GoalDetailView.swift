@@ -145,7 +145,8 @@ struct GoalDetailView: View {
     /// then the bar, the progress line and the actions (or how it ended, once closed).
     private func summary(_ goal: SavingsGoal) -> some View {
         SummaryCard(title: goal.isClosed ? "Mục tiêu" : "Đã để dành",
-                    amount: goal.isClosed ? goal.target : goal.saved, icon: goal.icon, tone: .neutral) {
+                    amount: goal.isClosed ? goal.target : goal.saved, icon: goal.icon, tone: .neutral,
+                    picture: Picture3D.name(for: goal.icon)) {
             if goal.isClosed {
                 closedLine(goal)
                     .padding(.top, Spacing.m)

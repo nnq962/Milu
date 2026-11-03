@@ -26,11 +26,10 @@ struct TransactionsView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSearching = false
-    /// The report circle grows with the text as the month capsule beside it does, so the two stay
-    /// one height (strict review 2026-10-31).
-    @ScaledMetric(relativeTo: .body) private var reportDiameter = ControlHeight.regular
-    @ScaledMetric(relativeTo: .body) private var reportGlyph = RowMetrics.toolbarGlyph
     @State private var isAddingLoan = false
+    /// Trợ lý AI from the ✦ on the bar, and the first transaction from the empty list's button.
+    @State private var isShowingAssistant = false
+    @State private var isAddingFirst = false
     @State private var editingLoan: Loan?
     /// A row tapped to read it (then change or delete it from its sheet).
     @State private var editingItem: AccountDetailView.Activity?
@@ -52,7 +51,8 @@ struct TransactionsView: View {
                         // it up.
                         switch segment {
                         case .flows:
-                            summaryCard
+                            summaryHead
+                            budgetCard
                             chipsRow { FilterChips(selection: $filter) }
                             listContainer { flowList }
                         case .loans:
@@ -75,6 +75,7 @@ struct TransactionsView: View {
                     withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.chipsAnchor, anchor: .top) }
                 }
             }
+            // The plain page colour, as on Tài khoản (user report 2026-11-03: the ground read muddy).
             .background(Palette.background)
             .foregroundStyle(Palette.label)
             // The visible title (`TabHeading`) shrinks to the middle of the bar as the page scrolls,
@@ -97,8 +98,17 @@ struct TransactionsView: View {
                 if #available(iOS 26.0, *), segment == .loans {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
+                ToolbarItem(placement: .topBarTrailing) { assistantButton }
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
                 ToolbarItem(placement: .topBarTrailing) { searchButton }
             }
+            .fullScreenCover(isPresented: $isShowingAssistant) {
+                NavigationStack { AssistantView() }
+                    .presentationBackground(Palette.background)
+            }
+            .sheet(isPresented: $isAddingFirst) { AddTransactionView() }
             .fullScreenCover(isPresented: $isSearching) {
                 TransactionSearchView(segment: segment)
             }
@@ -160,6 +170,18 @@ struct TransactionsView: View {
         .accessibilityLabel(segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay")
     }
 
+    /// ✦ Hỏi Timi, as on Tổng quan and Tài khoản.
+    private var assistantButton: some View {
+        Button { isShowingAssistant = true } label: {
+            TimiIcon("hugeicons-ai-magic", size: RowMetrics.toolbarGlyph)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+        }
+        .buttonBorderShape(.circle)
+        .tint(Palette.primary)
+        .accessibilityLabel("Hỏi Timi")
+        .accessibilityHint("Mở trợ lý AI")
+    }
+
     private var addLoanButton: some View {
         Button { isAddingLoan = true } label: {
             // The same + as on Tài khoản, at the bar's one glyph size (strict review 2026-10-31).
@@ -191,42 +213,97 @@ struct TransactionsView: View {
         return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
-    /// The month in a card right under the segments, balanced (user request 2026-10-30: a big
-    /// spending figure over a small income line read lopsided). A top row of two controls the same
-    /// height: the month as a capsule, and a circle opening the month's report, both flat fills. Under
-    /// it what went out and what came in side by side at one size, as on Báo cáo. The limit shows
-    /// only when it needs a look: from 80% used, orange, red once over.
-    private var summaryCard: some View {
+    /// The head of "Thu chi", on the tab's ground, centred, as the heads of Tổng quan and Tài khoản
+    /// (2026-11-03, after a card with two totals side by side): the month as a capsule, "Đã chi"
+    /// and what went out in large type, and one line with what came in and what the limit leaves.
+    private var summaryHead: some View {
         let reported = store.reportableTransactions(inMonthOf: displayedMonth)
         let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
         let earned = reported.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
-        return VStack(alignment: .leading, spacing: Spacing.l) {
-            HStack {
-                MonthPickerButton(month: $displayedMonth)
-                Spacer(minLength: Spacing.s)
-                // The month in detail: by group, against last month, per account.
-                NavigationLink {
-                    ReportView(period: ReportPeriod(.month, containing: displayedMonth))
-                } label: {
-                    TimiIcon("hugeicons-pie-chart", size: reportGlyph)
-                        .foregroundStyle(Palette.primary)
-                }
-                // Flat, as the month beside it: glass inside the card trailed it on scroll.
-                .flatCircleButton(diameter: reportDiameter)
-                .accessibilityLabel("Báo cáo tháng")
+        return VStack(spacing: Spacing.s) {
+            MonthPickerButton(month: $displayedMonth)
+            VStack(spacing: Spacing.xxs) {
+                Text("Đã chi")
+                    .textRole(.captionStrong)
+                    .foregroundStyle(Palette.secondaryLabel)
+                // Ink, not red: the figure of the page, read every day (red is for a line of money out).
+                MoneyText(amount: spent, size: .display, tone: .neutral)
             }
-            SplitTotals(items: [
-                .init("Đã chi", amount: spent, tone: spent > 0 ? .signedExpense : .neutral),
-                .init("Đã thu", amount: earned, tone: earned > 0 ? .signedIncome : .neutral),
-            ])
-            let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
-            if monthlyBudget > 0, progress.isOver || progress.isNearing {
-                BudgetStatusLine(level: .init(progress),
-                                 message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
-                                     : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
+            HStack(spacing: Spacing.xs) {
+                Text("Đã thu")
+                    .foregroundStyle(Palette.secondaryLabel)
+                Text(earned > 0 ? "+\(earned.vndCompact)" : "0đ")
+                    .foregroundStyle(earned > 0 ? Palette.income : Palette.label)
+                if monthlyBudget > 0 {
+                    let left = monthlyBudget - spent
+                    Text("·").foregroundStyle(Palette.tertiaryLabel)
+                    Text(left >= 0 ? "Còn hạn mức" : "Vượt hạn mức")
+                        .foregroundStyle(Palette.secondaryLabel)
+                    Text(abs(left).vndCompact)
+                        .foregroundStyle(left >= 0 ? Palette.label : Palette.expense)
+                }
+            }
+            .textRole(.captionStrong)
+            .monospacedDigit()
+        }
+        .padding(.horizontal, RowMetrics.horizontal)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// "Hạn mức tháng" under the head: the month's spending by group against the limit
+    /// (`SegmentedBar`, the five biggest in the chart shades), how much of it is used, and "Báo
+    /// cáo ›" to the month in detail. With no limit, a row to set one (2026-11-03: the limit was
+    /// only on Tổng quan, not where spending is read).
+    private var budgetCard: some View {
+        let groups = store.expensesByCategory(inMonthOf: displayedMonth)
+        let spent = groups.reduce(0) { $0 + $1.amount }
+        let top = Array(groups.prefix(ChartShades.steps.count))
+        let rest = groups.dropFirst(ChartShades.steps.count).reduce(0) { $0 + $1.amount }
+        let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
+        return HeaderCard(title: "Hạn mức tháng") {
+            NavigationLink {
+                ReportView(period: ReportPeriod(.month, containing: displayedMonth))
+            } label: {
+                HeaderLink(title: "Báo cáo", opensPage: true)
+            }
+            .headerLinkButton()
+        } content: {
+            if monthlyBudget > 0 {
+                VStack(alignment: .leading, spacing: Spacing.m) {
+                    SegmentedBar(segments: top.enumerated().map { index, group in
+                        SegmentedBar.Segment(id: group.id, color: ChartShades.color(at: index), amount: group.amount)
+                    } + (rest > 0 ? [SegmentedBar.Segment(id: "rest", color: ChartShades.rest, amount: rest)] : []),
+                                 whole: monthlyBudget)
+                    if progress.isOver || progress.isNearing {
+                        BudgetStatusLine(level: .init(progress),
+                                         message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
+                                             : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
+                    } else {
+                        Text("Đã dùng \(progress.ratio.percentText) hạn mức \(monthlyBudget.vndCompact)")
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.secondaryLabel)
+                    }
+                }
+                .card(padding: RowMetrics.horizontal)
+            } else {
+                NavigationLink {
+                    BudgetView(month: displayedMonth)
+                } label: {
+                    HStack {
+                        Text("Đặt hạn mức để Timi nhắc khi sắp tiêu quá")
+                            .textRole(.body)
+                            .foregroundStyle(Palette.label)
+                        Spacer(minLength: Spacing.s)
+                        RowChevron()
+                    }
+                    .padding(.horizontal, RowMetrics.horizontal)
+                    .frame(minHeight: RowMetrics.minHeight)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.row)
+                .listCard()
             }
         }
-        .card()
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
@@ -250,8 +327,17 @@ struct TransactionsView: View {
     private var flowList: some View {
         let groups = ActivityDayList.byDay(filteredItems)
         if groups.isEmpty {
-            EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
-                           title: emptyTitle, message: emptyMessage)
+            VStack(spacing: Spacing.l) {
+                EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
+                               title: emptyTitle, message: emptyMessage,
+                               picture: filter == .transfer ? "fluent-money" : "fluent-memo")
+                // Before anything is recorded, the way to start, under the card (2026-11-03).
+                if hasNothingRecorded {
+                    TimiButton("Ghi khoản đầu tiên", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {
+                        isAddingFirst = true
+                    }
+                }
+            }
         } else {
             // Tapping a row opens it to read, change or delete, as in an account's history.
             ActivityDayList(groups: groups) { editingItem = $0 }

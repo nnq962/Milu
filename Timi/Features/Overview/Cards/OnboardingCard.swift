@@ -2,7 +2,7 @@ import SwiftUI
 
 /// "Làm quen với Timi": four first steps, ticked from what is really in the app, shown one at a
 /// time (user review 2026-11-02: the list was not lively, and nothing in it could be done from
-/// there). The next step's 3D picture (Fluent Emoji) on a pale lime tile, "LÀM QUEN · +5 LƯỢT AI",
+/// there). The next step's 3D picture (Fluent Emoji), "LÀM QUEN · +5 LƯỢT AI",
 /// its name and one line on why, a lime button that does it, and four short bars filling in as
 /// the steps are done. It goes away once all four are done.
 struct OnboardingCard: View {
@@ -81,9 +81,8 @@ struct OnboardingCard: View {
                     Image(step.picture)
                         .resizable()
                         .scaledToFit()
-                        .padding(tileSize * 0.14)
+                        // On nothing, as the insights' pictures (2026-11-03: no pale tiles).
                         .frame(width: tileSize, height: tileSize)
-                        .background(Palette.accentSoft, in: RoundedRectangle(cornerRadius: CardCorners.field + Spacing.xs, style: .continuous))
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         // Small capitals, as every label over a title on this page (TIMI PRO, ĂN UỐNG);

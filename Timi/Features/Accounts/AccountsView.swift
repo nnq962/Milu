@@ -12,6 +12,8 @@ struct AccountsView: View {
     /// Picked in the "Thêm mới" sheet; its form opens once that sheet has gone.
     @State private var pendingNew: NewItem?
     @State private var newItem: NewItem?
+    /// Trợ lý AI, from the ✦ on the bar, as on Tổng quan.
+    @State private var isShowingAssistant = false
 
     /// What the + button can add.
     enum NewItem: String, Identifiable, CaseIterable {
@@ -32,11 +34,12 @@ struct AccountsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                // The total in a card with a bar of where the money is, the accounts as rows in one
-                // block (fine for any number of them), the goals as tiles scrolling sideways
-                // (user choice 2026-10-30, "A + B" of the layouts tried). Sections 28 apart, as on
-                // every tab.
+                // The total on the ground as Tổng quan's head (2026-11-03), where the money is in a
+                // card under it, the accounts as rows in one block (fine for any number of them),
+                // the goals as tiles scrolling sideways (user choice 2026-10-30, "A + B" of the
+                // layouts tried). Sections 28 apart, as on every tab.
                 VStack(alignment: .leading, spacing: Spacing.section) {
+                    TotalBalanceHeader()
                     BalanceCard()
                     paymentSection
                     goalsSection
@@ -45,14 +48,25 @@ struct AccountsView: View {
                 .padding(.top, Spacing.l)
                 .padding(.bottom, Spacing.xxl)
             }
+            // The plain page colour: the coloured ground on every tab read muddy (user report
+            // 2026-11-03); only Tổng quan keeps a light of lime.
             .background(Palette.background)
             .foregroundStyle(Palette.label)
             .navigationTitle("Tài khoản")
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                // A plain button: the bar draws its glass, which then takes part in push and pop.
+                // Plain buttons: the bar draws their glass, which then takes part in push and pop.
+                // ✦ before +, as on Tổng quan; the spacer gives each its own glass.
+                ToolbarItem(placement: .topBarTrailing) { assistantButton }
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
                 ToolbarItem(placement: .topBarTrailing) { addMenu }
+            }
+            .fullScreenCover(isPresented: $isShowingAssistant) {
+                NavigationStack { AssistantView() }
+                    .presentationBackground(Palette.background)
             }
             .sheet(isPresented: $isShowingArchived) { ArchivedAccountsSheet() }
             .sheet(isPresented: $isShowingCompleted) { CompletedGoalsSheet() }
@@ -75,9 +89,21 @@ struct AccountsView: View {
         }
     }
 
+    private var assistantButton: some View {
+        Button { isShowingAssistant = true } label: {
+            TimiIcon("hugeicons-ai-magic", size: RowMetrics.toolbarGlyph)
+                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+        }
+        .buttonBorderShape(.circle)
+        .tint(Palette.primary)
+        .accessibilityLabel("Hỏi Timi")
+        .accessibilityHint("Mở trợ lý AI")
+    }
+
+    /// A bare + in the bar's glass circle (2026-11-03: the ringed ⊕ made two circles, one in the other).
     private var addMenu: some View {
         Button { isChoosingNew = true } label: {
-            TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+            TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
@@ -102,7 +128,7 @@ struct AccountsView: View {
         } content: {
             if accounts.isEmpty {
                 EmptyStateCard(icon: "hugeicons-wallet-01", title: "Chưa có tài khoản",
-                               message: "Tiền mặt, ngân hàng và ví sẽ hiện ở đây.")
+                               message: "Tiền mặt, ngân hàng và ví sẽ hiện ở đây.", picture: "fluent-bank")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
@@ -129,12 +155,14 @@ struct AccountsView: View {
                 // Every goal may be done already: then the empty card invites the next one.
                 EmptyStateCard(icon: "hugeicons-piggy-bank",
                                title: store.completedGoals.isEmpty ? "Chưa có hũ nào" : "Chưa có hũ đang để dành",
-                               message: "Các hũ để dành sẽ hiện ở đây.")
+                               message: "Các hũ để dành sẽ hiện ở đây.", picture: "fluent-pig")
             } else {
-                // Grey tiles scrolling sideways inside the card, then "+ Hũ mới". Reaches to the
+                // Goals with their 3D pictures scrolling sideways inside the card, then
+                // "+ Hũ mới". Reaches to the
                 // card's edges so the next tile shows it can scroll.
                 ScrollView(.horizontal) {
-                    HStack(alignment: .top, spacing: Spacing.m) {
+                    // 20 between goals: with no tiles, the gap is what parts them.
+                    HStack(alignment: .top, spacing: Spacing.xl) {
                         ForEach(store.activeGoals) { goal in
                             GoalSheetLink(goalID: goal.id) { GoalCarouselTile(goal: goal) }
                                 .buttonStyle(.card)

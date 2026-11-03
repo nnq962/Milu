@@ -56,7 +56,8 @@ enum Palette {
     static let primaryTint = primary.opacity(0.10)
     /// A dashed outline in the primary colour (a "new" tile).
     static let primaryDash = primary.opacity(0.35)
-    /// A faint label-coloured fill for secondary buttons and neutral badges.
+    /// A faint label-coloured fill for secondary buttons and neutral badges (kept after trying
+    /// white outlined buttons, user choice 2026-11-03).
     static let fill = label.opacity(0.06)
 
     // MARK: Money and meaning
@@ -91,11 +92,8 @@ enum Palette {
 
     /// A pale wash of the lime, behind something the brand marks.
     static let accentSoft = dynamic((241, 249, 214), dark: (44, 54, 22))
-    /// The head of Tổng quan: lime light from the top trailing corner and a cool sky from the
-    /// leading one over the page colour, so the white blocks on it stand out (the user's references
-    /// 2026-11-02: blocks on a soft coloured ground). Quieter at night.
+    /// The light of lime at the head of Tổng quan (`TabBackdrop`). Quieter at night.
     static let heroGlow = dynamic((228, 247, 166), dark: (38, 48, 18))
-    static let heroSky = dynamic((221, 240, 255), dark: (20, 30, 42))
 
     // MARK: Progress
 

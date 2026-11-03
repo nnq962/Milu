@@ -38,6 +38,8 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
         // The sheet's own chrome, so no caller has to remember it (review 2026-10-31: five short
         // sheets had no `timiSheetStyle` and could show a scroll bar).
         .presentationBackground(Palette.background)
+        // Its own cards, even when opened from inside a `HeaderCard` (see `timiSheetStyle`).
+        .environment(\.isInHeaderCard, false)
         .scrollIndicators(.hidden, axes: .vertical)
     }
 }

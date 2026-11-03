@@ -80,7 +80,7 @@ struct OverviewView: View {
                 .padding(.top, Spacing.xs)
                 .padding(.bottom, Spacing.xxl)
             }
-            .background { OverviewBackdrop() }
+            .background { TabBackdrop() }
             .foregroundStyle(Palette.label)
             // The greeting heads the page, so the bar shows no title; it stays as the page's name
             // for the back button and VoiceOver.
@@ -175,6 +175,17 @@ struct OverviewView: View {
 /// trailing one, a spacer giving each its own glass. Before iOS 26 there is no glass to share or
 /// hide, so the items simply sit in the bar; before iOS 18 the hidden title is an empty middle.
 private struct OverviewBar<Profile: View, Greeting: View, Assistant: View, Bell: View>: ViewModifier {
+    /// The middle slot is centred between the leading avatar and the two trailing circles, and as
+    /// wide as its content. Set to this width, its leading edge falls 16 after the avatar: twice
+    /// the distance from that point to the centre of the room between the items.
+    private static var greetingWidth: CGFloat {
+        let margin = Spacing.l, circle = ControlHeight.regular, spacer = Spacing.s
+        let leadingEnd = margin + circle
+        let trailingStart = UIScreen.main.bounds.width - margin - 2 * circle - spacer
+        let centre = (leadingEnd + trailingStart) / 2
+        return max(2 * (centre - (leadingEnd + Spacing.l)), 0)
+    }
+
     let profile: Profile
     let greeting: Greeting
     let assistant: Assistant
@@ -182,12 +193,19 @@ private struct OverviewBar<Profile: View, Greeting: View, Assistant: View, Bell:
 
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
+            // The greeting in the middle slot stands in for the title, so the title is not removed:
+            // removing it hid the middle slot too.
             content
-                .toolbar(removing: .title)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { profile }
-                    ToolbarItem(placement: .topBarLeading) { greeting }
-                        .sharedBackgroundVisibility(.hidden)
+                    // In the middle slot, pushed to its leading edge, so it sits by the avatar
+                    // without being a leading item: as one, it morphed into the back button of the
+                    // page pushed over Tổng quan and showed as a box beside ‹ (user report
+                    // 2026-11-03). The middle fades with the title instead.
+                    ToolbarItem(placement: .principal) {
+                        greeting.frame(width: Self.greetingWidth, alignment: .leading)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
                     ToolbarItem(placement: .topBarTrailing) { assistant }
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                     ToolbarItem(placement: .topBarTrailing) { bell }

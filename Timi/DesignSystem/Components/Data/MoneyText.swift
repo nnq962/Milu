@@ -7,7 +7,8 @@ import SwiftUI
 struct MoneyText: View {
     /// `caption`: a total beside a heading (a day's +/-).
     /// `heading`: a total inside a chart (Tổng chi in the ring).
-    enum Size { case caption, row, heading, large, display }
+    /// `rowStrong`: a row's figure a step stronger than its name (accounts).
+    enum Size { case caption, row, rowStrong, heading, large, display }
     /// Named by what the figure is (review 2026-10-31: `negativeRed` named a colour):
     /// `balance` is a sum that may go below zero, red with "-" when it does (the default: a
     /// balance, net worth, a limit left); `neutral` never turns red (a transfer between accounts,
@@ -90,6 +91,7 @@ private struct MoneyFont: ViewModifier {
         switch size {
         case .caption: content.textRole(.captionStrong).monospacedDigit()
         case .row: content.textRole(.amount)
+        case .rowStrong: content.textRole(.bodyStrong).monospacedDigit()
         case .heading: content.textRole(.heading).monospacedDigit()
         case .large: content.textRole(.amountLarge)
         case .display: content.textRole(.display)

@@ -7,6 +7,10 @@ extension View {
         self
             .presentationDetents(detents)
             .presentationBackground(Palette.background)
+            // A sheet opened from a row inside a `HeaderCard` inherits its "already in a card"
+            // flag, and every card in it went flat and grey (user report 2026-11-03): a sheet
+            // starts its own cards again.
+            .environment(\.isInHeaderCard, false)
             // A sheet does not inherit the app's hidden indicators (user report 2026-10-31).
             .scrollIndicators(.hidden, axes: .vertical)
     }

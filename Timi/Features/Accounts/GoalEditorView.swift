@@ -96,7 +96,7 @@ struct GoalEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                IconQuickPicker(selection: $icon, suggestions: SavingsGoal.suggestedIcons)
+                GoalPicturePicker(selection: $icon, suggestions: SavingsGoal.suggestedIcons)
             }
 
             FormGroup(title: "Kế hoạch", footer: monthlyNote) {

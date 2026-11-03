@@ -60,8 +60,11 @@ struct GoalRing: View {
                      color: goal.isOverdue ? Palette.negative
                          : goal.isClosed || goal.isReached ? Palette.progressDone : Palette.progress)
             .overlay {
-                TimiIcon(goal.icon, size: size / 2)
-                    .foregroundStyle(Palette.label)
+                // The goal's 3D picture in the ring (2026-11-03), as on its tile.
+                Image(Picture3D.name(for: goal.icon))
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size * 0.55, height: size * 0.55)
             }
             .frame(width: size, height: size)
             .accessibilityHidden(true)
@@ -69,47 +72,53 @@ struct GoalRing: View {
 }
 
 /// Kiểu B of Tài khoản: a goal as a tile in a row scrolling sideways, like the shelves in Photos
-/// and Fitness. A ring of how far along with the icon in it, the name, what is saved of the
-/// target; red when overdue. Same size whatever the name, so the row stays even.
+/// and Fitness (redone 2026-11-03 with the page's 3D pictures): the goal's 3D picture with no tile
+/// behind it, standing on the card, its name on one line, a thin bar of how far along (lime once full, red when overdue) and
+/// what is saved of the target. Same size whatever the name, so the row stays even.
 struct GoalCarouselTile: View {
-    /// The tile's width and its ring: two names of two lines fit beside the next tile's edge.
-    static let width: CGFloat = 140
-    static let ring: CGFloat = 56
+    /// A goal's width: two goals and the edge of the next fit across the card.
+    static let width: CGFloat = 132
     /// The dashed edge of "+ Hũ mới" (re-review 2026-10-31: named instead of written in place).
     static let dash = StrokeStyle(lineWidth: 1.5, dash: [5, 4])
 
     let goal: SavingsGoal
 
     @ScaledMetric(relativeTo: .body) private var width = GoalCarouselTile.width
+    @ScaledMetric(relativeTo: .body) private var picture = RowMetrics.picture
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            GoalRing(goal: goal, size: GoalCarouselTile.ring)
-            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+            Image(Picture3D.name(for: goal.icon))
+                .resizable()
+                .scaledToFit()
+                .frame(width: picture, height: picture)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Spacing.s) {
                 Text(goal.name)
                     .textRole(.body)
-                    .lineLimit(2, reservesSpace: true)
-                // Every amount a `MoneyText`, the target the small grey one (re-review 2026-10-31:
-                // a hand-made " / 50tr" that shrank to fit).
+                    .lineLimit(1)
+                ProgressBar(value: goal.isClosed ? 1 : goal.progress,
+                            color: goal.isOverdue ? Palette.negative
+                                : goal.isClosed || goal.isReached ? Palette.progressDone : Palette.progress)
+                // Both short ("28tr / 40tr"): left to fit on their own, one shortened and the
+                // other did not (Simulator check 2026-11-03).
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    MoneyText(amount: goal.saved)
-                    Text(" / ")
+                    Text(goal.saved.vndCompact)
+                        .textRole(.captionStrong)
+                        .foregroundStyle(Palette.label)
+                    Text(" / \(goal.target.vndCompact)")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
-                    MoneyText(amount: goal.target, size: .caption, tone: .muted)
                 }
+                .monospacedDigit()
                 .lineLimit(1)
             }
         }
-        // 16 at the sides, as the rows and headings of the page, so the ring stands on their
-        // edge (re-review 2026-10-31: 20 put it 4pt in from the logos); 20 above and below.
-        .padding(.horizontal, RowMetrics.horizontal)
-        .padding(.vertical, Spacing.card)
+        .padding(.vertical, Spacing.s)
         .frame(width: width, alignment: .leading)
-        // The goal tile's corners and the one card surface (strict review 2026-10-31: 20 and a
-        // shadow put on by hand).
-        .cardSurface(radius: CardCorners.large)
-        .contentShape(RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous))
+        // No tile of its own, the card's white around it: goals stand apart by the gap between
+        // them (user reports 2026-11-03: the grey tile, then a hairline, read busy).
+        .contentShape(RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
                              goal.isReached ? "đã đủ mục tiêu" : goal.isOverdue ? "quá hạn" : goal.progressText]
@@ -123,7 +132,7 @@ struct NewGoalTile: View {
     @ScaledMetric(relativeTo: .body) private var width = GoalCarouselTile.width
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
         VStack(spacing: Spacing.s) {
             TimiIcon("hugeicons-add-01", size: RowMetrics.iconGlyph)
             Text("Hũ mới")
