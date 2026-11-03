@@ -3,6 +3,7 @@ import SwiftUI
 /// Named text roles: one scale for the whole app, built around a 16pt body (user choice 2026-10-28,
 /// after trying 17 and 14). Manrope is wide, so 16 reads close to SF Pro's 17 Body. Each step is
 /// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 14 · 13 · 12 · 11.
+/// Buttons take their own roles, one weight over the words around them (`button`, `buttonCompact`).
 /// Use `.textRole(_:)` instead of raw sizes. Manrope at the weight named (see Typography).
 enum TextRole: CaseIterable, Identifiable {
     /// The screen's lead figure (Tài sản ròng). 34
@@ -23,6 +24,9 @@ enum TextRole: CaseIterable, Identifiable {
     case body
     /// Rare emphasis inside body text. 16 SemiBold
     case bodyStrong
+    /// The words on a button (`TimiButton`): body's size, one weight over it, so a button reads as
+    /// one at a glance (user request 2026-11-03). 16 SemiBold
+    case button
     /// Amounts at the end of a row: the title's size and weight, tabular (user 2026-10-31: no
     /// heavier than the name beside it). 16
     case amount
@@ -33,6 +37,9 @@ enum TextRole: CaseIterable, Identifiable {
     case caption
     /// Chips, badges, small labels above figures. 13 SemiBold
     case captionStrong
+    /// The words on a compact button (`TimiButton(size: .compact)`): one weight over
+    /// `captionStrong`, as `button` is over `body`. 13 Bold
+    case buttonCompact
     /// Chart axes and tiny meta. 11
     case footnote
     /// Small capitals naming a group of rows in a sheet or form (`SectionHeader` `.group`).
@@ -48,9 +55,9 @@ enum TextRole: CaseIterable, Identifiable {
         case .amountLarge, .pageTitle: 24
         case .heading: 20
         case .title: 17
-        case .body, .bodyStrong, .amount: 16
+        case .body, .bodyStrong, .button, .amount: 16
         case .accessory: 14
-        case .caption, .captionStrong: 13
+        case .caption, .captionStrong, .buttonCompact: 13
         case .overline: 12
         case .footnote: 11
         }
@@ -61,8 +68,10 @@ enum TextRole: CaseIterable, Identifiable {
         // Titles and figures Bold; the words of the content Medium, one step under the SemiBold
         // they had, which read heavy on the Pro card (user request 2026-10-31); Regular read as
         // faded (2026-10-30). `captionStrong` keeps SemiBold, so it is stronger than `caption`.
-        case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .overline: .bold
-        case .captionStrong: .semibold
+        // Buttons one step over the words they sit among (2026-11-03).
+        case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .overline,
+             .buttonCompact: .bold
+        case .captionStrong, .button: .semibold
         case .body, .accessory, .caption, .footnote, .amount: .medium
         }
     }
@@ -77,9 +86,9 @@ enum TextRole: CaseIterable, Identifiable {
         case .pageTitle: 32
         case .heading: 26
         case .title: 24
-        case .body, .bodyStrong, .amount: 22
+        case .body, .bodyStrong, .button, .amount: 22
         case .accessory: 20
-        case .caption, .captionStrong: 18
+        case .caption, .captionStrong, .buttonCompact: 18
         case .overline: 16
         case .footnote: 14
         }
@@ -91,9 +100,9 @@ enum TextRole: CaseIterable, Identifiable {
         case .amountLarge, .pageTitle: .title2
         case .heading: .title3
         case .title: .headline
-        case .body, .bodyStrong, .amount: .body
+        case .body, .bodyStrong, .button, .amount: .body
         case .accessory: .subheadline
-        case .caption, .captionStrong, .overline: .caption
+        case .caption, .captionStrong, .buttonCompact, .overline: .caption
         case .footnote: .caption2
         }
     }
@@ -127,10 +136,12 @@ enum TextRole: CaseIterable, Identifiable {
         case .title: "Tiêu đề phần · thẻ · sheet"
         case .body: "Nội dung · tên dòng"
         case .bodyStrong: "Nhấn mạnh"
+        case .button: "Chữ trên nút"
         case .amount: "Số tiền dòng"
         case .accessory: "Nút cạnh tiêu đề"
         case .caption: "Phụ đề · chú thích"
         case .captionStrong: "Chip · badge"
+        case .buttonCompact: "Chữ trên nút gọn"
         case .footnote: "Chữ rất nhỏ"
         case .overline: "Nhãn nhóm trong sheet"
         }

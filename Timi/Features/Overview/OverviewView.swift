@@ -80,7 +80,9 @@ struct OverviewView: View {
                 .padding(.top, Spacing.xs)
                 .padding(.bottom, Spacing.xxl)
             }
-            .background { TabBackdrop() }
+            // The plain page, as every tab: the light of lime behind the head went (user request
+            // 2026-11-03).
+            .background(Palette.background)
             .foregroundStyle(Palette.label)
             // The greeting heads the page, so the bar shows no title; it stays as the page's name
             // for the back button and VoiceOver.

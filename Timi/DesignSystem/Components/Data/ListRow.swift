@@ -90,7 +90,8 @@ extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
     init(icon: String, title: String, subtitle: String? = nil, trailingSubtitle: String? = nil,
          amount: Double, amountTone: MoneyText.Tone = .balance, showsChevron: Bool = true) {
         self.init(title: title, subtitle: subtitle, showsChevron: showsChevron) {
-            // No tile, coloured ones neither; amounts carry the meaning.
+            // No tile, coloured ones neither; amounts carry the meaning. Line glyphs, not 3D
+            // pictures (tried and taken back, user request 2026-11-03).
             RowIcon(name: icon)
         } trailing: {
             ListRowAmount(amount: amount, tone: amountTone, note: trailingSubtitle)

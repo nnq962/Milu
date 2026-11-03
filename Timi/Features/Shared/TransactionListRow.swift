@@ -47,7 +47,7 @@ struct TransactionListRow: View {
             subtitle: subtitle,
             trailingSubtitle: trailing,
             amount: transaction.amount,
-            amountTone: transaction.kind == .income ? .signedIncome : .signedExpense,
+            amountTone: transaction.kind == .income ? .signedIncome : .outflow,
             showsChevron: false
         )
     }

@@ -28,10 +28,11 @@ enum LoanFilter: String, CaseIterable, Identifiable {
 /// Opens "Khoản vay đã tất toán".
 struct SettledLoansRoute: Hashable {}
 
-/// The head of "Vay nợ", a card like Thu chi's (user request 2026-10-30): what others owe you
-/// and what you owe, side by side at one size, with how many people under each. Loans with people
-/// only: a credit card's debt stays on Tài khoản.
-struct LoansSummaryCard: View {
+/// The head of "Vay nợ": what others owe you and what you owe, side by side at one size, with how
+/// many people under each, in a card as the head of Thu chi beside it (user request 2026-11-03,
+/// after a day on the bare page read loose). Loans with people only: a credit card's debt stays
+/// on Tài khoản.
+struct LoansSummaryHead: View {
     @Environment(FinanceStore.self) private var store
 
     var body: some View {
@@ -158,8 +159,9 @@ struct LoansContent: View {
         } content: {
             if lentLoans.isEmpty {
                 // One short sentence, no button named (strict review 2026-10-31).
+                // 3D pictures in the empty states of Vay nợ, as on Tài khoản (user request 2026-11-03).
                 EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
-                               message: "Khoản cho vay sẽ hiện ở đây.")
+                               message: "Khoản cho vay sẽ hiện ở đây.", picture: "fluent-handshake")
             }
             if !lentLoans.isEmpty {
                 LoanRowList(loans: lentLoans, today: today, onOpen: onEdit)
@@ -176,7 +178,7 @@ struct LoansContent: View {
             if borrowedLoans.isEmpty {
                 // The same card on every chip (user choice 2026-10-31, after a single line on "Tất cả").
                 EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
-                               message: "Khoản đi vay sẽ hiện ở đây.")
+                               message: "Khoản đi vay sẽ hiện ở đây.", picture: "fluent-money")
             }
             if !borrowedLoans.isEmpty {
                 LoanRowList(loans: borrowedLoans, today: today, onOpen: onEdit)
@@ -217,7 +219,7 @@ struct SettledLoansView: View {
             if loans.isEmpty {
                 // Reopening the last one empties this list while the screen is open.
                 EmptyStateCard(icon: "hugeicons-checkmark-badge-01", title: "Chưa có khoản nào tất toán",
-                               message: "Khoản vay đã thu hoặc trả đủ sẽ nằm ở đây.")
+                               message: "Khoản vay đã thu hoặc trả đủ sẽ nằm ở đây.", picture: "fluent-goal")
             } else {
                 LoanRowList(loans: loans) { editingLoan = $0 }
             }

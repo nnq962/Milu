@@ -15,9 +15,8 @@ enum ChartShades {
     }
 }
 
-/// A bar split into coloured parts by amount, as the storage bar in iPhone Settings: where the
-/// money is (Tài khoản), spending by group against the month's limit (Tổng quan), limits by group
-/// (Phân bổ hạn mức). Thin gaps between the parts; `whole` is what the full bar stands for, and
+/// A bar split into coloured parts by amount, as the storage bar in iPhone Settings: spending by
+/// group against the month's limit (Tổng quan), limits by group (Phân bổ hạn mức). Thin gaps between the parts; `whole` is what the full bar stands for, and
 /// what the parts leave of it is the empty track. As tall as every progress bar of the app.
 struct SegmentedBar: View {
     struct Segment: Identifiable {

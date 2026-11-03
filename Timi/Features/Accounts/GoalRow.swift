@@ -71,77 +71,67 @@ struct GoalRing: View {
     }
 }
 
-/// Kiểu B of Tài khoản: a goal as a tile in a row scrolling sideways, like the shelves in Photos
-/// and Fitness (redone 2026-11-03 with the page's 3D pictures): the goal's 3D picture with no tile
-/// behind it, standing on the card, its name on one line, a thin bar of how far along (lime once full, red when overdue) and
-/// what is saved of the target. Same size whatever the name, so the row stays even.
-struct GoalCarouselTile: View {
-    /// A goal's width: two goals and the edge of the next fit across the card.
-    static let width: CGFloat = 132
-    /// The dashed edge of "+ Hũ mới" (re-review 2026-10-31: named instead of written in place).
-    static let dash = StrokeStyle(lineWidth: 1.5, dash: [5, 4])
-
+/// A goal in Tài khoản as a jar filling up (user pick "C" 2026-11-03, in place of the tiles
+/// scrolling sideways): a tall rounded jar in `surfaceMuted`, lime rising from the bottom to the
+/// share saved, the goal's 3D picture at the top and the percent at the bottom; under the jar its
+/// name and what is saved of the target. Full once the goal is reached or closed, with "Đủ" for
+/// the percent; pale coral with the percent in red once past its date. Three to a row, as wide as
+/// the grid makes them.
+struct GoalJarTile: View {
     let goal: SavingsGoal
 
-    @ScaledMetric(relativeTo: .body) private var width = GoalCarouselTile.width
-    @ScaledMetric(relativeTo: .body) private var picture = RowMetrics.picture
+    @ScaledMetric(relativeTo: .body) private var jarHeight: CGFloat = 128
+    @ScaledMetric(relativeTo: .body) private var picture: CGFloat = 44
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
-            Image(Picture3D.name(for: goal.icon))
-                .resizable()
-                .scaledToFit()
-                .frame(width: picture, height: picture)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: Spacing.s) {
-                Text(goal.name)
-                    .textRole(.body)
-                    .lineLimit(1)
-                ProgressBar(value: goal.isClosed ? 1 : goal.progress,
-                            color: goal.isOverdue ? Palette.negative
-                                : goal.isClosed || goal.isReached ? Palette.progressDone : Palette.progress)
-                // Both short ("28tr / 40tr"): left to fit on their own, one shortened and the
-                // other did not (Simulator check 2026-11-03).
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text(goal.saved.vndCompact)
-                        .textRole(.captionStrong)
-                        .foregroundStyle(Palette.label)
-                    Text(" / \(goal.target.vndCompact)")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
+        let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
+        let isFull = goal.isClosed || goal.isReached
+        // A sliver shows as soon as anything is in the jar.
+        let level = isFull ? 1 : goal.progress > 0 ? max(goal.progress, 0.04) : 0
+        // The percent sits in the jar's lowest quarter: in ink on the lime once the lime reaches it.
+        let onFill = level >= 0.25
+        VStack(spacing: Spacing.s) {
+            ZStack {
+                shape.fill(Palette.surfaceMuted)
+                GeometryReader { proxy in
+                    (goal.isOverdue ? Palette.expenseSoft : Palette.accent)
+                        .frame(height: proxy.size.height * level)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
                 }
-                .monospacedDigit()
-                .lineLimit(1)
+                VStack {
+                    Image(Picture3D.name(for: goal.icon))
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: picture, height: picture)
+                    Spacer(minLength: Spacing.s)
+                    Text(isFull ? "Đủ" : goal.progressText)
+                        .textRole(.title)
+                        .monospacedDigit()
+                        .foregroundStyle(goal.isOverdue ? Palette.negative
+                                         : onFill ? Palette.onAccent : Palette.label)
+                }
+                .padding(.vertical, Spacing.m)
             }
+            .frame(height: jarHeight)
+            .clipShape(shape)
+            VStack(spacing: Spacing.xxs) {
+                Text(goal.name)
+                    .textRole(.captionStrong)
+                    .foregroundStyle(Palette.label)
+                // Both short ("28tr / 40tr"), as they fit under a third of the card.
+                Text("\(goal.saved.vndCompact) / \(goal.target.vndCompact)")
+                    .textRole(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.secondaryLabel)
+            }
+            .lineLimit(1)
         }
-        .padding(.vertical, Spacing.s)
-        .frame(width: width, alignment: .leading)
-        // No tile of its own, the card's white around it: goals stand apart by the gap between
-        // them (user reports 2026-11-03: the grey tile, then a hairline, read busy).
-        .contentShape(RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
+        .frame(maxWidth: .infinity)
+        .contentShape(shape)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
                              goal.isReached ? "đã đủ mục tiêu" : goal.isOverdue ? "quá hạn" : goal.progressText]
             .joined(separator: ", "))
         .accessibilityHint("Xem hũ")
-    }
-}
-
-/// The last tile of Kiểu B's row: "+ Hũ mới", the same size as a goal, a dashed edge on the page.
-struct NewGoalTile: View {
-    @ScaledMetric(relativeTo: .body) private var width = GoalCarouselTile.width
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
-        VStack(spacing: Spacing.s) {
-            TimiIcon("hugeicons-add-01", size: RowMetrics.iconGlyph)
-            Text("Hũ mới")
-                .textRole(.body)
-        }
-        .foregroundStyle(Palette.primary)
-        .frame(width: width)
-        .frame(maxHeight: .infinity)
-        .overlay { shape.strokeBorder(Palette.primaryDash, style: GoalCarouselTile.dash) }
-        .contentShape(shape)
     }
 }

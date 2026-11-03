@@ -76,6 +76,8 @@ enum Typography {
         guard let medium = UIFont(name: instance(for: .medium), size: 14),
               let semibold = UIFont(name: instance(for: .semibold), size: 14) else { return }
         let segmented = UISegmentedControl.appearance()
+        segmented.backgroundColor = Palette.uiFill
+        segmented.selectedSegmentTintColor = Palette.uiSurface
         segmented.setTitleTextAttributes([.font: metrics.scaledFont(for: medium, compatibleWith: traits),
                                           .foregroundColor: Palette.uiSecondaryLabel], for: .normal)
         segmented.setTitleTextAttributes([.font: metrics.scaledFont(for: semibold, compatibleWith: traits),

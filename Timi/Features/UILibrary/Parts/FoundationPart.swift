@@ -13,7 +13,7 @@ struct FoundationPart: View {
             ("primary (chữ nhấn, tab)", Palette.primary), ("onPrimary", Palette.onPrimary),
             ("accent (xanh chanh)", Palette.accent), ("onAccent", Palette.onAccent),
             ("switchOn (công tắc bật)", Palette.switchOn),
-            ("primaryTint", Palette.primaryTint), ("primaryDash", Palette.primaryDash),
+            ("primaryTint", Palette.primaryTint),
             ("rowPressed", Palette.rowPressed), ("fill (nút phụ)", Palette.fill),
             ("accentSoft (nền chanh)", Palette.accentSoft),
             ("income (tiền vào)", Palette.income), ("incomeSoft", Palette.incomeSoft),

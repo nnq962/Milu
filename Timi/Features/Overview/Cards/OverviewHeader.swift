@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The head of Tổng quan, on its soft coloured ground (`TabBackdrop`), not in a card (the
+/// The head of Tổng quan, on the plain page, not in a card (the
 /// user's references 2026-11-02: the main figure on the ground). Centred and two short lines only
 /// (user reviews 2026-11-02: too many words; the greeting went up beside the avatar): "Tài sản ròng"
 /// with how it moved in small words, and the figure in large type under it. This month's in and

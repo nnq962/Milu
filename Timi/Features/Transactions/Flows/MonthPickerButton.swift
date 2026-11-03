@@ -6,10 +6,13 @@ import SwiftUI
 /// the button over the words, which read as the words being squeezed.
 ///
 /// The capsule is a flat fill; `compact` is plain words (14, `HeaderLink`) for beside a section
-/// heading (Lịch thu chi on Tổng quan).
+/// heading (Lịch thu chi on Tổng quan); `lead` puts words before the month in the small label of a
+/// page's figure, "Đã chi tháng 11 ⌄" (the head of Thu chi, user pick "A" 2026-11-03: the capsule
+/// read heavy over the figure).
 struct MonthPickerButton: View {
     @Binding var month: Date
     var compact = false
+    var lead: String? = nil
 
     @State private var isPicking = false
     /// The ⌄ grows with the words beside it: fixed, it looked tiny at the accessibility sizes
@@ -22,7 +25,10 @@ struct MonthPickerButton: View {
         let number = calendar.component(.month, from: month)
         let title = Self.name(of: month)
         Group {
-            if compact {
+            if let lead {
+                Button { isPicking = true } label: { leadLabel(lead, title) }
+                    .headerLinkButton()
+            } else if compact {
                 Button { isPicking = true } label: { HeaderLink(title: title, opensMenu: true) }
                     .headerLinkButton()
             } else {
@@ -47,6 +53,21 @@ struct MonthPickerButton: View {
         let number = calendar.component(.month, from: start)
         let year = calendar.component(.year, from: start)
         return year == calendar.component(.year, from: .now) ? "Tháng \(number)" : "Tháng \(number)/\(String(year))"
+    }
+
+    /// "Đã chi tháng 11 ⌄" in the figure's small label, its colour and size; the area that takes a
+    /// tap reaches past the words, as a `HeaderLink`'s, so it is 44 tall at any size.
+    private func leadLabel(_ lead: String, _ title: String) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Text("\(lead) \(title.lowercased())")
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+            TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
+        }
+        .textRole(.captionStrong)
+        .foregroundStyle(Palette.secondaryLabel)
+        .contentShape(Rectangle().inset(by: -Spacing.m))
     }
 
     private func capsuleLabel(_ title: String) -> some View {

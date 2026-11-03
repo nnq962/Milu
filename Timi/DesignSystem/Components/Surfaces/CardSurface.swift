@@ -51,9 +51,11 @@ private struct CardShadow: ViewModifier {
         let isDark = colorScheme == .dark
         content
             // A close contact shadow under a soft one: the card sits on the page rather than
-            // floating over it (user pick "D" 2026-11-02, with the page a step darker).
-            .shadow(color: .black.opacity(isDark ? 0 : 0.05), radius: 1, x: 0, y: 1)
-            .shadow(color: .black.opacity(isDark ? 0 : 0.04), radius: 7, x: 0, y: 4)
+            // floating over it (user pick "D" 2026-11-02, with the page a step darker). Well under
+            // half the earlier 5% and 4%, and a little closer (user 2026-11-03, twice: too strong
+            // on the cream page).
+            .shadow(color: .black.opacity(isDark ? 0 : 0.02), radius: 1, x: 0, y: 1)
+            .shadow(color: .black.opacity(isDark ? 0 : 0.018), radius: 6, x: 0, y: 3)
     }
 }
 

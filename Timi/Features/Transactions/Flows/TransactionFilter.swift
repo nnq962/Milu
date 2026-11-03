@@ -30,6 +30,7 @@ struct FilterChips: View {
     @Binding var selection: TransactionFilter
 
     var body: some View {
-        ChipRow(selection: $selection, options: TransactionFilter.allCases) { $0.title }
+        // Words with dots between them, as the page above (user pick "B" 2026-11-03).
+        TextTabs(selection: $selection, options: TransactionFilter.allCases) { $0.title }
     }
 }

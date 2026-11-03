@@ -37,7 +37,7 @@ struct ProUpgradeCard: View {
                 // Drawn as the first step's `TimiButton(role: .primary)`, its twin on this page; not a
                 // button of its own, the whole card is one.
                 TimiButtonTitle(title: "Tìm hiểu thêm", icon: nil)
-                    .textRole(.body)
+                    .textRole(.button)
                     .foregroundStyle(Palette.onAccent)
                     .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
                     .background(Palette.accent, in: Capsule())

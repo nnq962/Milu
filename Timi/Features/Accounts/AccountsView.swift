@@ -4,6 +4,7 @@ import SwiftUI
 
 struct AccountsView: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isChoosingNew = false
     /// "Lưu trữ (n) ›" and "Đã xong (n) ›" open their lists in a sheet, as an account and a goal
     /// open (user choice 2026-11-01).
@@ -34,13 +35,11 @@ struct AccountsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                // The total on the ground as Tổng quan's head (2026-11-03), where the money is in a
-                // card under it, the accounts as rows in one block (fine for any number of them),
-                // the goals as tiles scrolling sideways (user choice 2026-10-30, "A + B" of the
-                // layouts tried). Sections 28 apart, as on every tab.
+                // No total at the head any more (user request 2026-11-03): the accounts as rows
+                // in one block (fine for any number of them), the goals as tiles scrolling
+                // sideways (user choice 2026-10-30, "A + B" of the layouts tried). Sections 28
+                // apart, as on every tab.
                 VStack(alignment: .leading, spacing: Spacing.section) {
-                    TotalBalanceHeader()
-                    BalanceCard()
                     paymentSection
                     goalsSection
                 }
@@ -48,8 +47,7 @@ struct AccountsView: View {
                 .padding(.top, Spacing.l)
                 .padding(.bottom, Spacing.xxl)
             }
-            // The plain page colour: the coloured ground on every tab read muddy (user report
-            // 2026-11-03); only Tổng quan keeps a light of lime.
+            // The plain page colour, as every tab (user reports 2026-11-03).
             .background(Palette.background)
             .foregroundStyle(Palette.label)
             .navigationTitle("Tài khoản")
@@ -157,26 +155,20 @@ struct AccountsView: View {
                                title: store.completedGoals.isEmpty ? "Chưa có hũ nào" : "Chưa có hũ đang để dành",
                                message: "Các hũ để dành sẽ hiện ở đây.", picture: "fluent-pig")
             } else {
-                // Goals with their 3D pictures scrolling sideways inside the card, then
-                // "+ Hũ mới". Reaches to the
-                // card's edges so the next tile shows it can scroll.
-                ScrollView(.horizontal) {
-                    // 20 between goals: with no tiles, the gap is what parts them.
-                    HStack(alignment: .top, spacing: Spacing.xl) {
-                        ForEach(store.activeGoals) { goal in
-                            GoalSheetLink(goalID: goal.id) { GoalCarouselTile(goal: goal) }
-                                .buttonStyle(.card)
-                        }
-                        Button { newItem = .goal } label: { NewGoalTile() }
+                // Goals as jars filling up, three to a row, two at the largest text sizes (user
+                // pick "C" 2026-11-03, after tiles scrolling sideways); a new one comes from the
+                // + on the bar (the dashed "+ Hũ mới" tile went, user request 2026-11-03).
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.m, alignment: .top),
+                                         count: dynamicTypeSize.isAccessibilitySize ? 2 : 3),
+                          spacing: Spacing.l) {
+                    ForEach(store.activeGoals) { goal in
+                        GoalSheetLink(goalID: goal.id) { GoalJarTile(goal: goal) }
                             .buttonStyle(.card)
-                            .accessibilityLabel("Thêm hũ tiết kiệm")
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, RowMetrics.horizontal)
-                    .padding(.top, Spacing.s)
-                    .padding(.bottom, RowMetrics.horizontal)
                 }
-                .scrollIndicators(.hidden)
+                .padding(.horizontal, RowMetrics.horizontal)
+                .padding(.top, Spacing.s)
+                .padding(.bottom, RowMetrics.horizontal)
             }
         }
     }

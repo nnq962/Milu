@@ -73,7 +73,7 @@ struct TimiButton<Label: View>: View {
     var body: some View {
         Button(action: action) {
             label
-                .textRole(size == .compact ? .captionStrong : .body)
+                .textRole(size == .compact ? .buttonCompact : .button)
                 // Disabled: every role turns into a grey pill with faint text, so it never reads
                 // as tappable.
                 .foregroundStyle(isEnabled ? role.foreground : Palette.tertiaryLabel)

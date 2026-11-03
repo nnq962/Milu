@@ -16,8 +16,8 @@ struct DayTotals: View {
                 MoneyText(amount: income, size: .caption, tone: .signedIncome)
             }
             if expense > 0 {
-                // Money out red (user rule 2026-10-30).
-                MoneyText(amount: expense, size: .caption, tone: .signedExpense)
+                // Money out in ink, as on its rows ("B+" 2026-11-03; red before, user rule 2026-10-30).
+                MoneyText(amount: expense, size: .caption, tone: .outflow)
             }
         }
         // In words: "Thu 1.200.000 đ, chi 55.000 đ", not "trừ 55k".

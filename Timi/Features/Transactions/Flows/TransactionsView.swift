@@ -16,7 +16,6 @@ enum TransactionSegment: String, CaseIterable, Identifiable {
 
 struct TransactionsView: View {
     @Environment(FinanceStore.self) private var store
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
     @State private var segment: TransactionSegment = .flows
     @State private var filter: TransactionFilter = .all
     @State private var loanFilter: LoanFilter = .all
@@ -41,23 +40,29 @@ struct TransactionsView: View {
             ScrollViewReader { scroller in
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.section) {
-                        ScaledSegmentedPicker(title: "Loại", selection: $segment,
-                                              options: TransactionSegment.allCases) { $0.title }
-                            .controlSize(.large)
+                        // Words, not a segmented control: the page left-aligned under its title,
+                        // as a magazine (user pick "B" 2026-11-03, after the control, the centred
+                        // figure and the chips read basic). Closer to the head than a section.
+                        TextTabs(selection: $segment, options: TransactionSegment.allCases, style: .page) { $0.title }
+                            .padding(.bottom, -Spacing.m)
 
-                        // Both segments: the card, the chips, then the list. A new chip or month:
+                        // Both segments: the head, the chips, then the list. A new chip or month:
                         // the list fades over to what it shows now. It keeps at least a screen's
                         // height, so a shorter one leaves the page where it is instead of snapping
                         // it up.
                         switch segment {
                         case .flows:
-                            summaryHead
-                            budgetCard
-                            chipsRow { FilterChips(selection: $filter) }
+                            // The filter words just under the figure they narrow.
+                            VStack(alignment: .leading, spacing: Spacing.s) {
+                                summaryHead
+                                chipsRow { FilterChips(selection: $filter) }
+                            }
                             listContainer { flowList }
                         case .loans:
-                            LoansSummaryCard()
-                            chipsRow { ChipRow(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
+                            VStack(alignment: .leading, spacing: Spacing.s) {
+                                LoansSummaryHead()
+                                chipsRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
+                            }
                             listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                         }
                     }
@@ -213,97 +218,31 @@ struct TransactionsView: View {
         return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
-    /// The head of "Thu chi", on the tab's ground, centred, as the heads of Tổng quan and Tài khoản
-    /// (2026-11-03, after a card with two totals side by side): the month as a capsule, "Đã chi"
-    /// and what went out in large type, and one line with what came in and what the limit leaves.
+    /// The head of "Thu chi", in a card as "Cho vay | Đi vay" beside it (user request 2026-11-03:
+    /// on the bare page both read loose): "Đã chi tháng 11 ⌄", which picks the month, and "Báo cáo
+    /// ›" to the month's report on one line, what went out in large type, and the month's spending
+    /// day by day under it ("B+", 2026-11-03). No more words ("too many words", 2026-11-03: income
+    /// is under "Thu", the limit on Tổng quan).
     private var summaryHead: some View {
         let reported = store.reportableTransactions(inMonthOf: displayedMonth)
         let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
-        let earned = reported.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
-        return VStack(spacing: Spacing.s) {
-            MonthPickerButton(month: $displayedMonth)
-            VStack(spacing: Spacing.xxs) {
-                Text("Đã chi")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryLabel)
-                // Ink, not red: the figure of the page, read every day (red is for a line of money out).
-                MoneyText(amount: spent, size: .display, tone: .neutral)
-            }
-            HStack(spacing: Spacing.xs) {
-                Text("Đã thu")
-                    .foregroundStyle(Palette.secondaryLabel)
-                Text(earned > 0 ? "+\(earned.vndCompact)" : "0đ")
-                    .foregroundStyle(earned > 0 ? Palette.income : Palette.label)
-                if monthlyBudget > 0 {
-                    let left = monthlyBudget - spent
-                    Text("·").foregroundStyle(Palette.tertiaryLabel)
-                    Text(left >= 0 ? "Còn hạn mức" : "Vượt hạn mức")
-                        .foregroundStyle(Palette.secondaryLabel)
-                    Text(abs(left).vndCompact)
-                        .foregroundStyle(left >= 0 ? Palette.label : Palette.expense)
-                }
-            }
-            .textRole(.captionStrong)
-            .monospacedDigit()
-        }
-        .padding(.horizontal, RowMetrics.horizontal)
-        .frame(maxWidth: .infinity)
-    }
-
-    /// "Hạn mức tháng" under the head: the month's spending by group against the limit
-    /// (`SegmentedBar`, the five biggest in the chart shades), how much of it is used, and "Báo
-    /// cáo ›" to the month in detail. With no limit, a row to set one (2026-11-03: the limit was
-    /// only on Tổng quan, not where spending is read).
-    private var budgetCard: some View {
-        let groups = store.expensesByCategory(inMonthOf: displayedMonth)
-        let spent = groups.reduce(0) { $0 + $1.amount }
-        let top = Array(groups.prefix(ChartShades.steps.count))
-        let rest = groups.dropFirst(ChartShades.steps.count).reduce(0) { $0 + $1.amount }
-        let progress = BudgetProgress(limit: monthlyBudget, spent: spent)
-        return HeaderCard(title: "Hạn mức tháng") {
-            NavigationLink {
-                ReportView(period: ReportPeriod(.month, containing: displayedMonth))
-            } label: {
-                HeaderLink(title: "Báo cáo", opensPage: true)
-            }
-            .headerLinkButton()
-        } content: {
-            if monthlyBudget > 0 {
-                VStack(alignment: .leading, spacing: Spacing.m) {
-                    SegmentedBar(segments: top.enumerated().map { index, group in
-                        SegmentedBar.Segment(id: group.id, color: ChartShades.color(at: index), amount: group.amount)
-                    } + (rest > 0 ? [SegmentedBar.Segment(id: "rest", color: ChartShades.rest, amount: rest)] : []),
-                                 whole: monthlyBudget)
-                    if progress.isOver || progress.isNearing {
-                        BudgetStatusLine(level: .init(progress),
-                                         message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
-                                             : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
-                    } else {
-                        Text("Đã dùng \(progress.ratio.percentText) hạn mức \(monthlyBudget.vndCompact)")
-                            .textRole(.caption)
-                            .foregroundStyle(Palette.secondaryLabel)
-                    }
-                }
-                .card(padding: RowMetrics.horizontal)
-            } else {
+        return VStack(alignment: .leading, spacing: Spacing.xxs) {
+            HStack(alignment: .firstTextBaseline) {
+                MonthPickerButton(month: $displayedMonth, lead: "Đã chi")
+                Spacer(minLength: Spacing.s)
                 NavigationLink {
-                    BudgetView(month: displayedMonth)
+                    ReportView(period: ReportPeriod(.month, containing: displayedMonth))
                 } label: {
-                    HStack {
-                        Text("Đặt hạn mức để Timi nhắc khi sắp tiêu quá")
-                            .textRole(.body)
-                            .foregroundStyle(Palette.label)
-                        Spacer(minLength: Spacing.s)
-                        RowChevron()
-                    }
-                    .padding(.horizontal, RowMetrics.horizontal)
-                    .frame(minHeight: RowMetrics.minHeight)
-                    .contentShape(Rectangle())
+                    HeaderLink(title: "Báo cáo", opensPage: true)
                 }
-                .buttonStyle(.row)
-                .listCard()
+                .headerLinkButton()
             }
+            // Ink, not red: the figure of the page, read every day (red is for a line of money out).
+            MoneyText(amount: spent, size: .display, tone: .neutral)
+            DailySpendBars(month: displayedMonth)
+                .padding(.top, Spacing.m)
         }
+        .card()
     }
 
     /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"

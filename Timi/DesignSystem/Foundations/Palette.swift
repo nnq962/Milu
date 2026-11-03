@@ -14,16 +14,18 @@ import UIKit
 enum Palette {
     // MARK: Surfaces
 
-    /// A light warm grey by day, one step under the white card so the card stands off it (#F2F2EE,
-    /// user pick "D" 2026-11-02: at #FAFAF7 the cards sank into the page), charcoal at night.
-    static let background = dynamic((242, 242, 238), dark: (19, 19, 18))
-    /// Cards, list blocks, chips at rest: pure white by day (lifts off the cream without an
+    /// The faintest beige by day (#F6F4F0, user 2026-11-03: "be cực nhẹ nhàng", after cream
+    /// #F5F1E8 read too yellow and a cool grey and a lime wash were tried). Still a step under
+    /// the white card so the card stands off it (at #FAFAF7 the cards sank into the page, user
+    /// pick "D" 2026-11-02). A warm charcoal at night, a breath of the day's beige.
+    static let background = dynamic((246, 244, 240), dark: (20, 19, 17))
+    /// Cards, list blocks, chips at rest: pure white by day (lifts off the page without an
     /// outline), #1F1D1A at night.
-    static let surface = dynamic((255, 255, 255), dark: (30, 29, 27))
+    static let surface = dynamic((255, 255, 255), dark: (31, 29, 26))
     /// A quiet block on a card or page: the track of a progress bar, an avatar's disc, the chat field.
-    static let surfaceMuted = dynamic((236, 236, 231), dark: (41, 40, 38))
+    static let surfaceMuted = dynamic((240, 238, 233), dark: (42, 40, 37))
     /// Hairlines between rows and outlines of chips or logo tiles.
-    static let separator = dynamic((236, 235, 231), dark: (50, 48, 46))
+    static let separator = dynamic((237, 235, 230), dark: (51, 48, 45))
 
     // MARK: Words
 
@@ -42,7 +44,7 @@ enum Palette {
     /// Text and glyphs on `primary`.
     static let onPrimary = dynamic((255, 255, 255), dark: (17, 24, 39))
     /// The one accent, lime, as a fill only (main button, selected chip, chosen tile, progress,
-    /// switch on): about 1.2:1 on the cream, so never words or thin glyphs on a light surface.
+    /// switch on): about 1.2:1 on the page, so never words or thin glyphs on a light surface.
     /// Deeper and calmer at night, not brighter: on the dark page the day's lime glared, most of all
     /// as a switch's track (user report 2026-11-02). Still 9.6:1 on the night card, ink on it 10:1.
     static let accent = dynamic((200, 240, 75), dark: (176, 208, 64))
@@ -54,8 +56,6 @@ enum Palette {
     static let rowPressed = primary.opacity(0.10)
     /// A tile in the primary colour, thin: the avatar in Cài đặt, the empty part of a progress ring.
     static let primaryTint = primary.opacity(0.10)
-    /// A dashed outline in the primary colour (a "new" tile).
-    static let primaryDash = primary.opacity(0.35)
     /// A faint label-coloured fill for secondary buttons and neutral badges (kept after trying
     /// white outlined buttons, user choice 2026-11-03).
     static let fill = label.opacity(0.06)
@@ -92,19 +92,18 @@ enum Palette {
 
     /// A pale wash of the lime, behind something the brand marks.
     static let accentSoft = dynamic((241, 249, 214), dark: (44, 54, 22))
-    /// The light of lime at the head of Tổng quan (`TabBackdrop`). Quieter at night.
-    static let heroGlow = dynamic((228, 247, 166), dark: (38, 48, 18))
 
     // MARK: Progress
 
     /// A bar or ring on its way (a goal filling, a limit used, AI lượt): ink, which reads on the
     /// white card where lime (1.2:1) would not. It turns `warning` and `negative` as a limit runs out.
-    static let progress = dynamic((31, 41, 55), dark: (229, 231, 235))
+    /// At night a warm off-white, the words' own, not a bluish one.
+    static let progress = dynamic((31, 41, 55), dark: (232, 230, 226))
     /// A goal reached, a loan settled, the steps done: the one place progress takes the lime.
     static let progressDone = accent
     /// The empty part of every bar and ring: a shade under `surfaceMuted`, so a ring still shows its
     /// track on a grey goal tile (Simulator check 2026-11-02: one shade read as no track at all).
-    static let progressTrack = dynamic((226, 226, 220), dark: (56, 54, 51))
+    static let progressTrack = dynamic((229, 227, 221), dark: (56, 54, 51))
 
     // MARK: Data
 
@@ -129,6 +128,15 @@ enum Palette {
     /// dynamic like the rest.
     static let uiLabel = dynamicUI((17, 24, 39), dark: (242, 241, 238))
     static let uiSecondaryLabel = dynamicUI((107, 114, 128), dark: (161, 159, 155))
+    /// A segmented control's track and its chosen segment: `fill` (the words' colour at 6%) and
+    /// the card's white, so it sits in the page's warm tone, not iOS's cool grey (user report
+    /// 2026-11-03).
+    static let uiFill = UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 242 / 255, green: 241 / 255, blue: 238 / 255, alpha: 0.06)
+            : UIColor(red: 17 / 255, green: 24 / 255, blue: 39 / 255, alpha: 0.06)
+    }
+    static let uiSurface = dynamicUI((255, 255, 255), dark: (31, 29, 26))
 
     private typealias RGB = (Double, Double, Double)
 
