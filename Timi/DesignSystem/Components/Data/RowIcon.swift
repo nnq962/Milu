@@ -37,16 +37,20 @@ struct RowIcon: View {
     /// (lists of accounts, `AccountRow`).
     var tiled = false
 
-    @ScaledMetric private var size: CGFloat
+    private let base: CGFloat
+    @ScaledMetric private var scaled: CGFloat
 
     init(name: String, size: CGFloat = RowMetrics.iconColumn, tint: Color = Palette.label, tiled: Bool = false) {
         self.name = name
         self.tint = tint
         self.tiled = tiled
-        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+        base = size
+        _scaled = ScaledMetric(wrappedValue: size, relativeTo: .body)
     }
 
     var body: some View {
+        // Grows with the text up to `RowMetrics.leadingMaxScale`, as the hairlines under it do.
+        let size = RowMetrics.capped(scaled, base: base)
         Group {
             if name.hasPrefix("Institutions/") {
                 InstitutionLogo(image: name, size: size)

@@ -36,9 +36,9 @@ struct ContactsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { editing = .new() } label: {
-                    // The toolbar's one +: add-circle in its 28 frame, as on Tài khoản and Thu chi
-                    // (re-review 2026-10-31).
-                    TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                    // The toolbar's one +: a bare + in its 28 frame, as on Tài khoản; the bar's glass
+                    // is the circle (2026-11-03, ⊕ before).
+                    TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
                         .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                 }
                 .buttonBorderShape(.circle)

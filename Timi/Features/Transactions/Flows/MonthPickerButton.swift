@@ -18,6 +18,8 @@ struct MonthPickerButton: View {
     /// The ⌄ grows with the words beside it: fixed, it looked tiny at the accessibility sizes
     /// (review 2026-10-31).
     @ScaledMetric(relativeTo: .body) private var chevron = RowMetrics.inlineGlyph
+    /// The ⌄ after the small words of `lead`, growing with them as well.
+    @ScaledMetric(relativeTo: .caption) private var leadChevron = RowMetrics.linkChevron
 
     var body: some View {
         let calendar = Calendar.current
@@ -56,14 +58,15 @@ struct MonthPickerButton: View {
     }
 
     /// "Đã chi tháng 11 ⌄" in the figure's small label, its colour and size; the area that takes a
-    /// tap reaches past the words, as a `HeaderLink`'s, so it is 44 tall at any size.
+    /// tap reaches past the words, as a `HeaderLink`'s, so it is 44 tall at any size. The words may
+    /// wrap at the largest text sizes, where on one line they pushed the page past the screen
+    /// (review 2026-11-03).
     private func leadLabel(_ lead: String, _ title: String) -> some View {
         HStack(spacing: Spacing.xs) {
             Text("\(lead) \(title.lowercased())")
                 .monospacedDigit()
-                .lineLimit(1)
-                .fixedSize()
-            TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
+                .fixedSize(horizontal: false, vertical: true)
+            TimiIcon("hugeicons-arrow-down-01", size: leadChevron)
         }
         .textRole(.captionStrong)
         .foregroundStyle(Palette.secondaryLabel)

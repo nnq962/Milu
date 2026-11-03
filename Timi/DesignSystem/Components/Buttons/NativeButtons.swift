@@ -62,6 +62,10 @@ struct HeaderLink: View {
     /// "⌄" after the words when it opens a menu (the month of Lịch thu chi).
     var opensMenu = false
 
+    /// The › or ⌄ grows with the words: fixed at 12 it looked like a dot beside them at the
+    /// accessibility sizes (review 2026-11-03).
+    @ScaledMetric(relativeTo: .subheadline) private var chevron = RowMetrics.linkChevron
+
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Text(title)
@@ -70,9 +74,9 @@ struct HeaderLink: View {
                 .lineLimit(1)
                 .fixedSize()
             if opensPage {
-                TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.linkChevron)
+                TimiIcon("hugeicons-arrow-right-01", size: chevron)
             } else if opensMenu {
-                TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
+                TimiIcon("hugeicons-arrow-down-01", size: chevron)
             }
         }
         .foregroundStyle(Palette.primary)

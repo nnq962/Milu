@@ -47,14 +47,18 @@ struct GoalRow: View {
 struct GoalRing: View {
     let goal: SavingsGoal
 
-    @ScaledMetric private var size: CGFloat
+    private let base: CGFloat
+    @ScaledMetric private var scaled: CGFloat
 
     init(goal: SavingsGoal, size: CGFloat) {
         self.goal = goal
-        _size = ScaledMetric(wrappedValue: size, relativeTo: .body)
+        base = size
+        _scaled = ScaledMetric(wrappedValue: size, relativeTo: .body)
     }
 
     var body: some View {
+        // As every row's leading, no bigger than `RowMetrics.leadingMaxScale` times its size.
+        let size = RowMetrics.capped(scaled, base: base)
         // Red when overdue, lime once full or closed (`progressDone`), ink on the way.
         ProgressRing(progress: goal.isClosed ? 1 : goal.progress,
                      color: goal.isOverdue ? Palette.negative
@@ -72,31 +76,45 @@ struct GoalRing: View {
 }
 
 /// A goal in Tài khoản as a jar filling up (user pick "C" 2026-11-03, in place of the tiles
-/// scrolling sideways): a tall rounded jar in `surfaceMuted`, lime rising from the bottom to the
-/// share saved, the goal's 3D picture at the top and the percent at the bottom; under the jar its
-/// name and what is saved of the target. Full once the goal is reached or closed, with "Đủ" for
-/// the percent; pale coral with the percent in red once past its date. Three to a row, as wide as
-/// the grid makes them.
+/// scrolling sideways): a tall rounded jar in `surfaceMuted`, lime water rising from the bottom to
+/// the share saved, its surface rocking gently like water in a bottle, a stronger slosh as the jar
+/// comes on screen that settles (user request 2026-11-03); still at Reduce Motion. The goal's 3D
+/// picture at the top and the percent at the bottom; under the jar its name and what is saved of
+/// the target. Full once the goal is reached or closed, with "Đủ" for the percent and a still
+/// surface; pale coral with the percent in red once past its date. Three to a row, as wide as the
+/// grid makes them.
 struct GoalJarTile: View {
+    /// The jar's height at the default text size; it grows with the text.
+    static let jarHeight: CGFloat = 128
+    /// What a goal with anything saved shows at least, so the water is there to see.
+    static let minimumLevel = 0.04
+    /// The water's line at rest, and the extra of the slosh as it comes on screen.
+    static let ripple: CGFloat = 2.5
+    static let slosh: CGFloat = 6
+
     let goal: SavingsGoal
 
-    @ScaledMetric(relativeTo: .body) private var jarHeight: CGFloat = 128
-    @ScaledMetric(relativeTo: .body) private var picture: CGFloat = 44
+    @ScaledMetric(relativeTo: .body) private var jarHeight = GoalJarTile.jarHeight
+    // The one size of a 3D picture on a card (`RowMetrics.picture`).
+    @ScaledMetric(relativeTo: .body) private var picture = RowMetrics.picture
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+    /// When the jar came on screen: the slosh dies down from there.
+    @State private var shownAt = Date.now
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
         let isFull = goal.isClosed || goal.isReached
-        // A sliver shows as soon as anything is in the jar.
-        let level = isFull ? 1 : goal.progress > 0 ? max(goal.progress, 0.04) : 0
-        // The percent sits in the jar's lowest quarter: in ink on the lime once the lime reaches it.
-        let onFill = level >= 0.25
+        let level = isFull ? 1 : goal.progress > 0 ? max(goal.progress, Self.minimumLevel) : 0
+        // The percent sits in the jar's lowest quarter, the water's line rocking a little over
+        // it: in ink on the lime once the lime is clear above it.
+        let onFill = level >= 0.3
+        let still = reduceMotion || isFull || level == 0
         VStack(spacing: Spacing.s) {
             ZStack {
                 shape.fill(Palette.surfaceMuted)
-                GeometryReader { proxy in
-                    (goal.isOverdue ? Palette.expenseSoft : Palette.accent)
-                        .frame(height: proxy.size.height * level)
-                        .frame(maxHeight: .infinity, alignment: .bottom)
+                TimelineView(.animation(minimumInterval: 1 / 30, paused: still)) { context in
+                    water(level: level, time: context.date.timeIntervalSince(shownAt), still: still)
                 }
                 VStack {
                     Image(Picture3D.name(for: goal.icon))
@@ -128,10 +146,53 @@ struct GoalJarTile: View {
         }
         .frame(maxWidth: .infinity)
         .contentShape(shape)
+        .onAppear { shownAt = .now }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
                              goal.isReached ? "đã đủ mục tiêu" : goal.isOverdue ? "quá hạn" : goal.progressText]
             .joined(separator: ", "))
         .accessibilityHint("Xem hũ")
+    }
+
+    /// Two waves, a paler one behind out of step with the front, so the surface reads as water
+    /// moving rather than a line sliding sideways.
+    private func water(level: Double, time: TimeInterval, still: Bool) -> some View {
+        let color = goal.isOverdue ? Palette.expenseSoft : Palette.accent
+        let height = level >= 1 ? 0 : still ? Self.ripple : Self.ripple + Self.slosh * CGFloat(exp(-time / 1.4))
+        // Each jar out of step with the next, so a row of them does not rock as one.
+        let offset = Double(goal.name.unicodeScalars.reduce(0) { $0 + Int($1.value) } % 628) / 100
+        let phase = still ? offset : time + offset
+        return ZStack {
+            // Paler by day; at night half the lime over the dark jar read as moss (Simulator
+            // check 2026-11-03), so it stays near the lime.
+            WaterSurface(level: level, height: height * 0.8, phase: phase * 1.7 + .pi * 0.6)
+                .fill(color.opacity(colorScheme == .dark ? 0.8 : 0.5))
+            WaterSurface(level: level, height: height, phase: phase * 2.3)
+                .fill(color)
+        }
+    }
+}
+
+/// Water up to `level` of the rect, its top a gentle wave `height` high moving with `phase`.
+private struct WaterSurface: Shape {
+    let level: Double
+    let height: CGFloat
+    let phase: Double
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard level > 0 else { return path }
+        let top = rect.maxY - rect.height * level
+        // About one crest and trough across the jar.
+        let length = rect.width * 1.1
+        path.move(to: CGPoint(x: rect.minX, y: rect.maxY))
+        for x in stride(from: rect.minX, through: rect.maxX, by: 2) {
+            let angle = Double(x / length) * 2 * .pi + phase
+            path.addLine(to: CGPoint(x: x, y: top + height * CGFloat(sin(angle))))
+        }
+        path.addLine(to: CGPoint(x: rect.maxX, y: top + height * CGFloat(sin(Double(rect.width / length) * 2 * .pi + phase))))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }

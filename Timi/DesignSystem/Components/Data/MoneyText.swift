@@ -50,14 +50,20 @@ struct MoneyText: View {
     /// What VoiceOver says: the full figure and "đồng", "cộng" or "trừ" before it as the sign
     /// shows (review 2026-10-31: "10,3tr", "1,2tỷ" and "đ" were read as written).
     private var spoken: String {
-        let figure = abs(amount).formatted(.number.locale(.vietnam).precision(.fractionLength(0)))
+        let figure = Self.spoken(abs(amount))
         let sign: String
         switch tone {
         case .signedIncome: sign = "cộng "
         case .signedExpense, .outflow: sign = "trừ "
         case .signedNet, .neutral, .balance, .transfer, .muted: sign = amount < 0 ? "trừ " : (tone == .signedNet && amount > 0 ? "cộng " : "")
         }
-        return "\(sign)\(figure) đồng"
+        return sign + figure
+    }
+
+    /// An amount as VoiceOver should say it, with no sign: "857.000 đồng", for a label that puts
+    /// its own words around a figure.
+    static func spoken(_ amount: Double) -> String {
+        "\(amount.formatted(.number.locale(.vietnam).precision(.fractionLength(0)))) đồng"
     }
 
     var body: some View {

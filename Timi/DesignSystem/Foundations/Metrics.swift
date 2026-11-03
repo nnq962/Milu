@@ -60,6 +60,15 @@ enum RowMetrics {
     static let inlineGlyph: CGFloat = 14
     /// A bank or wallet logo in a list of accounts.
     static let listLogo: CGFloat = 32
+    /// How far a row's icon, logo or avatar grows with the text: at most this many times its size.
+    /// Growing freely, a 32 avatar reached ~90 at the largest sizes and took a third of the row,
+    /// so names broke a word to a line (review 2026-11-03).
+    static let leadingMaxScale: CGFloat = 1.6
+
+    /// A row's leading size grown with the text, but no further than `leadingMaxScale`.
+    static func capped(_ scaled: CGFloat, base: CGFloat) -> CGFloat {
+        min(scaled, base * leadingMaxScale)
+    }
     /// The line of a progress ring (`ProgressRing`).
     static let ringStroke: CGFloat = 3
     /// A legend dot beside a chart or a split bar (`LegendDot`).
@@ -76,7 +85,7 @@ enum ControlHeight {
 /// Corner radii. Every card one radius, 28 (UI review 2026-10-30: cards were 22, 26 and 32 side
 /// by side); tiles inside a card round less (20), so the inner corner never bulges past the outer.
 enum CardCorners {
-    /// Cards on a page with 20 inside (overview cards, totals), savings goal tiles.
+    /// Cards on a page with 20 inside (overview cards, totals).
     static let large: CGFloat = 28
     /// A form group, a list of rows (`listCard`), or the card in a short sheet.
     static let inset: CGFloat = 24

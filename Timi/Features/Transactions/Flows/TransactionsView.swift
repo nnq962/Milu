@@ -16,6 +16,7 @@ enum TransactionSegment: String, CaseIterable, Identifiable {
 
 struct TransactionsView: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(AddTransactionContext.self) private var addContext: AddTransactionContext?
     @State private var segment: TransactionSegment = .flows
     @State private var filter: TransactionFilter = .all
     @State private var loanFilter: LoanFilter = .all
@@ -25,15 +26,15 @@ struct TransactionsView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSearching = false
-    @State private var isAddingLoan = false
     /// Trợ lý AI from the ✦ on the bar, and the first transaction from the empty list's button.
     @State private var isShowingAssistant = false
     @State private var isAddingFirst = false
     @State private var editingLoan: Loan?
     /// A row tapped to read it (then change or delete it from its sheet).
     @State private var editingItem: AccountDetailView.Activity?
-    /// Where the chip row is on screen: below the bar means the user has scrolled past it.
-    @State private var chipsTop: CGFloat = 0
+    /// Where the filter row is on screen: above the scroll view's top means the user has scrolled
+    /// past it.
+    @State private var filterTop: CGFloat = 0
 
     var body: some View {
         NavigationStack {
@@ -42,42 +43,43 @@ struct TransactionsView: View {
                     VStack(alignment: .leading, spacing: Spacing.section) {
                         // Words, not a segmented control: the page left-aligned under its title,
                         // as a magazine (user pick "B" 2026-11-03, after the control, the centred
-                        // figure and the chips read basic). Closer to the head than a section.
-                        TextTabs(selection: $segment, options: TransactionSegment.allCases, style: .page) { $0.title }
-                            .padding(.bottom, -Spacing.m)
+                        // figure and the chips read basic), the head's card just under them.
+                        VStack(alignment: .leading, spacing: Spacing.l) {
+                            TextTabs(selection: $segment, options: TransactionSegment.allCases, style: .page) { $0.title }
+                            switch segment {
+                            case .flows: summaryHead
+                            case .loans: LoansSummaryHead()
+                            }
+                        }
 
-                        // Both segments: the head, the chips, then the list. A new chip or month:
-                        // the list fades over to what it shows now. It keeps at least a screen's
-                        // height, so a shorter one leaves the page where it is instead of snapping
-                        // it up.
-                        switch segment {
-                        case .flows:
-                            // The filter words just under the figure they narrow.
-                            VStack(alignment: .leading, spacing: Spacing.s) {
-                                summaryHead
-                                chipsRow { FilterChips(selection: $filter) }
+                        // Then the filter words with the list they narrow, not with the head: they
+                        // leave the totals as they are, and "Thu" under "Đã chi" read as broken
+                        // (review 2026-11-03). A new filter or month: the list fades over to what
+                        // it shows now. It keeps at least a screen's height, so a shorter one
+                        // leaves the page where it is instead of snapping it up.
+                        VStack(alignment: .leading, spacing: Spacing.s) {
+                            switch segment {
+                            case .flows:
+                                filterRow { TransactionFilterTabs(selection: $filter) }
+                                listContainer { flowList }
+                            case .loans:
+                                filterRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
+                                listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                             }
-                            listContainer { flowList }
-                        case .loans:
-                            VStack(alignment: .leading, spacing: Spacing.s) {
-                                LoansSummaryHead()
-                                chipsRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
-                            }
-                            listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                         }
                     }
-                    // A new month or segment fades over; a new chip shows its list at once, no
+                    // A new month or segment fades over; a new filter shows its list at once, no
                     // animation (user request 2026-11-01: every animation tried felt jerky).
                     .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: pageIdentity)
                     .padding(.horizontal, Spacing.page)
                     .padding(.top, Spacing.l)
                     .padding(.bottom, Spacing.xxl)
                 }
-                // Scrolled down into the list: a new chip glides back to the chips, so what it
-                // shows starts in view.
+                // Scrolled down into the list: a new filter glides back to the filter row, so what
+                // it shows starts in view.
                 .onChange(of: listIdentity) {
-                    guard chipsTop < 0 else { return }
-                    withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.chipsAnchor, anchor: .top) }
+                    guard filterTop < 0 else { return }
+                    withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.filterAnchor, anchor: .top) }
                 }
             }
             // The plain page colour, as on Tài khoản (user report 2026-11-03: the ground read muddy).
@@ -89,20 +91,14 @@ struct TransactionsView: View {
             .modifier(TabHeading())
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                // A new transaction comes from the + beside the tab bar (every tab); a new loan from
-                // the + here, shown on "Vay nợ" (user choice 2026-10-29).
-                // The month is picked on the page, beside "Đã chi" (user choice 2026-10-30): out of
-                // the bar, the title has room to shrink to the middle as on Tài khoản.
-                // Search opens a screen of its own (TransactionSearchView).
+                // The + beside the tab bar adds a transaction, or a loan while "Vay nợ" shows
+                // (`AddTransactionContext.addsLoan`): no + of its own on the bar, which made two +
+                // doing two things side by side and moved ✦ and search on each switch (review
+                // 2026-11-03). The month is picked on the page; search opens a screen of its own
+                // (TransactionSearchView).
                 // Plain items: the bar draws their glass, which then takes part in push and pop
                 // (glass drawn inside the item showed as a square mid-transition). The spacer
                 // gives each its own glass rather than one shared pill.
-                if segment == .loans {
-                    ToolbarItem(placement: .topBarTrailing) { addLoanButton }
-                }
-                if #available(iOS 26.0, *), segment == .loans {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                }
                 ToolbarItem(placement: .topBarTrailing) { assistantButton }
                 if #available(iOS 26.0, *) {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
@@ -118,7 +114,6 @@ struct TransactionsView: View {
                 TransactionSearchView(segment: segment)
             }
             .sheet(item: $editingItem) { ActivityEditor(item: $0) }
-            .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             // A loan opens to read first; its pencil opens the form (user request 2026-10-29).
             .sheet(item: $editingLoan) { LoanDetailSheet(loanID: $0.id, today: today) }
             .navigationDestination(for: SettledLoansRoute.self) { _ in SettledLoansView() }
@@ -128,19 +123,23 @@ struct TransactionsView: View {
             followToday()
         }
         .onChange(of: scenePhase) { _, phase in if phase == .active { followToday() } }
+        // The + beside the tabs adds a loan while "Vay nợ" is what shows.
+        .onAppear { addContext?.addsLoan = segment == .loans }
+        .onChange(of: segment) { _, new in addContext?.addsLoan = new == .loans }
+        .onDisappear { addContext?.addsLoan = false }
     }
 
-    private static let chipsAnchor = "chips"
+    private static let filterAnchor = "filter"
 
-    /// The chip row, where a new chip scrolls back to.
-    private func chipsRow(@ViewBuilder _ chips: () -> some View) -> some View {
-        chips()
-            .id(Self.chipsAnchor)
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { chipsTop = $0 }
+    /// The filter row, where a new filter scrolls back to.
+    private func filterRow(@ViewBuilder _ filter: () -> some View) -> some View {
+        filter()
+            .id(Self.filterAnchor)
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { filterTop = $0 }
     }
 
     /// A new month or segment is another list: the old fades out over the new one in the same
-    /// place, not stacked under it. A new chip just shows its rows.
+    /// place, not stacked under it. A new filter just shows its rows.
     private func listContainer(@ViewBuilder _ list: () -> some View) -> some View {
         ZStack(alignment: .top) {
             // At least the visible height, so a short filter does not pull the page back up. By
@@ -187,17 +186,6 @@ struct TransactionsView: View {
         .accessibilityHint("Mở trợ lý AI")
     }
 
-    private var addLoanButton: some View {
-        Button { isAddingLoan = true } label: {
-            // The same + as on Tài khoản, at the bar's one glyph size (strict review 2026-10-31).
-            TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
-        }
-        .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Thêm khoản vay")
-    }
-
     // MARK: - Thu chi
 
     private var monthTransactions: [FinanceTransaction] {
@@ -211,7 +199,7 @@ struct TransactionsView: View {
         return "\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
-    /// What the list shows, chip included: what the page animates and scrolls back to the chips for.
+    /// What the list shows, filter included: what the page animates and scrolls back to the filter for.
     private var listIdentity: String {
         if segment == .loans { return "loans-\(loanFilter.rawValue)" }
         let parts = Calendar.current.dateComponents([.year, .month], from: displayedMonth)
@@ -227,25 +215,43 @@ struct TransactionsView: View {
         let reported = store.reportableTransactions(inMonthOf: displayedMonth)
         let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
         return VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(alignment: .firstTextBaseline) {
-                MonthPickerButton(month: $displayedMonth, lead: "Đã chi")
-                Spacer(minLength: Spacing.s)
-                NavigationLink {
-                    ReportView(period: ReportPeriod(.month, containing: displayedMonth))
-                } label: {
-                    HeaderLink(title: "Báo cáo", opensPage: true)
+            // "Báo cáo ›" goes under the month at the largest text sizes, where on one line the
+            // two pushed the page past the screen (review 2026-11-03).
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    monthButton
+                    Spacer(minLength: Spacing.s)
+                    reportLink
                 }
-                .headerLinkButton()
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    monthButton
+                    reportLink
+                }
             }
             // Ink, not red: the figure of the page, read every day (red is for a line of money out).
+            // VoiceOver hears what it is, which the month button above carries on screen.
             MoneyText(amount: spent, size: .display, tone: .neutral)
-            DailySpendBars(month: displayedMonth)
+                .accessibilityLabel("Đã chi \(monthName.lowercased()), \(MoneyText.spoken(spent))")
+            DailySpendBars(month: displayedMonth, today: today)
                 .padding(.top, Spacing.m)
         }
         .card()
     }
 
-    /// The month's rows a chip lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
+    private var monthButton: some View {
+        MonthPickerButton(month: $displayedMonth, lead: "Đã chi")
+    }
+
+    private var reportLink: some View {
+        NavigationLink {
+            ReportView(period: ReportPeriod(.month, containing: displayedMonth))
+        } label: {
+            HeaderLink(title: "Báo cáo", opensPage: true)
+        }
+        .headerLinkButton()
+    }
+
+    /// The month's rows a filter lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
     /// their transactions, "Chuyển khoản" the transfers between accounts and the money put into or
     /// taken from goals (review 2026-10-31: it said "chưa có chuyển khoản" with eight deposits that
     /// month), "Tất cả" all of them and the money of new loans (neither income nor spending). A
@@ -283,7 +289,7 @@ struct TransactionsView: View {
         }
     }
 
-    /// "Tháng 9" this year, "Tháng 9/2025" another: the words of the month button and its menu.
+    /// "Tháng 9" this year, "Tháng 9/2025" another: the month in the empty list's words.
     private var monthName: String { MonthPickerButton.name(of: displayedMonth) }
 
     /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.

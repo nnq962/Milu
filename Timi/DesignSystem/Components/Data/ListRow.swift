@@ -12,9 +12,10 @@ struct RowDivider: View {
     @ScaledMetric(relativeTo: .body) private var logoColumn = RowMetrics.listLogo
 
     var body: some View {
+        // The columns capped as the icons in them are (`RowMetrics.capped`).
         let inset: CGFloat = switch column {
-        case .icon: RowMetrics.horizontal + iconColumn + RowMetrics.gap
-        case .logo: RowMetrics.horizontal + logoColumn + RowMetrics.gap
+        case .icon: RowMetrics.horizontal + RowMetrics.capped(iconColumn, base: RowMetrics.iconColumn) + RowMetrics.gap
+        case .logo: RowMetrics.horizontal + RowMetrics.capped(logoColumn, base: RowMetrics.listLogo) + RowMetrics.gap
         case .none: RowMetrics.horizontal
         }
         Palette.separator

@@ -41,10 +41,36 @@ enum AppAppearance: String, CaseIterable, Identifiable {
                 UIView.transition(with: window, duration: 0.35,
                                   options: [.transitionCrossDissolve, .allowUserInteraction]) {
                     window.overrideUserInterfaceStyle = style
+                    Self.refreshHiddenBars(in: window)
                 }
             } else {
                 window.overrideUserInterfaceStyle = style
+                Self.refreshHiddenBars(in: window)
             }
+        }
+    }
+
+    /// The tabs not on screen take the new colours now, not when next shown: their bars kept the
+    /// old ink until then, so a tab opened just after a switch showed its title and bar buttons
+    /// dark on the dark page (or light on light) for a second or two (user report 2026-11-03).
+    /// UIKit leaves views outside the window to update their traits lazily; this asks every view
+    /// controller under the window, and the bars of each, to do it at once.
+    private static func refreshHiddenBars(in window: UIWindow) {
+        guard let root = window.rootViewController else { return }
+        var stack = [root]
+        while let controller = stack.popLast() {
+            controller.updateTraitsIfNeeded()
+            if let navigation = controller as? UINavigationController {
+                navigation.navigationBar.updateTraitsIfNeeded()
+                navigation.navigationBar.setNeedsLayout()
+                navigation.navigationBar.layoutIfNeeded()
+            }
+            if let tabs = controller as? UITabBarController {
+                tabs.tabBar.updateTraitsIfNeeded()
+                stack.append(contentsOf: tabs.viewControllers ?? [])
+            }
+            stack.append(contentsOf: controller.children)
+            if let presented = controller.presentedViewController { stack.append(presented) }
         }
     }
 }

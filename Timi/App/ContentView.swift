@@ -2,14 +2,28 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: AppTab = .overview
-    @State private var isAddingTransaction = false
+    /// What the + opened: a transaction, or a loan on "Vay nợ" (`AddTransactionContext.addsLoan`),
+    /// fixed as it opens so the form does not change under the user.
+    @State private var adding: AddKind?
     @State private var addContext = AddTransactionContext()
+
+    private enum AddKind: Identifiable {
+        case transaction, loan
+        var id: Self { self }
+    }
+
+    private func add() {
+        adding = addContext.addsLoan ? .loan : .transaction
+    }
+
+    /// The +'s name for VoiceOver, as what it adds on the screen behind it.
+    private var addTitle: String { addContext.addsLoan ? "Thêm khoản vay" : "Thêm giao dịch" }
 
     /// Picking the + opens the add sheet and leaves the current tab where it is. `InstantTabSwitch`
     /// stops the tap before the tab is selected; this is the fallback should it get through.
     private var tabSelection: Binding<AppTab> {
         Binding { selectedTab } set: { tab in
-            if tab == .add { isAddingTransaction = true } else { selectedTab = tab }
+            if tab == .add { add() } else { selectedTab = tab }
         }
     }
 
@@ -21,13 +35,16 @@ struct ContentView: View {
             // The chosen tab in the primary colour.
             .tint(Palette.primary)
             .background {
-                InstantTabSwitch { isAddingTransaction = true }.frame(width: 0, height: 0)
+                InstantTabSwitch { add() }.frame(width: 0, height: 0)
                 // The saved "Giao diện", before the first frame shows.
                 SavedAppearanceSetter().frame(width: 0, height: 0)
             }
             .environment(addContext)
-            .sheet(isPresented: $isAddingTransaction) {
-                AddTransactionView(preferredAccount: addContext.accountID)
+            .sheet(item: $adding) { kind in
+                switch kind {
+                case .transaction: AddTransactionView(preferredAccount: addContext.accountID)
+                case .loan: LoanEditorView(loan: nil)
+                }
             }
     }
 
@@ -54,7 +71,7 @@ struct ContentView: View {
                 .tabItem { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
                 .tag(AppTab.transactions)
             Color.clear
-                .tabItem { Label("Thêm giao dịch", systemImage: "plus.circle.fill") }
+                .tabItem { Label(addTitle, systemImage: "plus.circle.fill") }
                 .tag(AppTab.add)
         }
     }
@@ -72,8 +89,9 @@ struct ContentView: View {
                 TransactionsView()
             } label: { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
             // A search-role tab sits apart in its own circle beside the bar, as Search does in App
-            // Store: there, by the thumb on every tab, it adds a transaction (user choice 2026-10-29).
-            Tab("Thêm giao dịch", systemImage: "plus", value: AppTab.add, role: .search) {
+            // Store: there, by the thumb on every tab, it adds a transaction (user choice 2026-10-29),
+            // a loan on "Vay nợ".
+            Tab(addTitle, systemImage: "plus", value: AppTab.add, role: .search) {
                 Color.clear
             }
         }

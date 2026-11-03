@@ -26,7 +26,7 @@ enum TransactionFilter: String, CaseIterable, Identifiable {
     }
 }
 
-struct FilterChips: View {
+struct TransactionFilterTabs: View {
     @Binding var selection: TransactionFilter
 
     var body: some View {

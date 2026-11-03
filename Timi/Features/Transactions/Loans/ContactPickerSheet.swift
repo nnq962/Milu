@@ -60,8 +60,8 @@ struct ContactPickerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { isAdding = true } label: {
-                        // The toolbar's one +, as on Danh bạ and Tài khoản.
-                        TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                        // The toolbar's one +, a bare one as on Danh bạ and Tài khoản.
+                        TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
                             .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                     }
                     .buttonBorderShape(.circle)

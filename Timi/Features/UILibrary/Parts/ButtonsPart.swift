@@ -63,11 +63,11 @@ struct ButtonsPart: View {
             }
 
             // In a ToolbarItem a plain Button sits on the bar's glass by itself (rule 2026-10-30);
-            // here, off the bar, the same buttons show bare. The + is add-circle in its 28 frame.
+            // here, off the bar, the same buttons show bare. The + is a bare add-01 in its 28 frame.
             SampleCard(label: "Nút trên thanh · Button trơn") {
                 HStack(spacing: Spacing.l) {
                     Button {} label: {
-                        TimiIcon("hugeicons-add-circle", size: RowMetrics.toolbarGlyph)
+                        TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
                             .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                     }
                     .tint(Palette.primary)
