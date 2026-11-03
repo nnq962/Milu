@@ -101,6 +101,10 @@ struct GoalJarTile: View {
     @Environment(\.colorScheme) private var colorScheme
     /// When the jar came on screen: the slosh dies down from there.
     @State private var shownAt = Date.now
+    /// Only on screen does the water move: running on while its tab was hidden, it left the glass
+    /// of the bars stuck in the old look after a change of the system's appearance (Simulator
+    /// check 2026-11-03), and it spent the battery for nothing.
+    @State private var isOnScreen = false
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous)
@@ -109,7 +113,7 @@ struct GoalJarTile: View {
         // The percent sits in the jar's lowest quarter, the water's line rocking a little over
         // it: in ink on the lime once the lime is clear above it.
         let onFill = level >= 0.3
-        let still = reduceMotion || isFull || level == 0
+        let still = reduceMotion || isFull || level == 0 || !isOnScreen
         VStack(spacing: Spacing.s) {
             ZStack {
                 shape.fill(Palette.surfaceMuted)
@@ -146,7 +150,11 @@ struct GoalJarTile: View {
         }
         .frame(maxWidth: .infinity)
         .contentShape(shape)
-        .onAppear { shownAt = .now }
+        .onAppear {
+            shownAt = .now
+            isOnScreen = true
+        }
+        .onDisappear { isOnScreen = false }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
                              goal.isReached ? "đã đủ mục tiêu" : goal.isOverdue ? "quá hạn" : goal.progressText]
