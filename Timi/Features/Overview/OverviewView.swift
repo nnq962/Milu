@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Home tab (redone 2026-11-02 after the user's references: blocks on a soft coloured ground): the
 /// head on its ground (`OverviewHeader`: the net worth and how it moved), then the
-/// first steps, the calendar, this month and Timi Pro last;
+/// four blocks and this week (`OverviewTiles`, `WeekCard`), the first steps and Timi Pro last;
 /// Q, Timi's ✦ and the bell on the bar, no greeting (user request 2026-11-04). One file per card
 /// in `Cards/`, with the sheets they open.
 struct OverviewView: View {
@@ -16,12 +16,11 @@ struct OverviewView: View {
     /// Every page Tổng quan opens goes by value: Tài sản ròng and its parts, Báo cáo.
     @State private var path = NavigationPath()
     @State private var selectedDay: CalendarDay?
-    /// The month Lịch thu chi shows.
-    @State private var calendarMonth = Date.now
     /// What a first step's button opens (`OnboardingCard`).
     @State private var adding: AddTransactionView.Mode?
     @State private var isAddingAccount = false
     @State private var isAddingLoan = false
+    @State private var isAddingGoal = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
@@ -37,13 +36,23 @@ struct OverviewView: View {
     }
 
     var body: some View {
-        let month = Date.now
         NavigationStack(path: $path) {
             ScrollView {
                 // Sections 28 apart, as on every tab; a heading 8 above its card.
                 VStack(alignment: .leading, spacing: Spacing.section) {
-                    OverviewHeader {
-                        path.append(NetWorthRoute())
+                    // The head and its blocks close together, as one set of widgets (user pick
+                    // "A" 2026-11-04); then the first steps and the rest 28 apart as before.
+                    VStack(spacing: Spacing.m) {
+                        OverviewHeader {
+                            path.append(NetWorthRoute())
+                        }
+                        OverviewTiles(
+                            onOpenReport: { path.append(ReportRoute(month: .now)) },
+                            onOpenToday: { selectedDay = CalendarDay(date: .now) },
+                            onAddGoal: { isAddingGoal = true },
+                            onAddLoan: { isAddingLoan = true })
+                        WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
+                                 onSelectDay: { selectedDay = CalendarDay(date: $0) })
                     }
                     OnboardingCard { step in
                         switch step {
@@ -52,21 +61,6 @@ struct OverviewView: View {
                         case .loan: isAddingLoan = true
                         case .askAI: isShowingAssistant = true
                         }
-                    }
-                    HeaderCard(title: "Lịch thu chi", inset: Spacing.card, radius: CardCorners.large) {
-                        // The month as plain words, as every control on a heading's row.
-                        MonthPickerButton(month: $calendarMonth, compact: true)
-                    } content: {
-                        MoneyCalendarCard(displayedMonth: $calendarMonth) { selectedDay = CalendarDay(date: $0) }
-                            .card()
-                    }
-                    HeaderCard(title: "Tháng này", inset: Spacing.card, radius: CardCorners.large) {
-                        Button { path.append(ReportRoute(month: month)) } label: {
-                            HeaderLink(title: "Báo cáo", opensPage: true)
-                        }
-                        .headerLinkButton()
-                    } content: {
-                        MonthCard(month: month) { path.append(ReportRoute(month: month)) }
                     }
                     // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
                     // `showsAttention` back to true to bring it back.
@@ -109,11 +103,13 @@ struct OverviewView: View {
             }
             .navigationDestination(for: ReportRoute.self) { ReportView(period: ReportPeriod(.month, containing: $0.month)) }
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
+            .navigationDestination(for: CalendarRoute.self) { _ in MoneyCalendarPage() }
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(item: $adding) { AddTransactionView(mode: $0) }
             .sheet(isPresented: $isAddingAccount) { AddAccountView(type: .bank) }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
+            .sheet(isPresented: $isAddingGoal) { GoalEditorView(goal: nil) }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
         }
     }

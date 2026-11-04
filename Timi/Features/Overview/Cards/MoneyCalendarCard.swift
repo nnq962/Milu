@@ -16,15 +16,9 @@ struct MoneyCalendarCard: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dynamicTypeSize) private var typeSize
-    /// Every day the same height, room for its number and two short figures (out and in) at
-    /// their own size, so the rows line up whatever each day holds.
-    @ScaledMetric(relativeTo: .caption) private var figuresDayHeight: CGFloat = 56
-    /// At accessibility sizes a day holds its number and the dots only: kept to that, the tiles
-    /// stood near three times as tall as wide (Simulator check 2026-11-04).
-    @ScaledMetric(relativeTo: .caption) private var dotsDayHeight: CGFloat = 32
+    @ScaledMetric(relativeTo: .caption) private var figuresDayHeight = CalendarDayCell.figuresHeight
+    @ScaledMetric(relativeTo: .caption) private var dotsDayHeight = CalendarDayCell.dotsHeight
     private var dayHeight: CGFloat { typeSize.isAccessibilitySize ? dotsDayHeight : figuresDayHeight }
-    /// The figures may shrink this far before a long one ("125,5tr") would be cut.
-    private static let figureMinimumScale: CGFloat = 0.7
     /// Between the day cells, across and down.
     private static let cellGap = Spacing.xs
 
@@ -56,19 +50,19 @@ struct MoneyCalendarCard: View {
                         let date = calendar.date(byAdding: .day, value: index - offset, to: start)!
                         // The same list Day's sheet shows (`reportableTransactions`).
                         let items = transactionsByDay[calendar.startOfDay(for: date)] ?? []
-                        let income = items.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
-                        let expense = items.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
-                        day(date, income: income, expense: expense)
+                        CalendarDayCell(date: date, items: items) { onSelectDay(date) }
                     }
                 }
             }
-            legend
+            CalendarLegend()
                 .padding(.top, Spacing.s)
         }
     }
+}
 
-    /// What the two colours mean, small and quiet under the grid.
-    private var legend: some View {
+/// What the calendar's two colours mean, small and quiet under its days.
+struct CalendarLegend: View {
+    var body: some View {
         HStack(spacing: Spacing.l) {
             HStack(spacing: Spacing.xs) {
                 LegendDot(color: Palette.expense)
@@ -84,32 +78,62 @@ struct MoneyCalendarCard: View {
         .foregroundStyle(Palette.secondaryLabel)
         .accessibilityHidden(true)
     }
+}
 
-    private func day(_ date: Date, income: Double, expense: Double) -> some View {
+/// One day of "Lịch thu chi", and of "Tuần này" on Tổng quan: its number and, under it, what went
+/// out over what came in. A day gone by is a pale tile, today a lime one, a day ahead a faint
+/// number on nothing, not tappable.
+struct CalendarDayCell: View {
+    let date: Date
+    let income: Double
+    let expense: Double
+    let action: () -> Void
+
+    /// Room for the number and two short figures at their own size, so the rows line up whatever
+    /// each day holds; at accessibility sizes the number and the dots only (kept at the figures'
+    /// height, the tiles stood near three times as tall as wide, Simulator check 2026-11-04).
+    static let figuresHeight: CGFloat = 56
+    static let dotsHeight: CGFloat = 32
+    /// The figures may shrink this far before a long one would be cut.
+    private static let figureMinimumScale: CGFloat = 0.7
+
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .caption) private var figuresHeight = CalendarDayCell.figuresHeight
+    @ScaledMetric(relativeTo: .caption) private var dotsHeight = CalendarDayCell.dotsHeight
+
+    /// The day's figures from its reported transactions (`reportableTransactions`, as Day's sheet).
+    init(date: Date, items: [FinanceTransaction], action: @escaping () -> Void) {
+        self.date = date
+        income = items.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
+        expense = items.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
+        self.action = action
+    }
+
+    var body: some View {
         let calendar = Calendar.current
         let today = calendar.isDateInToday(date)
-        // Days still ahead: a faint number on nothing, not tappable, nothing can be on them yet.
         let isAhead = date > calendar.startOfDay(for: .now) && !today
         let shape = RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
         let tile = isAhead ? Color.clear : today ? Palette.accent : Palette.surfaceMuted
-        return Button { onSelectDay(date) } label: {
+        let height = typeSize.isAccessibilitySize ? dotsHeight : figuresHeight
+        Button(action: action) {
             VStack(spacing: 0) {
                 Text("\(calendar.component(.day, from: date))")
                     .textRole(today ? .captionStrong : .caption)
                     .monospacedDigit()
                     .foregroundStyle(isAhead ? Palette.tertiaryLabel : today ? Palette.onAccent : Palette.label)
-                figures(income: income, expense: expense, onLime: today)
+                figures(onLime: today)
                 Spacer(minLength: 0)
             }
             .padding(.top, Spacing.xs + 2)
-            .frame(maxWidth: .infinity, minHeight: dayHeight, maxHeight: dayHeight)
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .background(tile, in: shape)
             .contentShape(shape)
         }
         // Calendar cells are flat data tiles in the design; only the month control uses glass.
         .buttonStyle(.card)
         .disabled(isAhead)
-        .accessibilityLabel(dayLabel(date, today: today, income: income, expense: expense))
+        .accessibilityLabel(label(today: today))
         .accessibilityHint("Xem giao dịch trong ngày")
     }
 
@@ -118,7 +142,7 @@ struct MoneyCalendarCard: View {
     /// fits a seventh of the card, a dot of each colour instead. On today's lime both are in ink:
     /// coral and green on it fell under 4:1, at night near 1.5:1; out stays above in, as on every day.
     @ViewBuilder
-    private func figures(income: Double, expense: Double, onLime: Bool) -> some View {
+    private func figures(onLime: Bool) -> some View {
         let out = onLime ? Palette.onAccent : Palette.expense
         let into = onLime ? Palette.onAccent : Palette.income
         if typeSize.isAccessibilitySize {
@@ -149,7 +173,7 @@ struct MoneyCalendarCard: View {
     /// A figure in at most five characters, to fit a seventh of the card at one size: as
     /// `vndCompact`, but whole from 100 of a unit up ("126tr", not "125,5tr", which had to shrink
     /// beside its neighbours, Simulator check 2026-11-04).
-    private static func short(_ amount: Double) -> String {
+    static func short(_ amount: Double) -> String {
         let value = abs(amount)
         let whole = FloatingPointFormatStyle<Double>(locale: .vietnam).precision(.fractionLength(0))
         switch value {
@@ -161,7 +185,7 @@ struct MoneyCalendarCard: View {
     }
 
     /// Only the figures there are; an empty day says so (re-review 2026-10-31: "thu 0đ, chi 0đ").
-    private func dayLabel(_ date: Date, today: Bool, income: Double, expense: Double) -> String {
+    private func label(today: Bool) -> String {
         let name = (today ? "Hôm nay, " : "") + date.formatted(.dateTime.weekday(.wide).day().month().year().locale(.vietnam))
         var figures: [String] = []
         if income > 0 { figures.append("thu \(income.vnd)") }
