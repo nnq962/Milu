@@ -232,7 +232,7 @@ private struct GoalTile: View {
                              detail: goal.isReached ? "Đã đủ mục tiêu" : "Còn \(goal.remaining.vndCompact)",
                              accessibility: "Hũ \(goal.name), đã để dành \(goal.progressText), còn \(goal.remaining.vnd)",
                              hint: "Xem hũ", action: { openGoal = Opened(id: goal.id) }) {
-                    picture(Picture3D.name(for: goal.icon))
+                    picture(GoalArtwork.name(for: goal.icon))
                 }
             } else {
                 OverviewTile(label: "Hũ tiết kiệm", value: "Chưa có", detail: "Tạo hũ đầu tiên",

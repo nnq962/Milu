@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Empty list placeholder: an icon, a title and one line saying what
 /// will appear here. No button: adding goes through the page's own + (user choice 2026-10-28).
-/// With `picture`, a 3D picture (`Picture3D`) stands in for the line icon, as on the cards of the
+/// With `picture`, a decorative picture stands in for the line icon, as on the cards of the
 /// main tabs (2026-11-03).
 struct EmptyStateCard: View {
     let icon: String

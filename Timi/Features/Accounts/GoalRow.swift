@@ -64,8 +64,8 @@ struct GoalRing: View {
                      color: goal.isOverdue ? Palette.negative
                          : goal.isClosed || goal.isReached ? Palette.progressDone : Palette.progress)
             .overlay {
-                // The goal's 3D picture in the ring (2026-11-03), as on its tile.
-                Image(Picture3D.name(for: goal.icon))
+                // Use the same artwork in the ring and on the tile.
+                Image(GoalArtwork.name(for: goal.icon))
                     .resizable()
                     .scaledToFit()
                     .frame(width: size * 0.55, height: size * 0.55)
@@ -78,7 +78,7 @@ struct GoalRing: View {
 /// A goal in Tài khoản as a jar filling up (user pick "C" 2026-11-03, in place of the tiles
 /// scrolling sideways): a tall rounded jar in `surfaceMuted`, lime water rising from the bottom to
 /// the share saved, its surface rocking gently like water in a bottle, a stronger slosh as the jar
-/// comes on screen that settles (user request 2026-11-03); still at Reduce Motion. The goal's 3D
+/// comes on screen that settles (user request 2026-11-03); still at Reduce Motion. The goal's
 /// picture at the top and the percent at the bottom; under the jar its name and what is saved of
 /// the target. Full once the goal is reached or closed, with "Đủ" for the percent and a still
 /// surface; pale coral with the percent in red once past its date. Three to a row, as wide as the
@@ -95,7 +95,7 @@ struct GoalJarTile: View {
     let goal: SavingsGoal
 
     @ScaledMetric(relativeTo: .body) private var jarHeight = GoalJarTile.jarHeight
-    // The one size of a 3D picture on a card (`RowMetrics.picture`).
+    // The shared artwork size on a card (`RowMetrics.picture`).
     @ScaledMetric(relativeTo: .body) private var picture = RowMetrics.picture
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -121,7 +121,7 @@ struct GoalJarTile: View {
                     water(level: level, time: context.date.timeIntervalSince(shownAt), still: still)
                 }
                 VStack {
-                    Image(Picture3D.name(for: goal.icon))
+                    Image(GoalArtwork.name(for: goal.icon))
                         .resizable()
                         .scaledToFit()
                         .frame(width: picture, height: picture)

@@ -5,6 +5,7 @@ import SwiftUI
 /// Icons stand alone; the chosen one sits on a circle in the primary colour. Tapping one picks it and closes the sheet.
 struct IconPickerSheet: View {
     @Binding var selection: String
+    var groups: [IconGroup] = IconCatalog.groups
 
     @Environment(\.dismiss) private var dismiss
 
@@ -12,7 +13,7 @@ struct IconPickerSheet: View {
 
     var body: some View {
         SheetScaffold(title: "Biểu tượng") {
-            ForEach(IconCatalog.groups) { group in
+            ForEach(groups) { group in
                 VStack(alignment: .leading, spacing: Spacing.headerGap) {
                     SectionHeader(title: group.title, style: .group)
                     grid(group.icons)

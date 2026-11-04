@@ -2,18 +2,16 @@ import SwiftUI
 
 /// Hũ tiết kiệm có mục tiêu; số đã để dành được tính vào tài sản.
 struct SavingsGoal: Identifiable, Hashable {
-    static let defaultIcon = "hugeicons-piggy-bank"
+    static let defaultIcon = IconCatalog.emojiName("💰")
     /// The quick choices in the goal form (two rows of six, the last place is "more"): what people
     /// most often save for.
-    static let suggestedIcons = ["hugeicons-piggy-bank", "hugeicons-umbrella-dollar", "hugeicons-home-01",
-                                 "hugeicons-car-01", "hugeicons-motorbike-01", "hugeicons-luggage-01",
-                                 "hugeicons-mortarboard-02", "hugeicons-laptop", "hugeicons-smart-phone-01",
-                                 "hugeicons-wedding", "hugeicons-baby-01"]
+    static let suggestedIcons = ["💰", "☂️", "🏠", "🚗", "🏍️", "🧳", "🎓", "💻", "📱", "💍", "👶"]
+        .map(IconCatalog.emojiName)
 
     /// Stable across launches: the same id is stored in the database.
     var id = UUID()
     var name: String
-    /// Asset name from `IconCatalog` ("hugeicons-car-01").
+    /// Asset ID chosen from the icon catalog.
     var icon: String
     var saved: Double
     var target: Double

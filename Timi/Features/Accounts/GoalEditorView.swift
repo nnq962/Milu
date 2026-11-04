@@ -35,6 +35,11 @@ struct GoalEditorView: View {
         Calendar.current.date(byAdding: .month, value: 6, to: .now) ?? .now
     }
 
+    /// A previously saved goal shows its equivalent illustration without rewriting its stored ID on edit.
+    private var pickerIcon: Binding<String> {
+        Binding(get: { GoalArtwork.name(for: icon) }, set: { icon = $0 })
+    }
+
     private static var tomorrow: Date {
         Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: .now)) ?? .now
     }
@@ -96,7 +101,8 @@ struct GoalEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                GoalPicturePicker(selection: $icon, suggestions: SavingsGoal.suggestedIcons)
+                IconQuickPicker(selection: pickerIcon, suggestions: SavingsGoal.suggestedIcons,
+                                groups: IconCatalog.emojiGroups)
             }
 
             FormGroup(title: "Kế hoạch", footer: monthlyNote) {

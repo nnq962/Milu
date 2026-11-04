@@ -146,7 +146,7 @@ struct GoalDetailView: View {
     private func summary(_ goal: SavingsGoal) -> some View {
         SummaryCard(title: goal.isClosed ? "Mục tiêu" : "Đã để dành",
                     amount: goal.isClosed ? goal.target : goal.saved, icon: goal.icon, tone: .neutral,
-                    picture: Picture3D.name(for: goal.icon)) {
+                    picture: GoalArtwork.name(for: goal.icon)) {
             if goal.isClosed {
                 closedLine(goal)
                     .padding(.top, Spacing.m)

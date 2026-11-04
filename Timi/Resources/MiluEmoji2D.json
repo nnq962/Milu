@@ -1,0 +1,2001 @@
+{
+  "groups": [
+    {
+      "id": "tien-va-muc-tieu",
+      "title": "Tiền và mục tiêu",
+      "icons": [
+        {
+          "name": "milu-emoji-1fad9",
+          "title": "Hũ tiết kiệm",
+          "keywords": "ống tiền, quỹ, để dành, tiết kiệm"
+        },
+        {
+          "name": "milu-emoji-1f4b0",
+          "title": "Túi tiền",
+          "keywords": "tích lũy, quỹ, để dành"
+        },
+        {
+          "name": "milu-emoji-1fa99",
+          "title": "Đồng xu",
+          "keywords": "tiền lẻ, tiết kiệm, bỏ ống"
+        },
+        {
+          "name": "milu-emoji-1f4b5",
+          "title": "Tiền mặt",
+          "keywords": "đô la, ngoại tệ, tiền giấy"
+        },
+        {
+          "name": "milu-emoji-1f4b4",
+          "title": "Yên Nhật",
+          "keywords": "đổi tiền, ngoại tệ, du học Nhật"
+        },
+        {
+          "name": "milu-emoji-1f4b6",
+          "title": "Euro",
+          "keywords": "ngoại tệ, châu Âu, đổi tiền"
+        },
+        {
+          "name": "milu-emoji-1f4b7",
+          "title": "Bảng Anh",
+          "keywords": "ngoại tệ, du học Anh, đổi tiền"
+        },
+        {
+          "name": "milu-emoji-1f4b8",
+          "title": "Tiền bay",
+          "keywords": "chi tiêu, phát sinh, vượt ngân sách"
+        },
+        {
+          "name": "milu-emoji-1f4b3",
+          "title": "Thẻ thanh toán",
+          "keywords": "thẻ tín dụng, thẻ ghi nợ, ngân hàng"
+        },
+        {
+          "name": "milu-emoji-1f3e6",
+          "title": "Ngân hàng",
+          "keywords": "tài khoản, gửi tiết kiệm, tiền gửi"
+        },
+        {
+          "name": "milu-emoji-1f3e7",
+          "title": "Máy ATM",
+          "keywords": "rút tiền, phí rút tiền, thẻ"
+        },
+        {
+          "name": "milu-emoji-1f9fe",
+          "title": "Hóa đơn",
+          "keywords": "biên lai, chi phí, thanh toán"
+        },
+        {
+          "name": "milu-emoji-1f9ee",
+          "title": "Bàn tính",
+          "keywords": "tính toán, ngân sách, kế toán"
+        },
+        {
+          "name": "milu-emoji-1f4c8",
+          "title": "Biểu đồ tăng",
+          "keywords": "đầu tư, lợi nhuận, tăng trưởng"
+        },
+        {
+          "name": "milu-emoji-1f4c9",
+          "title": "Biểu đồ giảm",
+          "keywords": "lỗ, chứng khoán, biến động"
+        },
+        {
+          "name": "milu-emoji-1f4ca",
+          "title": "Biểu đồ cột",
+          "keywords": "thống kê, ngân sách, báo cáo"
+        },
+        {
+          "name": "milu-emoji-1f3af",
+          "title": "Mục tiêu",
+          "keywords": "kế hoạch, chỉ tiêu, tiết kiệm"
+        },
+        {
+          "name": "milu-emoji-1f3c6",
+          "title": "Cúp vàng",
+          "keywords": "thành tựu, phần thưởng, thi đấu"
+        },
+        {
+          "name": "milu-emoji-1f947",
+          "title": "Huy chương vàng",
+          "keywords": "cột mốc, giải nhất, khen thưởng"
+        },
+        {
+          "name": "milu-emoji-1f381",
+          "title": "Quà tặng",
+          "keywords": "sinh nhật, biếu tặng, quà"
+        },
+        {
+          "name": "milu-emoji-1f9e7",
+          "title": "Lì xì",
+          "keywords": "Tết, mừng tuổi, tiền mừng"
+        },
+        {
+          "name": "milu-emoji-1f48e",
+          "title": "Đá quý",
+          "keywords": "trang sức, kim cương, tài sản"
+        },
+        {
+          "name": "milu-emoji-2696",
+          "title": "Cán cân",
+          "keywords": "pháp lý, cân đối, lệ phí"
+        },
+        {
+          "name": "milu-emoji-1f512",
+          "title": "Ổ khóa",
+          "keywords": "quỹ dự phòng, an toàn, bảo mật"
+        },
+        {
+          "name": "milu-emoji-2602",
+          "title": "Ô dự phòng",
+          "keywords": "quỹ khẩn cấp, bảo hiểm, ngày mưa"
+        },
+        {
+          "name": "milu-emoji-1f437",
+          "title": "Heo tiết kiệm",
+          "keywords": "heo đất, lợn, góp tiền"
+        },
+        {
+          "name": "milu-emoji-1f4c5",
+          "title": "Lịch",
+          "keywords": "kỳ hạn, trả góp, hàng tháng"
+        },
+        {
+          "name": "milu-emoji-23f3",
+          "title": "Đồng hồ cát",
+          "keywords": "mục tiêu dài hạn, thời hạn, dành dụm"
+        },
+        {
+          "name": "milu-emoji-1f91d",
+          "title": "Bắt tay",
+          "keywords": "hợp đồng, thỏa thuận, hợp tác"
+        },
+        {
+          "name": "milu-emoji-1f3c5",
+          "title": "Huy chương",
+          "keywords": "kỷ niệm, thể thao, thưởng"
+        },
+        {
+          "name": "milu-emoji-1f680",
+          "title": "Mục tiêu lớn",
+          "keywords": "tên lửa, ước mơ, khởi nghiệp, mục tiêu dài hạn"
+        }
+      ]
+    },
+    {
+      "id": "an-uong",
+      "title": "Ăn uống",
+      "icons": [
+        {
+          "name": "milu-emoji-1f35a",
+          "title": "Cơm trắng",
+          "keywords": "bữa trưa, suất cơm, cơm nhà"
+        },
+        {
+          "name": "milu-emoji-1f35c",
+          "title": "Mì nước",
+          "keywords": "phở, bún, hủ tiếu, mì gói"
+        },
+        {
+          "name": "milu-emoji-1f372",
+          "title": "Nồi thức ăn",
+          "keywords": "lẩu, canh, bữa tối"
+        },
+        {
+          "name": "milu-emoji-1f958",
+          "title": "Chảo thức ăn",
+          "keywords": "món nóng, quán ăn, cơm tối"
+        },
+        {
+          "name": "milu-emoji-1f371",
+          "title": "Cơm hộp",
+          "keywords": "bữa trưa, văn phòng, mang đi"
+        },
+        {
+          "name": "milu-emoji-1f957",
+          "title": "Rau trộn",
+          "keywords": "salad, ăn chay, ăn lành mạnh"
+        },
+        {
+          "name": "milu-emoji-1f956",
+          "title": "Bánh mì dài",
+          "keywords": "bánh mì, tiệm bánh, ăn sáng"
+        },
+        {
+          "name": "milu-emoji-1f35e",
+          "title": "Bánh mì lát",
+          "keywords": "sandwich, bữa sáng, bơ sữa"
+        },
+        {
+          "name": "milu-emoji-1f950",
+          "title": "Bánh sừng bò",
+          "keywords": "croissant, tiệm bánh, ăn sáng"
+        },
+        {
+          "name": "milu-emoji-1f96a",
+          "title": "Bánh mì kẹp",
+          "keywords": "sandwich, ăn nhanh, bữa phụ"
+        },
+        {
+          "name": "milu-emoji-1f354",
+          "title": "Hamburger",
+          "keywords": "đồ ăn nhanh, bánh kẹp, burger"
+        },
+        {
+          "name": "milu-emoji-1f35f",
+          "title": "Khoai tây chiên",
+          "keywords": "ăn vặt, đồ ăn nhanh, khoai chiên"
+        },
+        {
+          "name": "milu-emoji-1f355",
+          "title": "Pizza",
+          "keywords": "bánh pizza, liên hoan, gọi món"
+        },
+        {
+          "name": "milu-emoji-1f35d",
+          "title": "Mì Ý",
+          "keywords": "pasta, nhà hàng, spaghetti"
+        },
+        {
+          "name": "milu-emoji-1f363",
+          "title": "Sushi",
+          "keywords": "đồ Nhật, cá hồi, nhà hàng"
+        },
+        {
+          "name": "milu-emoji-1f95f",
+          "title": "Há cảo",
+          "keywords": "dim sum, sủi cảo, đồ hấp"
+        },
+        {
+          "name": "milu-emoji-1f364",
+          "title": "Tôm chiên",
+          "keywords": "hải sản, tôm, tempura"
+        },
+        {
+          "name": "milu-emoji-1f980",
+          "title": "Cua",
+          "keywords": "hải sản, chợ cá, cua biển"
+        },
+        {
+          "name": "milu-emoji-1f990",
+          "title": "Tôm",
+          "keywords": "hải sản, chợ, tôm tươi"
+        },
+        {
+          "name": "milu-emoji-1f969",
+          "title": "Thịt bò",
+          "keywords": "thịt tươi, bít tết, thực phẩm"
+        },
+        {
+          "name": "milu-emoji-1f357",
+          "title": "Đùi gà",
+          "keywords": "gà rán, bữa ăn, gia cầm"
+        },
+        {
+          "name": "milu-emoji-1f95a",
+          "title": "Trứng",
+          "keywords": "đi chợ, bữa sáng, thực phẩm"
+        },
+        {
+          "name": "milu-emoji-1f373",
+          "title": "Trứng ốp la",
+          "keywords": "bữa sáng, ăn sáng, đồ chiên"
+        },
+        {
+          "name": "milu-emoji-1f9c0",
+          "title": "Phô mai",
+          "keywords": "sữa, thực phẩm, ăn nhẹ"
+        },
+        {
+          "name": "milu-emoji-1f966",
+          "title": "Bông cải",
+          "keywords": "rau củ, súp lơ, đi chợ"
+        },
+        {
+          "name": "milu-emoji-1f955",
+          "title": "Cà rốt",
+          "keywords": "rau củ, thực phẩm, chợ"
+        },
+        {
+          "name": "milu-emoji-1f33d",
+          "title": "Bắp ngô",
+          "keywords": "rau củ, ngô ngọt, đi chợ"
+        },
+        {
+          "name": "milu-emoji-1f344",
+          "title": "Nấm",
+          "keywords": "ăn chay, thực phẩm, rau củ"
+        },
+        {
+          "name": "milu-emoji-1f345",
+          "title": "Cà chua",
+          "keywords": "rau quả, thực phẩm, đi chợ"
+        },
+        {
+          "name": "milu-emoji-1f951",
+          "title": "Bơ",
+          "keywords": "trái cây, sinh tố, quả bơ"
+        },
+        {
+          "name": "milu-emoji-1f34e",
+          "title": "Táo đỏ",
+          "keywords": "hoa quả, trái cây, ăn nhẹ"
+        },
+        {
+          "name": "milu-emoji-1f34c",
+          "title": "Chuối",
+          "keywords": "trái cây, hoa quả, ăn nhẹ"
+        },
+        {
+          "name": "milu-emoji-1f34a",
+          "title": "Cam quýt",
+          "keywords": "trái cây, nước ép, hoa quả"
+        },
+        {
+          "name": "milu-emoji-1f349",
+          "title": "Dưa hấu",
+          "keywords": "trái cây, hoa quả, ăn nhẹ"
+        },
+        {
+          "name": "milu-emoji-1f353",
+          "title": "Dâu tây",
+          "keywords": "hoa quả, trái cây, tráng miệng"
+        },
+        {
+          "name": "milu-emoji-1f347",
+          "title": "Nho",
+          "keywords": "hoa quả, trái cây, tráng miệng"
+        },
+        {
+          "name": "milu-emoji-1f34d",
+          "title": "Dứa",
+          "keywords": "thơm, khóm, trái cây"
+        },
+        {
+          "name": "milu-emoji-1f96d",
+          "title": "Xoài",
+          "keywords": "hoa quả, trái cây, ăn nhẹ"
+        },
+        {
+          "name": "milu-emoji-1f965",
+          "title": "Dừa",
+          "keywords": "trái cây, nước dừa, giải khát"
+        },
+        {
+          "name": "milu-emoji-2615",
+          "title": "Cà phê",
+          "keywords": "cafe, đồ uống, quán nước"
+        },
+        {
+          "name": "milu-emoji-1f375",
+          "title": "Trà nóng",
+          "keywords": "chè, trà xanh, đồ uống"
+        },
+        {
+          "name": "milu-emoji-1f9cb",
+          "title": "Trà sữa",
+          "keywords": "trân châu, đồ uống, ăn vặt"
+        },
+        {
+          "name": "milu-emoji-1f9c3",
+          "title": "Nước ép hộp",
+          "keywords": "nước trái cây, giải khát, đồ uống"
+        },
+        {
+          "name": "milu-emoji-1f964",
+          "title": "Nước giải khát",
+          "keywords": "nước ngọt, đồ uống, mang đi"
+        },
+        {
+          "name": "milu-emoji-1f95b",
+          "title": "Ly sữa",
+          "keywords": "sữa tươi, bữa sáng, đồ uống"
+        },
+        {
+          "name": "milu-emoji-1f37a",
+          "title": "Bia",
+          "keywords": "đồ uống, gặp bạn, liên hoan"
+        },
+        {
+          "name": "milu-emoji-1f377",
+          "title": "Rượu vang",
+          "keywords": "đồ uống, nhà hàng, tiệc"
+        },
+        {
+          "name": "milu-emoji-1f378",
+          "title": "Cocktail",
+          "keywords": "quầy bar, đồ uống, tiệc"
+        },
+        {
+          "name": "milu-emoji-1f9ca",
+          "title": "Đá lạnh",
+          "keywords": "giải khát, đồ uống, nước đá"
+        },
+        {
+          "name": "milu-emoji-1f366",
+          "title": "Kem ốc quế",
+          "keywords": "ăn vặt, tráng miệng, đồ ngọt"
+        },
+        {
+          "name": "milu-emoji-1f370",
+          "title": "Bánh kem",
+          "keywords": "tráng miệng, tiệm bánh, đồ ngọt"
+        },
+        {
+          "name": "milu-emoji-1f382",
+          "title": "Bánh sinh nhật",
+          "keywords": "sinh nhật, tiệc, bánh kem"
+        },
+        {
+          "name": "milu-emoji-1f369",
+          "title": "Bánh vòng",
+          "keywords": "donut, tiệm bánh, ăn vặt"
+        },
+        {
+          "name": "milu-emoji-1f36b",
+          "title": "Sô cô la",
+          "keywords": "đồ ngọt, quà, chocolate"
+        },
+        {
+          "name": "milu-emoji-1f37f",
+          "title": "Bắp rang",
+          "keywords": "xem phim, ăn vặt, bỏng ngô"
+        },
+        {
+          "name": "milu-emoji-1f962",
+          "title": "Đũa",
+          "keywords": "dụng cụ ăn, nhà hàng, đồ bếp"
+        },
+        {
+          "name": "milu-emoji-1f37d",
+          "title": "Bộ đồ ăn",
+          "keywords": "ăn ngoài, nhà hàng, bữa tối"
+        }
+      ]
+    },
+    {
+      "id": "di-chuyen",
+      "title": "Di chuyển",
+      "icons": [
+        {
+          "name": "milu-emoji-1f697",
+          "title": "Ô tô",
+          "keywords": "mua xe, xe hơi, xe cá nhân"
+        },
+        {
+          "name": "milu-emoji-1f695",
+          "title": "Taxi",
+          "keywords": "gọi xe, đi lại, cước xe"
+        },
+        {
+          "name": "milu-emoji-1f699",
+          "title": "Xe SUV",
+          "keywords": "xe gia đình, mua ô tô, ô tô"
+        },
+        {
+          "name": "milu-emoji-1f6fb",
+          "title": "Xe bán tải",
+          "keywords": "pickup, ô tô, chở hàng"
+        },
+        {
+          "name": "milu-emoji-1f690",
+          "title": "Xe khách nhỏ",
+          "keywords": "xe đưa đón, xe van, đi lại"
+        },
+        {
+          "name": "milu-emoji-1f68c",
+          "title": "Xe buýt",
+          "keywords": "vé tháng, công cộng, xe bus"
+        },
+        {
+          "name": "milu-emoji-1f68e",
+          "title": "Xe buýt điện",
+          "keywords": "phương tiện công cộng, vé xe, xe điện"
+        },
+        {
+          "name": "milu-emoji-1f69a",
+          "title": "Xe tải",
+          "keywords": "giao hàng, vận chuyển, chuyển nhà"
+        },
+        {
+          "name": "milu-emoji-1f69b",
+          "title": "Xe đầu kéo",
+          "keywords": "vận tải, logistics, chở hàng"
+        },
+        {
+          "name": "milu-emoji-1f3cd",
+          "title": "Xe máy",
+          "keywords": "xăng xe, mua xe, mô tô"
+        },
+        {
+          "name": "milu-emoji-1f6f5",
+          "title": "Xe tay ga",
+          "keywords": "xe máy, đi làm, đi lại"
+        },
+        {
+          "name": "milu-emoji-1f6b2",
+          "title": "Xe đạp",
+          "keywords": "đi lại, mua xe, đạp xe"
+        },
+        {
+          "name": "milu-emoji-1f6f4",
+          "title": "Xe trượt",
+          "keywords": "scooter, đi lại, xe trẻ em"
+        },
+        {
+          "name": "milu-emoji-1f686",
+          "title": "Tàu hỏa",
+          "keywords": "vé tàu, đường sắt, về quê"
+        },
+        {
+          "name": "milu-emoji-1f687",
+          "title": "Tàu điện ngầm",
+          "keywords": "metro, giao thông công cộng, vé tháng"
+        },
+        {
+          "name": "milu-emoji-1f68a",
+          "title": "Tàu điện",
+          "keywords": "đường sắt đô thị, metro, đi làm"
+        },
+        {
+          "name": "milu-emoji-1f684",
+          "title": "Tàu cao tốc",
+          "keywords": "vé tàu, du lịch, đường sắt"
+        },
+        {
+          "name": "milu-emoji-1f6e5",
+          "title": "Ca nô",
+          "keywords": "tàu thuyền, đi biển, thuê tàu"
+        },
+        {
+          "name": "milu-emoji-26f4",
+          "title": "Phà",
+          "keywords": "qua sông, vé phà, đi lại"
+        },
+        {
+          "name": "milu-emoji-2708",
+          "title": "Máy bay",
+          "keywords": "vé máy bay, chuyến bay, hàng không"
+        },
+        {
+          "name": "milu-emoji-1f6eb",
+          "title": "Khởi hành",
+          "keywords": "ra sân bay, chiều đi, chuyến bay"
+        },
+        {
+          "name": "milu-emoji-1f6ec",
+          "title": "Hạ cánh",
+          "keywords": "đón sân bay, chiều về, chuyến bay"
+        },
+        {
+          "name": "milu-emoji-26fd",
+          "title": "Trạm xăng",
+          "keywords": "đổ xăng, nhiên liệu, dầu"
+        },
+        {
+          "name": "milu-emoji-1f17f",
+          "title": "Chỗ đỗ xe",
+          "keywords": "gửi xe, bãi xe, phí đỗ"
+        },
+        {
+          "name": "milu-emoji-1f6de",
+          "title": "Lốp xe",
+          "keywords": "bảo dưỡng xe, thay lốp, bánh xe"
+        },
+        {
+          "name": "milu-emoji-1f6a6",
+          "title": "Đèn giao thông",
+          "keywords": "đi đường, giao thông, lệ phí"
+        },
+        {
+          "name": "milu-emoji-1f6e3",
+          "title": "Đường cao tốc",
+          "keywords": "phí đường bộ, cầu đường, thu phí"
+        },
+        {
+          "name": "milu-emoji-1f6e4",
+          "title": "Đường ray",
+          "keywords": "đường sắt, tàu hỏa, ga tàu"
+        },
+        {
+          "name": "milu-emoji-26f5",
+          "title": "Thuyền buồm",
+          "keywords": "du thuyền, đi thuyền, đường thủy"
+        }
+      ]
+    },
+    {
+      "id": "du-lich",
+      "title": "Du lịch",
+      "icons": [
+        {
+          "name": "milu-emoji-1f9f3",
+          "title": "Vali",
+          "keywords": "du lịch, hành lý, nghỉ phép"
+        },
+        {
+          "name": "milu-emoji-1f392",
+          "title": "Ba lô",
+          "keywords": "đi phượt, hành lý, dã ngoại"
+        },
+        {
+          "name": "milu-emoji-1f5fa",
+          "title": "Bản đồ",
+          "keywords": "hành trình, chuyến đi, khám phá"
+        },
+        {
+          "name": "milu-emoji-1f9ed",
+          "title": "La bàn",
+          "keywords": "phượt, dã ngoại, khám phá"
+        },
+        {
+          "name": "milu-emoji-1f4cd",
+          "title": "Điểm đến",
+          "keywords": "địa điểm, điểm hẹn, lịch trình"
+        },
+        {
+          "name": "milu-emoji-1f3ab",
+          "title": "Vé",
+          "keywords": "vé tham quan, vé vào cửa, vé xe"
+        },
+        {
+          "name": "milu-emoji-1f39f",
+          "title": "Vé sự kiện",
+          "keywords": "vé xem, biểu diễn, tham quan"
+        },
+        {
+          "name": "milu-emoji-1f3e8",
+          "title": "Khách sạn",
+          "keywords": "đặt phòng, lưu trú, du lịch"
+        },
+        {
+          "name": "milu-emoji-1f6ce",
+          "title": "Chuông lễ tân",
+          "keywords": "dịch vụ, khách sạn, lưu trú"
+        },
+        {
+          "name": "milu-emoji-1f3d6",
+          "title": "Bãi biển",
+          "keywords": "nghỉ mát, đi biển, Đà Nẵng"
+        },
+        {
+          "name": "milu-emoji-1f3dd",
+          "title": "Đảo",
+          "keywords": "nghỉ dưỡng, Phú Quốc, biển đảo"
+        },
+        {
+          "name": "milu-emoji-1f3d5",
+          "title": "Cắm trại",
+          "keywords": "dã ngoại, camping, du lịch"
+        },
+        {
+          "name": "milu-emoji-26fa",
+          "title": "Lều",
+          "keywords": "cắm trại, dã ngoại, thuê lều"
+        },
+        {
+          "name": "milu-emoji-1f3d4",
+          "title": "Núi tuyết",
+          "keywords": "leo núi, vùng cao, nghỉ đông"
+        },
+        {
+          "name": "milu-emoji-1f30b",
+          "title": "Núi lửa",
+          "keywords": "khám phá, thắng cảnh, du lịch"
+        },
+        {
+          "name": "milu-emoji-1f3dc",
+          "title": "Sa mạc",
+          "keywords": "khám phá, du lịch, cảnh quan"
+        },
+        {
+          "name": "milu-emoji-1f3de",
+          "title": "Vườn quốc gia",
+          "keywords": "thiên nhiên, tham quan, dã ngoại"
+        },
+        {
+          "name": "milu-emoji-1f305",
+          "title": "Bình minh",
+          "keywords": "nghỉ dưỡng, cảnh đẹp, đi biển"
+        },
+        {
+          "name": "milu-emoji-1f309",
+          "title": "Cầu về đêm",
+          "keywords": "du lịch, thành phố, thắng cảnh"
+        },
+        {
+          "name": "milu-emoji-1f3d9",
+          "title": "Thành phố",
+          "keywords": "du lịch đô thị, kỳ nghỉ, tham quan"
+        },
+        {
+          "name": "milu-emoji-1f3f0",
+          "title": "Lâu đài",
+          "keywords": "di tích, tham quan, bảo tàng"
+        },
+        {
+          "name": "milu-emoji-1f6d5",
+          "title": "Đền",
+          "keywords": "lễ hội, du lịch tâm linh, tham quan"
+        },
+        {
+          "name": "milu-emoji-26e9",
+          "title": "Cổng đền",
+          "keywords": "tham quan, hành hương, du lịch"
+        },
+        {
+          "name": "milu-emoji-26f1",
+          "title": "Dù biển",
+          "keywords": "nghỉ mát, thuê ghế, đi biển"
+        },
+        {
+          "name": "milu-emoji-1f4f7",
+          "title": "Máy ảnh",
+          "keywords": "chụp ảnh, ghi hình, du lịch"
+        },
+        {
+          "name": "milu-emoji-1f6c2",
+          "title": "Kiểm tra hộ chiếu",
+          "keywords": "giấy tờ, hộ chiếu, visa"
+        },
+        {
+          "name": "milu-emoji-1f6c3",
+          "title": "Hải quan",
+          "keywords": "nhập cảnh, du lịch, thủ tục"
+        }
+      ]
+    },
+    {
+      "id": "gia-dinh",
+      "title": "Gia đình",
+      "icons": [
+        {
+          "name": "milu-emoji-1f3e0",
+          "title": "Ngôi nhà",
+          "keywords": "gia đình, nhà ở, tiền nhà"
+        },
+        {
+          "name": "milu-emoji-1f3e1",
+          "title": "Nhà có vườn",
+          "keywords": "mua nhà, nhà đất, sân vườn"
+        },
+        {
+          "name": "milu-emoji-1f476",
+          "title": "Em bé",
+          "keywords": "trẻ sơ sinh, con nhỏ, chăm con"
+        },
+        {
+          "name": "milu-emoji-1f37c",
+          "title": "Bình sữa",
+          "keywords": "sữa bột, đồ em bé, nuôi con"
+        },
+        {
+          "name": "milu-emoji-1f9f8",
+          "title": "Gấu bông",
+          "keywords": "đồ chơi, em bé, quà tặng"
+        },
+        {
+          "name": "milu-emoji-1fa81",
+          "title": "Diều",
+          "keywords": "đồ chơi, gia đình, dã ngoại"
+        },
+        {
+          "name": "milu-emoji-1f388",
+          "title": "Bóng bay",
+          "keywords": "sinh nhật, trang trí, trẻ em"
+        },
+        {
+          "name": "milu-emoji-1fa80",
+          "title": "Yo-yo",
+          "keywords": "đồ chơi, trẻ em, giải trí"
+        },
+        {
+          "name": "milu-emoji-1f9d2",
+          "title": "Trẻ em",
+          "keywords": "con cái, chăm con, học phí"
+        },
+        {
+          "name": "milu-emoji-1f463",
+          "title": "Dấu chân",
+          "keywords": "con nhỏ, tập đi, kỷ niệm gia đình"
+        },
+        {
+          "name": "milu-emoji-1f475",
+          "title": "Bà",
+          "keywords": "phụng dưỡng, ông bà, người thân"
+        },
+        {
+          "name": "milu-emoji-1f474",
+          "title": "Ông",
+          "keywords": "phụng dưỡng, ông bà, người thân"
+        },
+        {
+          "name": "milu-emoji-1f470",
+          "title": "Cô dâu",
+          "keywords": "cưới hỏi, váy cưới, hôn lễ"
+        },
+        {
+          "name": "milu-emoji-1f48d",
+          "title": "Nhẫn",
+          "keywords": "đính hôn, cưới hỏi, trang sức"
+        },
+        {
+          "name": "milu-emoji-1f492",
+          "title": "Lễ cưới",
+          "keywords": "đám cưới, hôn lễ, tiệc cưới"
+        },
+        {
+          "name": "milu-emoji-1f490",
+          "title": "Bó hoa",
+          "keywords": "tặng hoa, kỷ niệm, chúc mừng"
+        },
+        {
+          "name": "milu-emoji-1f48c",
+          "title": "Thư tình",
+          "keywords": "hẹn hò, kỷ niệm, quà tặng"
+        },
+        {
+          "name": "milu-emoji-2764",
+          "title": "Trái tim",
+          "keywords": "yêu thương, người thân, hẹn hò"
+        },
+        {
+          "name": "milu-emoji-1f389",
+          "title": "Chúc mừng",
+          "keywords": "tiệc, liên hoan, sự kiện"
+        },
+        {
+          "name": "milu-emoji-1fa85",
+          "title": "Piñata",
+          "keywords": "tiệc trẻ em, sinh nhật, đồ chơi"
+        },
+        {
+          "name": "milu-emoji-1f6dd",
+          "title": "Cầu trượt",
+          "keywords": "khu vui chơi, trẻ em, gia đình"
+        },
+        {
+          "name": "milu-emoji-1faf6",
+          "title": "Bàn tay trái tim",
+          "keywords": "quyên góp, ủng hộ, yêu thương"
+        },
+        {
+          "name": "milu-emoji-1f3d8",
+          "title": "Khu dân cư",
+          "keywords": "gia đình, nhà cửa, hàng xóm"
+        }
+      ]
+    },
+    {
+      "id": "gia-dung",
+      "title": "Nhà cửa và đồ dùng",
+      "icons": [
+        {
+          "name": "milu-emoji-1f6cb",
+          "title": "Ghế sofa",
+          "keywords": "nội thất, phòng khách, đồ gia dụng"
+        },
+        {
+          "name": "milu-emoji-1f6cf",
+          "title": "Giường",
+          "keywords": "phòng ngủ, nội thất, nệm"
+        },
+        {
+          "name": "milu-emoji-1fa91",
+          "title": "Ghế",
+          "keywords": "nội thất, phòng ăn, bàn ghế"
+        },
+        {
+          "name": "milu-emoji-1fa9e",
+          "title": "Gương",
+          "keywords": "phòng tắm, nội thất, trang trí"
+        },
+        {
+          "name": "milu-emoji-1f6aa",
+          "title": "Cửa",
+          "keywords": "sửa nhà, nội thất, thay cửa"
+        },
+        {
+          "name": "milu-emoji-1fa9f",
+          "title": "Cửa sổ",
+          "keywords": "sửa nhà, nội thất, rèm cửa"
+        },
+        {
+          "name": "milu-emoji-1f6bf",
+          "title": "Vòi sen",
+          "keywords": "tiền nước, phòng tắm, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1f6c1",
+          "title": "Bồn tắm",
+          "keywords": "phòng tắm, gia dụng, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1f6bd",
+          "title": "Bồn cầu",
+          "keywords": "vệ sinh, phòng tắm, sửa nhà"
+        },
+        {
+          "name": "milu-emoji-1f9fb",
+          "title": "Giấy vệ sinh",
+          "keywords": "đồ thiết yếu, siêu thị, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1f9f4",
+          "title": "Chai mỹ phẩm",
+          "keywords": "dầu gội, sữa tắm, đồ dùng"
+        },
+        {
+          "name": "milu-emoji-1f9fc",
+          "title": "Xà phòng",
+          "keywords": "giặt giũ, vệ sinh, đồ dùng"
+        },
+        {
+          "name": "milu-emoji-1faa5",
+          "title": "Bàn chải răng",
+          "keywords": "chăm sóc răng, đồ dùng, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1f9fd",
+          "title": "Miếng bọt biển",
+          "keywords": "rửa bát, dọn nhà, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1f9f9",
+          "title": "Chổi",
+          "keywords": "dọn nhà, làm sạch, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1faa3",
+          "title": "Xô",
+          "keywords": "dọn nhà, lau sàn, vệ sinh"
+        },
+        {
+          "name": "milu-emoji-1f9fa",
+          "title": "Giỏ đồ",
+          "keywords": "giặt giũ, quần áo, gia dụng"
+        },
+        {
+          "name": "milu-emoji-1f9ef",
+          "title": "Bình chữa cháy",
+          "keywords": "an toàn, phòng cháy, bảo hộ"
+        },
+        {
+          "name": "milu-emoji-26a1",
+          "title": "Điện năng",
+          "keywords": "tiền điện, hóa đơn điện, năng lượng"
+        },
+        {
+          "name": "milu-emoji-1f4a1",
+          "title": "Bóng đèn",
+          "keywords": "tiền điện, chiếu sáng, điện"
+        },
+        {
+          "name": "milu-emoji-1f50c",
+          "title": "Phích điện",
+          "keywords": "tiền điện, thiết bị, điện gia dụng"
+        },
+        {
+          "name": "milu-emoji-1f50b",
+          "title": "Pin",
+          "keywords": "năng lượng, sạc, đồ điện"
+        },
+        {
+          "name": "milu-emoji-1faab",
+          "title": "Pin yếu",
+          "keywords": "sạc điện, thay pin, thiết bị"
+        },
+        {
+          "name": "milu-emoji-1f4a7",
+          "title": "Giọt nước",
+          "keywords": "tiền nước, nước sạch, hóa đơn"
+        },
+        {
+          "name": "milu-emoji-1f525",
+          "title": "Ngọn lửa",
+          "keywords": "tiền gas, nhiên liệu, bếp"
+        },
+        {
+          "name": "milu-emoji-1f5dd",
+          "title": "Chìa khóa cổ",
+          "keywords": "mua nhà, thuê nhà, bàn giao"
+        },
+        {
+          "name": "milu-emoji-1f511",
+          "title": "Chìa khóa",
+          "keywords": "tiền thuê, gửi cọc, nhà mới"
+        },
+        {
+          "name": "milu-emoji-1f6e0",
+          "title": "Bộ dụng cụ",
+          "keywords": "sửa chữa, bảo trì, thợ"
+        },
+        {
+          "name": "milu-emoji-1f527",
+          "title": "Cờ lê",
+          "keywords": "sửa chữa, bảo dưỡng, dịch vụ"
+        },
+        {
+          "name": "milu-emoji-1f528",
+          "title": "Búa",
+          "keywords": "sửa nhà, đồ nghề, xây dựng"
+        },
+        {
+          "name": "milu-emoji-1fa9b",
+          "title": "Tua vít",
+          "keywords": "dụng cụ, sửa đồ, đồ nghề"
+        },
+        {
+          "name": "milu-emoji-1fa9c",
+          "title": "Thang",
+          "keywords": "sửa nhà, bảo trì, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-1f9f1",
+          "title": "Gạch",
+          "keywords": "vật liệu, xây dựng, sửa nhà"
+        },
+        {
+          "name": "milu-emoji-1fab4",
+          "title": "Chậu cây",
+          "keywords": "trang trí, cây cảnh, nhà cửa"
+        },
+        {
+          "name": "milu-emoji-1f56f",
+          "title": "Nến",
+          "keywords": "trang trí, nến thơm, nhà cửa"
+        }
+      ]
+    },
+    {
+      "id": "suc-khoe",
+      "title": "Sức khỏe",
+      "icons": [
+        {
+          "name": "milu-emoji-1f3e5",
+          "title": "Bệnh viện",
+          "keywords": "khám bệnh, viện phí, y tế"
+        },
+        {
+          "name": "milu-emoji-1fa7a",
+          "title": "Ống nghe",
+          "keywords": "bác sĩ, khám sức khỏe, phòng khám"
+        },
+        {
+          "name": "milu-emoji-1f48a",
+          "title": "Thuốc",
+          "keywords": "nhà thuốc, đơn thuốc, dược phẩm"
+        },
+        {
+          "name": "milu-emoji-1f489",
+          "title": "Tiêm thuốc",
+          "keywords": "vắc xin, chích ngừa, y tế"
+        },
+        {
+          "name": "milu-emoji-1fa79",
+          "title": "Băng cá nhân",
+          "keywords": "sơ cứu, thuốc men, chấn thương"
+        },
+        {
+          "name": "milu-emoji-1fa7b",
+          "title": "Phim X-quang",
+          "keywords": "chụp chiếu, xét nghiệm, chẩn đoán"
+        },
+        {
+          "name": "milu-emoji-1fa7c",
+          "title": "Nạng",
+          "keywords": "phục hồi, chấn thương, hỗ trợ"
+        },
+        {
+          "name": "milu-emoji-1f9bd",
+          "title": "Xe lăn",
+          "keywords": "chăm sóc, hỗ trợ, y tế"
+        },
+        {
+          "name": "milu-emoji-1f9af",
+          "title": "Gậy dò đường",
+          "keywords": "trợ năng, hỗ trợ, chăm sóc"
+        },
+        {
+          "name": "milu-emoji-1fa78",
+          "title": "Giọt máu",
+          "keywords": "xét nghiệm, hiến máu, sức khỏe"
+        },
+        {
+          "name": "milu-emoji-1f321",
+          "title": "Nhiệt kế",
+          "keywords": "đo nhiệt độ, sốt, sức khỏe"
+        },
+        {
+          "name": "milu-emoji-1f9b7",
+          "title": "Răng",
+          "keywords": "nha khoa, niềng răng, khám răng"
+        },
+        {
+          "name": "milu-emoji-1f453",
+          "title": "Kính mắt",
+          "keywords": "đo mắt, kính cận, thị lực"
+        },
+        {
+          "name": "milu-emoji-1f441",
+          "title": "Mắt",
+          "keywords": "khám mắt, nhãn khoa, thị lực"
+        },
+        {
+          "name": "milu-emoji-1f9e0",
+          "title": "Não",
+          "keywords": "sức khỏe tinh thần, trị liệu, tâm lý"
+        },
+        {
+          "name": "milu-emoji-1fac0",
+          "title": "Trái tim giải phẫu",
+          "keywords": "tim mạch, khám bệnh, sức khỏe"
+        },
+        {
+          "name": "milu-emoji-1fac1",
+          "title": "Phổi",
+          "keywords": "hô hấp, khám bệnh, sức khỏe"
+        },
+        {
+          "name": "milu-emoji-1f442",
+          "title": "Tai",
+          "keywords": "thính lực, tai mũi họng, khám bệnh"
+        },
+        {
+          "name": "milu-emoji-1f9bb",
+          "title": "Máy trợ thính",
+          "keywords": "thính lực, chăm sóc, thiết bị y tế"
+        },
+        {
+          "name": "milu-emoji-1f9ec",
+          "title": "ADN",
+          "keywords": "xét nghiệm, di truyền, y tế"
+        },
+        {
+          "name": "milu-emoji-1f9ea",
+          "title": "Ống nghiệm",
+          "keywords": "xét nghiệm, phòng lab, kiểm tra"
+        },
+        {
+          "name": "milu-emoji-1f52c",
+          "title": "Kính hiển vi",
+          "keywords": "xét nghiệm, y tế, phòng lab"
+        },
+        {
+          "name": "milu-emoji-1f637",
+          "title": "Khẩu trang",
+          "keywords": "bảo vệ, phòng bệnh, sức khỏe"
+        },
+        {
+          "name": "milu-emoji-1f9d8",
+          "title": "Thiền",
+          "keywords": "yoga, thư giãn, sức khỏe tinh thần"
+        },
+        {
+          "name": "milu-emoji-1fa70",
+          "title": "Giày múa",
+          "keywords": "ballet, lớp múa, vận động"
+        }
+      ]
+    },
+    {
+      "id": "hoc-tap-cong-viec",
+      "title": "Học tập và công việc",
+      "icons": [
+        {
+          "name": "milu-emoji-1f393",
+          "title": "Mũ tốt nghiệp",
+          "keywords": "học phí, đại học, du học"
+        },
+        {
+          "name": "milu-emoji-1f3eb",
+          "title": "Trường học",
+          "keywords": "học phí, giáo dục, trường lớp"
+        },
+        {
+          "name": "milu-emoji-1f4da",
+          "title": "Chồng sách",
+          "keywords": "sách vở, giáo trình, nhà sách"
+        },
+        {
+          "name": "milu-emoji-1f4d6",
+          "title": "Sách mở",
+          "keywords": "đọc sách, học tập, giáo trình"
+        },
+        {
+          "name": "milu-emoji-1f4d3",
+          "title": "Sổ tay",
+          "keywords": "văn phòng phẩm, ghi chép, vở"
+        },
+        {
+          "name": "milu-emoji-1f4dd",
+          "title": "Ghi chú",
+          "keywords": "học tập, kế hoạch, văn phòng"
+        },
+        {
+          "name": "milu-emoji-270f",
+          "title": "Bút chì",
+          "keywords": "văn phòng phẩm, học sinh, bút"
+        },
+        {
+          "name": "milu-emoji-1f58a",
+          "title": "Bút bi",
+          "keywords": "bút viết, văn phòng phẩm, học tập"
+        },
+        {
+          "name": "milu-emoji-1f58d",
+          "title": "Bút sáp",
+          "keywords": "vẽ, đồ dùng học tập, mỹ thuật"
+        },
+        {
+          "name": "milu-emoji-1f4d0",
+          "title": "Ê ke",
+          "keywords": "toán học, thước, dụng cụ học tập"
+        },
+        {
+          "name": "milu-emoji-1f4cf",
+          "title": "Thước kẻ",
+          "keywords": "đo đạc, học tập, văn phòng phẩm"
+        },
+        {
+          "name": "milu-emoji-2702",
+          "title": "Kéo",
+          "keywords": "thủ công, văn phòng phẩm, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-1f4ce",
+          "title": "Kẹp giấy",
+          "keywords": "tài liệu, văn phòng phẩm, giấy tờ"
+        },
+        {
+          "name": "milu-emoji-1f587",
+          "title": "Kẹp giấy đôi",
+          "keywords": "hồ sơ, tài liệu, văn phòng"
+        },
+        {
+          "name": "milu-emoji-1f4c1",
+          "title": "Thư mục",
+          "keywords": "hồ sơ, tài liệu, lưu trữ"
+        },
+        {
+          "name": "milu-emoji-1f5c2",
+          "title": "Bìa phân loại",
+          "keywords": "hồ sơ, tài liệu, văn phòng"
+        },
+        {
+          "name": "milu-emoji-1f4cb",
+          "title": "Bảng kẹp giấy",
+          "keywords": "công việc, danh sách, kế hoạch"
+        },
+        {
+          "name": "milu-emoji-1f4d1",
+          "title": "Tài liệu đánh dấu",
+          "keywords": "hợp đồng, giấy tờ, hồ sơ"
+        },
+        {
+          "name": "milu-emoji-1f4bc",
+          "title": "Cặp công việc",
+          "keywords": "công tác, văn phòng, nghề nghiệp"
+        },
+        {
+          "name": "milu-emoji-1f3e2",
+          "title": "Văn phòng",
+          "keywords": "công ty, mặt bằng, chỗ làm"
+        },
+        {
+          "name": "milu-emoji-1f4bb",
+          "title": "Máy tính xách tay",
+          "keywords": "laptop, thiết bị, làm việc"
+        },
+        {
+          "name": "milu-emoji-1f5a5",
+          "title": "Máy tính bàn",
+          "keywords": "máy tính, thiết bị, màn hình"
+        },
+        {
+          "name": "milu-emoji-2328",
+          "title": "Bàn phím",
+          "keywords": "phụ kiện, máy tính, công nghệ"
+        },
+        {
+          "name": "milu-emoji-1f5b1",
+          "title": "Chuột máy tính",
+          "keywords": "phụ kiện, máy tính, văn phòng"
+        },
+        {
+          "name": "milu-emoji-1f5a8",
+          "title": "Máy in",
+          "keywords": "in ấn, mực in, văn phòng"
+        },
+        {
+          "name": "milu-emoji-1f4f1",
+          "title": "Điện thoại",
+          "keywords": "mua máy, cước di động, smartphone"
+        },
+        {
+          "name": "milu-emoji-1f4de",
+          "title": "Ống nghe điện thoại",
+          "keywords": "cước gọi, liên lạc, điện thoại"
+        },
+        {
+          "name": "milu-emoji-1f6dc",
+          "title": "Wi-Fi",
+          "keywords": "internet, tiền mạng, bộ phát"
+        },
+        {
+          "name": "milu-emoji-1f4e1",
+          "title": "Ăng ten",
+          "keywords": "mạng, truyền hình, viễn thông"
+        },
+        {
+          "name": "milu-emoji-1f4be",
+          "title": "Đĩa mềm",
+          "keywords": "sao lưu, lưu trữ, dữ liệu"
+        },
+        {
+          "name": "milu-emoji-1f4bf",
+          "title": "Đĩa quang",
+          "keywords": "dữ liệu, phần mềm, lưu trữ"
+        },
+        {
+          "name": "milu-emoji-2709",
+          "title": "Phong bì",
+          "keywords": "bưu điện, thư tín, cước gửi"
+        },
+        {
+          "name": "milu-emoji-1f4e6",
+          "title": "Bưu kiện",
+          "keywords": "ship, giao hàng, đóng gói"
+        },
+        {
+          "name": "milu-emoji-1f58c",
+          "title": "Cọ vẽ",
+          "keywords": "thiết kế, mỹ thuật, công việc sáng tạo"
+        }
+      ]
+    },
+    {
+      "id": "mua-sam",
+      "title": "Mua sắm",
+      "icons": [
+        {
+          "name": "milu-emoji-1f6d2",
+          "title": "Xe đẩy hàng",
+          "keywords": "siêu thị, thực phẩm, đi chợ"
+        },
+        {
+          "name": "milu-emoji-1f6cd",
+          "title": "Túi mua sắm",
+          "keywords": "shopping, cửa hàng, quần áo"
+        },
+        {
+          "name": "milu-emoji-1f3f7",
+          "title": "Nhãn giá",
+          "keywords": "giảm giá, khuyến mãi, mua hàng"
+        },
+        {
+          "name": "milu-emoji-1f380",
+          "title": "Ruy băng",
+          "keywords": "gói quà, phụ kiện, trang trí"
+        },
+        {
+          "name": "milu-emoji-1f455",
+          "title": "Áo thun",
+          "keywords": "quần áo, thời trang, áo phông"
+        },
+        {
+          "name": "milu-emoji-1f45a",
+          "title": "Áo kiểu",
+          "keywords": "quần áo, thời trang, áo nữ"
+        },
+        {
+          "name": "milu-emoji-1f456",
+          "title": "Quần jeans",
+          "keywords": "quần bò, quần áo, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f9e5",
+          "title": "Áo khoác",
+          "keywords": "quần áo, mùa đông, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f9e3",
+          "title": "Khăn quàng",
+          "keywords": "phụ kiện, mùa đông, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f9e4",
+          "title": "Găng tay",
+          "keywords": "phụ kiện, mùa đông, bảo hộ"
+        },
+        {
+          "name": "milu-emoji-1f9e6",
+          "title": "Tất",
+          "keywords": "vớ, phụ kiện, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f457",
+          "title": "Váy",
+          "keywords": "đầm, quần áo, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f454",
+          "title": "Cà vạt",
+          "keywords": "công sở, quần áo, thời trang"
+        },
+        {
+          "name": "milu-emoji-1fa73",
+          "title": "Quần short",
+          "keywords": "quần ngắn, quần áo, thể thao"
+        },
+        {
+          "name": "milu-emoji-1fa71",
+          "title": "Đồ bơi",
+          "keywords": "bơi lội, đi biển, quần áo"
+        },
+        {
+          "name": "milu-emoji-1f45f",
+          "title": "Giày thể thao",
+          "keywords": "sneaker, giày dép, chạy bộ"
+        },
+        {
+          "name": "milu-emoji-1f45e",
+          "title": "Giày da",
+          "keywords": "giày tây, công sở, giày dép"
+        },
+        {
+          "name": "milu-emoji-1f460",
+          "title": "Giày cao gót",
+          "keywords": "giày dép, thời trang, dự tiệc"
+        },
+        {
+          "name": "milu-emoji-1f461",
+          "title": "Xăng đan",
+          "keywords": "dép, giày dép, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f97e",
+          "title": "Giày leo núi",
+          "keywords": "giày dép, dã ngoại, trekking"
+        },
+        {
+          "name": "milu-emoji-1f97f",
+          "title": "Giày bệt",
+          "keywords": "giày dép, công sở, thời trang"
+        },
+        {
+          "name": "milu-emoji-1fa74",
+          "title": "Dép xỏ ngón",
+          "keywords": "dép, đi biển, giày dép"
+        },
+        {
+          "name": "milu-emoji-1f45c",
+          "title": "Túi xách",
+          "keywords": "phụ kiện, thời trang, túi da"
+        },
+        {
+          "name": "milu-emoji-1f45b",
+          "title": "Ví nhỏ",
+          "keywords": "ví tiền, phụ kiện, túi"
+        },
+        {
+          "name": "milu-emoji-1f45d",
+          "title": "Ví cầm tay",
+          "keywords": "túi, phụ kiện, dự tiệc"
+        },
+        {
+          "name": "milu-emoji-1f9e2",
+          "title": "Mũ lưỡi trai",
+          "keywords": "nón, phụ kiện, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f452",
+          "title": "Mũ vành",
+          "keywords": "nón, chống nắng, thời trang"
+        },
+        {
+          "name": "milu-emoji-1f576",
+          "title": "Kính râm",
+          "keywords": "kính mát, phụ kiện, chống nắng"
+        },
+        {
+          "name": "milu-emoji-231a",
+          "title": "Đồng hồ đeo tay",
+          "keywords": "đồng hồ, phụ kiện, smartwatch"
+        },
+        {
+          "name": "milu-emoji-1f484",
+          "title": "Son môi",
+          "keywords": "mỹ phẩm, trang điểm, làm đẹp"
+        },
+        {
+          "name": "milu-emoji-1f485",
+          "title": "Sơn móng",
+          "keywords": "làm nail, làm đẹp, tiệm móng"
+        },
+        {
+          "name": "milu-emoji-1f487",
+          "title": "Cắt tóc",
+          "keywords": "salon, làm tóc, làm đẹp"
+        },
+        {
+          "name": "milu-emoji-1f488",
+          "title": "Tiệm tóc",
+          "keywords": "cắt tóc, barber, chăm sóc"
+        },
+        {
+          "name": "milu-emoji-1fa92",
+          "title": "Dao cạo",
+          "keywords": "chăm sóc cá nhân, vệ sinh, làm đẹp"
+        },
+        {
+          "name": "milu-emoji-1f302",
+          "title": "Ô gấp",
+          "keywords": "dù, đi mưa, phụ kiện"
+        }
+      ]
+    },
+    {
+      "id": "giai-tri",
+      "title": "Giải trí",
+      "icons": [
+        {
+          "name": "milu-emoji-1f3ac",
+          "title": "Bảng quay phim",
+          "keywords": "rạp phim, điện ảnh, xem phim"
+        },
+        {
+          "name": "milu-emoji-1f4fa",
+          "title": "Tivi",
+          "keywords": "truyền hình, phim, thuê bao"
+        },
+        {
+          "name": "milu-emoji-1f4fd",
+          "title": "Máy chiếu phim",
+          "keywords": "điện ảnh, rạp phim, buổi chiếu"
+        },
+        {
+          "name": "milu-emoji-1f4fb",
+          "title": "Radio",
+          "keywords": "âm nhạc, phát thanh, thiết bị"
+        },
+        {
+          "name": "milu-emoji-1f3a7",
+          "title": "Tai nghe",
+          "keywords": "âm nhạc, phụ kiện, nghe nhạc"
+        },
+        {
+          "name": "milu-emoji-1f3a4",
+          "title": "Micro",
+          "keywords": "karaoke, ca hát, biểu diễn"
+        },
+        {
+          "name": "milu-emoji-1f3b5",
+          "title": "Nốt nhạc",
+          "keywords": "âm nhạc, nghe nhạc, thuê bao"
+        },
+        {
+          "name": "milu-emoji-1f3bc",
+          "title": "Bản nhạc",
+          "keywords": "âm nhạc, học nhạc, nhạc cụ"
+        },
+        {
+          "name": "milu-emoji-1f3b9",
+          "title": "Đàn phím",
+          "keywords": "piano, nhạc cụ, học nhạc"
+        },
+        {
+          "name": "milu-emoji-1f3b8",
+          "title": "Đàn guitar",
+          "keywords": "nhạc cụ, ban nhạc, học đàn"
+        },
+        {
+          "name": "milu-emoji-1f3bb",
+          "title": "Đàn violin",
+          "keywords": "vĩ cầm, nhạc cụ, học đàn"
+        },
+        {
+          "name": "milu-emoji-1f941",
+          "title": "Trống",
+          "keywords": "bộ gõ, nhạc cụ, ban nhạc"
+        },
+        {
+          "name": "milu-emoji-1f3b7",
+          "title": "Kèn saxophone",
+          "keywords": "nhạc jazz, nhạc cụ, biểu diễn"
+        },
+        {
+          "name": "milu-emoji-1f3ba",
+          "title": "Kèn trumpet",
+          "keywords": "nhạc cụ, biểu diễn, học nhạc"
+        },
+        {
+          "name": "milu-emoji-1fa95",
+          "title": "Đàn banjo",
+          "keywords": "nhạc cụ, học đàn, biểu diễn"
+        },
+        {
+          "name": "milu-emoji-1f3ad",
+          "title": "Sân khấu",
+          "keywords": "kịch, biểu diễn, vé xem"
+        },
+        {
+          "name": "milu-emoji-1f3a8",
+          "title": "Bảng màu",
+          "keywords": "mỹ thuật, vẽ, sở thích"
+        },
+        {
+          "name": "milu-emoji-1f5bc",
+          "title": "Tranh đóng khung",
+          "keywords": "triển lãm, nghệ thuật, trang trí"
+        },
+        {
+          "name": "milu-emoji-1f3ae",
+          "title": "Tay cầm chơi game",
+          "keywords": "trò chơi, máy chơi game, giải trí"
+        },
+        {
+          "name": "milu-emoji-1f579",
+          "title": "Cần điều khiển",
+          "keywords": "trò chơi điện tử, game, arcade"
+        },
+        {
+          "name": "milu-emoji-1f3b2",
+          "title": "Xúc xắc",
+          "keywords": "board game, trò chơi, bạn bè"
+        },
+        {
+          "name": "milu-emoji-265f",
+          "title": "Quân cờ",
+          "keywords": "cờ vua, trò chơi, câu lạc bộ"
+        },
+        {
+          "name": "milu-emoji-1f9e9",
+          "title": "Mảnh ghép",
+          "keywords": "xếp hình, đồ chơi, giải đố"
+        },
+        {
+          "name": "milu-emoji-1f0cf",
+          "title": "Lá bài Joker",
+          "keywords": "bài lá, trò chơi, giải trí"
+        },
+        {
+          "name": "milu-emoji-1f3b3",
+          "title": "Bowling",
+          "keywords": "ném bóng, thể thao, giải trí"
+        },
+        {
+          "name": "milu-emoji-1f3a2",
+          "title": "Tàu lượn",
+          "keywords": "công viên, khu vui chơi, trò chơi"
+        },
+        {
+          "name": "milu-emoji-1f3a1",
+          "title": "Vòng đu quay",
+          "keywords": "công viên, khu vui chơi, vé"
+        },
+        {
+          "name": "milu-emoji-1f3a0",
+          "title": "Đu quay ngựa",
+          "keywords": "khu vui chơi, trẻ em, công viên"
+        },
+        {
+          "name": "milu-emoji-1f3aa",
+          "title": "Rạp xiếc",
+          "keywords": "biểu diễn, vé xem, thiếu nhi"
+        },
+        {
+          "name": "milu-emoji-1f386",
+          "title": "Pháo hoa",
+          "keywords": "lễ hội, sự kiện, biểu diễn"
+        },
+        {
+          "name": "milu-emoji-1faa9",
+          "title": "Quả cầu disco",
+          "keywords": "khiêu vũ, tiệc, âm nhạc"
+        }
+      ]
+    },
+    {
+      "id": "the-thao",
+      "title": "Thể thao",
+      "icons": [
+        {
+          "name": "milu-emoji-26bd",
+          "title": "Bóng đá",
+          "keywords": "sân bóng, câu lạc bộ, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f3c0",
+          "title": "Bóng rổ",
+          "keywords": "sân bóng, thi đấu, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f3d0",
+          "title": "Bóng chuyền",
+          "keywords": "bãi biển, sân tập, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f3c8",
+          "title": "Bóng bầu dục Mỹ",
+          "keywords": "thi đấu, thể thao, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-1f3c9",
+          "title": "Bóng bầu dục",
+          "keywords": "rugby, thể thao, thi đấu"
+        },
+        {
+          "name": "milu-emoji-1f3be",
+          "title": "Quần vợt",
+          "keywords": "tennis, sân tập, vợt"
+        },
+        {
+          "name": "milu-emoji-1f3f8",
+          "title": "Cầu lông",
+          "keywords": "sân cầu, vợt, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f3d3",
+          "title": "Bóng bàn",
+          "keywords": "vợt, bàn bóng, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f3cf",
+          "title": "Bóng gậy",
+          "keywords": "cricket, thi đấu, thể thao"
+        },
+        {
+          "name": "milu-emoji-26be",
+          "title": "Bóng chày",
+          "keywords": "sân tập, thi đấu, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f94e",
+          "title": "Bóng mềm",
+          "keywords": "softball, sân tập, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f94a",
+          "title": "Găng đấm bốc",
+          "keywords": "boxing, võ, tập luyện"
+        },
+        {
+          "name": "milu-emoji-1f94b",
+          "title": "Võ phục",
+          "keywords": "võ thuật, karate, lớp võ"
+        },
+        {
+          "name": "milu-emoji-1f3cb",
+          "title": "Nâng tạ",
+          "keywords": "gym, phòng tập, thể hình"
+        },
+        {
+          "name": "milu-emoji-1f3c3",
+          "title": "Chạy bộ",
+          "keywords": "giải chạy, marathon, tập luyện"
+        },
+        {
+          "name": "milu-emoji-1f3ca",
+          "title": "Bơi lội",
+          "keywords": "hồ bơi, học bơi, tập luyện"
+        },
+        {
+          "name": "milu-emoji-1f3c4",
+          "title": "Lướt sóng",
+          "keywords": "biển, thể thao nước, du lịch"
+        },
+        {
+          "name": "milu-emoji-1f6a3",
+          "title": "Chèo thuyền",
+          "keywords": "chèo xuồng, thể thao nước, dã ngoại"
+        },
+        {
+          "name": "milu-emoji-1f3f9",
+          "title": "Cung tên",
+          "keywords": "bắn cung, thể thao, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-26f3",
+          "title": "Gôn",
+          "keywords": "golf, sân tập, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-26f8",
+          "title": "Trượt băng",
+          "keywords": "sân băng, giày trượt, thể thao"
+        },
+        {
+          "name": "milu-emoji-1f6fc",
+          "title": "Giày trượt patin",
+          "keywords": "trượt patin, thể thao, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-1f6f9",
+          "title": "Ván trượt",
+          "keywords": "skateboard, thể thao, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-1f3c2",
+          "title": "Trượt tuyết",
+          "keywords": "ván tuyết, thể thao, nghỉ đông"
+        },
+        {
+          "name": "milu-emoji-1f3bf",
+          "title": "Ván trượt tuyết",
+          "keywords": "ski, nghỉ đông, dụng cụ"
+        },
+        {
+          "name": "milu-emoji-1f3a3",
+          "title": "Câu cá",
+          "keywords": "cần câu, dã ngoại, sở thích"
+        },
+        {
+          "name": "milu-emoji-1f93f",
+          "title": "Kính lặn",
+          "keywords": "lặn biển, ống thở, thể thao nước"
+        },
+        {
+          "name": "milu-emoji-1f938",
+          "title": "Thể dục dụng cụ",
+          "keywords": "tập thể dục, câu lạc bộ, tập luyện"
+        }
+      ]
+    },
+    {
+      "id": "thien-nhien-thu-cung",
+      "title": "Thiên nhiên và thú cưng",
+      "icons": [
+        {
+          "name": "milu-emoji-1f436",
+          "title": "Chó cưng",
+          "keywords": "cún, thú cưng, thức ăn chó"
+        },
+        {
+          "name": "milu-emoji-1f431",
+          "title": "Mèo cưng",
+          "keywords": "thú cưng, hạt mèo, chăm mèo"
+        },
+        {
+          "name": "milu-emoji-1f43e",
+          "title": "Dấu chân thú",
+          "keywords": "thú y, thú cưng, chăm sóc"
+        },
+        {
+          "name": "milu-emoji-1f9b4",
+          "title": "Xương",
+          "keywords": "đồ gặm, cún, thức ăn thú cưng"
+        },
+        {
+          "name": "milu-emoji-1f430",
+          "title": "Thỏ",
+          "keywords": "thú cưng, thức ăn, chăm thỏ"
+        },
+        {
+          "name": "milu-emoji-1f439",
+          "title": "Chuột hamster",
+          "keywords": "thú cưng, thức ăn, lồng"
+        },
+        {
+          "name": "milu-emoji-1f422",
+          "title": "Rùa",
+          "keywords": "thú cưng, hồ nuôi, chăm sóc"
+        },
+        {
+          "name": "milu-emoji-1f420",
+          "title": "Cá cảnh",
+          "keywords": "bể cá, cá nhiệt đới, thủy sinh"
+        },
+        {
+          "name": "milu-emoji-1f99c",
+          "title": "Vẹt",
+          "keywords": "chim cảnh, thú cưng, thức ăn"
+        },
+        {
+          "name": "milu-emoji-1f426",
+          "title": "Chim",
+          "keywords": "chim cảnh, thức ăn, chăm sóc"
+        },
+        {
+          "name": "milu-emoji-1f434",
+          "title": "Ngựa",
+          "keywords": "cưỡi ngựa, chăm sóc, dã ngoại"
+        },
+        {
+          "name": "milu-emoji-1f9ae",
+          "title": "Chó dẫn đường",
+          "keywords": "chó hỗ trợ, trợ năng, thú cưng"
+        },
+        {
+          "name": "milu-emoji-1f415",
+          "title": "Chó",
+          "keywords": "cún, thú cưng, dắt chó"
+        },
+        {
+          "name": "milu-emoji-1f408",
+          "title": "Mèo",
+          "keywords": "thú cưng, chăm mèo, thú y"
+        },
+        {
+          "name": "milu-emoji-1f41f",
+          "title": "Cá",
+          "keywords": "hồ cá, thức ăn cá, thủy sinh"
+        },
+        {
+          "name": "milu-emoji-1f407",
+          "title": "Thỏ trắng",
+          "keywords": "thú cưng, thức ăn, chăm sóc"
+        },
+        {
+          "name": "milu-emoji-1f98b",
+          "title": "Bướm",
+          "keywords": "vườn, thiên nhiên, côn trùng"
+        },
+        {
+          "name": "milu-emoji-1f41d",
+          "title": "Ong",
+          "keywords": "mật ong, làm vườn, thiên nhiên"
+        },
+        {
+          "name": "milu-emoji-1f331",
+          "title": "Mầm cây",
+          "keywords": "trồng cây, gieo hạt, khu vườn"
+        },
+        {
+          "name": "milu-emoji-1f33b",
+          "title": "Hướng dương",
+          "keywords": "hoa, làm vườn, trồng cây"
+        },
+        {
+          "name": "milu-emoji-1f337",
+          "title": "Hoa tulip",
+          "keywords": "hoa tươi, làm vườn, trang trí"
+        },
+        {
+          "name": "milu-emoji-1f339",
+          "title": "Hoa hồng",
+          "keywords": "hoa tươi, quà tặng, khu vườn"
+        },
+        {
+          "name": "milu-emoji-1f335",
+          "title": "Xương rồng",
+          "keywords": "cây cảnh, làm vườn, trồng cây"
+        },
+        {
+          "name": "milu-emoji-1f33f",
+          "title": "Lá thảo mộc",
+          "keywords": "cây xanh, vườn rau, trồng cây"
+        },
+        {
+          "name": "milu-emoji-1f332",
+          "title": "Cây thông",
+          "keywords": "cây xanh, vườn, cây cảnh"
+        },
+        {
+          "name": "milu-emoji-1f333",
+          "title": "Cây lá rộng",
+          "keywords": "cây xanh, sân vườn, bóng mát"
+        },
+        {
+          "name": "milu-emoji-1f334",
+          "title": "Cây dừa",
+          "keywords": "vườn, nhiệt đới, cây xanh"
+        },
+        {
+          "name": "milu-emoji-1f340",
+          "title": "Cỏ bốn lá",
+          "keywords": "may mắn, cây cảnh, thiên nhiên"
+        },
+        {
+          "name": "milu-emoji-1fab5",
+          "title": "Khúc gỗ",
+          "keywords": "gỗ, đồ mộc, sân vườn"
+        },
+        {
+          "name": "milu-emoji-1f342",
+          "title": "Lá thu",
+          "keywords": "mùa thu, sân vườn, thiên nhiên"
+        }
+      ]
+    }
+  ]
+}

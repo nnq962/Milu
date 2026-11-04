@@ -9,6 +9,7 @@ struct IconQuickPicker: View {
     @Binding var selection: String
     /// Eleven icons; the twelfth place is the "more" button.
     let suggestions: [String]
+    var groups: [IconGroup] = IconCatalog.groups
 
     @State private var isShowingAll = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -27,7 +28,7 @@ struct IconQuickPicker: View {
                 IconChoice(name: name, isSelected: name == selection) {
                     selection = name
                 }
-                .accessibilityLabel(IconCatalog.icon(named: name)?.title ?? "")
+                .accessibilityLabel(IconCatalog.icon(named: IconCatalog.assetName(for: name))?.title ?? "Biểu tượng đã lưu")
             }
             Button { isShowingAll = true } label: {
                 IconChoiceLabel(name: "hugeicons-more-horizontal", isSelected: false)
@@ -40,7 +41,7 @@ struct IconQuickPicker: View {
         // A change that stays on screen ticks through `sensoryFeedback`, as the rule says.
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isShowingAll) {
-            IconPickerSheet(selection: $selection)
+            IconPickerSheet(selection: $selection, groups: groups)
         }
     }
 }
@@ -67,7 +68,7 @@ struct IconChoiceLabel: View {
     var size: CGFloat = RowMetrics.featureIcon
 
     var body: some View {
-        TimiIcon(name, size: size / 2)
+        TimiIcon(name, size: size * (IconCatalog.isEmoji(name) ? 0.68 : 0.5))
             .foregroundStyle(isSelected ? Palette.onAccent : Palette.label)
             .frame(width: size, height: size)
             .background(Circle().fill(isSelected ? Palette.accent : .clear))

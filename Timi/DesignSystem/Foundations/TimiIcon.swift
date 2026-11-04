@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// An icon from the asset catalog (Hugeicons Stroke Rounded, "hugeicons-<id>"), drawn as a template
-/// in the foreground colour; its size stays independent of the text beside it.
+/// UI glyphs take the foreground colour; the selectable Milu artwork carries its own colours.
 struct TimiIcon: View {
     let name: String
     var size: CGFloat = 24
@@ -27,8 +26,8 @@ struct TimiIcon: View {
                 .frame(width: size, height: size)
                 .accessibilityHidden(true)
         } else {
-            Image(name)
-                .renderingMode(.template)
+            Image(IconCatalog.assetName(for: name))
+                .renderingMode(IconCatalog.isEmoji(name) ? .original : .template)
                 .resizable()
                 .scaledToFit()
                 .frame(width: size, height: size)

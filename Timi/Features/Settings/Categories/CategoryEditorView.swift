@@ -36,7 +36,7 @@ struct CategoryEditorView: View {
         switch target {
         case .newGroup:
             _name = State(initialValue: "")
-            _icon = State(initialValue: "hugeicons-tag-01")
+            _icon = State(initialValue: IconCatalog.emojiName("🏷️"))
             _groupID = State(initialValue: nil)
         case .newItem(let group):
             _name = State(initialValue: "")
@@ -137,9 +137,8 @@ struct CategoryEditorView: View {
         } else if let original, original.isGroup {
             icons = [original.icon] + store.items(of: original).map(\.icon)
         }
-        let common = ["hugeicons-restaurant-01", "hugeicons-car-01", "hugeicons-home-01", "hugeicons-shopping-bag-01",
-                      "hugeicons-flash", "hugeicons-first-aid-kit", "hugeicons-film-02", "hugeicons-book-02",
-                      "hugeicons-gift", "hugeicons-money-bag-02", "hugeicons-tag-01"]
+        let common = ["🍽️", "🚗", "🏠", "🛍️", "⚡", "💊", "🎬", "📚", "🎁", "💰", "🏷️"]
+            .map(IconCatalog.emojiName)
         var seen = Set<String>()
         return (icons + common).filter { seen.insert($0).inserted }
     }
@@ -171,7 +170,7 @@ struct CategoryEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                IconQuickPicker(selection: $icon, suggestions: suggestions)
+                IconQuickPicker(selection: $icon, suggestions: suggestions, groups: IconCatalog.emojiGroups)
             }
 
             if let original {

@@ -1,8 +1,7 @@
 import Foundation
 
-/// One icon a user can give a savings goal or a category. `name` is the asset name and also what
-/// the database stores: "hugeicons-" + the Hugeicons id, so the web draws it as `hugeicons:<id>`.
-struct CatalogIcon: Identifiable, Hashable {
+/// The asset name doubles as the persistent ID for a user-selected icon.
+struct CatalogIcon: Identifiable, Hashable, Decodable {
     let name: String
     /// Read by VoiceOver and shown beside the icon in a form row.
     let title: String
@@ -15,7 +14,7 @@ struct CatalogIcon: Identifiable, Hashable {
     }
 }
 
-struct IconGroup: Identifiable {
+struct IconGroup: Identifiable, Decodable {
     let title: String
     let icons: [CatalogIcon]
 
@@ -370,11 +369,42 @@ enum IconCatalog {
         ]),
     ]
 
-    static let all: [CatalogIcon] = groups.flatMap(\.icons)
-
-    static func icon(named name: String) -> CatalogIcon? {
-        all.first { $0.name == name }
+    private struct EmojiFile: Decodable {
+        let groups: [IconGroup]
     }
+
+    static let emojiGroups: [IconGroup] = {
+        guard let url = Bundle.main.url(forResource: "MiluEmoji2D", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(EmojiFile.self, from: data),
+              !file.groups.isEmpty else {
+            assertionFailure("Missing or invalid MiluEmoji2D.json")
+            return groups
+        }
+        return file.groups
+    }()
+
+    /// Asset IDs are canonical Unicode code points (without the presentation selector).
+    nonisolated static func emojiName(_ emoji: String) -> String {
+        let codePoints = emoji.unicodeScalars.filter { $0.value != 0xfe0f }
+            .map { String($0.value, radix: 16) }
+        return "milu-emoji-" + codePoints.joined(separator: "-")
+    }
+
+    static func isEmoji(_ name: String) -> Bool { name.hasPrefix("milu-emoji-") }
+
+    /// Older app versions can open a record from a newer catalog without losing its stored choice.
+    static func assetName(for name: String, fallbackEmoji: String = "🏷️") -> String {
+        guard isEmoji(name), icon(named: name) == nil else { return name }
+        return emojiName(fallbackEmoji)
+    }
+
+    static let all = groups.flatMap(\.icons)
+
+    private static let byName = Dictionary((all + emojiGroups.flatMap(\.icons)).map { ($0.name, $0) },
+                                           uniquingKeysWith: { first, _ in first })
+
+    static func icon(named name: String) -> CatalogIcon? { byName[name] }
 
     /// The current asset for an icon name stored before the switch to Hugeicons (Solar and MDI
     /// names); names already current pass through.
