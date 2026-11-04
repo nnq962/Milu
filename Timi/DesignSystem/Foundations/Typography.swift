@@ -108,8 +108,8 @@ enum Typography {
 
         let navigation = UINavigationBar.appearance()
         navigation.titleTextAttributes = [.font: UIFont(name: instance(for: .semibold), size: 17) ?? regular.withSize(17)]
-        // The tabs' own titles (`TabHeading`, inline large): the `pageTitle` role, 24, scaled with
-        // Dynamic Type like the rest.
+        // A large title, should a page show one (the tabs have none since 2026-11-04): the
+        // `pageTitle` role, 24, scaled with Dynamic Type like the rest.
         let pageTitle = UIFont(name: instance(for: TextRole.pageTitle.weight), size: TextRole.pageTitle.size) ?? regular.withSize(TextRole.pageTitle.size)
         // No colour of our own: a bar whose tab is not on screen kept the colour of the old
         // appearance after a switch of theme, dark words on the dark page until scrolled (user

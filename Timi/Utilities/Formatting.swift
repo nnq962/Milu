@@ -15,9 +15,11 @@ extension Double {
         let value = abs(self)
         let sign = self < 0 ? "-" : ""
         let style = FloatingPointFormatStyle<Double>(locale: .vietnam).precision(.fractionLength(0...1))
+        // The bounds where the smaller unit would round up to a thousand of itself: 999.600đ is
+        // "1tr", not "1.000k" (calendar review 2026-11-04).
         switch value {
-        case 1_000_000_000...: return sign + (value / 1_000_000_000).formatted(style) + "tỷ"
-        case 1_000_000...: return sign + (value / 1_000_000).formatted(style) + "tr"
+        case 999_950_000...: return sign + (value / 1_000_000_000).formatted(style) + "tỷ"
+        case 999_500...: return sign + (value / 1_000_000).formatted(style) + "tr"
         case 1_000...: return sign + (value / 1_000).formatted(style.precision(.fractionLength(0))) + "k"
         default: return sign + value.formatted(style.precision(.fractionLength(0))) + "đ"
         }

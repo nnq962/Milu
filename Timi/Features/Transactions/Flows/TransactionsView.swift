@@ -41,15 +41,11 @@ struct TransactionsView: View {
             ScrollViewReader { scroller in
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.section) {
-                        // Words, not a segmented control: the page left-aligned under its title,
-                        // as a magazine (user pick "B" 2026-11-03, after the control, the centred
-                        // figure and the chips read basic), the head's card just under them.
-                        VStack(alignment: .leading, spacing: Spacing.l) {
-                            TextTabs(selection: $segment, options: TransactionSegment.allCases, style: .page) { $0.title }
-                            switch segment {
-                            case .flows: summaryHead
-                            case .loans: LoansSummaryHead()
-                            }
+                        // The head's card first: "Thu chi · Vay nợ" went up into the bar, in the
+                        // title's place (user pick "B" 2026-11-04).
+                        switch segment {
+                        case .flows: summaryHead
+                        case .loans: LoansSummaryHead()
                         }
 
                         // Then the filter words with the list they narrow, not with the head: they
@@ -85,12 +81,13 @@ struct TransactionsView: View {
             // The plain page colour, as on Tài khoản (user report 2026-11-03: the ground read muddy).
             .background(Palette.background)
             .foregroundStyle(Palette.label)
-            // The visible title (`TabHeading`) shrinks to the middle of the bar as the page scrolls,
-            // as on Tài khoản.
-            .navigationTitle("Giao dịch")
-            .modifier(TabHeading())
+            // No title on the bar (user pick "B" 2026-11-04): "Thu chi · Vay nợ" on its left, words
+            // rather than a segmented control (user pick "B" 2026-11-03). The title stays for
+            // VoiceOver and the back button.
+            .modifier(HiddenTitleBar(title: "Giao dịch", leadingCircles: 0, trailingCircles: 2) { Color.clear.frame(height: 1) })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) { pageMenu }
                 // The + beside the tab bar adds a transaction, or a loan while "Vay nợ" shows
                 // (`AddTransactionContext.addsLoan`): no + of its own on the bar, which made two +
                 // doing two things side by side and moved ✦ and search on each switch (review
@@ -164,6 +161,29 @@ struct TransactionsView: View {
         today = now
     }
 
+    /// The page shown, in the bar's glass on the left: tapped, iOS's own menu opens from it to
+    /// pick "Thu chi" or "Vay nợ", the one shown ticked (user request 2026-11-04, in place of a
+    /// segmented control).
+    private var pageMenu: some View {
+        Menu {
+            Picker("Trang", selection: $segment) {
+                ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
+            }
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                // Regular words, as iOS's own glass buttons (user request 2026-11-04).
+                Text(segment.title)
+                    .textRole(.body)
+                TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
+            }
+            .foregroundStyle(Palette.primary)
+        }
+        .tint(Palette.primary)
+        .accessibilityLabel("Trang")
+        .accessibilityValue(segment.title)
+        .accessibilityHint("Chọn Thu chi hoặc Vay nợ")
+    }
+
     private var searchButton: some View {
         Button { isSearching = true } label: {
             TimiIcon("hugeicons-search-01", size: RowMetrics.toolbarGlyph)
@@ -176,14 +196,7 @@ struct TransactionsView: View {
 
     /// ✦ Hỏi Timi, as on Tổng quan and Tài khoản.
     private var assistantButton: some View {
-        Button { isShowingAssistant = true } label: {
-            TimiIcon("hugeicons-ai-magic", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
-        }
-        .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Hỏi Timi")
-        .accessibilityHint("Mở trợ lý AI")
+        AssistantBarButton { isShowingAssistant = true }
     }
 
     // MARK: - Thu chi

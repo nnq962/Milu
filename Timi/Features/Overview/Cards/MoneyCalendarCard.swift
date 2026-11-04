@@ -1,8 +1,13 @@
 import SwiftUI
 
 /// "Lịch thu chi": a month grid and its legend; the page puts them on a card under the
-/// section heading that holds the month menu (2026-10-31). Each day shows only its number, shaded by how much went out and with a dot in ink if
-/// money came in; tapping a day hands its date to `onSelectDay`, where the figures are.
+/// section heading that holds the month menu (2026-10-31). Each day shows its number and, under
+/// it, what went out in coral and what came in in green, both short ("757k", "2,5tr"):
+/// at a glance which days cost what (user pick "B" 2026-11-04, after shades alone read pale).
+/// Every day gone by is a pale tile, today a lime one, days ahead a faint number on nothing (user
+/// pick "A" 2026-11-04: figures floating on the card read as untidy). At accessibility text sizes
+/// the figures give way to a dot of each colour. Tapping a day hands its date to `onSelectDay`,
+/// where the full figures are.
 struct MoneyCalendarCard: View {
     /// The month shown; the page owns it, since the month menu sits on the section heading
     /// above the card (2026-10-31).
@@ -10,20 +15,16 @@ struct MoneyCalendarCard: View {
     let onSelectDay: (Date) -> Void
 
     @Environment(FinanceStore.self) private var store
-    /// Every day the same height: the day and a dot for money in (user choice 2026-10-30: the
-    /// figures in each day read as clutter; tap a day for them).
-    @ScaledMetric(relativeTo: .caption) private var dayHeight = ControlHeight.regular
-    /// A shade swatch in the legend: a day cell in small, so it rounds like one.
-    private static let swatchSize: CGFloat = 12
-    /// Its corner: a named radius, not the spacing token `xxs` it borrowed (re-review 2026-10-31).
-    private static let swatchRadius: CGFloat = 2
-    /// The ring round today: whole points, so at any screen scale it covers whole pixels. One, not
-    /// two: at 2 it was the heaviest thing on the card (Overview review 2026-11-02).
-    private static let todayRing: CGFloat = 1
-    /// How deep a day is shaded by what went out: under 1tr, under 3tr, more. Far enough apart to
-    /// tell at a glance; 8 / 14 / 20% read as one pale red, the first near invisible (review
-    /// 2026-10-31).
-    private static let shades = [0.12, 0.24, 0.40]
+    @Environment(\.dynamicTypeSize) private var typeSize
+    /// Every day the same height, room for its number and two short figures (out and in) at
+    /// their own size, so the rows line up whatever each day holds.
+    @ScaledMetric(relativeTo: .caption) private var figuresDayHeight: CGFloat = 56
+    /// At accessibility sizes a day holds its number and the dots only: kept to that, the tiles
+    /// stood near three times as tall as wide (Simulator check 2026-11-04).
+    @ScaledMetric(relativeTo: .caption) private var dotsDayHeight: CGFloat = 32
+    private var dayHeight: CGFloat { typeSize.isAccessibilitySize ? dotsDayHeight : figuresDayHeight }
+    /// The figures may shrink this far before a long one ("125,5tr") would be cut.
+    private static let figureMinimumScale: CGFloat = 0.7
     /// Between the day cells, across and down.
     private static let cellGap = Spacing.xs
 
@@ -66,22 +67,16 @@ struct MoneyCalendarCard: View {
         }
     }
 
-    /// What the shades and the dot mean, small and quiet under the grid.
+    /// What the two colours mean, small and quiet under the grid.
     private var legend: some View {
         HStack(spacing: Spacing.l) {
             HStack(spacing: Spacing.xs) {
-                ForEach(Self.shades, id: \.self) { strength in
-                    // The day cell's own shape, small.
-                    RoundedRectangle(cornerRadius: Self.swatchRadius, style: .continuous)
-                        .fill(Palette.negative.opacity(strength))
-                        .frame(width: Self.swatchSize, height: Self.swatchSize)
-                }
-                Text("Chi càng nhiều càng đậm")
+                LegendDot(color: Palette.expense)
+                Text("Chi")
             }
             HStack(spacing: Spacing.xs) {
-                // The shared legend dot, as in each day (re-review 2026-10-31: drawn at 5).
-                LegendDot(color: Palette.label)
-                Text("Có tiền vào")
+                LegendDot(color: Palette.income)
+                Text("Thu")
             }
         }
         // A chart's legend, as `LegendRow` under the bars: caption (footnote is for axes).
@@ -93,40 +88,76 @@ struct MoneyCalendarCard: View {
     private func day(_ date: Date, income: Double, expense: Double) -> some View {
         let calendar = Calendar.current
         let today = calendar.isDateInToday(date)
-        // Days still ahead: faint and not tappable, nothing can be on them yet.
+        // Days still ahead: a faint number on nothing, not tappable, nothing can be on them yet.
         let isAhead = date > calendar.startOfDay(for: .now) && !today
-        // Shaded by how much went out, deeper the more (user choice 2026-10-30): money in does not
-        // colour a day. Today is ringed in the primary colour on top of its shade (UI review 2026-10-30: a solid
-        // fill on today hid how much went out on it).
-        let strength = expense >= 3_000_000 ? Self.shades[2] : expense >= 1_000_000 ? Self.shades[1] : Self.shades[0]
-        // Today keeps a clear cell when nothing went out (a wash read as grey, UI review
-        // 2026-10-30); its ring and number in the primary colour mark it over any shade.
-        let fill = expense > 0 ? Palette.negative.opacity(strength) : .clear
+        let shape = RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
+        let tile = isAhead ? Color.clear : today ? Palette.accent : Palette.surfaceMuted
         return Button { onSelectDay(date) } label: {
-            VStack(spacing: Spacing.xxs) {
+            VStack(spacing: 0) {
                 Text("\(calendar.component(.day, from: date))")
                     .textRole(today ? .captionStrong : .caption)
                     .monospacedDigit()
-                    .foregroundStyle(today ? Palette.primary : Palette.label)
-                LegendDot(color: Palette.label)
-                    .opacity(income > 0 ? 1 : 0)
+                    .foregroundStyle(isAhead ? Palette.tertiaryLabel : today ? Palette.onAccent : Palette.label)
+                figures(income: income, expense: expense, onLime: today)
+                Spacer(minLength: 0)
             }
-            .padding(.top, Spacing.xs)
+            .padding(.top, Spacing.xs + 2)
             .frame(maxWidth: .infinity, minHeight: dayHeight, maxHeight: dayHeight)
-            .background(fill, in: RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
-            .overlay {
-                if today {
-                    PixelAlignedRing(lineWidth: Self.todayRing)
-                }
-            }
-            .contentShape(RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous))
+            .background(tile, in: shape)
+            .contentShape(shape)
         }
         // Calendar cells are flat data tiles in the design; only the month control uses glass.
         .buttonStyle(.card)
         .disabled(isAhead)
-        .opacity(isAhead ? 0.4 : 1)
         .accessibilityLabel(dayLabel(date, today: today, income: income, expense: expense))
         .accessibilityHint("Xem giao dịch trong ngày")
+    }
+
+    /// Out over in, each only when there is some. Short ("757k", "1,3tr", "2,1tỷ"), one line,
+    /// shrinking a little before a long one would be cut. At accessibility sizes, where no figure
+    /// fits a seventh of the card, a dot of each colour instead. On today's lime both are in ink:
+    /// coral and green on it fell under 4:1, at night near 1.5:1; out stays above in, as on every day.
+    @ViewBuilder
+    private func figures(income: Double, expense: Double, onLime: Bool) -> some View {
+        let out = onLime ? Palette.onAccent : Palette.expense
+        let into = onLime ? Palette.onAccent : Palette.income
+        if typeSize.isAccessibilitySize {
+            HStack(spacing: Spacing.xxs) {
+                if expense > 0 { LegendDot(color: out) }
+                if income > 0 { LegendDot(color: into) }
+            }
+            .padding(.top, Spacing.xxs)
+        } else {
+            VStack(spacing: 0) {
+                if expense > 0 {
+                    Text(Self.short(expense))
+                        .foregroundStyle(out)
+                }
+                if income > 0 {
+                    Text(Self.short(income))
+                        .foregroundStyle(into)
+                }
+            }
+            .textRole(.footnote)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(Self.figureMinimumScale)
+            .padding(.horizontal, Spacing.xxs)
+        }
+    }
+
+    /// A figure in at most five characters, to fit a seventh of the card at one size: as
+    /// `vndCompact`, but whole from 100 of a unit up ("126tr", not "125,5tr", which had to shrink
+    /// beside its neighbours, Simulator check 2026-11-04).
+    private static func short(_ amount: Double) -> String {
+        let value = abs(amount)
+        let whole = FloatingPointFormatStyle<Double>(locale: .vietnam).precision(.fractionLength(0))
+        switch value {
+        case 99_950_000_000...: return (value / 1_000_000_000).formatted(whole) + "tỷ"
+        case 999_950_000...: return value.vndCompact
+        case 99_950_000...: return (value / 1_000_000).formatted(whole) + "tr"
+        default: return value.vndCompact
+        }
     }
 
     /// Only the figures there are; an empty day says so (re-review 2026-10-31: "thu 0đ, chi 0đ").
@@ -136,27 +167,5 @@ struct MoneyCalendarCard: View {
         if income > 0 { figures.append("thu \(income.vnd)") }
         if expense > 0 { figures.append("chi \(expense.vnd)") }
         return name + ", " + (figures.isEmpty ? "không có thu chi" : figures.joined(separator: ", "))
-    }
-}
-
-/// Today's ring laid on whole pixels. Seven equal columns put a cell's edges between pixels, so a
-/// ring drawn there blurred unevenly: one side doubled, the corners stepped (user report
-/// 2026-11-01). It snaps its frame to the screen's pixels before drawing.
-private struct PixelAlignedRing: View {
-    let lineWidth: CGFloat
-
-    @Environment(\.displayScale) private var scale
-
-    var body: some View {
-        GeometryReader { proxy in
-            let frame = proxy.frame(in: .global)
-            let snap = { (value: CGFloat) in (value * scale).rounded() / scale }
-            let minX = snap(frame.minX), minY = snap(frame.minY)
-            RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
-                .strokeBorder(Palette.primary, lineWidth: lineWidth)
-                .frame(width: snap(frame.maxX) - minX, height: snap(frame.maxY) - minY)
-                .offset(x: minX - frame.minX, y: minY - frame.minY)
-        }
-        .allowsHitTesting(false)
     }
 }

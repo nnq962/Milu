@@ -150,12 +150,6 @@ struct LoansContent: View {
     /// (reviews 2026-10-31, 2026-11-03). Search, where the card is not, keeps it.
     private var showsRemaining: Bool { isSearching }
 
-    /// "Tất cả" with loans on the other side: the empty side as one quiet line, not a whole card
-    /// with its picture for nothing (review 2026-11-03); a filter of that side alone keeps the card.
-    private func emptyInline(otherSideHasLoans: Bool) -> Bool {
-        filter == .all && !isSearching && otherSideHasLoans
-    }
-
     private var lentSection: some View {
         HeaderCard(title: "Cho vay") {
             // What is left beside the heading once there is a loan: no "Còn 0đ" over the empty card.
@@ -164,14 +158,11 @@ struct LoansContent: View {
             }
         } content: {
             if lentLoans.isEmpty {
-                if emptyInline(otherSideHasLoans: !borrowedLoans.isEmpty) {
-                    EmptyLine(text: "Chưa có ai vay")
-                } else {
-                    // One short sentence, no button named (strict review 2026-10-31).
-                    // 3D pictures in the empty states of Vay nợ, as on Tài khoản (user request 2026-11-03).
-                    EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
-                                   message: "Khoản cho vay sẽ hiện ở đây.", picture: "fluent-handshake")
-                }
+                // The same card on every filter, "Tất cả" too (user request 2026-11-04, after a
+                // single line there). One short sentence, no button named (strict review
+                // 2026-10-31); 3D pictures, as on Tài khoản (user request 2026-11-03).
+                EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
+                               message: "Khoản cho vay sẽ hiện ở đây.", picture: "fluent-handshake")
             }
             if !lentLoans.isEmpty {
                 LoanRowList(loans: lentLoans, today: today, onOpen: onEdit)
@@ -186,12 +177,8 @@ struct LoansContent: View {
             }
         } content: {
             if borrowedLoans.isEmpty {
-                if emptyInline(otherSideHasLoans: !lentLoans.isEmpty) {
-                    EmptyLine(text: "Chưa vay ai")
-                } else {
-                    EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
-                                   message: "Khoản đi vay sẽ hiện ở đây.", picture: "fluent-money")
-                }
+                EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
+                               message: "Khoản đi vay sẽ hiện ở đây.", picture: "fluent-money")
             }
             if !borrowedLoans.isEmpty {
                 LoanRowList(loans: borrowedLoans, today: today, onOpen: onEdit)
@@ -217,21 +204,6 @@ struct LoansContent: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Còn \(tone == .signedExpense ? "nợ " : "")\(amount.vnd)")
-    }
-}
-
-/// The empty side of "Tất cả" on Vay nợ: one grey line under its heading, in the card, as wide
-/// as a row (review 2026-11-03: a whole card with a picture said "nothing" too loudly).
-private struct EmptyLine: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .textRole(.body)
-            .foregroundStyle(Palette.secondaryLabel)
-            .padding(.horizontal, RowMetrics.horizontal)
-            .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .leading)
-            .listCard()
     }
 }
 

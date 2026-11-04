@@ -15,6 +15,7 @@ struct AccountsView: View {
     @State private var newItem: NewItem?
     /// Trợ lý AI, from the ✦ on the bar, as on Tổng quan.
     @State private var isShowingAssistant = false
+    @State private var isShowingSettings = false
 
     /// What the + button can add.
     enum NewItem: String, Identifiable, CaseIterable {
@@ -49,12 +50,14 @@ struct AccountsView: View {
             // The plain page colour, as every tab (user reports 2026-11-03).
             .background(Palette.background)
             .foregroundStyle(Palette.label)
-            .navigationTitle("Tài khoản")
-            .modifier(TabHeading())
+            // No title on the bar (user pick "B" 2026-11-04): Q on the left opens Cài đặt, as on
+            // Tổng quan. The title stays for VoiceOver and the back button.
+            .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2) { Color.clear.frame(height: 1) })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 // Plain buttons: the bar draws their glass, which then takes part in push and pop.
                 // ✦ before +, as on Tổng quan; the spacer gives each its own glass.
+                ToolbarItem(placement: .topBarLeading) { ProfileBarButton { isShowingSettings = true } }
                 ToolbarItem(placement: .topBarTrailing) { assistantButton }
                 if #available(iOS 26.0, *) {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
@@ -65,6 +68,7 @@ struct AccountsView: View {
                 NavigationStack { AssistantView() }
                     .presentationBackground(Palette.background)
             }
+            .sheet(isPresented: $isShowingSettings) { SettingsView() }
             .sheet(isPresented: $isShowingArchived) { ArchivedAccountsSheet() }
             .sheet(isPresented: $isShowingCompleted) { CompletedGoalsSheet() }
             .sheet(isPresented: $isChoosingNew, onDismiss: {
@@ -87,14 +91,7 @@ struct AccountsView: View {
     }
 
     private var assistantButton: some View {
-        Button { isShowingAssistant = true } label: {
-            TimiIcon("hugeicons-ai-magic", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
-        }
-        .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Hỏi Timi")
-        .accessibilityHint("Mở trợ lý AI")
+        AssistantBarButton { isShowingAssistant = true }
     }
 
     /// A bare + in the bar's glass circle (2026-11-03: the ringed ⊕ made two circles, one in the other).

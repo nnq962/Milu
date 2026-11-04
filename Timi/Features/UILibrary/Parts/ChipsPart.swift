@@ -2,15 +2,10 @@ import SwiftUI
 
 struct ChipsPart: View {
     @State private var filter: TransactionFilter = .all
-    @State private var segment: TransactionSegment = .flows
     @State private var tagOn = true
 
     var body: some View {
         PartSection(part: .chips) {
-            // What Giao dịch picks with (2026-11-03): its page, then what its list shows.
-            SampleCard(label: "Chọn trang · TextTabs(.page)") {
-                TextTabs(selection: $segment, options: TransactionSegment.allCases, style: .page) { $0.title }
-            }
             SampleCard(label: "Lọc bằng chữ · TextTabs") {
                 TextTabs(selection: $filter, options: TransactionFilter.allCases) { $0.title }
             }

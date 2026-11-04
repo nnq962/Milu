@@ -2,13 +2,19 @@ import Charts
 import SwiftUI
 
 /// Tài sản ròng at the end of each month as a soft line over a faded area (user request
-/// 2026-10-30). `compact` is the sparkline on the Tổng quan card: a fainter wash, no axes, no point.
-/// The full chart names the months and lets a finger pick one (`selection`).
+/// 2026-10-30). `compact` is the sparkline along the foot of the Tổng quan card: a fainter wash,
+/// no axes, and now ringed in lime at its end, today (user pick "A" 2026-11-04). The full chart
+/// names the months and lets a finger pick one (`selection`).
 struct NetWorthChart: View {
     let points: [NetWorthPoint]
     var compact = false
     var tint: Color = Palette.primary
     var selection: Binding<Date?>? = nil
+
+    /// Today's dot at the sparkline's end, and how far that end stops short of the card's edge so
+    /// the dot shows whole.
+    private static let endDot: CGFloat = 10
+    private static let endInset: CGFloat = 20
 
     var body: some View {
         let values = points.map(\.value)
@@ -38,6 +44,15 @@ struct NetWorthChart: View {
                     // both ends (user report 2026-10-31).
                     .lineStyle(StrokeStyle(lineWidth: compact ? 2 : 3, lineCap: .butt, lineJoin: .round))
             }
+            if compact, let last = points.last {
+                PointMark(x: .value("Tháng", last.month), y: .value("Tài sản ròng", last.value))
+                    .symbol {
+                        Circle()
+                            .fill(Palette.accent)
+                            .overlay(Circle().strokeBorder(tint, lineWidth: 1.5))
+                            .frame(width: Self.endDot, height: Self.endDot)
+                    }
+            }
             if let picked {
                 PointMark(x: .value("Tháng", picked.month),
                           y: .value("Tài sản ròng", picked.value))
@@ -54,7 +69,8 @@ struct NetWorthChart: View {
         // The sparkline runs edge to edge; the full chart keeps room for the first and last
         // month's names, centred under their points.
         .chartXScale(domain: (points.first?.month ?? .now)...(points.last?.month ?? .now),
-                     range: .plotDimension(padding: compact ? 0 : 14))
+                     range: compact ? .plotDimension(startPadding: 0, endPadding: Self.endInset)
+                                    : .plotDimension(padding: 14))
         .chartYAxis(.hidden)
         .chartXAxis {
             if !compact {

@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// Home tab (redone 2026-11-02 after the user's references: blocks on a soft coloured ground): the
-/// head on its ground (`OverviewHeader`: a greeting, the net worth and how it moved), then the
-/// first steps, what Timi noticed, the calendar, this month and Timi Pro last;
-/// Q, Timi's ✦ and the bell on the bar. One file per card in `Cards/`, with the sheets they open.
+/// head on its ground (`OverviewHeader`: the net worth and how it moved), then the
+/// first steps, the calendar, this month and Timi Pro last;
+/// Q, Timi's ✦ and the bell on the bar, no greeting (user request 2026-11-04). One file per card
+/// in `Cards/`, with the sheets they open.
 struct OverviewView: View {
     /// "Cần chú ý" on the page; off for now (user request 2026-10-30).
     private static let showsAttention = false
@@ -52,7 +53,6 @@ struct OverviewView: View {
                         case .askAI: isShowingAssistant = true
                         }
                     }
-                    InsightsCard()
                     HeaderCard(title: "Lịch thu chi", inset: Spacing.card, radius: CardCorners.large) {
                         // The month as plain words, as every control on a heading's row.
                         MonthPickerButton(month: $calendarMonth, compact: true)
@@ -84,13 +84,20 @@ struct OverviewView: View {
             // 2026-11-03).
             .background(Palette.background)
             .foregroundStyle(Palette.label)
-            // The greeting heads the page, so the bar shows no title; it stays as the page's name
-            // for the back button and VoiceOver.
-            .navigationTitle("Tổng quan")
-            .navigationBarTitleDisplayMode(.inline)
+            // No title and no greeting on the bar (user request 2026-11-04), as on Tài khoản: Q on
+            // the left, ✦ and the bell on the right. The title stays for the back button and VoiceOver.
+            .modifier(HiddenTitleBar(title: "Tổng quan", leadingCircles: 1, trailingCircles: 2) { Color.clear.frame(height: 1) })
             .toolbar(.visible, for: .navigationBar)
-            .modifier(OverviewBar(profile: profileButton, greeting: greeting,
-                                  assistant: assistantButton, bell: notificationButton))
+            .toolbar {
+                // Plain buttons: the bar draws their glass, which then takes part in push and pop.
+                // The spacer gives ✦ and the bell each its own glass.
+                ToolbarItem(placement: .topBarLeading) { profileButton }
+                ToolbarItem(placement: .topBarTrailing) { assistantButton }
+                if #available(iOS 26.0, *) {
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
+                ToolbarItem(placement: .topBarTrailing) { notificationButton }
+            }
             // Here, not on the card: the card goes away as its last step is done.
             .onChange(of: OnboardingCard.completedSteps(store, askedAI: hasAskedAI), initial: true) { _, steps in
                 steps.forEach(quota.claim)
@@ -113,49 +120,11 @@ struct OverviewView: View {
 
     // Native navigation-bar items: iOS owns their glass and the scroll-edge backdrop.
     private var profileButton: some View {
-        Button {
-            isShowingSettings = true
-        } label: {
-            // The initial drawn as an image: the bar sets an image in a circle like the bell, but
-            // text (even an icon-only label) in a pill. A template, tinted when shown: a colour
-            // drawn into it stayed the light one at night, black on the dark glass.
-            Image(size: CGSize(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)) { context in
-                context.draw(Text("Q").font(TextRole.heading.font),
-                             at: CGPoint(x: RowMetrics.toolbarGlyphFrame / 2, y: RowMetrics.toolbarGlyphFrame / 2))
-            }
-            .renderingMode(.template)
-            .foregroundStyle(Palette.primary)
-        }
-        .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Hồ sơ của Quyet")
-        .accessibilityHint("Mở cài đặt")
+        ProfileBarButton { isShowingSettings = true }
     }
 
     private var assistantButton: some View {
-        Button {
-            isShowingAssistant = true
-        } label: {
-            TimiIcon("hugeicons-ai-magic", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
-        }
-        .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Hỏi Timi")
-        .accessibilityHint("Mở trợ lý AI")
-    }
-
-    private var greeting: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(Greeting.salutation(at: .now))
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryLabel)
-            Text("Quyet")
-                .textRole(.bodyStrong)
-                .foregroundStyle(Palette.label)
-        }
-        .fixedSize()
-        .accessibilityElement(children: .combine)
+        AssistantBarButton { isShowingAssistant = true }
     }
 
     private var notificationButton: some View {
@@ -168,62 +137,6 @@ struct OverviewView: View {
         .buttonBorderShape(.circle)
         .tint(Palette.primary)
         .accessibilityLabel("Thông báo")
-    }
-}
-
-/// The bar of Tổng quan. Plain buttons: the bar draws their glass circles, so they take part in
-/// its push and pop. The avatar and the greeting on the leading side (the greeting in words on
-/// the ground, not in a glass pill, user request 2026-11-02), Timi's ✦ and the bell on the
-/// trailing one, a spacer giving each its own glass. Before iOS 26 there is no glass to share or
-/// hide, so the items simply sit in the bar; before iOS 18 the hidden title is an empty middle.
-private struct OverviewBar<Profile: View, Greeting: View, Assistant: View, Bell: View>: ViewModifier {
-    /// The middle slot is centred between the leading avatar and the two trailing circles, and as
-    /// wide as its content. Set to this width, its leading edge falls 16 after the avatar: twice
-    /// the distance from that point to the centre of the room between the items.
-    private static var greetingWidth: CGFloat {
-        let margin = Spacing.l, circle = ControlHeight.regular, spacer = Spacing.s
-        let leadingEnd = margin + circle
-        let trailingStart = UIScreen.main.bounds.width - margin - 2 * circle - spacer
-        let centre = (leadingEnd + trailingStart) / 2
-        return max(2 * (centre - (leadingEnd + Spacing.l)), 0)
-    }
-
-    let profile: Profile
-    let greeting: Greeting
-    let assistant: Assistant
-    let bell: Bell
-
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            // The greeting in the middle slot stands in for the title, so the title is not removed:
-            // removing it hid the middle slot too.
-            content
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) { profile }
-                    // In the middle slot, pushed to its leading edge, so it sits by the avatar
-                    // without being a leading item: as one, it morphed into the back button of the
-                    // page pushed over Tổng quan and showed as a box beside ‹ (user report
-                    // 2026-11-03). The middle fades with the title instead.
-                    ToolbarItem(placement: .principal) {
-                        greeting.frame(width: Self.greetingWidth, alignment: .leading)
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                    ToolbarItem(placement: .topBarTrailing) { assistant }
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                    ToolbarItem(placement: .topBarTrailing) { bell }
-                }
-        } else {
-            content
-                .toolbar {
-                    ToolbarItem(placement: .principal) { Color.clear }
-                    ToolbarItem(placement: .topBarLeading) {
-                        HStack(spacing: Spacing.s) { profile; greeting }
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        HStack(spacing: Spacing.m) { assistant; bell }
-                    }
-                }
-        }
     }
 }
 
