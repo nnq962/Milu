@@ -223,7 +223,7 @@ struct ActivityRow: View {
             // Read-only history still answers a tap: it says why and what to do.
             Button { isExplaining = true } label: { row }
                 .buttonStyle(.row)
-                .alert("Không sửa được", isPresented: $isExplaining) {
+                .systemAlert("Không sửa được", isPresented: $isExplaining) {
                     Button("OK", role: .cancel) {}
                 } message: {
                     Text(reason)

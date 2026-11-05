@@ -149,16 +149,7 @@ struct AccountsView: View {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         AccountSheetLink(accountID: account.id) { WalletRow(account: account) }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) {
-                                // From the names' column to just short of the ›.
-                                if index > 0 {
-                                    Rectangle()
-                                        .fill(Palette.separator)
-                                        .frame(height: 1)
-                                        .padding(.leading, WalletRow.textColumn)
-                                        .padding(.trailing, 14)
-                                }
-                            }
+                            .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
                     }
                 }
                 .cardSurface(radius: 17)
@@ -210,7 +201,7 @@ struct AccountsView: View {
             } label: {
                 if archived > 0 && completed > 0 {
                     ArchiveEntryRow(title: "Lưu trữ & hoàn thành",
-                                    detail: "\(archived) tài khoản đã lưu trữ · \(completed) hũ đã hoàn thành")
+                                    detail: "\(archived) tài khoản · \(completed) hũ")
                 } else if archived > 0 {
                     ArchiveEntryRow(title: "Tài khoản đã lưu trữ", count: archived)
                 } else {

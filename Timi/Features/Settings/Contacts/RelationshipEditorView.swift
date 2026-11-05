@@ -75,7 +75,7 @@ struct RelationshipEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                IconQuickPicker(selection: $icon, suggestions: Self.suggestions, groups: IconCatalog.emojiGroups)
+                IconTilePicker(selection: $icon, suggestions: Self.suggestions)
             }
 
             if let original {

@@ -54,10 +54,10 @@ struct CompletedGoalsList: View {
                         CompletedGoalRow(goal: goal, subtitle: completedText(goal))
                     }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                    .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
                 }
             }
-            .listCard()
+            .cardSurface(radius: 17)
         }
     }
 
@@ -69,24 +69,19 @@ struct CompletedGoalsList: View {
     }
 }
 
-/// A closed goal drawn as a goal on the tab (`GoalRow`), not as a transaction (re-review
-/// 2026-10-31: a 24 glyph here, a 32 ring there): its full ring in the logo column, the name and
-/// how it ended, the target it met, ›.
+/// A closed goal as a row of Sổ ví (`LedgerRow`), beside the archived wallets: its picture, the
+/// name over how it ended, the target it met, ›.
 private struct CompletedGoalRow: View {
     let goal: SavingsGoal
     let subtitle: String
 
     var body: some View {
-        ListRow(title: goal.name, subtitle: subtitle) {
-            // Its Fluent Flat picture, 32, as the wallets beside it (user request 2026-11-05: the
-            // full ring read as a line icon).
+        LedgerRow(title: goal.name, subtitle: subtitle, figure: goal.target.vnd,
+                  spoken: [goal.name, subtitle, "mục tiêu \(MoneyText.spoken(goal.target))"].joined(separator: ", "),
+                  hint: "Xem hũ") {
+            // Its Fluent Flat picture, 32, as the wallets beside it (user request 2026-11-05).
             GoalPictureMark(goal: goal)
-        } trailing: {
-            ListRowAmount(amount: goal.target)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel([goal.name, subtitle, "mục tiêu \(goal.target.vnd)"].joined(separator: ", "))
-        .accessibilityHint("Xem hũ")
     }
 }
 

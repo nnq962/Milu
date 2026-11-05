@@ -105,7 +105,7 @@ struct AssistantView: View {
             ToolbarItem(placement: .topBarTrailing) { historyMenu }
         }
         .sheet(item: $viewingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
-        .alert("Xoá giao dịch?", isPresented: Binding(
+        .systemAlert("Xoá giao dịch?", isPresented: Binding(
             get: { pendingRemoval != nil },
             set: { if !$0 { pendingRemoval = nil } }
         )) {
@@ -117,7 +117,7 @@ struct AssistantView: View {
         .onChange(of: dictation.transcript) { _, text in
             if dictation.isRecording { draft = text }
         }
-        .alert("Không dùng được micro", isPresented: Binding(
+        .systemAlert("Không dùng được micro", isPresented: Binding(
             get: { dictation.failure != nil },
             set: { if !$0 { dictation.failure = nil } }
         )) {

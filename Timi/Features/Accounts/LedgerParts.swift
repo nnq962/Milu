@@ -1,33 +1,41 @@
 import SwiftUI
 
-/// One wallet or bank in Sổ ví (Milu "Sổ ví / Dòng tài khoản", Figma 58:828): its logo or kind
-/// in a 32pt tile, the name over its kind, the balance on the right, then ›. 54 tall at least; at
-/// accessibility text sizes the balance goes under the name, whole, never shortened (Milu: no
-/// "tr"/"k" in money labels).
-struct WalletRow: View {
-    let account: Account
+/// A row of Sổ ví (Milu "Sổ ví / Dòng tài khoản", Figma 58:828): a 32 mark, the name over a
+/// grey line, the figure on the right, then ›. 54 tall at least; the name and figure side by side
+/// while the name fits whole, else the figure under the name, whole, never shortened (Milu: no
+/// "tr"/"k" in money labels). Shared by the wallets on the page and the archived wallets and
+/// closed goals in "Lưu trữ & hoàn thành" (user report 2026-11-05: there the figure sat on the
+/// name's line, not the row's middle, in a lighter name than on the page).
+struct LedgerRow<Mark: View>: View {
+    let title: String
+    let subtitle: String
+    let figure: String
+    var figureColor: Color = Palette.label
+    let spoken: String
+    let hint: String
+    @ViewBuilder let mark: Mark
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
     /// Where the hairline between rows starts: the column of the names (12 + 32 + 10).
-    static let textColumn: CGFloat = 54
-    static let logo: CGFloat = 32
+    static var textColumn: CGFloat { WalletRow.textColumn }
 
     var body: some View {
         HStack(spacing: 10) {
-            WalletMark(account: account)
-            // Name and balance side by side while the name fits whole; else the balance under the
-            // name (HIG review 2026-11-05: at XXXL "Vietcombank" broke as "Vietcomban / k"). From
-            // XXXL every row stacks, so one list never mixes the two (second review 2026-11-05).
+            mark
+            // From XXXL every row stacks, so one list never mixes the two (second review
+            // 2026-11-05: at XXXL "Vietcombank" broke as "Vietcomban / k").
             if typeSize >= .xxxLarge {
                 stacked
             } else {
+                // Side by side while the name and the figure fit whole; the grey line under the
+                // name is cut short there instead of pushing the figure down (a closed goal's
+                // "Đã dùng: Mua tai nghe Sony · 3/11"): it asks for no width of its own.
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: Spacing.s) {
-                        names
-                            .fixedSize(horizontal: true, vertical: false)
+                        names(oneLine: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        balance
+                        amount
                             .fixedSize()
                     }
                     stacked
@@ -42,37 +50,69 @@ struct WalletRow: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken)
-        .accessibilityHint("Xem ví")
+        .accessibilityHint(hint)
     }
 
     private var stacked: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            names
-            balance
+            names(oneLine: false)
+            amount
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var names: some View {
+    @ViewBuilder
+    private func names(oneLine: Bool) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(account.name)
+            Text(title)
                 .textRole(.bodyStrong)
                 .foregroundStyle(Palette.label)
-            Text(account.isLocked ? "\(account.type.title) · Đã khoá" : account.type.title)
-                .textRole(.footnote)
-                .foregroundStyle(Palette.secondaryLabel)
+                .fixedSize(horizontal: oneLine, vertical: false)
+            if oneLine {
+                Text(subtitle)
+                    .textRole(.footnote)
+                    .foregroundStyle(Palette.secondaryLabel)
+                    .lineLimit(1)
+                    .frame(idealWidth: 0, maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(subtitle)
+                    .textRole(.footnote)
+                    .foregroundStyle(Palette.secondaryLabel)
+            }
         }
     }
 
-    private var balance: some View {
-        // Whole, in ink (red with "−" below zero); grey once locked, as it no longer counts.
-        Text(signed(account.balance))
+    private var amount: some View {
+        Text(figure)
             .textRole(.amount)
             .tracking(-0.25)
-            .foregroundStyle(account.isLocked ? Palette.secondaryLabel
-                             : account.balance < 0 ? Palette.expense : Palette.label)
+            .foregroundStyle(figureColor)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
+    }
+}
+
+/// One wallet or bank in Sổ ví: its logo or kind, the name over its kind, the balance in ink (red
+/// with "−" below zero). `subtitle` and `isMuted` for an archived one: "Đã lưu trữ 2/11" in place
+/// of the kind and the balance grey, as money that no longer counts (as a locked one's).
+struct WalletRow: View {
+    let account: Account
+    var subtitle: String? = nil
+    var isMuted = false
+
+    /// Where the hairline between rows starts: the column of the names (12 + 32 + 10).
+    static let textColumn: CGFloat = 54
+    static let logo: CGFloat = 32
+
+    var body: some View {
+        LedgerRow(title: account.name,
+                  subtitle: subtitle ?? (account.isLocked ? "\(account.type.title) · Đã khoá" : account.type.title),
+                  figure: signed(account.balance),
+                  figureColor: account.isLocked || isMuted ? Palette.secondaryLabel
+                      : account.balance < 0 ? Palette.expense : Palette.label,
+                  spoken: spoken, hint: "Xem ví") {
+            WalletMark(account: account)
+        }
     }
 
     private func signed(_ amount: Double) -> String {
@@ -82,8 +122,20 @@ struct WalletRow: View {
     /// "Ví tiền mặt, số dư hai triệu ba trăm năm mươi nghìn đồng" (Milu's own example).
     private var spoken: String {
         let figure = (account.balance < 0 ? "trừ " : "") + MoneyText.spoken(abs(account.balance))
-        return [account.name, "số dư \(figure)", account.isLocked ? "đã khoá" : nil]
+        return [account.name, "số dư \(figure)", account.isLocked ? "đã khoá" : nil, subtitle]
             .compactMap { $0 }.joined(separator: ", ")
+    }
+}
+
+/// The hairline between `LedgerRow`s on one card: from the names' column to just short of the ›.
+/// A top overlay, so it adds no height.
+struct LedgerDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Palette.separator)
+            .frame(height: 1)
+            .padding(.leading, WalletRow.textColumn)
+            .padding(.trailing, 14)
     }
 }
 

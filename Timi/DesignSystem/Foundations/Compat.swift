@@ -61,3 +61,33 @@ extension View {
         }
     }
 }
+
+extension View {
+    /// An iOS alert in iOS's own colours (user request 2026-11-05): no tint of ours, so iOS draws
+    /// its buttons as it does in Settings (on iOS 26 ink on grey glass, red for a destructive
+    /// one), not in the app's accent. An alert takes the tint of the view it hangs on, so it hangs
+    /// on a clear one with the tint cleared behind this view, and the view itself keeps its
+    /// colours. (Forcing `.blue` was taken back the same day: iOS 26's own alerts are not blue.)
+    func systemAlert<Actions: View, Message: View>(
+        _ title: String, isPresented: Binding<Bool>,
+        @ViewBuilder actions: () -> Actions, @ViewBuilder message: () -> Message
+    ) -> some View {
+        let actions = actions(), message = message()
+        return background {
+            Color.clear
+                .alert(title, isPresented: isPresented, actions: { actions }, message: { message })
+                .tint(nil as Color?)
+        }
+    }
+
+    func systemAlert<Actions: View>(
+        _ title: String, isPresented: Binding<Bool>, @ViewBuilder actions: () -> Actions
+    ) -> some View {
+        let actions = actions()
+        return background {
+            Color.clear
+                .alert(title, isPresented: isPresented, actions: { actions })
+                .tint(nil as Color?)
+        }
+    }
+}

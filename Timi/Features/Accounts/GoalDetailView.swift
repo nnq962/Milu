@@ -116,7 +116,7 @@ struct GoalDetailView: View {
             .sheet(item: $editingItem) { item in
                 ActivityEditor(item: item)
             }
-            .alert("Đã đủ mục tiêu", isPresented: $isCelebrating) {
+            .systemAlert("Đã đủ mục tiêu", isPresented: $isCelebrating) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Hũ “\(goal.name)” đã đủ \(goal.target.vnd).")
@@ -189,23 +189,30 @@ struct GoalDetailView: View {
     }
 
     /// How it ended as the screen's one kind of badge, as "Đã đủ mục tiêu" (re-review 2026-10-31:
-    /// a grey box with 12 corners beside a green pill): "Đã dùng: Mua xe" in the pill, then the
-    /// rest of where the money went and the day under it, wrapping rather than cut off
-    /// ("36tr về Ví tiền mặt · 29/10").
+    /// a grey box with 12 corners beside a green pill): "Đã dùng: Mua xe" in the pill, the rest of
+    /// where the money went and the day beside it while they fit, under it, wrapping rather than
+    /// cut off, when not ("36tr về Ví tiền mặt · 29/10"). Beside it the card is three lines, not
+    /// four (user report 2026-11-05: the day alone on a line under the pill).
     private func closedLine(_ goal: SavingsGoal) -> some View {
         let parts = goal.closingNote.components(separatedBy: " · ").filter { !$0.isEmpty }
         let head = parts.first ?? "Đã hoàn thành"
         let rest = (Array(parts.dropFirst()) + [goal.closedAt?.shortDay].compactMap { $0 })
             .joined(separator: " · ")
-        return VStack(alignment: .leading, spacing: Spacing.s) {
-            StatusBadge(title: head, tone: .positive, icon: "hugeicons-checkmark-badge-01")
-            if !rest.isEmpty {
-                Text(rest)
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryLabel)
-                    .fixedSize(horizontal: false, vertical: true)
+        let badge = StatusBadge(title: head, tone: .positive, icon: "hugeicons-checkmark-badge-01")
+        let note = Text(rest)
+            .textRole(.caption)
+            .foregroundStyle(Palette.secondaryLabel)
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.s) {
+                badge.fixedSize()
+                if !rest.isEmpty { note.lineLimit(1).fixedSize() }
+            }
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                badge
+                if !rest.isEmpty { note.fixedSize(horizontal: false, vertical: true) }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 

@@ -211,7 +211,7 @@ struct FormActionRow: View {
             .formRowFrame()
         }
         .buttonStyle(.row)
-        .alert(question ?? "", isPresented: $isConfirming) {
+        .systemAlert(question ?? "", isPresented: $isConfirming) {
             Button(canConfirm ? "Huỷ" : "OK", role: .cancel) {}
             if canConfirm { Button(title, action: action) }
         } message: {
@@ -259,7 +259,7 @@ struct FormDestructiveRow: View {
         }
         .buttonStyle(.row)
         // A centred iOS alert, not a sheet from the button (user choice 2026-10-29).
-        .alert(question, isPresented: $isConfirming) {
+        .systemAlert(question, isPresented: $isConfirming) {
             Button(canConfirm ? "Huỷ" : "OK", role: .cancel) {}
             if !canConfirm {
                 EmptyView()

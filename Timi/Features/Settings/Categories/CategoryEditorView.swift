@@ -170,7 +170,7 @@ struct CategoryEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                IconQuickPicker(selection: $icon, suggestions: suggestions, groups: IconCatalog.emojiGroups)
+                IconTilePicker(selection: $icon, suggestions: suggestions)
             }
 
             if let original {

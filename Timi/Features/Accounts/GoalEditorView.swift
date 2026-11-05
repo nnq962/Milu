@@ -101,8 +101,8 @@ struct GoalEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                IconQuickPicker(selection: pickerIcon, suggestions: SavingsGoal.suggestedIcons,
-                                groups: IconCatalog.emojiGroups)
+                // The tiles of "Chọn nhanh" on Thêm giao dịch (user request 2026-11-05).
+                IconTilePicker(selection: pickerIcon, suggestions: SavingsGoal.suggestedIcons)
             }
 
             FormGroup(title: "Kế hoạch", footer: monthlyNote) {

@@ -48,15 +48,17 @@ struct ArchivedAccountsList: View {
                     // Slides over the list inside the same sheet, ‹ back to it (user choice
                     // 2026-11-01: one sheet, not one on top of another).
                     NavigationLink { AccountDetailView(accountID: account.id) } label: {
-                        AccountRow(account: account,
-                                   subtitle: account.archivedAt.map { "Đã lưu trữ \($0.shortDay)" },
-                                   isMuted: true, usesWalletMark: true)
+                        // The row of Sổ ví, the balance grey (user report 2026-11-05: a list row
+                        // of its own put the figure on the name's line).
+                        WalletRow(account: account,
+                                  subtitle: account.archivedAt.map { "Đã lưu trữ \($0.shortDay)" } ?? "Đã lưu trữ",
+                                  isMuted: true)
                     }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                    .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
                 }
             }
-            .listCard()
+            .cardSurface(radius: 17)
         }
     }
 }

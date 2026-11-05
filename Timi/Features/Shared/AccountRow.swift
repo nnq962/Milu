@@ -9,11 +9,6 @@ struct AccountRow: View {
     var showsChevron = true
     /// A line under the name ("Đã lưu trữ 3/10").
     var subtitle: String? = nil
-    /// The balance in grey: money that no longer counts (an archived account).
-    var isMuted = false
-    /// The mark of Sổ ví (`WalletMark`): the logo, or the kind's Fluent Flat picture on nothing,
-    /// in place of the line glyph on a tile (the Lưu trữ list, user request 2026-11-05).
-    var usesWalletMark = false
 
     /// How far the lock hangs out past the logo's corner, a third of the badge (re-review
     /// 2026-10-31: named instead of written in place).
@@ -21,19 +16,15 @@ struct AccountRow: View {
 
     var body: some View {
         ListRow(title: account.name, subtitle: subtitle, showsChevron: showsChevron) {
-            if usesWalletMark {
-                WalletMark(account: account)
-            } else {
-                RowIcon(name: account.iconName, size: RowMetrics.listLogo, tiled: true)
-                    .overlay(alignment: .bottomTrailing) {
-                        if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
-                    }
-            }
+            RowIcon(name: account.iconName, size: RowMetrics.listLogo, tiled: true)
+                .overlay(alignment: .bottomTrailing) {
+                    if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
+                }
         } trailing: {
             // A step stronger than the name, as in Wallet: the figure is what the row is for
             // (Tài khoản review 2026-11-03: name and amount read the same).
             ListRowTrailing(note: nil) {
-                MoneyText(amount: account.balance, size: .rowStrong, tone: account.isLocked || isMuted ? .muted : .balance)
+                MoneyText(amount: account.balance, size: .rowStrong, tone: account.isLocked ? .muted : .balance)
             }
         }
         .accessibilityElement(children: .ignore)
