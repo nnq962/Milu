@@ -10,6 +10,8 @@ struct SkyHeader: View {
     let mascot: String
     var placement: MascotPlacement = .nauAtRest
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Bounds of the exported dog artwork within the 402 × 240 reference composition.
     struct MascotPlacement {
         let left: CGFloat
@@ -61,6 +63,15 @@ struct SkyHeader: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// In: grows from the feet as it fades in. Out: gone in a blink, so the two dogs barely overlap.
+    /// With Reduce Motion, a fade only.
+    private var mascotSwap: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .opacity.combined(with: .scale(scale: 0.82, anchor: .bottom)),
+            removal: .opacity.animation(.easeOut(duration: 0.12)))
+    }
+
     /// Sky, sun and clouds, and the dog, behind the words. Above, the sky runs on under the bars;
     /// below, a straight edge meets the page, as Milu draws it (user 2026-11-05: no blur; the soft
     /// bands tried on 2026-11-04 and -05 read rough).
@@ -78,16 +89,22 @@ struct SkyHeader: View {
                     .resizable()
                     .frame(width: width, height: skyHeight)
                     .offset(y: edge - skyHeight)
-                // A new mood fades over the old one, where the change is animated (the first
-                // wallet in, the last one out), instead of the picture swapping in a frame.
-                Image(mascot)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: placement.width * scale)
-                    .offset(x: placement.left * scale,
-                            y: edge - (Self.referenceEdge - placement.top) * scale)
-                    .id(mascot)
-                    .transition(.opacity)
+                // A new mood hops in from the dog's feet while the old one fades out quickly
+                // (user 2026-11-05: a plain cross-fade looked rough — halfway, both pictures were
+                // half see-through and the sky showed through the dog). The spring is set here, so
+                // the change looks the same whichever action changed the mood.
+                ZStack {
+                    Image(mascot)
+                        .resizable()
+                        .scaledToFit()
+                        .id(mascot)
+                        .transition(mascotSwap)
+                }
+                .frame(width: placement.width * scale)
+                .offset(x: placement.left * scale,
+                        y: edge - (Self.referenceEdge - placement.top) * scale)
+                .animation(reduceMotion ? .easeInOut(duration: 0.25) : .spring(duration: 0.5, bounce: 0.35),
+                           value: mascot)
             }
             .frame(width: width, height: edge, alignment: .topLeading)
             // Nothing past the edge: the dog's foot ends where the page begins.
