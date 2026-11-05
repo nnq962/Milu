@@ -66,7 +66,7 @@ struct FormValueRowContent: View {
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
                 HStack(spacing: Spacing.s) {
                     if let valueIcon {
-                        RowIcon(name: valueIcon)
+                        RowIcon(name: valueIcon, size: IconSize.valueArtwork)
                     }
                     // A new date, time or choice rolls in, so the change is easy to notice (not
                     // under Reduce Motion).
@@ -127,10 +127,11 @@ struct NavigationRowContent: View {
     var value: String? = nil
     /// What VoiceOver reads for a bare number in `value` ("12 hạng mục"), once, after the title.
     var spokenValue: String? = nil
+    var iconSize: CGFloat = RowMetrics.iconColumn
 
     var body: some View {
         let row = HStack(spacing: Spacing.s) {
-            FormRowLabel(title: title, subtitle: subtitle, icon: icon)
+            FormRowLabel(title: title, subtitle: subtitle, icon: icon, iconSize: iconSize)
             Spacer(minLength: Spacing.s)
             if let value {
                 Text(value)

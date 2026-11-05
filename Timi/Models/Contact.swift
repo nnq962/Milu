@@ -19,11 +19,11 @@ enum ContactRelationship: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .family: "hugeicons-home-01"
-        case .friend: "hugeicons-user-love-01"
-        case .colleague: "hugeicons-briefcase-01"
-        case .acquaintance: "hugeicons-handshake"
-        case .other: "hugeicons-user"
+        case .family: IconCatalog.emojiName("🏠")
+        case .friend: IconCatalog.emojiName("🫶")
+        case .colleague: IconCatalog.emojiName("💼")
+        case .acquaintance: IconCatalog.emojiName("🤝")
+        case .other: IconCatalog.emojiName("🏷️")
         }
     }
 

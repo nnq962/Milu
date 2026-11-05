@@ -33,11 +33,7 @@ struct WalletRow: View {
                     stacked
                 }
             }
-            // 12 at the default size, growing with the text (it stood 12 beside AX5 names).
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Palette.tertiaryLabel)
-                .accessibilityHidden(true)
+            RowChevron()
         }
         .padding(.leading, Spacing.m)
         .padding(.trailing, 14)
@@ -105,7 +101,7 @@ struct WalletMark: View {
             if let logo = account.institution?.logoImage {
                 InstitutionLogo(image: logo, size: size)
             } else {
-                Image(IconCatalog.emojiName(emoji))
+                Image(account.type.icon)
                     .resizable()
                     .scaledToFit()
                     .frame(width: size, height: size)
@@ -119,14 +115,6 @@ struct WalletMark: View {
         .accessibilityHidden(true)
     }
 
-    private var emoji: String {
-        switch account.type {
-        case .cash: "💵"
-        case .bank: "🏦"
-        case .eWallet: "📱"
-        case .credit: "💳"
-        }
-    }
 }
 
 /// A savings goal as a glass jar in Sổ ví (Milu "Hũ theo mục tiêu", Figma 79:1401, 2026-11-05):

@@ -83,7 +83,7 @@ private struct OverviewTile<Graphic: View>: View {
 
 private enum OverviewTileMetrics {
     /// The picture, ring or bars on top of a block.
-    static let graphic: CGFloat = 40
+    static let graphic: CGFloat = IconSize.cardArtwork
     static let padding: CGFloat = Spacing.l
     static let ringLine: CGFloat = 6
     static let gap: CGFloat = Spacing.m

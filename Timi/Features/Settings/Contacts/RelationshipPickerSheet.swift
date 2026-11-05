@@ -51,7 +51,7 @@ struct RelationshipPickerSheet: View {
     private func row(_ relationship: Relationship) -> some View {
         let isSelected = relationship.id == selection
         let hasPencils = !store.customRelationships.isEmpty
-        let pencilTrailing = RowMetrics.horizontal - (ControlHeight.regular - RowMetrics.iconGlyph) / 2
+        let pencilTrailing = RowMetrics.horizontal - (ControlHeight.regular - IconSize.control) / 2
         return HStack(spacing: 0) {
             Button {
                 selection = relationship.id
@@ -71,7 +71,7 @@ struct RelationshipPickerSheet: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             if !relationship.isBuiltIn {
                 Button { editing = .edit(relationship) } label: {
-                    TimiIcon("hugeicons-pencil-edit-01", size: RowMetrics.iconGlyph)
+                    TimiIcon("hugeicons-pencil-edit-01", size: IconSize.control)
                         .foregroundStyle(Palette.label)
                         .frame(width: ControlHeight.regular, height: ControlHeight.regular)
                         .contentShape(Rectangle())

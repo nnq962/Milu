@@ -1,15 +1,18 @@
 import SwiftUI
 
-/// Timi's mark: ✦ on a disc of the primary colour, as on the strip of Tổng quan, so the chat reads
-/// as talking to someone (user request 2026-10-31: plain text read like a document).
+/// The assistant's mark: ✨, the Fluent Flat sparkle of "Hỏi Milu", on a mist disc, a row
+/// picture's 32 (final icon review 2026-11-05: a line ✦ beside a coloured ✨ on the bar).
 struct AssistantAvatar: View {
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = RowMetrics.iconColumn + Spacing.xs
+    @ScaledMetric(relativeTo: .body) private var size = IconSize.rowArtwork
 
     var body: some View {
-        TimiIcon("hugeicons-ai-magic", size: RowMetrics.inlineGlyph)
-            .foregroundStyle(Palette.onPrimary)
-            .frame(width: size, height: size)
-            .background(Palette.primary, in: Circle())
+        let disc = RowMetrics.capped(size, base: IconSize.rowArtwork)
+        Image(IconCatalog.emojiName("✨"))
+            .resizable()
+            .scaledToFit()
+            .frame(width: disc * 0.6, height: disc * 0.6)
+            .frame(width: disc, height: disc)
+            .background(Palette.surfaceMuted, in: Circle())
             .accessibilityHidden(true)
     }
 }

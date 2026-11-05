@@ -65,7 +65,8 @@ struct IconChoice: View {
 struct IconChoiceLabel: View {
     let name: String
     let isSelected: Bool
-    var size: CGFloat = RowMetrics.featureIcon
+    /// A tap target, not a picture: the 44 of every control.
+    var size: CGFloat = ControlHeight.regular
 
     var body: some View {
         TimiIcon(name, size: size * (IconCatalog.isEmoji(name) ? 0.68 : 0.5))

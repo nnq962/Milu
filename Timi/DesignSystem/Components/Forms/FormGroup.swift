@@ -87,11 +87,14 @@ struct FormRowLabel: View {
     var icon: String? = nil
     /// Red title: this row has a problem (the group's `error` says what).
     var isInvalid = false
+    /// The icon's size at the default text size; the 24 column unless a row asks for more (the
+    /// 32 Fluent Flat pictures of "Thêm mới", as Sổ ví's rows, user request 2026-11-05).
+    var iconSize: CGFloat = RowMetrics.iconColumn
 
     var body: some View {
         HStack(spacing: RowMetrics.gap) {
             if let icon {
-                FormRowIcon(icon: icon)
+                FormRowIcon(icon: icon, size: iconSize)
             }
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(title)
@@ -111,9 +114,10 @@ struct FormRowLabel: View {
 /// same column as a list row's icon, growing with the text as that one does.
 struct FormRowIcon: View {
     let icon: String
+    var size: CGFloat = RowMetrics.iconColumn
 
     var body: some View {
-        RowIcon(name: icon)
+        RowIcon(name: icon, size: size)
     }
 }
 

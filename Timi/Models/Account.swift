@@ -19,10 +19,11 @@ enum AccountType: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .cash: "hugeicons-money-02"
-        case .bank: "hugeicons-bank"
-        case .eWallet: "hugeicons-smart-phone-01"
-        case .credit: "hugeicons-credit-card"
+        // Fluent Flat, as every wallet's mark (user request 2026-11-05: emoji for the user's things).
+        case .cash: IconCatalog.emojiName("💵")
+        case .bank: IconCatalog.emojiName("🏦")
+        case .eWallet: IconCatalog.emojiName("📱")
+        case .credit: IconCatalog.emojiName("💳")
         }
     }
 }

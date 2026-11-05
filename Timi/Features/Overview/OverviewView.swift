@@ -127,8 +127,7 @@ struct OverviewView: View {
         Button {
             information = Information(title: "Thông báo", message: "Bạn chưa có thông báo mới. Nhắc hạn thanh toán sẽ xuất hiện ở đây khi tính năng được bổ sung.")
         } label: {
-            TimiIcon("hugeicons-notification-01", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            BarSymbol("bell")
         }
         .buttonBorderShape(.circle)
         .tint(Palette.primary)

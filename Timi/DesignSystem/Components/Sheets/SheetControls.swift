@@ -18,10 +18,12 @@ struct SheetCloseButton: View {
 /// The tick on the chosen row of a picking sheet (`ChoiceSheet`, the bank picker).
 struct SelectionCheck: View {
     /// Grows with the text beside it.
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = IconSize.bar
 
     var body: some View {
-        TimiIcon("hugeicons-tick-02", size: size)
+        // iOS's own tick, as in its menus and pickers.
+        Image(systemName: "checkmark")
+            .font(.system(size: RowMetrics.capped(size, base: IconSize.bar), weight: .semibold))
             .foregroundStyle(Palette.primary)
             .accessibilityHidden(true)
     }

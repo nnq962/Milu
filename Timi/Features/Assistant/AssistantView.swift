@@ -63,7 +63,7 @@ struct AssistantView: View {
                     Button {
                         withAnimation { proxy.scrollTo(Self.endID, anchor: .bottom) }
                     } label: {
-                        TimiIcon("hugeicons-arrow-up-02", size: RowMetrics.iconGlyph)
+                        TimiIcon("hugeicons-arrow-up-02", size: IconSize.control)
                             .rotationEffect(.degrees(180))
                             .foregroundStyle(Palette.label)
                             // A full 44 of glass: the glass button style drew a 32 circle inside it.
@@ -152,8 +152,7 @@ struct AssistantView: View {
                 }
             }
         } label: {
-            TimiIcon("hugeicons-clock-01", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            BarSymbol("clock.arrow.circlepath")
         }
         .menuStyle(.button)
         .buttonBorderShape(.circle)
@@ -203,7 +202,7 @@ struct AssistantView: View {
                     Button {
                         send(draft)
                     } label: {
-                        TimiIcon("hugeicons-arrow-up-02", size: RowMetrics.iconGlyph)
+                        TimiIcon("hugeicons-arrow-up-02", size: IconSize.control)
                             .foregroundStyle(Palette.onPrimary)
                     }
                     .nativeFloatingButton(diameter: ControlHeight.small, tint: Palette.primary)
@@ -212,7 +211,7 @@ struct AssistantView: View {
                     Button {
                         Task { await dictation.toggle() }
                     } label: {
-                        TimiIcon("hugeicons-mic-01", size: RowMetrics.iconGlyph)
+                        TimiIcon("hugeicons-mic-01", size: IconSize.control)
                             .foregroundStyle(dictation.isRecording ? Palette.negative : Palette.secondaryLabel)
                             .frame(width: ControlHeight.small, height: ControlHeight.small)
                             .contentShape(Circle())
@@ -238,9 +237,7 @@ struct AssistantView: View {
     private var outOfQuestions: some View {
         HStack(alignment: .top, spacing: Spacing.m) {
             // A glyph in content, not a toolbar's (re-review 2026-10-31).
-            TimiIcon("hugeicons-ai-magic", size: RowMetrics.iconGlyph)
-                .foregroundStyle(Palette.primary)
-                .accessibilityHidden(true)
+            AssistantAvatar()
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text("Đã dùng hết lượt AI")
                     .textRole(.bodyStrong)

@@ -13,7 +13,7 @@ struct SearchField<Accessory: View>: View {
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            TimiIcon("hugeicons-search-01", size: RowMetrics.iconGlyph)
+            TimiIcon("hugeicons-search-01", size: IconSize.control)
                 .foregroundStyle(Palette.secondaryLabel)
                 .accessibilityHidden(true)
             TextField(prompt, text: $text)

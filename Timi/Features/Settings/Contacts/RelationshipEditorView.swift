@@ -32,7 +32,7 @@ struct RelationshipEditorView: View {
         switch target {
         case .new:
             _name = State(initialValue: "")
-            _icon = State(initialValue: "hugeicons-user")
+            _icon = State(initialValue: IconCatalog.emojiName("🏷️"))
         case .edit(let relationship):
             _name = State(initialValue: relationship.name)
             _icon = State(initialValue: relationship.icon)
@@ -63,12 +63,9 @@ struct RelationshipEditorView: View {
         return canSave
     }
 
-    /// People-like icons first: the built-in relationships', then places people are met.
-    private static let suggestions = [
-        "hugeicons-user", "hugeicons-user-group", "hugeicons-user-love-01", "hugeicons-home-01",
-        "hugeicons-briefcase-01", "hugeicons-handshake", "hugeicons-hand-heart", "hugeicons-baby-01",
-        "hugeicons-school", "hugeicons-bank", "hugeicons-store-01",
-    ]
+    /// Fluent Flat, people-like first: the built-in relationships', then places people are met.
+    private static let suggestions = ["🏷️", "🏠", "🫶", "💼", "🤝", "👶", "🏫", "🏦", "🏘️", "👵", "🎓"]
+        .map(IconCatalog.emojiName)
 
     var body: some View {
         SheetScaffold(title: original == nil ? "Thêm loại" : "Sửa loại", validate: validate, onConfirm: save) {
@@ -78,7 +75,7 @@ struct RelationshipEditorView: View {
             }
 
             FormGroup(title: "Biểu tượng") {
-                IconQuickPicker(selection: $icon, suggestions: Self.suggestions)
+                IconQuickPicker(selection: $icon, suggestions: Self.suggestions, groups: IconCatalog.emojiGroups)
             }
 
             if let original {

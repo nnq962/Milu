@@ -27,10 +27,10 @@ struct AccountsView: View {
 
         var option: SheetOption {
             switch self {
-            case .cash: SheetOption(icon: "hugeicons-money-02", title: "Tiền mặt", subtitle: "Ví, két, tiền để ở nhà")
-            case .bank: SheetOption(icon: "hugeicons-bank", title: "Tài khoản ngân hàng", subtitle: "Vietcombank, Techcombank, MB…")
-            case .eWallet: SheetOption(icon: "hugeicons-smart-phone-01", title: "Ví điện tử", subtitle: "MoMo, ZaloPay, ShopeePay…")
-            case .goal: SheetOption(icon: "hugeicons-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu")
+            case .cash: SheetOption(icon: IconCatalog.emojiName("💵"), title: "Tiền mặt", subtitle: "Ví, két, tiền để ở nhà")
+            case .bank: SheetOption(icon: IconCatalog.emojiName("🏦"), title: "Tài khoản ngân hàng", subtitle: "Vietcombank, Techcombank, MB…")
+            case .eWallet: SheetOption(icon: IconCatalog.emojiName("📱"), title: "Ví điện tử", subtitle: "MoMo, ZaloPay, ShopeePay…")
+            case .goal: SheetOption(icon: IconCatalog.emojiName("🫙"), title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu")
             }
         }
     }
@@ -117,10 +117,7 @@ struct AccountsView: View {
     /// Tài khoản bar adds a wallet or a goal; the + by the tab bar records a transaction).
     private var addMenu: some View {
         Button { isChoosingNew = true } label: {
-            // Regular, as the glyphs of iOS's own glass buttons (user request 2026-11-05).
-            Image(systemName: "plus")
-                .font(.system(size: 18, weight: .regular))
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            BarSymbol("plus")
         }
         .buttonBorderShape(.circle)
         .tint(Palette.deep)
@@ -281,10 +278,7 @@ private struct ArchiveEntryRow: View {
                     .monospacedDigit()
                     .foregroundStyle(Palette.secondaryLabel)
             }
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Palette.tertiaryLabel)
-                .accessibilityHidden(true)
+            RowChevron()
         }
         .padding(.leading, Spacing.m)
         .padding(.trailing, 14)

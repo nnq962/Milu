@@ -15,6 +15,6 @@ struct PaymentReminder: Identifiable {
     var dueDate: Date
     /// Dòng phụ ở mục Cần chú ý của tab Vay nợ, VD: "Cho vay · Minh Trần".
     var detail: String = ""
-    var avatar: Avatar = .icon("hugeicons-calendar-03")
+    var avatar: Avatar = .icon(IconCatalog.emojiName("📅"))
 
 }

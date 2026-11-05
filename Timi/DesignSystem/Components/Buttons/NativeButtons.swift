@@ -43,8 +43,11 @@ struct EditToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            TimiIcon("hugeicons-pencil-edit-01", size: RowMetrics.toolbarGlyph)
+            BarSymbol("pencil")
         }
+        // The action colour, as the sheet's ✕ beside it (final icon review 2026-11-05: it drew
+        // in ink, darker than the ✕).
+        .tint(Palette.primary)
         .accessibilityLabel("Sửa")
     }
 }
@@ -119,5 +122,19 @@ extension View {
     /// A flat capsule button; size the label yourself (at least `ControlHeight.regular` to tap).
     func flatCapsuleButton(fill: Color = Palette.fill) -> some View {
         buttonStyle(FlatButtonStyle(fill: fill, shape: Capsule()))
+    }
+}
+
+/// An SF Symbol in a bar's glass button, the one size and weight of every bar glyph
+/// (`IconSize.bar`, Regular), in the frame that makes each glass circle the same.
+struct BarSymbol: View {
+    let name: String
+
+    init(_ name: String) { self.name = name }
+
+    var body: some View {
+        Image(systemName: name)
+            .font(.system(size: IconSize.bar, weight: .regular))
+            .frame(width: IconSize.barFrame, height: IconSize.barFrame)
     }
 }

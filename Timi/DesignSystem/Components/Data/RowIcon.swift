@@ -32,8 +32,8 @@ struct InstitutionLogo: View {
 /// caller has to remember to (review 2026-10-31: fifteen did, the forms did not).
 struct RowIcon: View {
     let name: String
-    /// Colour of a glyph (logos keep their own).
-    var tint: Color = Palette.label
+    /// Colour of a glyph (logos and emoji keep their own): Milu's Content/Icon.
+    var tint: Color = Palette.icon
     /// A glyph on the same tile as the logos, so a list mixing cash and banks lines up
     /// (lists of accounts, `AccountRow`).
     var tiled = false
@@ -41,7 +41,7 @@ struct RowIcon: View {
     private let base: CGFloat
     @ScaledMetric private var scaled: CGFloat
 
-    init(name: String, size: CGFloat = RowMetrics.iconColumn, tint: Color = Palette.label, tiled: Bool = false) {
+    init(name: String, size: CGFloat = RowMetrics.iconColumn, tint: Color = Palette.icon, tiled: Bool = false) {
         self.name = name
         self.tint = tint
         self.tiled = tiled
@@ -55,7 +55,7 @@ struct RowIcon: View {
         Group {
             if name.hasPrefix("Institutions/") {
                 InstitutionLogo(image: name, size: size)
-            } else if tiled {
+            } else if tiled && !IconCatalog.isEmoji(name) {
                 TimiIcon(name, size: size * 0.5)
                     .foregroundStyle(tint)
                     .frame(width: size, height: size)

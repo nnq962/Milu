@@ -232,7 +232,7 @@ extension ContactRecord {
 
 extension Relationship {
     init(_ record: RelationshipRecord) {
-        self.init(id: record.id, name: record.name, icon: IconCatalog.migrated(record.icon))
+        self.init(id: record.id, name: record.name, icon: LineIconEmoji.asset(for: IconCatalog.migrated(record.icon)))
     }
 }
 
@@ -255,7 +255,7 @@ extension PaymentReminder {
             isIncome: record.isIncome,
             dueDate: record.dueDate,
             detail: record.detail,
-            avatar: record.avatarKind == "initials" ? .initials(record.avatarValue) : .icon(IconCatalog.migrated(record.avatarValue))
+            avatar: record.avatarKind == "initials" ? .initials(record.avatarValue) : .icon(LineIconEmoji.asset(for: IconCatalog.migrated(record.avatarValue)))
         )
     }
 }

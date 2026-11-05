@@ -14,7 +14,7 @@ extension FinanceStore {
     }
 
     func categoryIcon(_ id: String) -> String {
-        category(id: id)?.icon ?? TransactionCategory(rawValue: id)?.icon ?? "hugeicons-tag-01"
+        category(id: id)?.icon ?? LineIconEmoji.asset(for: TransactionCategory(rawValue: id)?.icon ?? "hugeicons-tag-01")
     }
 
     /// The group a category belongs to (itself for a group or a system category).

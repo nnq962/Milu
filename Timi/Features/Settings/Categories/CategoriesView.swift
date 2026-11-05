@@ -66,8 +66,7 @@ struct CategoriesView: View {
                 Button { editing = .newGroup(kind) } label: {
                     // The toolbar's one +: a bare + in its 28 frame, as on Tài khoản; the bar's glass
                     // is the circle (2026-11-03, ⊕ before).
-                    TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
-                        .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+                    BarSymbol("plus")
                 }
                 .buttonBorderShape(.circle)
                 .tint(Palette.primary)

@@ -122,7 +122,7 @@ struct TimiAmountField: View {
                         text = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: RowMetrics.iconGlyph))
+                            .font(.system(size: IconSize.control))
                             .foregroundStyle(Color(.tertiaryLabel))
                             .frame(width: Self.clearWidth, height: ControlHeight.regular)
                             // 44 to tap, reaching past the row's end into the page margin.

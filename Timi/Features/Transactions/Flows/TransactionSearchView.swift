@@ -88,8 +88,7 @@ struct TransactionSearchView: View {
                 filterButton
             }
             Button { dismiss() } label: {
-                TimiIcon("hugeicons-cancel-01", size: RowMetrics.toolbarGlyph)
-                    .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+                BarSymbol("xmark")
             }
             .nativeCircleButton(diameter: ControlHeight.regular)
             .tint(Palette.label)
@@ -133,7 +132,7 @@ struct TransactionSearchView: View {
     private var filterButton: some View {
         let count = activeCount
         return Button { isFiltering = true } label: {
-            TimiIcon("hugeicons-filter-horizontal", size: RowMetrics.iconGlyph)
+            TimiIcon("hugeicons-filter-horizontal", size: IconSize.control)
                 .foregroundStyle(count > 0 ? Palette.primary : Palette.secondaryLabel)
                 .overlay(alignment: .topTrailing) {
                     if count > 0 {

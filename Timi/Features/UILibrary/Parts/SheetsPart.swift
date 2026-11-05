@@ -39,10 +39,10 @@ struct SheetsPart: View {
         }
         .sheet(isPresented: $isShowingOptions) {
             OptionSheet(title: "Thêm mới", options: [
-                SheetOption(icon: "hugeicons-money-02", title: "Tiền mặt"),
-                SheetOption(icon: "hugeicons-bank", title: "Ngân hàng"),
-                SheetOption(icon: "hugeicons-smart-phone-01", title: "Ví điện tử"),
-                SheetOption(icon: "hugeicons-piggy-bank", title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu"),
+                SheetOption(icon: IconCatalog.emojiName("💵"), title: "Tiền mặt"),
+                SheetOption(icon: IconCatalog.emojiName("🏦"), title: "Ngân hàng"),
+                SheetOption(icon: IconCatalog.emojiName("📱"), title: "Ví điện tử"),
+                SheetOption(icon: IconCatalog.emojiName("🫙"), title: "Hũ tiết kiệm", subtitle: "Để dành cho một mục tiêu"),
             ]) { picked = $0.title }
         }
         .sheet(isPresented: $isShowingNote) {

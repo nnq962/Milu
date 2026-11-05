@@ -187,8 +187,7 @@ struct TransactionsView: View {
 
     private var searchButton: some View {
         Button { isSearching = true } label: {
-            TimiIcon("hugeicons-search-01", size: RowMetrics.toolbarGlyph)
-                .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            BarSymbol("magnifyingglass")
         }
         .buttonBorderShape(.circle)
         .tint(Palette.primary)

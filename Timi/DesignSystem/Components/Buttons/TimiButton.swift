@@ -106,7 +106,7 @@ struct TimiButtonTitle: View {
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            if let icon { TimiIcon(icon, size: RowMetrics.iconGlyph) }
+            if let icon { TimiIcon(icon, size: IconSize.control) }
             Text(title)
         }
     }

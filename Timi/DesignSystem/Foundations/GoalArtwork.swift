@@ -83,6 +83,19 @@ enum LineIconEmoji {
         "hugeicons-money-add-02": "💵",
         "hugeicons-store-01": "🏷️",
         "hugeicons-cashback": "🪙",
+        // Relationships in Danh bạ.
+        "hugeicons-user-love-01": "🫶",
+        "hugeicons-handshake": "🤝",
+        "hugeicons-user": "🏷️",
+        // Fallbacks and reminders.
+        "hugeicons-tag-01": "🏷️",
+        "hugeicons-calendar-03": "📅",
+        "hugeicons-pencil-edit-01": "✏️",
+        "hugeicons-receipt-dollar": "🧾",
+        // Account kinds.
+        "hugeicons-money-02": "💵",
+        "hugeicons-bank": "🏦",
+        "hugeicons-credit-card": "💳",
     ]
 
     /// The emoji asset for a line icon saved before the switch; any other name as it is.

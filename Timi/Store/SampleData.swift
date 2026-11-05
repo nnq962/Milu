@@ -24,7 +24,7 @@ enum SampleData {
                                                           TransactionCategory.entertainment.rawValue: 2_000_000])
     static let paymentReminders = [
         PaymentReminder(title: "Trả nợ thẻ tín dụng", amount: abs(creditCard.balance), isIncome: false,
-                        dueDate: daysFromNow(4), detail: "Đi vay · \(creditCard.name)", avatar: .icon("hugeicons-credit-card")),
+                        dueDate: daysFromNow(4), detail: "Đi vay · \(creditCard.name)", avatar: .icon(IconCatalog.emojiName("💳"))),
         PaymentReminder(title: "Minh thanh toán khoản vay", amount: 5_000_000, isIncome: true,
                         dueDate: daysFromNow(8), detail: "Cho vay · Minh Trần", avatar: .initials("M")),
     ]
