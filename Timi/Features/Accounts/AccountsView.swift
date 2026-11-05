@@ -35,10 +35,6 @@ struct AccountsView: View {
         }
     }
 
-    /// Nâu cheers once, just after the first wallet is added (Milu: curious while waiting, happy
-    /// on the first success, at rest on a page with data). Until the tab is left.
-    @State private var cheersFirstWallet = false
-
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -48,7 +44,7 @@ struct AccountsView: View {
                 // apart, 24 under the sky.
                 VStack(alignment: .leading, spacing: 0) {
                     SkyHeader(overline: "Nâu giữ ví", title: "Sổ ví của bạn", mascot: mascot,
-                              placement: accounts.isEmpty || cheersFirstWallet ? .nauGreeting : .nauAtRest)
+                              placement: mood == .atRest ? .nauAtRest : .nauGreeting)
                     VStack(alignment: .leading, spacing: Spacing.section) {
                         paymentSection
                         goalsSection
@@ -68,10 +64,6 @@ struct AccountsView: View {
                 Wordmark()
             })
             .toolbar(.visible, for: .navigationBar)
-            .onChange(of: accounts.isEmpty) { wasEmpty, isEmpty in
-                if wasEmpty && !isEmpty { cheersFirstWallet = true }
-            }
-            .onDisappear { cheersFirstWallet = false }
             .toolbar {
                 // Plain buttons: the bar draws their glass, which then takes part in push and pop.
                 // ✦ before +, as on Tổng quan; the spacer gives each its own glass.
@@ -128,10 +120,23 @@ struct AccountsView: View {
         }
     }
 
-    /// Nâu as Milu has him: curious while there is no wallet yet, happy once on the first, else at rest.
+    /// How far the page has come, read from what is on it, so Nâu looks the same every time the
+    /// tab opens (user request 2026-11-05: happy only for a moment after the first wallet, then
+    /// back at rest on the next visit): curious with no wallet, happy with wallets but no jar yet,
+    /// at rest once there are both.
+    private enum Mood { case curious, happy, atRest }
+
+    private var mood: Mood {
+        if accounts.isEmpty { return .curious }
+        return store.activeGoals.isEmpty ? .happy : .atRest
+    }
+
     private var mascot: String {
-        if accounts.isEmpty { return "cun-nau-to-mo" }
-        return cheersFirstWallet ? "cun-nau-vui-mung" : "cun-nau-mac-dinh"
+        switch mood {
+        case .curious: "cun-nau-to-mo"
+        case .happy: "cun-nau-vui-mung"
+        case .atRest: "cun-nau-mac-dinh"
+        }
     }
 
     /// Accounts in order: cash → bank → e-wallet.
@@ -144,6 +149,7 @@ struct AccountsView: View {
             if accounts.isEmpty {
                 EmptyNoteCard(emoji: "👝", title: "Chưa có tài khoản",
                               message: "Số dư ví và tài khoản của bạn sẽ hiện ở đây.")
+                    .transition(.emptySwap)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
@@ -153,6 +159,7 @@ struct AccountsView: View {
                     }
                 }
                 .cardSurface(radius: 17)
+                .transition(.emptySwap)
             }
         }
     }
@@ -168,6 +175,7 @@ struct AccountsView: View {
                 EmptyNoteCard(emoji: "🫙",
                               title: completed == 0 ? "Chưa có hũ tiết kiệm" : "Chưa có hũ đang góp",
                               message: "Mỗi hũ giúp bạn để dành cho một mục tiêu.")
+                    .transition(.emptySwap)
             } else {
                 // Jars three to a row, 10 apart; two, then one, at the largest text sizes
                 // (Milu: a grid goes to fewer columns when names or figures no longer fit).
@@ -181,6 +189,7 @@ struct AccountsView: View {
                         .buttonStyle(.card)
                     }
                 }
+                .transition(.emptySwap)
             }
         }
     }

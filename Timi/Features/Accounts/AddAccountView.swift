@@ -16,9 +16,10 @@ struct AddAccountView: View {
     /// its detail screen, leaves it first).
     private var onLeave: ((Leave) -> Void)?
 
-    /// How an edited account goes away once the form has closed: archived when it has history,
-    /// deleted when it has none (user choice 2026-10-29).
-    enum Leave { case archive, delete }
+    /// How an edited account leaves the list it was opened from, once the form and the account's
+    /// own sheet have closed (`AfterDismiss`): archived when it has history, deleted when it has
+    /// none (user choice 2026-10-29), or restored from the archive.
+    enum Leave { case archive, delete, restore }
     @State private var institutionID: String?
     @State private var name = ""
     @State private var note = ""
@@ -150,9 +151,9 @@ struct AddAccountView: View {
                     // A name left empty: say so instead of restoring without what was typed.
                     guard validate() else { return }
                     applyEdits()
-                    store.unarchive(account)
                     Haptics.success()
                     dismiss()
+                    onLeave?(.restore)
                 }
             }
         } else if store.hasHistory(account) {
@@ -223,7 +224,7 @@ struct AddAccountView: View {
             dismiss()
             return
         }
-        store.add(Account(
+        let account = Account(
             name: trimmedName,
             type: type,
             balance: balance,
@@ -231,8 +232,12 @@ struct AddAccountView: View {
             institutionID: hasInstitutions ? institutionID : nil,
             openedAt: openedAt,
             isLocked: isLocked
-        ))
+        )
+        // The form slides away first, then the new row comes into the list, animated (user
+        // request 2026-11-05: added at once, it was already there under the closing sheet).
         dismiss()
+        let store = store
+        AfterDismiss.run { store.add(account) }
     }
 }
 

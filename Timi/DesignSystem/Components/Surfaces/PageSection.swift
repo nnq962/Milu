@@ -68,3 +68,14 @@ struct EmptyNoteCard: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+extension AnyTransition {
+    /// A part's empty card giving way to what it is waiting for, and back (the first wallet in,
+    /// the last one out): the leaving one gone at once, so its words never show through the part
+    /// below sliding up or down, the coming one fading in as the page settles (Simulator check
+    /// 2026-11-05: "Chưa có tài khoản" faded in place over "Hũ tiết kiệm").
+    static var emptySwap: AnyTransition {
+        .asymmetric(insertion: .opacity.animation(.easeIn(duration: 0.25).delay(0.1)),
+                    removal: .opacity.animation(.easeOut(duration: 0.08)))
+    }
+}

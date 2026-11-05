@@ -18,10 +18,9 @@ struct GoalDetailView: View {
     @State private var isEditing = false
     /// The form opened from "Mục tiêu mới": the target gets the keyboard.
     @State private var editsTarget = false
-    /// Set by "Xoá hũ" in the form; the goal goes once that form has closed.
-    @State private var deletesOnDismiss = false
-    /// The account that gets the goal's money back when it is deleted.
-    @State private var returnAccount: Account.ID?
+    /// Set by "Xoá hũ", "Mở lại hũ" or "Đóng hũ" in the form; the goal changes once that form
+    /// and this screen have closed.
+    @State private var leave: GoalEditorView.Leave?
     @State private var sheet: Sheet?
     /// Whether the goal had reached its target when a sheet opened, to tell when it just did.
     @State private var wasReached = false
@@ -80,20 +79,26 @@ struct GoalDetailView: View {
                 }
             }
             .sheet(isPresented: $isEditing, onDismiss: {
-                guard deletesOnDismiss else {
+                guard let leave else {
                     // A lower target can make it reached: say so once, as a deposit does.
                     if !wasReached, store.goal(id: goalID).map({ $0.isReached && !$0.isClosed }) == true {
                         isCelebrating = true
                     }
                     return
                 }
+                self.leave = nil
+                // This sheet or page first, then the goal out of its list (`AfterDismiss`).
                 dismiss()
-                store.delete(goal, returningTo: returnAccount)
-            }) {
-                GoalEditorView(goal: goal, focusesTarget: editsTarget) { account in
-                    returnAccount = account
-                    deletesOnDismiss = true
+                let store = store
+                AfterDismiss.run {
+                    switch leave {
+                    case .delete(let accountID): store.delete(goal, returningTo: accountID)
+                    case .reopen: store.reopen(goal.id)
+                    case .close: store.closeEmpty(goal.id)
+                    }
                 }
+            }) {
+                GoalEditorView(goal: goal, focusesTarget: editsTarget) { leave = $0 }
             }
             .sheet(item: $sheet, onDismiss: {
                 // Just reached the target with that deposit: say so once.

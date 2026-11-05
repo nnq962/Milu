@@ -7,9 +7,14 @@ struct GoalEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let original: SavingsGoal?
-    /// Set from the goal's own screen: called after "Xoá hũ" closes the form, so that screen can
-    /// leave first and then delete. Without it the form deletes the goal itself.
-    private var onDelete: ((Account.ID?) -> Void)?
+    /// How an edited goal leaves the list it was opened from: deleted (its money back to an
+    /// account, or none), reopened from "Hũ đã hoàn thành", or closed into it.
+    enum Leave { case delete(returningTo: Account.ID?), reopen, close }
+
+    /// Set from the goal's own screen: called as "Xoá hũ", "Mở lại hũ" or "Đóng hũ" closes the
+    /// form, so that screen can leave first and then change the goal (`AfterDismiss`). Without it
+    /// the form changes the goal itself.
+    private var onLeave: ((Leave) -> Void)?
     @State private var name: String
     @State private var icon: String
     @State private var targetText: String
@@ -19,10 +24,10 @@ struct GoalEditorView: View {
     /// "Mục tiêu mới" on a reached goal: the keyboard opens on the target.
     private var focusesTarget = false
 
-    init(goal: SavingsGoal?, focusesTarget: Bool = false, onDelete: ((Account.ID?) -> Void)? = nil) {
+    init(goal: SavingsGoal?, focusesTarget: Bool = false, onLeave: ((Leave) -> Void)? = nil) {
         self.focusesTarget = focusesTarget
         original = goal
-        self.onDelete = onDelete
+        self.onLeave = onLeave
         _name = State(initialValue: goal?.name ?? "")
         _icon = State(initialValue: goal?.icon ?? SavingsGoal.defaultIcon)
         _targetText = State(initialValue: goal.map { String(Int($0.target)).groupedVNDInput } ?? "")
@@ -123,9 +128,8 @@ struct GoalEditorView: View {
                             // A name left empty: say so instead of dropping what was typed.
                             guard canSave else { failClose(); return }
                             applyEdits()
-                            store.reopen(original.id)
                             Haptics.success()
-                            dismiss()
+                            leave(.reopen, original)
                         }
                     }
                 } else if let current = store.goal(id: original.id), current.saved < 1,
@@ -135,9 +139,8 @@ struct GoalEditorView: View {
                         FormActionRow(title: "Đóng hũ", icon: "hugeicons-checkmark-badge-01") {
                             guard canSave else { failClose(); return }
                             applyEdits()
-                            store.closeEmpty(original.id)
                             Haptics.success()
-                            dismiss()
+                            leave(.close, original)
                         }
                     }
                 }
@@ -179,26 +182,44 @@ struct GoalEditorView: View {
     }
 
     private func delete(_ goal: SavingsGoal, returningTo accountID: Account.ID?) {
+        leave(.delete(returningTo: accountID), goal)
+    }
+
+    private func leave(_ leave: Leave, _ goal: SavingsGoal) {
         dismiss()
-        if let onDelete { onDelete(accountID) } else { store.delete(goal, returningTo: accountID) }
+        if let onLeave { onLeave(leave); return }
+        switch leave {
+        case .delete(let accountID): store.delete(goal, returningTo: accountID)
+        case .reopen: store.reopen(goal.id)
+        case .close: store.closeEmpty(goal.id)
+        }
     }
 
     private func save() {
         guard canSave else { return }
-        applyEdits()
         dismiss()
+        guard original == nil else { applyEdits(); return }
+        // A new goal: the form slides away first, then its jar comes into the grid, animated
+        // (user request 2026-11-05, as a new account's row).
+        let goal = edited, store = store
+        AfterDismiss.run { store.save(goal) }
     }
 
     /// Saves what the form holds (also before "Mở lại hũ" / "Đóng hũ", so nothing typed is lost).
-    /// Starts from the stored goal, so its money and state are never overwritten by the form's copy.
     private func applyEdits() {
         guard canSave else { return }
+        store.save(edited)
+    }
+
+    /// The goal as the form holds it. Starts from the stored goal, so its money and state are never
+    /// overwritten by the form's copy.
+    private var edited: SavingsGoal {
         var goal = original.flatMap { store.goal(id: $0.id) } ?? SavingsGoal(name: trimmedName, icon: icon, saved: 0, target: 0)
         goal.name = trimmedName
         goal.icon = icon
         if goal.isClosed != true { goal.target = targetText.vndInputAmount }
         goal.dueDate = hasDueDate ? dueDate : nil
-        store.save(goal)
+        return goal
     }
 }
 

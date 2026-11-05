@@ -12,7 +12,8 @@ struct AccountDetailView: View {
     /// ✕ on the left: the first screen of `AccountDetailSheet`.
     var showsClose = false
     @State private var isEditing = false
-    /// Set by "Lưu trữ" / "Xoá" in the edit form; the account goes once that form has closed.
+    /// Set by "Lưu trữ" / "Xoá" / "Khôi phục" in the edit form; the account goes once that form
+    /// and this screen have closed.
     @State private var leave: AddAccountView.Leave?
     /// A history row tapped to change or delete it.
     @State private var editingItem: Activity?
@@ -65,10 +66,16 @@ struct AccountDetailView: View {
             }
             .sheet(isPresented: $isEditing, onDismiss: {
                 guard let leave else { return }
+                self.leave = nil
+                // This sheet or page first, then the account out of its list (`AfterDismiss`).
                 dismiss()
-                switch leave {
-                case .archive: store.archive(account)
-                case .delete: store.delete(account)
+                let store = store
+                AfterDismiss.run {
+                    switch leave {
+                    case .archive: store.archive(account)
+                    case .delete: store.delete(account)
+                    case .restore: store.unarchive(account)
+                    }
                 }
             }) {
                 AddAccountView(account: account) { leave = $0 }

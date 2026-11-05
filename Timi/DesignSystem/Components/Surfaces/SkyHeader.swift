@@ -78,12 +78,16 @@ struct SkyHeader: View {
                     .resizable()
                     .frame(width: width, height: skyHeight)
                     .offset(y: edge - skyHeight)
+                // A new mood fades over the old one, where the change is animated (the first
+                // wallet in, the last one out), instead of the picture swapping in a frame.
                 Image(mascot)
                     .resizable()
                     .scaledToFit()
                     .frame(width: placement.width * scale)
                     .offset(x: placement.left * scale,
                             y: edge - (Self.referenceEdge - placement.top) * scale)
+                    .id(mascot)
+                    .transition(.opacity)
             }
             .frame(width: width, height: edge, alignment: .topLeading)
             // Nothing past the edge: the dog's foot ends where the page begins.
