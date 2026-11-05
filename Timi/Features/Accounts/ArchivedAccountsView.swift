@@ -9,8 +9,10 @@ struct ArchivedAccountsView: View {
         let accounts = store.archivedAccounts
         ScrollView {
             if accounts.isEmpty {
+                // Milu's empty cards carry a Fluent Flat picture, as on Sổ ví (review 2026-11-06).
                 EmptyStateCard(icon: "hugeicons-archive-02", title: "Chưa lưu trữ tài khoản nào",
-                               message: "Tài khoản bạn thôi dùng sẽ hiện ở đây.")
+                               message: "Tài khoản bạn thôi dùng sẽ hiện ở đây.",
+                               picture: IconCatalog.emojiName("🗂️"))
             } else {
                 ArchivedAccountsList()
             }
@@ -39,9 +41,7 @@ struct ArchivedAccountsList: View {
         let accounts = store.archivedAccounts
         VStack(alignment: .leading, spacing: Spacing.s) {
             if let title {
-                Text(title)
-                    .textRole(.title)
-                    .accessibilityAddTraits(.isHeader)
+                SectionHeader(title: title)
             }
             VStack(spacing: 0) {
                 ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
@@ -67,6 +67,8 @@ struct ArchivedAccountsList: View {
 struct ArchivedAccountsSheet: View {
     var body: some View {
         NavigationStack { ArchivedAccountsView() }
-            .timiSheetStyle()
+            // Half height first, as "Lưu trữ & hoàn thành" opens: such lists are short (review
+            // 2026-11-06).
+            .timiSheetStyle([.medium, .large])
     }
 }

@@ -77,12 +77,15 @@ struct AddAccountView: View {
         }
     }
 
-    /// Placeholder of the name field.
+    /// Placeholder of the name field. Before a bank or wallet is picked, what to type rather than
+    /// a name: "MoMo" there looked like a name already given, and ✓ then asked for one (review
+    /// 2026-11-06).
     private var suggestedName: String {
         switch type {
         case .cash: "Tiền mặt"
-        case .eWallet: institution?.shortName ?? "MoMo"
-        default: institution?.shortName ?? "Vietcombank"
+        case .eWallet: institution?.shortName ?? "Tên ví"
+        // Not "Tên tài khoản": that is the row's own label beside it.
+        default: institution?.shortName ?? "Nhập tên"
         }
     }
 
@@ -167,6 +170,8 @@ struct AddAccountView: View {
                     // A name left empty: say so instead of archiving without what was typed.
                     guard validate() else { return }
                     applyEdits()
+                    // Done, as restoring is: the same tap of success (review 2026-11-06).
+                    Haptics.success()
                     dismiss()
                     onLeave?(.archive)
                 }

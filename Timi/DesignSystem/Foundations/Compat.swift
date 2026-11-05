@@ -46,6 +46,21 @@ extension View {
         }
     }
 
+    /// Calls `action` with how far a scroll view has moved from its top, never below 0 (iOS 18);
+    /// before it, never: what hangs on it stays as it is at the top.
+    @ViewBuilder
+    func onScrollOffsetChange(_ action: @escaping (CGFloat) -> Void) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollGeometryChange(for: CGFloat.self) { geometry in
+                max(geometry.contentOffset.y + geometry.contentInsets.top, 0)
+            } action: { _, offset in
+                action(offset)
+            }
+        } else {
+            self
+        }
+    }
+
     /// Calls `action` with whether a scroll view is more than `distance` above its end (iOS 18);
     /// before it, never: the jump-to-bottom button just does not show.
     @ViewBuilder

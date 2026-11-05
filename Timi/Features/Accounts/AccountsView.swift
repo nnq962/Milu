@@ -18,6 +18,11 @@ struct AccountsView: View {
     /// Trợ lý AI, from the ✦ on the bar, as on Tổng quan.
     @State private var isShowingAssistant = false
     @State private var isShowingSettings = false
+    /// How far the page has scrolled: "Milu" fades out with the first 20 to 60 points, so it
+    /// never sits over the words under it (review 2026-11-06: over the rows, then, with a switch
+    /// at 90, still over "NÂU GIỮ VÍ" and the title on the way). It follows the finger, so it is
+    /// no animation for Reduce Motion to stop.
+    @State private var scrolled: CGFloat = 0
 
     /// What the + button can add.
     enum NewItem: String, Identifiable, CaseIterable {
@@ -55,6 +60,7 @@ struct AccountsView: View {
                     .padding(.bottom, Spacing.xxl)
                 }
             }
+            .onScrollOffsetChange { scrolled = $0 }
             .pageBackground()
             .foregroundStyle(Palette.label)
             // No title on the bar: Q on the left opens Cài đặt, the wordmark beside it, as Milu
@@ -62,6 +68,7 @@ struct AccountsView: View {
             .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2,
                                      trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
                 Wordmark()
+                    .opacity(wordmarkOpacity)
             })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
@@ -99,6 +106,12 @@ struct AccountsView: View {
                 }
             }
         }
+    }
+
+    /// Full at the top, gone 60 points down.
+    private var wordmarkOpacity: Double {
+        let fade: CGFloat = (scrolled - 20) / 40
+        return Double(1 - min(max(fade, 0), 1))
     }
 
     private var assistantButton: some View {
@@ -166,9 +179,10 @@ struct AccountsView: View {
 
     private var goalsSection: some View {
         let completed = store.completedGoals.count
-        // Three jars to a row up to Large, two from XL (saved and target no longer fit a third of
-        // the page), one from AX3 (HIG review 2026-11-05).
-        let columns = dynamicTypeSize >= .accessibility3 ? 1 : dynamicTypeSize >= .xLarge ? 2 : 3
+        // Three jars to a row up to Large, one a row from XL (saved and target no longer fit a
+        // third of the page). Two a row from XL to AX2 left an odd jar alone beside a gap, as
+        // the wallets' two-column grid did on 2026-10-30 (review 2026-11-06).
+        let columns = dynamicTypeSize >= .xLarge ? 1 : 3
         return PageSection(title: "Hũ tiết kiệm", note: store.activeGoals.isEmpty ? nil : "Tiến độ") {
             if store.activeGoals.isEmpty {
                 // Every goal may be done already: then the empty card says none is on its way.
@@ -177,14 +191,14 @@ struct AccountsView: View {
                               message: "Mỗi hũ giúp bạn để dành cho một mục tiêu.")
                     .transition(.emptySwap)
             } else {
-                // Jars three to a row, 10 apart; two, then one, at the largest text sizes
+                // Jars three to a row, 10 apart; one a row from XL
                 // (Milu: a grid goes to fewer columns when names or figures no longer fit).
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top),
                                          count: columns),
                           spacing: 10) {
                     ForEach(Array(store.activeGoals.enumerated()), id: \.element.id) { index, goal in
                         GoalSheetLink(goalID: goal.id) {
-                            GoalJar(goal: goal, water: Palette.jarWater[index % Palette.jarWater.count])
+                            GoalJar(goal: goal, water: Palette.jarWater(at: index))
                         }
                         .buttonStyle(.card)
                     }
@@ -212,9 +226,9 @@ struct AccountsView: View {
                     ArchiveEntryRow(title: "Lưu trữ & hoàn thành",
                                     detail: "\(archived) tài khoản · \(completed) hũ")
                 } else if archived > 0 {
-                    ArchiveEntryRow(title: "Tài khoản đã lưu trữ", count: archived)
+                    ArchiveEntryRow(title: "Tài khoản đã lưu trữ", count: archived, unit: "tài khoản")
                 } else {
-                    ArchiveEntryRow(title: "Hũ đã hoàn thành", count: completed)
+                    ArchiveEntryRow(title: "Hũ đã hoàn thành", count: completed, unit: "hũ")
                 }
             }
             .buttonStyle(.card)
@@ -223,7 +237,8 @@ struct AccountsView: View {
 }
 
 /// "Milu" in the bar, beside the profile: the wordmark in Black, deep blue. Decoration: the page's
-/// title says where VoiceOver is.
+/// title says where VoiceOver is. A logo in the bar, not text to read: it keeps its size at every
+/// text size, as the bar's buttons do (HIG), so no `TextRole`.
 private struct Wordmark: View {
     var body: some View {
         Text("Milu")
@@ -243,6 +258,8 @@ private struct ArchiveEntryRow: View {
     let title: String
     var detail: String? = nil
     var count: Int? = nil
+    /// What `count` counts, for VoiceOver: "2 tài khoản", not a bare "2".
+    var unit: String = ""
 
     @ScaledMetric(relativeTo: .body) private var column = WalletRow.logo
 
@@ -289,7 +306,7 @@ private struct ArchiveEntryRow: View {
         .cardSurface(radius: 17)
         .contentShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([title, detail ?? count.map { "\($0)" }].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel([title, detail ?? count.map { "\($0) \(unit)" }].compactMap { $0 }.joined(separator: ", "))
         .accessibilityHint("Mở danh sách")
         .accessibilityAddTraits(.isButton)
     }
@@ -299,13 +316,26 @@ private struct ArchiveEntryRow: View {
 /// lists one after the other, each under its name (Figma 136:1665). Each row slides its own page
 /// over the list, ‹ back to it.
 struct ArchiveAndDoneSheet: View {
+    @Environment(FinanceStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             ScrollView {
+                // A list whose last item went back (restored, reopened) goes with its heading,
+                // not left as a heading over an empty card (review 2026-11-06); with both gone
+                // the sheet closes.
                 VStack(alignment: .leading, spacing: Spacing.section) {
-                    ArchivedAccountsList(title: "Tài khoản đã lưu trữ")
-                    CompletedGoalsList(title: "Hũ đã hoàn thành")
+                    if !store.archivedAccounts.isEmpty {
+                        ArchivedAccountsList(title: "Tài khoản đã lưu trữ")
+                    }
+                    if !store.completedGoals.isEmpty {
+                        CompletedGoalsList(title: "Hũ đã hoàn thành")
+                    }
                 }
+            }
+            .onChange(of: store.archivedAccounts.isEmpty && store.completedGoals.isEmpty) { _, empty in
+                if empty { dismiss() }
             }
             .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
             .contentMargins(.top, Spacing.l, for: .scrollContent)

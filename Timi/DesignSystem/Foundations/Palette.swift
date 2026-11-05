@@ -131,6 +131,9 @@ enum Palette {
         dynamic(0x8BCBE7, dark: 0x3C7F9E),
         dynamic(0xEBC074, dark: 0x9A7433),
     ]
+    /// The water of the goal at `index` among the goals being saved for, the order of Sổ ví.
+    static func jarWater(at index: Int) -> Color { jarWater[index % jarWater.count] }
+
     /// The jar's glass inside its outline, and the outline and lid: the page, the muted words and
     /// the quiet border, as drawn.
     static let jarGlass = background

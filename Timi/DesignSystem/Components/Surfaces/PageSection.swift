@@ -9,6 +9,8 @@ struct PageSection<Content: View>: View {
     var note: String? = nil
     @ViewBuilder var content: Content
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
@@ -17,7 +19,9 @@ struct PageSection<Content: View>: View {
                     .foregroundStyle(Palette.label)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: Spacing.s)
-                if let note {
+                // Not at the accessibility sizes: beside the heading it broke "Hũ tiết kiệm" over
+                // two lines (review 2026-11-06), and the rows say what their figures are anyway.
+                if let note, !dynamicTypeSize.isAccessibilitySize {
                     Text(note)
                         .textRole(.footnote)
                         .foregroundStyle(Palette.secondaryLabel)

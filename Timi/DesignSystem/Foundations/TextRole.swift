@@ -30,6 +30,8 @@ enum TextRole: CaseIterable, Identifiable {
     case amount
     /// A control beside a section heading (the month of Lịch thu chi). 14 SemiBold
     case accessory
+    /// The name under a tile, on two lines of 17 (a jar's "Du lịch Đà Nẵng"). 14 ExtraBold
+    case tileName
     /// Notes, errors and descriptions. Milu / Supporting, 13 SemiBold
     case caption
     /// Chips, badges, small figures. Milu / Money small, 13 Bold
@@ -55,7 +57,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .title: 17
         case .body, .bodyStrong, .amount: 16
         case .button: 15
-        case .accessory: 14
+        case .accessory, .tileName: 14
         case .caption, .captionStrong, .buttonCompact: 13
         case .footnote: 12
         case .overline: 10
@@ -66,7 +68,7 @@ enum TextRole: CaseIterable, Identifiable {
         switch self {
         case .hero, .pageTitle, .heading: .black
         case .display, .amountEntry, .amountLarge, .title, .bodyStrong, .button, .amount,
-             .buttonCompact, .overline: .heavy
+             .buttonCompact, .overline, .tileName: .heavy
         case .captionStrong: .bold
         case .accessory, .caption, .footnote: .semibold
         case .body: .medium
@@ -87,6 +89,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .body: 24
         case .bodyStrong, .button: 21
         case .accessory: 20
+        case .tileName: 17
         case .caption, .captionStrong, .buttonCompact: 19
         case .footnote: 17
         case .overline: 15
@@ -101,7 +104,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .heading: .title3
         case .title, .button: .headline
         case .body, .bodyStrong, .amount: .body
-        case .accessory, .caption: .subheadline
+        case .accessory, .caption, .tileName: .subheadline
         case .captionStrong, .buttonCompact, .footnote: .footnote
         case .overline: .caption2
         }
@@ -150,6 +153,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .button: "Chữ trên nút"
         case .amount: "Số tiền dòng"
         case .accessory: "Nút cạnh tiêu đề"
+        case .tileName: "Tên dưới ô"
         case .caption: "Phụ đề · chú thích"
         case .captionStrong: "Chip · badge"
         case .buttonCompact: "Chữ trên nút gọn"

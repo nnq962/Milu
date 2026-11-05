@@ -9,14 +9,20 @@ struct IconPickerSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.m), count: 5)
+    private static let columns = 5
 
+    /// Lazy by group, each group's grid drawn whole. A lazy grid per group, inside the sheet's
+    /// stack, let whole rows go blank for a moment on a quick scroll (user report 2026-11-06):
+    /// SwiftUI dropped rows it judged off screen and drew them again, and each icon is an SVG
+    /// rendered anew. A group is a few dozen icons, made at once as its heading scrolls near.
     var body: some View {
         SheetScaffold(title: "Biểu tượng") {
-            ForEach(groups) { group in
-                VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                    SectionHeader(title: group.title, style: .group)
-                    grid(group.icons)
+            LazyVStack(alignment: .leading, spacing: Spacing.xxl) {
+                ForEach(groups) { group in
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: group.title, style: .group)
+                        grid(group.icons)
+                    }
                 }
             }
         }
@@ -24,11 +30,20 @@ struct IconPickerSheet: View {
     }
 
     private func grid(_ icons: [CatalogIcon]) -> some View {
-        LazyVGrid(columns: columns, spacing: Spacing.m) {
-            ForEach(icons) { icon in
-                cell(icon)
+        let rows = stride(from: 0, to: icons.count, by: Self.columns)
+            .map { Array(icons[$0..<min($0 + Self.columns, icons.count)]) }
+        return Grid(horizontalSpacing: Spacing.m, verticalSpacing: Spacing.m) {
+            ForEach(rows, id: \.first?.id) { row in
+                GridRow {
+                    ForEach(row) { icon in
+                        cell(icon)
+                    }
+                    // Keep the columns even on a short last row.
+                    ForEach(0..<(Self.columns - row.count), id: \.self) { _ in Color.clear.frame(height: 1) }
+                }
             }
         }
+        .frame(maxWidth: .infinity)
         .padding(Spacing.l)
         .cardSurface(radius: CardCorners.inset)
     }

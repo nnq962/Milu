@@ -102,7 +102,9 @@ struct GoalEditorView: View {
             FormGroup(title: "Thông tin", error: showsNameError && trimmedName.isEmpty ? "Nhập tên." : nil) {
                 // No "Đã để dành": a goal starts empty and money goes in and out through "Nạp" /
                 // "Rút" on its screen, so every change has an account and a date.
-                FormTextRow(title: "Tên hũ", text: $name, prompt: "Du lịch Đà Nẵng")
+                // The row's label red with the line under the group, as on the account form.
+                FormTextRow(title: "Tên hũ", text: $name, prompt: "Du lịch Đà Nẵng",
+                            isInvalid: showsNameError && trimmedName.isEmpty)
             }
 
             FormGroup(title: "Biểu tượng") {

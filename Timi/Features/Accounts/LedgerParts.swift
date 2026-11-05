@@ -189,7 +189,8 @@ struct GoalJar: View {
     var body: some View {
         let done = goal.isReached || goal.isClosed
         let width = RowMetrics.capped(jarWidth, base: 94)
-        let oneColumn = typeSize >= .accessibility3
+        // One jar a row from XL, as Sổ ví lays them (review 2026-11-06).
+        let oneColumn = typeSize >= .xLarge
         VStack(spacing: 0) {
             // As wide as Figma's 94, growing with the text, but never past its column: at XXXL the
             // grown jar pushed the stamps over the page's margins (HIG review 2026-11-05).
@@ -199,8 +200,7 @@ struct GoalJar: View {
                 .accessibilityHidden(true)
             // Two lines of 17 whatever the name, so the percents of a row line up (Figma: 34 tall).
             Text(goal.name)
-                .font(Typography.font(.subheadline, size: 14, weight: .heavy))
-                .designLineHeight(17, relativeTo: .subheadline)
+                .textRole(.tileName)
                 .foregroundStyle(Palette.label)
                 .multilineTextAlignment(.center)
                 .lineLimit(oneColumn ? nil : 2)
@@ -223,7 +223,7 @@ struct GoalJar: View {
             ViewThatFits(in: .horizontal) {
                 VStack(spacing: 1) {
                     Text(goal.saved.vnd)
-                        .font(Typography.font(.footnote, size: 13, weight: .bold))
+                        .textRole(.captionStrong)
                         .foregroundStyle(Palette.label)
                     Text("/ \(goal.target.vnd)")
                         .textRole(.footnote)

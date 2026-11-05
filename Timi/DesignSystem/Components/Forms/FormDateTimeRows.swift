@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A day, shown like a picker row (value and ›): "Hôm nay", "Hôm qua" or 30/10/2026. Tapping it opens
+/// A day, shown like a picker row (value and ›): "Hôm nay", "Hôm qua" or 30/10 (5/1/2028 in another year). Tapping it opens
 /// a short sheet with Apple's calendar. Changes only the day; the time of `date` is kept, so a
 /// `FormTimeRow` can sit under it on the same binding.
 struct FormDateRow: View {
@@ -19,7 +19,19 @@ struct FormDateRow: View {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) { return "Hôm nay" }
         if calendar.isDateInYesterday(date) { return "Hôm qua" }
-        return date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
+        // The app's one short day, "8/10", the year only when it is not this one ("5/1/2028"),
+        // as on the cards (review 2026-11-06: "08/10/2026" in the form, "8/10" on its card).
+        return date.shortDay
+    }
+
+    /// "Hôm nay", "Hôm qua", "8 tháng 10", "5 tháng 1, 2028": the day for VoiceOver.
+    static func spokenDay(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Hôm nay" }
+        if calendar.isDateInYesterday(date) { return "Hôm qua" }
+        let day = "\(calendar.component(.day, from: date)) tháng \(calendar.component(.month, from: date))"
+        return calendar.isDate(date, equalTo: .now, toGranularity: .year)
+            ? day : "\(day), \(calendar.component(.year, from: date))"
     }
 
     var body: some View {
@@ -27,7 +39,8 @@ struct FormDateRow: View {
             FormValueRowContent(title: title, icon: icon, value: valueText, isInvalid: isInvalid)
         }
         .buttonStyle(.row)
-        .accessibilityValue(valueText)
+        // Read as a day ("8 tháng 10"), not "8/10", which VoiceOver may read as a fraction.
+        .accessibilityValue(Self.spokenDay(date))
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: .date, earliest: earliest, latest: latest)
         }
@@ -73,7 +86,7 @@ struct FormDateTimeRow: View {
         let calendar = Calendar.current
         let day = calendar.isDateInToday(date) ? "Hôm nay"
             : calendar.isDateInYesterday(date) ? "Hôm qua"
-            : date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year().locale(.vietnam))
+            : date.shortDay
         return "\(day), \(date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam)))"
     }
 
@@ -82,7 +95,7 @@ struct FormDateTimeRow: View {
             FormValueRowContent(title: title, icon: nil, value: valueText)
         }
         .buttonStyle(.row)
-        .accessibilityValue(valueText)
+        .accessibilityValue("\(FormDateRow.spokenDay(date)), \(date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam)))")
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: [.date, .hourAndMinute], latest: latest)
         }

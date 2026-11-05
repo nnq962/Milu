@@ -88,10 +88,15 @@ struct GoalTransferSheet: View {
                                 focusesOnAppear: !closesGoal && editing == nil,
                                 presets: isDeposit && editing == nil ? presets : [])
                     .disabled(closesGoal)
+                // What is wrong with the amount under the amount, as the goal form does (review
+                // 2026-11-06: under "Chi tiết" it was far from the figure it was about).
+                if !accountOptions.isEmpty,
+                   let error = limitError ?? (showsErrors && amount <= 0 ? "Nhập số tiền." : nil) {
+                    FormErrorText(message: error)
+                }
             }
         } content: {
-            FormGroup(title: "Chi tiết", error: accountOptions.isEmpty ? Self.noAccountError(store)
-                        : limitError ?? (showsErrors && amount <= 0 ? "Nhập số tiền." : nil)) {
+            FormGroup(title: "Chi tiết", error: accountOptions.isEmpty ? Self.noAccountError(store) : nil) {
                 if let accountID {
                     FormPickerRow(title: isDeposit ? "Từ tài khoản" : "Về tài khoản",
                                   selection: Binding { accountID } set: { self.accountID = $0 },

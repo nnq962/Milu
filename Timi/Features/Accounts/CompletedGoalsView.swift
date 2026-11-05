@@ -13,7 +13,8 @@ struct CompletedGoalsView: View {
             if goals.isEmpty {
                 // Reopening the last goal empties this list while the screen is open.
                 EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa có hũ nào hoàn thành",
-                               message: "Hũ đã đủ mục tiêu sẽ hiện ở đây.")
+                               message: "Hũ đã đủ mục tiêu sẽ hiện ở đây.",
+                               picture: IconCatalog.emojiName("🏆"))
             } else {
                 CompletedGoalsList()
             }
@@ -42,9 +43,7 @@ struct CompletedGoalsList: View {
         let goals = store.completedGoals
         VStack(alignment: .leading, spacing: Spacing.s) {
             if let title {
-                Text(title)
-                    .textRole(.title)
-                    .accessibilityAddTraits(.isHeader)
+                SectionHeader(title: title)
             }
             VStack(spacing: 0) {
                 ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
@@ -89,7 +88,8 @@ private struct CompletedGoalRow: View {
 struct CompletedGoalsSheet: View {
     var body: some View {
         NavigationStack { CompletedGoalsView() }
-            .timiSheetStyle()
+            // Half height first, as "Lưu trữ & hoàn thành" opens (review 2026-11-06).
+            .timiSheetStyle([.medium, .large])
     }
 }
 

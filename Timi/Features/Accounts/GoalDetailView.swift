@@ -27,7 +27,6 @@ struct GoalDetailView: View {
     @State private var isCelebrating = false
     /// A history row tapped to change or delete it (not on a closed goal).
     @State private var editingItem: AccountDetailView.Activity?
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     enum Sheet: Identifiable {
         case deposit, withdraw, withdrawAll, spend
@@ -46,7 +45,8 @@ struct GoalDetailView: View {
                         if activity.isEmpty {
                             // One short line, what will show here (strict review 2026-10-31).
                             EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa nạp lần nào",
-                                           message: "Các lần nạp, rút sẽ hiện ở đây.")
+                                           message: "Các lần nạp, rút sẽ hiện ở đây.",
+                                           picture: IconCatalog.emojiName("🫙"))
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(activity.enumerated()), id: \.element.id) { index, item in
@@ -110,10 +110,10 @@ struct GoalDetailView: View {
                 switch sheet {
                 // The account picked before the sheet opens, so its row is there from the first
                 // frame (re-review 2026-10-31: it was slid in on appear).
-                case .deposit: GoalTransferSheet(goal: goal, direction: .deposit, account: defaultAccount)
-                case .withdraw: GoalTransferSheet(goal: goal, direction: .withdrawal, account: defaultAccount)
+                case .deposit: GoalTransferSheet(goal: goal, direction: .deposit, account: defaultAccount(for: goal))
+                case .withdraw: GoalTransferSheet(goal: goal, direction: .withdrawal, account: defaultAccount(for: goal))
                 case .withdrawAll: GoalTransferSheet(goal: goal, direction: .withdrawal, closesGoal: true,
-                                                     account: defaultAccount)
+                                                     account: defaultAccount(for: goal))
                 // The add-transaction sheet, spending from the goal (user choice 2026-10-29).
                 case .spend: AddTransactionView(buying: goal)
                 }
@@ -136,9 +136,27 @@ struct GoalDetailView: View {
         }
     }
 
-    /// The first unlocked payment account: where a deposit comes from and a withdrawal goes.
-    private var defaultAccount: Account.ID? {
-        store.paymentAccounts.first { !$0.isLocked }?.id
+    /// Its jar's water: its place among the goals being saved for, as Sổ ví counts them.
+    private func water(of goal: SavingsGoal) -> Color {
+        Palette.jarWater(at: store.activeGoals.firstIndex { $0.id == goal.id } ?? 0)
+    }
+
+    /// Where a deposit comes from and a withdrawal goes: the account of this goal's last transfer
+    /// while it is still open, else the one used last, else the first (review 2026-11-06: always
+    /// "Ví tiền mặt", though "Mua xe" was only ever fed from Vietcombank).
+    private func defaultAccount(for goal: SavingsGoal) -> Account.ID? {
+        let open = store.paymentAccounts.filter { !$0.isLocked }
+        let usable = Set(open.map(\.id))
+        if let last = store.transfers(of: goal).max(by: { $0.date < $1.date })?.accountID,
+           usable.contains(last) {
+            return last
+        }
+        // The account the last transaction was recorded on, as Thêm giao dịch starts with.
+        if let recent = UserDefaults.standard.string(forKey: StorageKey.lastAccountID).flatMap(UUID.init),
+           usable.contains(recent) {
+            return recent
+        }
+        return open.first?.id
     }
 
     private func open(_ next: Sheet, for goal: SavingsGoal) {
@@ -156,7 +174,9 @@ struct GoalDetailView: View {
                 closedLine(goal)
                     .padding(.top, Spacing.m)
             } else {
-                ProgressBar(value: goal.progress, color: goal.isReached ? Palette.progressDone : Palette.progress)
+                // The water of its jar on Sổ ví, so a goal keeps one colour in both places (user
+                // choice 2026-11-06); green once reached, as the jar's "100%".
+                ProgressBar(value: goal.progress, color: goal.isReached ? Palette.progressDone : water(of: goal))
                     .padding(.top, Spacing.l)
                 progressLine(goal)
                     .padding(.top, Spacing.s)
@@ -166,31 +186,44 @@ struct GoalDetailView: View {
         }
     }
 
-    /// One line under the bar, never two: how far along (and, with a deadline, the monthly
-    /// amount) on the left, the target on the right; "Đã đủ mục tiêu" once reached.
+    /// One line under the bar while it fits: how far along (and, with a deadline, the monthly
+    /// amount) on the left, the target on the right; "Đã đủ mục tiêu" once reached. When it does
+    /// not fit, the two halves stack, whole, rather than shrink or cut ("2.500.000đ/thá…" at
+    /// XXXL, review 2026-11-06: stacking waited for AX1).
     private func progressLine(_ goal: SavingsGoal) -> some View {
-        // At the largest text sizes the two halves stack instead of shrinking.
-        AdaptiveStack(spacing: Spacing.s) {
-            if goal.isReached {
-                StatusBadge(title: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
-            } else if goal.isOverdue {
-                // Past its deadline: say so, as an overdue loan does, instead of "45tr/tháng".
-                StatusBadge(title: "Quá hạn · \(goal.progressText)", tone: .warning)
-            } else {
-                (Text(goal.progressText).foregroundStyle(Palette.label)
-                    + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryLabel)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Spacing.s) {
+                progressState(goal).fixedSize()
+                Spacer(minLength: Spacing.s)
+                targetText(goal).fixedSize()
             }
-            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
-            Text("Mục tiêu \(goal.target.vnd)")
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryLabel)
-                .accessibilityLabel("Mục tiêu \(goal.target.vnd)")
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                progressState(goal).fixedSize(horizontal: false, vertical: true)
+                targetText(goal).fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-        .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.8)
         .monospacedDigit()
+    }
+
+    @ViewBuilder
+    private func progressState(_ goal: SavingsGoal) -> some View {
+        if goal.isReached {
+            StatusBadge(title: "Đã đủ mục tiêu", tone: .positive, icon: "hugeicons-checkmark-badge-01")
+        } else if goal.isOverdue {
+            // Past its deadline: say so, as an overdue loan does, instead of "45tr/tháng".
+            StatusBadge(title: "Quá hạn · \(goal.progressText)", tone: .warning)
+        } else {
+            (Text(goal.progressText).foregroundStyle(Palette.label)
+                + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
+                .textRole(.captionStrong)
+                .foregroundStyle(Palette.secondaryLabel)
+        }
+    }
+
+    private func targetText(_ goal: SavingsGoal) -> some View {
+        Text("Mục tiêu \(goal.target.vnd)")
+            .textRole(.caption)
+            .foregroundStyle(Palette.secondaryLabel)
     }
 
     /// How it ended as the screen's one kind of badge, as "Đã đủ mục tiêu" (re-review 2026-10-31:
@@ -282,7 +315,9 @@ struct GoalTransferRow: View {
                     ? transfer.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
                     : transfer.date.shortDay,
                 amount: transfer.amount,
-                amountTone: side == .list ? .neutral : intoGoal ? .signedIncome : .signedExpense,
+                // Money out in ink, as a spending is ("B+"): in red, putting money by looked worse
+                // than spending it (review 2026-11-06).
+                amountTone: side == .list ? .neutral : intoGoal ? .signedIncome : .outflow,
                 showsChevron: false)
     }
 

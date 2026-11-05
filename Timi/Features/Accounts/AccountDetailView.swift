@@ -40,7 +40,8 @@ struct AccountDetailView: View {
                     if activity.isEmpty {
                         HeaderCard(title: "Lịch sử") {
                             EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
-                                           message: "Giao dịch của tài khoản sẽ hiện ở đây.")
+                                           message: "Giao dịch của tài khoản sẽ hiện ở đây.",
+                                           picture: IconCatalog.emojiName("🧾"))
                         }
                     } else {
                         // One card a day with its totals, as on "Giao dịch" (review 2026-10-31: one
@@ -274,7 +275,8 @@ struct AccountTransferRow: View {
             tone = .transfer
         default:
             title = outgoing ? "Chuyển đến \(to)" : "Nhận từ \(from)"
-            tone = outgoing ? .signedExpense : .signedIncome
+            // Money out in ink, as a spending is ("B+"; review 2026-11-06).
+            tone = outgoing ? .outflow : .signedIncome
         }
         // Short, as every amount in a row's second line ("Gốc 5tr · Lãi 375k").
         let fee = transfer.fee > 0 ? transfer.fee.vnd : nil
@@ -294,7 +296,7 @@ struct AccountTransferRow: View {
 }
 
 /// The money of a new loan (user choice 2026-10-29): neither income nor spending, though it
-/// leaves or reaches an account, so it reads as money out (red "-") or in ("+") like any other
+/// leaves or reaches an account, so it reads as money out (ink "-", as a spending) or in ("+") like any other
 /// (strict review 2026-10-31: lent money was ink with a "-").
 /// On "Giao dịch": "Cho vay", "Minh Trần · Vietcombank", −75.000.000đ; in an account's history:
 /// "Cho Minh Trần vay" or "Vay của Lan", "Khoản vay".
@@ -315,7 +317,7 @@ struct LoanMoveRow: View {
                 trailingSubtitle: detail == .time
                     ? loan.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
                     : loan.date.shortDay,
-                amount: loan.principal, amountTone: lent ? .signedExpense : .signedIncome,
+                amount: loan.principal, amountTone: lent ? .outflow : .signedIncome,
                 showsChevron: false)
     }
 }
@@ -344,8 +346,8 @@ struct LoanPaymentRow: View {
                 trailingSubtitle: detail == .time
                     ? payment.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
                     : payment.date.shortDay,
-                // Money out red with "-", in with "+" (strict review 2026-10-31).
-                amount: payment.total, amountTone: lent ? .signedIncome : .signedExpense,
+                // Money out in ink with "-" (as a spending, "B+"; review 2026-11-06), in with "+".
+                amount: payment.total, amountTone: lent ? .signedIncome : .outflow,
                 showsChevron: false)
     }
 }

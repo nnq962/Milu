@@ -182,9 +182,10 @@ struct LoanDetailSheet: View {
                         ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
                                 title: lent ? "Thu nợ" : "Trả nợ", subtitle: breakdown(payment),
                                 trailingSubtitle: payment.date.shortDay,
-                                // A repayment on what I borrowed is money out: red "-" (strict review 2026-10-31).
+                                // A repayment on what I borrowed is money out: ink "-", as in the
+                                // account's history and on Giao dịch (review 2026-11-06, "B+").
                                 amount: payment.total,
-                                amountTone: lent ? .signedIncome : .signedExpense, showsChevron: false)
+                                amountTone: lent ? .signedIncome : .outflow, showsChevron: false)
                     }
                     .buttonStyle(.row)
                     // On an archived account: shown, not changed (the footer says why).

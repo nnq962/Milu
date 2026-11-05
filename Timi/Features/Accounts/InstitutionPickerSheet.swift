@@ -17,15 +17,20 @@ struct InstitutionPickerSheet: View {
             ScrollView {
                 if results.isEmpty {
                     EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                                   message: "Thử tên viết tắt, như vcb.")
+                                   message: "Thử tên viết tắt, như vcb.",
+                                   picture: IconCatalog.emojiName(type == .eWallet ? "📱" : "🏦"))
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, institution in
                             row(institution)
-                                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                                .overlay(alignment: .top) {
+                                    if index > 0 { RowDivider().padding(.trailing, RowMetrics.horizontal) }
+                                }
                         }
                     }
-                    .listCard()
+                    // The card of Sổ ví, where these logos show next: corners 17, the hairline
+                    // stopping where the row's ✓ does (review 2026-11-06).
+                    .cardSurface(radius: 17)
                 }
             }
             .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
