@@ -33,7 +33,7 @@ struct InstitutionPickerSheet: View {
             .contentMargins(.top, Spacing.l, for: .scrollContent)
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)

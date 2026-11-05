@@ -62,7 +62,7 @@ extension SavingsGoal {
         self.init(
             id: record.id,
             name: record.name,
-            icon: IconCatalog.migrated(record.goalIcon ?? SavingsGoal.defaultIcon),
+            icon: LineIconEmoji.asset(for: IconCatalog.migrated(record.goalIcon ?? SavingsGoal.defaultIcon)),
             saved: Double(dong: record.balance),
             target: Double(dong: record.goalTarget ?? 0),
             dueDate: record.goalDueDate,
@@ -110,7 +110,7 @@ extension CategoryRecord {
 extension Category {
     init(_ record: CategoryRecord) {
         self.init(id: record.id, kind: TransactionKind(rawValue: record.kind) ?? .expense,
-                  parentID: record.parentID, name: record.name, icon: IconCatalog.migrated(record.icon),
+                  parentID: record.parentID, name: record.name, icon: LineIconEmoji.asset(for: IconCatalog.migrated(record.icon)),
                   isBuiltIn: record.isBuiltIn, sortOrder: record.sortOrder, hiddenAt: record.archivedAt)
     }
 }

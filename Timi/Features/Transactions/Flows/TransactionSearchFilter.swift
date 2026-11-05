@@ -358,7 +358,7 @@ private struct MultiPickPage: View {
         // The top margin of every detail page and sheet (strict review 2026-10-31).
         .contentMargins(.top, Spacing.s, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)

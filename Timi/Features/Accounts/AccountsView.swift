@@ -10,6 +10,8 @@ struct AccountsView: View {
     /// open (user choice 2026-11-01).
     @State private var isShowingArchived = false
     @State private var isShowingCompleted = false
+    /// Both lists at once, when there are archived wallets and closed goals.
+    @State private var isShowingArchiveAndDone = false
     /// Picked in the "Thêm mới" sheet; its form opens once that sheet has gone.
     @State private var pendingNew: NewItem?
     @State private var newItem: NewItem?
@@ -33,27 +35,43 @@ struct AccountsView: View {
         }
     }
 
+    /// Nâu cheers once, just after the first wallet is added (Milu: curious while waiting, happy
+    /// on the first success, at rest on a page with data). Until the tab is left.
+    @State private var cheersFirstWallet = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                // No total at the head any more (user request 2026-11-03): the accounts as rows
-                // in one block (fine for any number of them), the goals as jars filling up, three
-                // to a row (user pick "C" 2026-11-03). Sections 28 apart, as on every tab.
-                VStack(alignment: .leading, spacing: Spacing.section) {
-                    paymentSection
-                    goalsSection
+                // Milu's Sổ ví (Figma 79:1330, 54:789, 54:920): the sky with Nâu and "Sổ ví của
+                // bạn", then "Ví & ngân hàng" as rows in one card and "Hũ tiết kiệm" as glass jars,
+                // three to a row; each part an empty card until it has something. Parts 28
+                // apart, 24 under the sky.
+                VStack(alignment: .leading, spacing: 0) {
+                    SkyHeader(overline: "Nâu giữ ví", title: "Sổ ví của bạn", mascot: mascot,
+                              placement: accounts.isEmpty || cheersFirstWallet ? .nauGreeting : .nauAtRest)
+                    VStack(alignment: .leading, spacing: Spacing.section) {
+                        paymentSection
+                        goalsSection
+                        archiveRow
+                    }
+                    .padding(.horizontal, Spacing.page)
+                    .padding(.top, Spacing.xxl)
+                    .padding(.bottom, Spacing.xxl)
                 }
-                .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.l)
-                .padding(.bottom, Spacing.xxl)
             }
-            // The plain page colour, as every tab (user reports 2026-11-03).
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
-            // No title on the bar (user pick "B" 2026-11-04): Q on the left opens Cài đặt, as on
-            // Tổng quan. The title stays for VoiceOver and the back button.
-            .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2) { Color.clear.frame(height: 1) })
+            // No title on the bar: Q on the left opens Cài đặt, the wordmark beside it, as Milu
+            // draws the bar over the sky. The title stays for VoiceOver and the back button.
+            .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2,
+                                     trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
+                Wordmark()
+            })
             .toolbar(.visible, for: .navigationBar)
+            .onChange(of: accounts.isEmpty) { wasEmpty, isEmpty in
+                if wasEmpty && !isEmpty { cheersFirstWallet = true }
+            }
+            .onDisappear { cheersFirstWallet = false }
             .toolbar {
                 // Plain buttons: the bar draws their glass, which then takes part in push and pop.
                 // ✦ before +, as on Tổng quan; the spacer gives each its own glass.
@@ -71,6 +89,7 @@ struct AccountsView: View {
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
             .sheet(isPresented: $isShowingArchived) { ArchivedAccountsSheet() }
             .sheet(isPresented: $isShowingCompleted) { CompletedGoalsSheet() }
+            .sheet(isPresented: $isShowingArchiveAndDone) { ArchiveAndDoneSheet() }
             .sheet(isPresented: $isChoosingNew, onDismiss: {
                 newItem = pendingNew
                 pendingNew = nil
@@ -94,15 +113,28 @@ struct AccountsView: View {
         AssistantBarButton { isShowingAssistant = true }
     }
 
-    /// A bare + in the bar's glass circle (2026-11-03: the ringed ⊕ made two circles, one in the other).
+    /// A bare + in the bar's glass circle: opens the choice of what to add (Milu: the + of the
+    /// Tài khoản bar adds a wallet or a goal; the + by the tab bar records a transaction).
     private var addMenu: some View {
         Button { isChoosingNew = true } label: {
-            TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
+            // Regular, as the glyphs of iOS's own glass buttons (user request 2026-11-05).
+            Image(systemName: "plus")
+                .font(.system(size: 18, weight: .regular))
                 .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Thêm tài khoản hoặc hũ")
+        .tint(Palette.deep)
+        .accessibilityLabel("Thêm ví hoặc hũ")
+        // A bar keeps its size at every text size; a long press shows the glyph large instead (HIG).
+        .accessibilityShowsLargeContentViewer {
+            Label("Thêm ví hoặc hũ", systemImage: "plus")
+        }
+    }
+
+    /// Nâu as Milu has him: curious while there is no wallet yet, happy once on the first, else at rest.
+    private var mascot: String {
+        if accounts.isEmpty { return "cun-nau-to-mo" }
+        return cheersFirstWallet ? "cun-nau-vui-mung" : "cun-nau-mac-dinh"
     }
 
     /// Accounts in order: cash → bank → e-wallet.
@@ -111,62 +143,190 @@ struct AccountsView: View {
     }
 
     private var paymentSection: some View {
-        let archived = store.archivedAccounts.count
-        return HeaderCard(title: "Ví & ngân hàng") {
-            // Not "Tài khoản" again under the page title of that name (HIG review 2026-10-30).
-            if archived > 0 {
-                Button { isShowingArchived = true } label: { HeaderLink(title: "Lưu trữ (\(archived))", opensPage: true) }
-                    .headerLinkButton()
-                    .accessibilityLabel("Tài khoản đã lưu trữ, \(archived)")
-            }
-        } content: {
+        PageSection(title: "Ví & ngân hàng", note: accounts.isEmpty ? nil : "Số dư") {
             if accounts.isEmpty {
-                EmptyStateCard(icon: "hugeicons-wallet-01", title: "Chưa có tài khoản",
-                               message: "Tiền mặt, ngân hàng và ví sẽ hiện ở đây.", picture: "fluent-bank")
+                EmptyNoteCard(emoji: "👝", title: "Chưa có tài khoản",
+                              message: "Số dư ví và tài khoản của bạn sẽ hiện ở đây.")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
-                        AccountSheetLink(accountID: account.id) { AccountRow(account: account) }
+                        AccountSheetLink(accountID: account.id) { WalletRow(account: account) }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                            .overlay(alignment: .top) {
+                                // From the names' column to just short of the ›.
+                                if index > 0 {
+                                    Rectangle()
+                                        .fill(Palette.separator)
+                                        .frame(height: 1)
+                                        .padding(.leading, WalletRow.textColumn)
+                                        .padding(.trailing, 14)
+                                }
+                            }
                     }
                 }
-                .listCard()
+                .cardSurface(radius: 17)
             }
         }
     }
 
     private var goalsSection: some View {
         let completed = store.completedGoals.count
-        return HeaderCard(title: "Hũ tiết kiệm") {
-            if completed > 0 {
-                Button { isShowingCompleted = true } label: { HeaderLink(title: "Đã xong (\(completed))", opensPage: true) }
-                    .headerLinkButton()
-                    .accessibilityLabel("Hũ đã hoàn thành, \(completed)")
-            }
-        } content: {
+        // Three jars to a row up to Large, two from XL (saved and target no longer fit a third of
+        // the page), one from AX3 (HIG review 2026-11-05).
+        let columns = dynamicTypeSize >= .accessibility3 ? 1 : dynamicTypeSize >= .xLarge ? 2 : 3
+        return PageSection(title: "Hũ tiết kiệm", note: store.activeGoals.isEmpty ? nil : "Tiến độ") {
             if store.activeGoals.isEmpty {
-                // Every goal may be done already: then the empty card invites the next one.
-                EmptyStateCard(icon: "hugeicons-piggy-bank",
-                               title: store.completedGoals.isEmpty ? "Chưa có hũ nào" : "Chưa có hũ đang để dành",
-                               message: "Các hũ để dành sẽ hiện ở đây.", picture: "fluent-pig")
+                // Every goal may be done already: then the empty card says none is on its way.
+                EmptyNoteCard(emoji: "🫙",
+                              title: completed == 0 ? "Chưa có hũ tiết kiệm" : "Chưa có hũ đang góp",
+                              message: "Mỗi hũ giúp bạn để dành cho một mục tiêu.")
             } else {
-                // Goals as jars filling up, three to a row, two at the largest text sizes (user
-                // pick "C" 2026-11-03, after tiles scrolling sideways); a new one comes from the
-                // + on the bar (the dashed "+ Hũ mới" tile went, user request 2026-11-03).
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.m, alignment: .top),
-                                         count: dynamicTypeSize.isAccessibilitySize ? 2 : 3),
-                          spacing: Spacing.l) {
-                    ForEach(store.activeGoals) { goal in
-                        GoalSheetLink(goalID: goal.id) { GoalJarTile(goal: goal) }
-                            .buttonStyle(.card)
+                // Jars three to a row, 10 apart; two, then one, at the largest text sizes
+                // (Milu: a grid goes to fewer columns when names or figures no longer fit).
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top),
+                                         count: columns),
+                          spacing: 10) {
+                    ForEach(Array(store.activeGoals.enumerated()), id: \.element.id) { index, goal in
+                        GoalSheetLink(goalID: goal.id) {
+                            GoalJar(goal: goal, water: Palette.jarWater[index % Palette.jarWater.count])
+                        }
+                        .buttonStyle(.card)
                     }
                 }
-                .padding(.horizontal, RowMetrics.horizontal)
-                .padding(.top, Spacing.s)
-                .padding(.bottom, RowMetrics.horizontal)
             }
         }
+    }
+
+    /// The way in to what is put away, after the goals, one row for both (Milu "Tài khoản / Lối
+    /// vào lưu trữ và hoàn thành", Figma 137:1741, 2026-11-05): hidden when both are empty; with
+    /// one kind only, its name and count, opening its list straight away; with both, "Lưu trữ &
+    /// hoàn thành" and the counts under it, opening both lists in one sheet.
+    @ViewBuilder
+    private var archiveRow: some View {
+        let archived = store.archivedAccounts.count
+        let completed = store.completedGoals.count
+        if archived > 0 || completed > 0 {
+            Button {
+                if archived > 0 && completed > 0 { isShowingArchiveAndDone = true }
+                else if archived > 0 { isShowingArchived = true }
+                else { isShowingCompleted = true }
+            } label: {
+                if archived > 0 && completed > 0 {
+                    ArchiveEntryRow(title: "Lưu trữ & hoàn thành",
+                                    detail: "\(archived) tài khoản đã lưu trữ · \(completed) hũ đã hoàn thành")
+                } else if archived > 0 {
+                    ArchiveEntryRow(title: "Tài khoản đã lưu trữ", count: archived)
+                } else {
+                    ArchiveEntryRow(title: "Hũ đã hoàn thành", count: completed)
+                }
+            }
+            .buttonStyle(.card)
+        }
+    }
+}
+
+/// "Milu" in the bar, beside the profile: the wordmark in Black, deep blue. Decoration: the page's
+/// title says where VoiceOver is.
+private struct Wordmark: View {
+    var body: some View {
+        Text("Milu")
+            .font(Typography.font(.title2, size: 23, weight: .black))
+            .tracking(-1.2)
+            .foregroundStyle(Palette.deep)
+            .lineLimit(1)
+            .fixedSize()
+            .accessibilityHidden(true)
+    }
+}
+
+/// One row on the page, a card of its own: 🗂️, the name of what it opens and
+/// either the counts of both kinds under it or one count at its end, then ›. 68 tall with the
+/// line under, 52 with one count (Figma 137:1708, 137:1719).
+private struct ArchiveEntryRow: View {
+    let title: String
+    var detail: String? = nil
+    var count: Int? = nil
+
+    @ScaledMetric(relativeTo: .body) private var column = WalletRow.logo
+
+    var body: some View {
+        // The columns of the wallet rows above (`WalletRow`): the mark in a 32 column 12 in, the
+        // words 10 after it, the › 14 from the edge (HIG review 2026-11-05: at Figma's 3 and 5
+        // the box and › stood out of line with the rows above).
+        HStack(spacing: 10) {
+            // 🗂️ in its own colours (user request 2026-11-05, in place of Figma's line box).
+            // Grows with the text no further than 1.6 times (HIG review 2026-11-05: free, it
+            // reached ~60 at AX5 and took a third of the row).
+            Image(IconCatalog.emojiName("🗂️"))
+                .resizable()
+                .scaledToFit()
+                // 32, the wallets' mark exactly (user request 2026-11-05: one icon size down the page).
+                .frame(width: RowMetrics.capped(column, base: WalletRow.logo),
+                       height: RowMetrics.capped(column, base: WalletRow.logo))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(title)
+                    .textRole(.button)
+                    .foregroundStyle(Palette.label)
+                if let detail {
+                    Text(detail)
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryLabel)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let count {
+                Text("\(count)")
+                    .textRole(.captionStrong)
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.secondaryLabel)
+            }
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Palette.tertiaryLabel)
+                .accessibilityHidden(true)
+        }
+        .padding(.leading, Spacing.m)
+        .padding(.trailing, 14)
+        .padding(.vertical, Spacing.m)
+        .frame(minHeight: detail == nil ? 52 : 68)
+        // A card of its own, as the wallets' (user request 2026-11-05: an option with an
+        // outline, no hairline over it).
+        .cardSurface(radius: 17)
+        .contentShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel([title, detail ?? count.map { "\($0)" }].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityHint("Mở danh sách")
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// Both lists put away in one sheet when there are archived wallets and closed goals: the two
+/// lists one after the other, each under its name (Figma 136:1665). Each row slides its own page
+/// over the list, ‹ back to it.
+struct ArchiveAndDoneSheet: View {
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.section) {
+                    ArchivedAccountsList(title: "Tài khoản đã lưu trữ")
+                    CompletedGoalsList(title: "Hũ đã hoàn thành")
+                }
+            }
+            .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
+            .contentMargins(.top, Spacing.l, for: .scrollContent)
+            .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
+            .pageBackground()
+            .foregroundStyle(Palette.label)
+            .navigationTitle("Lưu trữ & hoàn thành")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+            }
+        }
+        // Half height first, as short lists usually are; drag up for the rest (HIG: size a sheet
+        // to its content; at full height two rows sat on an empty page, review 2026-11-05).
+        .timiSheetStyle([.medium, .large])
     }
 }
 

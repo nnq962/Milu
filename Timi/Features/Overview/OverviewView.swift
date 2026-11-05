@@ -76,7 +76,7 @@ struct OverviewView: View {
             }
             // The plain page, as every tab: the light of lime behind the head went (user request
             // 2026-11-03).
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
             // No title and no greeting on the bar (user request 2026-11-04), as on Tài khoản: Q on
             // the left, ✦ and the bell on the right. The title stays for the back button and VoiceOver.

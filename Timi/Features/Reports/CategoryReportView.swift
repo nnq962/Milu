@@ -63,7 +63,7 @@ struct CategoryReportView: View {
             .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.xxl)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle(store.categoryName(groupID))
         .navigationBarTitleDisplayMode(.inline)
@@ -191,7 +191,7 @@ struct ItemTransactionsView: View {
             .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.xxl)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle(store.categoryName(itemID))
         .navigationBarTitleDisplayMode(.inline)

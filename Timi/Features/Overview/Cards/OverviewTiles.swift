@@ -215,7 +215,7 @@ private struct TodayTile: View {
 
 // MARK: - Hũ tiết kiệm
 
-/// The savings goal nearest full that is not full yet, in its 3D picture. With no goal, a way to
+/// The savings goal nearest full that is not full yet, in its Fluent Flat picture. With no goal, a way to
 /// make the first.
 private struct GoalTile: View {
     let onAdd: () -> Void
@@ -237,7 +237,7 @@ private struct GoalTile: View {
             } else {
                 OverviewTile(label: "Hũ tiết kiệm", value: "Chưa có", detail: "Tạo hũ đầu tiên",
                              accessibility: "Chưa có hũ tiết kiệm", hint: "Tạo hũ", action: onAdd) {
-                    picture("fluent-pig")
+                    picture(IconCatalog.emojiName("🐷"))
                 }
             }
         }
@@ -277,7 +277,7 @@ private struct LoanTile: View {
             } else {
                 OverviewTile(label: "Khoản vay", value: "Chưa có", detail: "Ghi khoản cho vay",
                              accessibility: "Chưa có khoản vay", hint: "Ghi khoản vay", action: onAdd) {
-                    picture("fluent-handshake")
+                    picture(IconCatalog.emojiName("🤝"))
                 }
             }
         }
@@ -290,7 +290,7 @@ private struct Opened: Identifiable {
     let id: UUID
 }
 
-/// A block's 3D picture, at the graphic's height.
+/// A block's Fluent Flat picture, at the graphic's height.
 private func picture(_ name: String) -> some View {
     Image(name)
         .resizable()
@@ -370,7 +370,7 @@ struct MoneyCalendarPage: View {
             .padding(.top, Spacing.l)
             .padding(.bottom, Spacing.xxl)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle("Lịch thu chi")
         .navigationBarTitleDisplayMode(.inline)

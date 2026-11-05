@@ -1,109 +1,109 @@
 import SwiftUI
 
-/// Named text roles: one scale for the whole app, built around a 16pt body (user choice 2026-10-28,
-/// after trying 17 and 14). Manrope is wide, so 16 reads close to SF Pro's 17 Body. Each step is
-/// 1–4pt from the next so the hierarchy stays clear: 34 · 24 · 20 · 17 · 16 · 14 · 13 · 12 · 11.
-/// Buttons take their own roles, one weight over the words around them (`button`, `buttonCompact`).
-/// Use `.textRole(_:)` instead of raw sizes. Manrope at the weight named (see Typography).
+/// Named text roles: the Milu type scale (design system 2026-11-04, `milu.tokens.json`), Nunito
+/// round a 16pt body. Each role is one of Milu's text styles: Display, Heading, Section title,
+/// Body, Control label, Supporting, Caption, Overline and the three money styles.
+/// Use `.textRole(_:)` instead of raw sizes. Nunito at the weight named (see Typography).
 enum TextRole: CaseIterable, Identifiable {
-    /// The screen's lead figure (Tài sản ròng). 34
+    /// A page's big title in its sky ("Sổ ví của bạn"). Milu / Display, 34 Black
+    case hero
+    /// The screen's lead figure (Tài sản ròng). Milu / Money display, 32 ExtraBold
     case display
     /// The amount being typed in a form: 52, shrinking to 38 and 28 as the figure grows
     /// (`amountEntrySize(for:)`).
     case amountEntry
-    /// Big figures inside a card (Đã chi / Đã thu). 24
+    /// Big figures inside a card (Đã chi / Đã thu). 24 ExtraBold
     case amountLarge
-    /// Screen titles in the toolbar. 24
+    /// Screen titles. Milu / Heading, 26 Black
     case pageTitle
-    /// Headings of a screen's parts (catalogue sections). 20
+    /// A main screen's section headings ("Ví & ngân hàng"). Milu / Section title, 21 Black
     case heading
-    /// A main screen's section headings (`SectionHeader` `.section`), titles inside a card, a
-    /// sheet or a dialog. Sentence case. 17 SemiBold
+    /// Titles inside a card, a sheet or a dialog ("Chưa có tài khoản"). 17 ExtraBold
     case title
-    /// Everything read in a row: row titles, values, body text, typed text, button labels. 16
+    /// Words read in a row or a paragraph, typed text. Milu / Body, 16 Medium
     case body
-    /// Rare emphasis inside body text. 16 SemiBold
+    /// A row's name ("Ví tiền mặt"). 16 ExtraBold
     case bodyStrong
-    /// The words on a button (`TimiButton`): body's size, one weight over it, so a button reads as
-    /// one at a glance (user request 2026-11-03). 16 SemiBold
+    /// The words on a button (`TimiButton`). Milu / Control label, 15 ExtraBold
     case button
-    /// Amounts at the end of a row: the title's size and weight, tabular (user 2026-10-31: no
-    /// heavier than the name beside it). 16
+    /// Amounts at the end of a row. Milu / Money row, 16 ExtraBold, tabular
     case amount
-    /// A control beside a section heading (the month of Lịch thu chi): clearly under the 17 title
-    /// it sits by, its colour marks it (user choice 2026-10-30: 16 read as large as the title). 14
+    /// A control beside a section heading (the month of Lịch thu chi). 14 SemiBold
     case accessory
-    /// Row subtitles, notes, errors and descriptions. 13
+    /// Notes, errors and descriptions. Milu / Supporting, 13 SemiBold
     case caption
-    /// Chips, badges, small labels above figures. 13 SemiBold
+    /// Chips, badges, small figures. Milu / Money small, 13 Bold
     case captionStrong
-    /// The words on a compact button (`TimiButton(size: .compact)`): one weight over
-    /// `captionStrong`, as `button` is over `body`. 13 Bold
+    /// The words on a compact button (`TimiButton(size: .compact)`). 13 ExtraBold
     case buttonCompact
-    /// Chart axes and tiny meta. 11
+    /// Row subtitles, a column's label, chart axes. Milu / Caption, 12 SemiBold
     case footnote
-    /// Small capitals naming a group of rows in a sheet or form (`SectionHeader` `.group`).
-    /// 12 Bold
+    /// Small capitals naming a group ("NÂU GIỮ VÍ", a group of rows in a sheet). Milu / Overline,
+    /// 10 ExtraBold, spaced
     case overline
 
     var id: Self { self }
 
     var size: CGFloat {
         switch self {
-        case .display: 34
+        case .hero: 34
+        case .display: 32
         case .amountEntry: 52
-        case .amountLarge, .pageTitle: 24
-        case .heading: 20
+        case .pageTitle: 26
+        case .amountLarge: 24
+        case .heading: 21
         case .title: 17
-        case .body, .bodyStrong, .button, .amount: 16
+        case .body, .bodyStrong, .amount: 16
+        case .button: 15
         case .accessory: 14
         case .caption, .captionStrong, .buttonCompact: 13
-        case .overline: 12
-        case .footnote: 11
+        case .footnote: 12
+        case .overline: 10
         }
     }
 
     var weight: Font.Weight {
         switch self {
-        // Titles and figures Bold; the words of the content Medium, one step under the SemiBold
-        // they had, which read heavy on the Pro card (user request 2026-10-31); Regular read as
-        // faded (2026-10-30). `captionStrong` keeps SemiBold, so it is stronger than `caption`.
-        // Buttons one step over the words they sit among (2026-11-03).
-        case .display, .amountEntry, .amountLarge, .pageTitle, .heading, .title, .bodyStrong, .overline,
-             .buttonCompact: .bold
-        case .captionStrong, .button: .semibold
-        case .body, .accessory, .caption, .footnote, .amount: .medium
+        case .hero, .pageTitle, .heading: .black
+        case .display, .amountEntry, .amountLarge, .title, .bodyStrong, .button, .amount,
+             .buttonCompact, .overline: .heavy
+        case .captionStrong: .bold
+        case .accessory, .caption, .footnote: .semibold
+        case .body: .medium
         }
     }
 
-    /// Design line box; nil keeps the font's own metrics. The two big figures keep their box while
+    /// Design line box; nil keeps the font's own metrics. The big figures keep their box while
     /// they shrink to fit, so a card does not change height with the amount.
     var lineHeight: CGFloat? {
         switch self {
         case .amountEntry: nil
+        case .hero: 44
         case .display: 42
+        case .pageTitle: 34
         case .amountLarge: 32
-        case .pageTitle: 32
-        case .heading: 26
-        case .title: 24
-        case .body, .bodyStrong, .button, .amount: 22
+        case .heading: 28
+        case .title, .amount: 23
+        case .body: 24
+        case .bodyStrong, .button: 21
         case .accessory: 20
-        case .caption, .captionStrong, .buttonCompact: 18
-        case .overline: 16
-        case .footnote: 14
+        case .caption, .captionStrong, .buttonCompact: 19
+        case .footnote: 17
+        case .overline: 15
         }
     }
 
     var textStyle: Font.TextStyle {
         switch self {
-        case .display, .amountEntry: .largeTitle
-        case .amountLarge, .pageTitle: .title2
+        case .hero, .display, .amountEntry: .largeTitle
+        case .pageTitle: .title
+        case .amountLarge: .title2
         case .heading: .title3
-        case .title: .headline
-        case .body, .bodyStrong, .button, .amount: .body
-        case .accessory: .subheadline
-        case .caption, .captionStrong, .buttonCompact, .overline: .caption
-        case .footnote: .caption2
+        case .title, .button: .headline
+        case .body, .bodyStrong, .amount: .body
+        case .accessory, .caption: .subheadline
+        case .captionStrong, .buttonCompact, .footnote: .footnote
+        case .overline: .caption2
         }
     }
 
@@ -121,13 +121,24 @@ enum TextRole: CaseIterable, Identifiable {
         default: 26
         }
     }
-    var tracking: CGFloat { self == .overline ? 0.6 : 0 }
+    /// Milu's letter spacing: tighter for the big black titles, open for the overline.
+    var tracking: CGFloat {
+        switch self {
+        case .hero: -0.8
+        case .display: -0.6
+        case .pageTitle: -0.5
+        case .heading: -0.4
+        case .overline: 1.2
+        default: 0
+        }
+    }
 
     var font: Font { Typography.font(textStyle, size: size, weight: weight) }
 
     /// Vietnamese name shown in the design system screen.
     var name: String {
         switch self {
+        case .hero: "Tiêu đề trên bầu trời"
         case .display: "Số dẫn đầu"
         case .amountEntry: "Số tiền đang nhập"
         case .amountLarge: "Số lớn trong thẻ"
@@ -149,7 +160,7 @@ enum TextRole: CaseIterable, Identifiable {
 }
 
 extension View {
-    /// Applies a named text role: Manrope at the role's size and weight, its line box and tracking.
+    /// Applies a named text role: Nunito at the role's size and weight, its line box and tracking.
     @ViewBuilder
     func textRole(_ role: TextRole) -> some View {
         let styled = self

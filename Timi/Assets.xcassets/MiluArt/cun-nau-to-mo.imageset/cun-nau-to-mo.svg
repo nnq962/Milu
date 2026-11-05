@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="292" height="151" viewBox="173 265 292 151" overflow="hidden"><g stroke-linejoin="round" stroke-linecap="round">
+<path fill="#B58A60" d="M118 512c41-51 88-101 118-144 17-24 30-51 45-77 8-13 14-22 22-23 8-1 15 9 21 17 6 8 10 11 16 9 5-1 12-14 20-18 10-7 18-4 25 5 10 14 17 34 26 49 26 45 58 100 114 182Z"/>
+<path d="M118 512C157.714025 462.599628 203.057569 414.137509 233.127664 372.066592M245.865326 353.116093C258.33562 333.128781 269.031126 311.746048 281 291C289 278 295 269 303 268C311 267 318 277 324 285C330 293 334 296 340 294C345 293 352 280 360 276C370 269 378 272 385 281C395 295 402 315 411 330C437 375 469 430 525 512" fill="none" stroke="#3A3430" stroke-width="3.8"/>
+<path id="net-long-vai" d="M235.495365 365.148608L238.86265 367.494713M239.973606 358.521229L243.404962 360.772587" fill="none" stroke="#3A3430" stroke-width="3.496" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="Listening" transform="translate(-9 -4) rotate(14 338 327)">
+<g id="Brows"><ellipse fill="#DAB272" cx="311.5" cy="295.8" rx="7.4" ry="4.4" transform="rotate(-23 311.5 295.8)"/><ellipse fill="#DAB272" cx="356.5" cy="307.3" rx="7.8" ry="4.3" transform="rotate(-14 356.5 307.3)"/></g>
+<g id="Eyes"><circle id="Left-eye" cx="310.6" cy="313.5" r="4.6" fill="#3C342E"/><circle id="Right-eye" cx="350.4" cy="316.5" r="4.6" fill="#3C342E"/></g>
+<g id="Muzzle" transform="translate(-5 -2)">
+<g id="Mouth"><path d="M329.5 353.1c1.9-1.9 6.4-2.2 8.3.4 1.2 1.9.4 4.5-1.6 5.2-2.6 1-7.1.2-8.1-1.9-.5-1.2.2-2.8 1.4-3.7Z" fill="#3C342E"/></g>
+<path d="M320.7 339.1c1.3-6 8.4-9 15.2-9.8 8.5-.9 15.8 1.7 16.1 7.7.3 6.4-6.8 11.5-16.3 12.2-9 .6-16.4-2.9-15-10.1Z" fill="#37332F"/>
+</g></g>
+</g></svg>

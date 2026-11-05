@@ -92,7 +92,7 @@ struct BudgetAllocationView: View {
             .padding(.top, Spacing.l)
             .padding(.bottom, Spacing.xxl)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle("Phân bổ hạn mức")
         .navigationBarTitleDisplayMode(.inline)

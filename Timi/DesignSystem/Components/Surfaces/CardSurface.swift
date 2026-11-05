@@ -1,7 +1,8 @@
 import SwiftUI
 
 extension View {
-    /// A borderless solid surface with continuous corners and an optional light-mode shadow.
+    /// A solid surface with continuous corners and Milu's quiet 1pt edge (Border/Quiet); no
+    /// shadow, as Milu keeps shadows for what truly floats over the content.
     /// Inside a `HeaderCard` it turns into a flat tile in `surfaceMuted` (the goal tiles), so a
     /// card never sits white on white.
     func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, shadowed: Bool = true) -> some View {
@@ -18,6 +19,29 @@ extension EnvironmentValues {
     /// True inside a `HeaderCard`: the card is already drawn, so `card()` and `listCard()` add
     /// none of their own and a tile drawn with `cardSurface` goes flat and grey.
     @Entry var isInHeaderCard = false
+    /// True inside a sheet (`timiSheetStyle`, `SheetScaffold`): pages there stand on the card's
+    /// colour, white by day and blue at night (Milu: Surface/Card is "thẻ, ô nhập và toàn bộ sheet",
+    /// user request 2026-11-05), not on the page's pale blue.
+    @Entry var isInSheet = false
+}
+
+/// The ground of a page: Surface/Canvas on a tab or a pushed page, Surface/Card inside a sheet,
+/// pushed pages within it included.
+struct PageBackground: View {
+    @Environment(\.isInSheet) private var isInSheet
+
+    var body: some View {
+        isInSheet ? Palette.surface : Palette.background
+    }
+}
+
+extension View {
+    /// `PageBackground` behind the view: the page colour, or the sheet's in a sheet.
+    func pageBackground() -> some View {
+        // Under the bars and the home indicator too, as a plain colour background does (user
+        // report 2026-11-05: as a view it stopped at the safe area, black above and below).
+        background { PageBackground().ignoresSafeArea() }
+    }
 }
 
 private struct CardSurface: ViewModifier {
@@ -34,10 +58,13 @@ private struct CardSurface: ViewModifier {
             .background {
                 if isInHeaderCard {
                     shape.fill(Palette.surfaceMuted)
-                } else if shadowed {
-                    shape.fill(color).cardShadow()
                 } else {
                     shape.fill(color)
+                }
+            }
+            .overlay {
+                if !isInHeaderCard && shadowed {
+                    shape.strokeBorder(Palette.separator, lineWidth: 1)
                 }
             }
     }

@@ -172,7 +172,7 @@ struct LoanDetailSheet: View {
                 EmptyStateCard(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
                                title: lent ? "Chưa có lần thu nào" : "Chưa có lần trả nào",
                                message: lent ? "Các lần thu nợ sẽ hiện ở đây." : "Các lần trả nợ sẽ hiện ở đây.",
-                               picture: "fluent-memo")
+                               picture: IconCatalog.emojiName("📝"))
                 if let reason = store.readOnlyReason(loan) { FormFooter(message: reason) }
             }
         } else {

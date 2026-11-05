@@ -44,61 +44,61 @@ enum DefaultCategories {
     }
 
     static let groups: [Group] = [
-        Group(id: "food", kind: .expense, name: "Ăn uống", icon: "hugeicons-restaurant-01", items: [
-            ("breakfast", "Ăn sáng", "hugeicons-egg-fried"), ("lunch", "Ăn trưa", "hugeicons-rice-bowl-01"),
-            ("dinner", "Ăn tối", "hugeicons-noodles"), ("coffee", "Cà phê", "hugeicons-coffee-02"),
-            ("milktea", "Trà sữa", "hugeicons-bubble-tea-01"), ("market", "Đi chợ", "hugeicons-shopping-basket-01"),
+        Group(id: "food", kind: .expense, name: "Ăn uống", icon: IconCatalog.emojiName("🍽️"), items: [
+            ("breakfast", "Ăn sáng", IconCatalog.emojiName("🍳")), ("lunch", "Ăn trưa", IconCatalog.emojiName("🍚")),
+            ("dinner", "Ăn tối", IconCatalog.emojiName("🍜")), ("coffee", "Cà phê", IconCatalog.emojiName("☕")),
+            ("milktea", "Trà sữa", IconCatalog.emojiName("🧋")), ("market", "Đi chợ", IconCatalog.emojiName("🛒")),
         ]),
-        Group(id: "transport", kind: .expense, name: "Di chuyển", icon: "hugeicons-car-01", items: [
-            ("fuel", "Xăng", "hugeicons-fuel-station"), ("parking", "Gửi xe", "hugeicons-car-parking-01"),
-            ("taxi", "Taxi, xe ôm", "hugeicons-taxi"), ("bus", "Xe buýt", "hugeicons-bus-01"),
-            ("repair", "Sửa xe", "hugeicons-tire"),
+        Group(id: "transport", kind: .expense, name: "Di chuyển", icon: IconCatalog.emojiName("🚗"), items: [
+            ("fuel", "Xăng", IconCatalog.emojiName("⛽")), ("parking", "Gửi xe", IconCatalog.emojiName("🅿️")),
+            ("taxi", "Taxi, xe ôm", IconCatalog.emojiName("🚕")), ("bus", "Xe buýt", IconCatalog.emojiName("🚌")),
+            ("repair", "Sửa xe", IconCatalog.emojiName("🛞")),
         ]),
-        Group(id: "bills", kind: .expense, name: "Hoá đơn", icon: "hugeicons-flash", items: [
-            ("electricity", "Tiền điện", "hugeicons-flash"), ("water", "Tiền nước", "hugeicons-droplet"),
-            ("internet", "Internet", "hugeicons-wifi-01"), ("phone", "Điện thoại", "hugeicons-call-02"),
-            ("gas", "Gas", "hugeicons-fire-02"),
+        Group(id: "bills", kind: .expense, name: "Hoá đơn", icon: IconCatalog.emojiName("⚡"), items: [
+            ("electricity", "Tiền điện", IconCatalog.emojiName("⚡")), ("water", "Tiền nước", IconCatalog.emojiName("💧")),
+            ("internet", "Internet", IconCatalog.emojiName("🛜")), ("phone", "Điện thoại", IconCatalog.emojiName("📞")),
+            ("gas", "Gas", IconCatalog.emojiName("🔥")),
         ]),
-        Group(id: "housing", kind: .expense, name: "Nhà cửa", icon: "hugeicons-home-01", items: [
-            ("rent", "Thuê nhà", "hugeicons-key-01"), ("fixes", "Sửa chữa", "hugeicons-tools"),
-            ("appliances", "Đồ gia dụng", "hugeicons-fridge"), ("cleaning", "Dọn dẹp", "hugeicons-clean"),
+        Group(id: "housing", kind: .expense, name: "Nhà cửa", icon: IconCatalog.emojiName("🏠"), items: [
+            ("rent", "Thuê nhà", IconCatalog.emojiName("🔑")), ("fixes", "Sửa chữa", IconCatalog.emojiName("🛠️")),
+            ("appliances", "Đồ gia dụng", IconCatalog.emojiName("🔌")), ("cleaning", "Dọn dẹp", IconCatalog.emojiName("🧹")),
         ]),
-        Group(id: "shopping", kind: .expense, name: "Mua sắm", icon: "hugeicons-shopping-bag-01", items: [
-            ("clothes", "Quần áo", "hugeicons-t-shirt"), ("shoes", "Giày dép", "hugeicons-running-shoes"),
-            ("beauty", "Mỹ phẩm", "hugeicons-perfume"), ("devices", "Đồ điện tử", "hugeicons-smart-phone-01"),
-            ("online", "Mua online", "hugeicons-package"),
+        Group(id: "shopping", kind: .expense, name: "Mua sắm", icon: IconCatalog.emojiName("🛍️"), items: [
+            ("clothes", "Quần áo", IconCatalog.emojiName("👕")), ("shoes", "Giày dép", IconCatalog.emojiName("👟")),
+            ("beauty", "Mỹ phẩm", IconCatalog.emojiName("💄")), ("devices", "Đồ điện tử", IconCatalog.emojiName("📱")),
+            ("online", "Mua online", IconCatalog.emojiName("📦")),
         ]),
-        Group(id: "entertainment", kind: .expense, name: "Giải trí", icon: "hugeicons-film-02", items: [
-            ("movies", "Xem phim", "hugeicons-film-02"), ("travel", "Du lịch", "hugeicons-luggage-01"),
-            ("games", "Game", "hugeicons-game-controller-01"), ("parties", "Tiệc tùng", "hugeicons-party"),
+        Group(id: "entertainment", kind: .expense, name: "Giải trí", icon: IconCatalog.emojiName("🎬"), items: [
+            ("movies", "Xem phim", IconCatalog.emojiName("🎬")), ("travel", "Du lịch", IconCatalog.emojiName("🧳")),
+            ("games", "Game", IconCatalog.emojiName("🎮")), ("parties", "Tiệc tùng", IconCatalog.emojiName("🎉")),
         ]),
-        Group(id: "health", kind: .expense, name: "Sức khoẻ", icon: "hugeicons-first-aid-kit", items: [
-            ("medicine", "Thuốc", "hugeicons-medicine-02"), ("doctor", "Khám bệnh", "hugeicons-stethoscope-02"),
-            ("sport", "Thể thao", "hugeicons-dumbbell-01"), ("insurance", "Bảo hiểm", "hugeicons-umbrella-dollar"),
+        Group(id: "health", kind: .expense, name: "Sức khoẻ", icon: IconCatalog.emojiName("🩹"), items: [
+            ("medicine", "Thuốc", IconCatalog.emojiName("💊")), ("doctor", "Khám bệnh", IconCatalog.emojiName("🩺")),
+            ("sport", "Thể thao", IconCatalog.emojiName("🏋️")), ("insurance", "Bảo hiểm", IconCatalog.emojiName("☂️")),
         ]),
-        Group(id: "education", kind: .expense, name: "Học tập", icon: "hugeicons-book-02", items: [
-            ("fees", "Học phí", "hugeicons-mortarboard-02"), ("books", "Sách", "hugeicons-book-open-01"),
-            ("courses", "Khoá học", "hugeicons-school"),
+        Group(id: "education", kind: .expense, name: "Học tập", icon: IconCatalog.emojiName("📚"), items: [
+            ("fees", "Học phí", IconCatalog.emojiName("🎓")), ("books", "Sách", IconCatalog.emojiName("📖")),
+            ("courses", "Khoá học", IconCatalog.emojiName("🏫")),
         ]),
-        Group(id: "family", kind: .expense, name: "Gia đình", icon: "hugeicons-hand-heart", items: [
-            ("kids", "Con cái", "hugeicons-baby-01"), ("gifts", "Quà tặng", "hugeicons-gift"),
-            ("occasions", "Hiếu hỉ", "hugeicons-wedding"), ("pets", "Thú cưng", "hugeicons-paw-print"),
+        Group(id: "family", kind: .expense, name: "Gia đình", icon: IconCatalog.emojiName("🫶"), items: [
+            ("kids", "Con cái", IconCatalog.emojiName("👶")), ("gifts", "Quà tặng", IconCatalog.emojiName("🎁")),
+            ("occasions", "Hiếu hỉ", IconCatalog.emojiName("💍")), ("pets", "Thú cưng", IconCatalog.emojiName("🐾")),
         ]),
-        Group(id: "otherExpense", kind: .expense, name: "Chi khác", icon: "hugeicons-dashboard-square-01", items: [
-            ("other", "Khác", "hugeicons-dashboard-square-01"),
+        Group(id: "otherExpense", kind: .expense, name: "Chi khác", icon: IconCatalog.emojiName("🗂️"), items: [
+            ("other", "Khác", IconCatalog.emojiName("🗂️")),
         ]),
-        Group(id: "salary", kind: .income, name: "Lương", icon: "hugeicons-money-bag-02", items: [
-            ("main", "Lương chính", "hugeicons-money-bag-02"), ("side", "Làm thêm", "hugeicons-briefcase-01"),
+        Group(id: "salary", kind: .income, name: "Lương", icon: IconCatalog.emojiName("💰"), items: [
+            ("main", "Lương chính", IconCatalog.emojiName("💰")), ("side", "Làm thêm", IconCatalog.emojiName("💼")),
         ]),
-        Group(id: "bonus", kind: .income, name: "Thưởng", icon: "hugeicons-gift", items: [
-            ("bonus", "Tiền thưởng", "hugeicons-gift"), ("given", "Được cho, tặng", "hugeicons-hand-heart"),
+        Group(id: "bonus", kind: .income, name: "Thưởng", icon: IconCatalog.emojiName("🎁"), items: [
+            ("bonus", "Tiền thưởng", IconCatalog.emojiName("🎁")), ("given", "Được cho, tặng", IconCatalog.emojiName("🫶")),
         ]),
-        Group(id: "investment", kind: .income, name: "Đầu tư", icon: "hugeicons-chart-increase", items: [
-            ("interest", "Lãi tiết kiệm", "hugeicons-percent"), ("dividends", "Cổ tức", "hugeicons-chart-increase"),
+        Group(id: "investment", kind: .income, name: "Đầu tư", icon: IconCatalog.emojiName("📈"), items: [
+            ("interest", "Lãi tiết kiệm", IconCatalog.emojiName("🏦")), ("dividends", "Cổ tức", IconCatalog.emojiName("📈")),
         ]),
-        Group(id: "otherIncome", kind: .income, name: "Thu khác", icon: "hugeicons-money-add-02", items: [
-            ("sales", "Bán đồ", "hugeicons-store-01"), ("refund", "Hoàn tiền", "hugeicons-cashback"),
-            ("other", "Khác", "hugeicons-dashboard-square-01"),
+        Group(id: "otherIncome", kind: .income, name: "Thu khác", icon: IconCatalog.emojiName("💵"), items: [
+            ("sales", "Bán đồ", IconCatalog.emojiName("🏷️")), ("refund", "Hoàn tiền", IconCatalog.emojiName("🪙")),
+            ("other", "Khác", IconCatalog.emojiName("🗂️")),
         ]),
     ]
 

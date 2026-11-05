@@ -33,8 +33,8 @@ struct LicensesView: View {
 
     private let works = [
         Work(name: "Hugeicons", use: "MIT", file: "Hugeicons-LICENSE"),
-        Work(name: "Manrope", use: "SIL Open Font License 1.1", file: "OFL"),
-        // Both the overview illustrations and the selectable Flat emoji use the Fluent Emoji license.
+        Work(name: "Nunito", use: "SIL Open Font License 1.1", file: "OFL"),
+        // Every picture in the app (categories, goals, empty states, Tổng quan) is Fluent Emoji Flat.
         Work(name: "Fluent Emoji (Microsoft)", use: "MIT", file: "FluentEmoji-LICENSE"),
     ]
 
@@ -58,7 +58,7 @@ struct LicensesView: View {
             .padding(.top, Spacing.l)
             .padding(.bottom, Spacing.xxl)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle("Giấy phép mã nguồn mở")
         .navigationBarTitleDisplayMode(.inline)

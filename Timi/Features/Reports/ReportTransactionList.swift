@@ -52,7 +52,7 @@ private struct AllReportTransactionsView: View {
         // The top margin of every detail page (strict review 2026-10-31).
         .contentMargins(.top, Spacing.s, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)

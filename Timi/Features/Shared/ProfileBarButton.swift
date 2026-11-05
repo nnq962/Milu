@@ -12,14 +12,15 @@ struct ProfileBarButton: View {
             // text (even an icon-only label) in a pill. A template, tinted when shown: a colour
             // drawn into it stayed the light one at night, black on the dark glass.
             Image(size: CGSize(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)) { context in
-                context.draw(Text("Q").font(TextRole.heading.font),
+                // Regular, as the words of iOS's own glass buttons (user request 2026-11-05).
+                context.draw(Text("Q").font(Typography.font(.title3, size: TextRole.heading.size, weight: .regular)),
                              at: CGPoint(x: RowMetrics.toolbarGlyphFrame / 2, y: RowMetrics.toolbarGlyphFrame / 2))
             }
             .renderingMode(.template)
-            .foregroundStyle(Palette.primary)
+            .foregroundStyle(Palette.deep)
         }
         .buttonBorderShape(.circle)
-        .tint(Palette.primary)
+        .tint(Palette.deep)
         .accessibilityLabel("Hồ sơ của Quyet")
         .accessibilityHint("Mở cài đặt")
     }
@@ -35,6 +36,9 @@ struct HiddenTitleBar<Leading: View>: ViewModifier {
     /// Circles on the bar's leading and trailing sides, so `leading` starts just after the first.
     let leadingCircles: Int
     let trailingCircles: Int
+    /// How wide the trailing items are when they are not all circles ("Hỏi Milu" is a pill);
+    /// nil counts `trailingCircles` circles.
+    var trailingWidth: CGFloat? = nil
     @ViewBuilder let leading: Leading
 
     /// The middle slot is centred between the bar's items and as wide as its content. Set to this
@@ -44,8 +48,9 @@ struct HiddenTitleBar<Leading: View>: ViewModifier {
         // With nothing on the leading side, the middle slot's room starts at the screen's edge,
         // not the margin (Simulator check 2026-11-04: the tabs sat 8 from the edge).
         let leadingEnd = leadingCircles > 0 ? margin + CGFloat(leadingCircles) * circle : 0
-        let trailingStart = UIScreen.main.bounds.width - margin
-            - CGFloat(trailingCircles) * circle - CGFloat(max(trailingCircles - 1, 0)) * spacer
+        let trailing = trailingWidth
+            ?? CGFloat(trailingCircles) * circle + CGFloat(max(trailingCircles - 1, 0)) * spacer
+        let trailingStart = UIScreen.main.bounds.width - margin - trailing
         let start = leadingCircles > 0 ? leadingEnd + Spacing.l : margin
         let centre = (leadingEnd + trailingStart) / 2
         return max(2 * (centre - start), 0)

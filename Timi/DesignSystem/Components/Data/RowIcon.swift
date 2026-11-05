@@ -3,6 +3,7 @@ import SwiftUI
 /// A bank or wallet logo in its own colours: a rounded tile in the card colour with a hairline edge, so
 /// logos of any shape and colour sit evenly in a list (Wallet-style). The mark sits 14% in from
 /// the edge: many logos are drawn edge to edge (Vietcombank), and would otherwise touch the border.
+/// 8% in since 2026-11-05 (user request: a little larger; Figma draws a 26 mark in the 32 tile).
 struct InstitutionLogo: View {
     let image: String
     var size: CGFloat = RowMetrics.iconColumn
@@ -11,7 +12,7 @@ struct InstitutionLogo: View {
         Image(image)
             .resizable()
             .scaledToFit()
-            .padding(size * 0.14)
+            .padding(size * 0.08)
             .frame(width: size, height: size)
             .background(Palette.surface)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
@@ -65,6 +66,10 @@ struct RowIcon: View {
                             .strokeBorder(Palette.separator, lineWidth: 0.5)
                     }
                     .accessibilityHidden(true)
+            } else if IconCatalog.isEmoji(name) {
+                // A Fluent Flat picture fills the column: a line glyph carries its own margin, it
+                // does not, and at 20 it read small beside the name (Simulator check 2026-11-05).
+                TimiIcon(name, size: size)
             } else {
                 TimiIcon(name, size: size * RowMetrics.iconGlyph / RowMetrics.iconColumn)
                     .foregroundStyle(tint)

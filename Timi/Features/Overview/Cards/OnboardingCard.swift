@@ -2,7 +2,7 @@ import SwiftUI
 
 /// "Làm quen với Timi": four first steps, ticked from what is really in the app, shown one at a
 /// time (user review 2026-11-02: the list was not lively, and nothing in it could be done from
-/// there). The next step's 3D picture (Fluent Emoji), "LÀM QUEN · +5 LƯỢT AI",
+/// there). The next step's Fluent Flat picture (Fluent Emoji), "LÀM QUEN · +5 LƯỢT AI",
 /// its name and one line on why, a lime button that does it, and four short bars filling in as
 /// the steps are done. It goes away once all four are done.
 struct OnboardingCard: View {
@@ -36,13 +36,13 @@ struct OnboardingCard: View {
             }
         }
 
-        /// The `Fluent3D` picture.
+        /// The Fluent Emoji Flat picture (`MiluEmoji2D`, 2026-11-05).
         var picture: String {
             switch self {
-            case .account: "fluent-bank"
-            case .transaction: "fluent-memo"
-            case .loan: "fluent-handshake"
-            case .askAI: "fluent-sparkles"
+            case .account: IconCatalog.emojiName("🏦")
+            case .transaction: IconCatalog.emojiName("📝")
+            case .loan: IconCatalog.emojiName("🤝")
+            case .askAI: IconCatalog.emojiName("✨")
             }
         }
     }

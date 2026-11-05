@@ -8,7 +8,7 @@ struct SummaryCard<Content: View>: View {
     let amount: Double
     var icon: String? = nil
     var tone: MoneyText.Tone = .balance
-    /// A 3D picture in the icon's place (a goal, 2026-11-03).
+    /// A Fluent Flat picture in the icon's place (a goal, 2026-11-03).
     var picture: String? = nil
     @ViewBuilder var content: Content
 

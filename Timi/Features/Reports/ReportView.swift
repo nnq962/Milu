@@ -40,7 +40,7 @@ struct ReportView: View {
             .padding(.top, Spacing.s)
             .padding(.bottom, Spacing.xxl)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle("Báo cáo")
         .navigationBarTitleDisplayMode(.inline)

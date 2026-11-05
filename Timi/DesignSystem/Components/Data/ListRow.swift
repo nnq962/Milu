@@ -162,8 +162,12 @@ struct LockBadge: View {
 /// The › at the end of a row that opens something: one size and colour on every list, form and
 /// card (strict review 2026-10-31: 12, 14 and 16 were in use side by side).
 struct RowChevron: View {
+    /// Grows with the row's words, no further than 1.6 times (HIG review 2026-11-05: at AX5 a 16
+    /// chevron stood tiny beside the names).
+    @ScaledMetric(relativeTo: .body) private var size = RowMetrics.chevron
+
     var body: some View {
-        TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.chevron)
+        TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.capped(size, base: RowMetrics.chevron))
             .foregroundStyle(Palette.tertiaryLabel)
             .accessibilityHidden(true)
     }

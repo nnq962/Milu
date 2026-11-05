@@ -79,7 +79,7 @@ struct TransactionsView: View {
                 }
             }
             // The plain page colour, as on Tài khoản (user report 2026-11-03: the ground read muddy).
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
             // No title on the bar (user pick "B" 2026-11-04): "Thu chi · Vay nợ" on its left, words
             // rather than a segmented control (user pick "B" 2026-11-03). The title stays for
@@ -172,8 +172,9 @@ struct TransactionsView: View {
         } label: {
             HStack(spacing: Spacing.xs) {
                 // Regular words, as iOS's own glass buttons (user request 2026-11-04).
+                // Nunito SemiBold 15, as "Hỏi Milu" beside it (user pick 2026-11-05).
                 Text(segment.title)
-                    .textRole(.body)
+                    .font(Typography.font(.subheadline, size: 15, weight: .semibold))
                 TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
             }
             .foregroundStyle(Palette.primary)
@@ -288,7 +289,7 @@ struct TransactionsView: View {
             VStack(spacing: Spacing.l) {
                 EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
                                title: emptyTitle, message: emptyMessage,
-                               picture: filter == .transfer ? "fluent-money" : "fluent-memo")
+                               picture: filter == .transfer ? IconCatalog.emojiName("💵") : IconCatalog.emojiName("📝"))
                 // Before anything is recorded, the way to start, under the card (2026-11-03).
                 if hasNothingRecorded {
                     TimiButton("Ghi khoản đầu tiên", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {

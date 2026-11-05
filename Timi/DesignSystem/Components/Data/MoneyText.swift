@@ -27,9 +27,10 @@ struct MoneyText: View {
         let value = compact ? abs(amount).vndCompact : abs(amount).vnd
         switch tone {
         case .signedIncome: return "+" + value
-        case .signedExpense, .outflow: return "-" + value
-        case .signedNet: return (amount > 0 ? "+" : amount < 0 ? "-" : "") + value
-        case .neutral, .balance, .transfer, .muted: return (amount < 0 ? "-" : "") + value
+        // Milu writes the minus as U+2212 "−", a dash as wide as the "+".
+        case .signedExpense, .outflow: return "\u{2212}" + value
+        case .signedNet: return (amount > 0 ? "+" : amount < 0 ? "\u{2212}" : "") + value
+        case .neutral, .balance, .transfer, .muted: return (amount < 0 ? "\u{2212}" : "") + value
         }
     }
 

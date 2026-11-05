@@ -373,15 +373,24 @@ enum IconCatalog {
         let groups: [IconGroup]
     }
 
+    /// The bundle this code ships in: the app when it runs, but not `Bundle.main` in an Xcode
+    /// preview or a test host, where the main bundle is the agent's (user report 2026-11-04:
+    /// "Missing or invalid MiluEmoji2D.json" stopped the app there).
+    private final class BundleToken {}
+
     static let emojiGroups: [IconGroup] = {
-        guard let url = Bundle.main.url(forResource: "MiluEmoji2D", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(EmojiFile.self, from: data),
-              !file.groups.isEmpty else {
-            assertionFailure("Missing or invalid MiluEmoji2D.json")
+        let url = Bundle(for: BundleToken.self).url(forResource: "MiluEmoji2D", withExtension: "json")
+            ?? Bundle.main.url(forResource: "MiluEmoji2D", withExtension: "json")
+        do {
+            guard let url else { throw CocoaError(.fileNoSuchFile) }
+            let file = try JSONDecoder().decode(EmojiFile.self, from: Data(contentsOf: url))
+            guard !file.groups.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
+            return file.groups
+        } catch {
+            // The goal pictures fall back to the line icons; never stop the app for it.
+            print("MiluEmoji2D.json could not be read: \(error)")
             return groups
         }
-        return file.groups
     }()
 
     /// Asset IDs are canonical Unicode code points (without the presentation selector).

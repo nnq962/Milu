@@ -69,7 +69,7 @@ struct FoundationPart: View {
                 }
             }
 
-            SampleCard(label: "Chữ · Manrope · .textRole") {
+            SampleCard(label: "Chữ · Nunito · .textRole") {
                 VStack(alignment: .leading, spacing: Spacing.l) {
                     ForEach(TextRole.allCases) { role in
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -158,6 +158,7 @@ struct FoundationPart: View {
 
     private func weightName(_ weight: Font.Weight) -> String {
         switch weight {
+        case .black: "Black"
         case .heavy: "ExtraBold"
         case .bold: "Bold"
         case .semibold: "SemiBold"

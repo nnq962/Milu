@@ -96,7 +96,7 @@ struct CategoryPickerSheet: View {
             .contentMargins(.top, Spacing.s, for: .scrollContent)
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
             .navigationTitle("Chọn hạng mục")
             .navigationBarTitleDisplayMode(.inline)

@@ -11,6 +11,9 @@ struct AccountRow: View {
     var subtitle: String? = nil
     /// The balance in grey: money that no longer counts (an archived account).
     var isMuted = false
+    /// The mark of Sổ ví (`WalletMark`): the logo, or the kind's Fluent Flat picture on nothing,
+    /// in place of the line glyph on a tile (the Lưu trữ list, user request 2026-11-05).
+    var usesWalletMark = false
 
     /// How far the lock hangs out past the logo's corner, a third of the badge (re-review
     /// 2026-10-31: named instead of written in place).
@@ -18,10 +21,14 @@ struct AccountRow: View {
 
     var body: some View {
         ListRow(title: account.name, subtitle: subtitle, showsChevron: showsChevron) {
-            RowIcon(name: account.iconName, size: RowMetrics.listLogo, tiled: true)
-                .overlay(alignment: .bottomTrailing) {
-                    if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
-                }
+            if usesWalletMark {
+                WalletMark(account: account)
+            } else {
+                RowIcon(name: account.iconName, size: RowMetrics.listLogo, tiled: true)
+                    .overlay(alignment: .bottomTrailing) {
+                        if account.isLocked { LockBadge().offset(x: Self.lockOverhang, y: Self.lockOverhang) }
+                    }
+            }
         } trailing: {
             // A step stronger than the name, as in Wallet: the figure is what the row is for
             // (Tài khoản review 2026-11-03: name and amount read the same).

@@ -27,11 +27,13 @@ extension View {
     }
 }
 
-/// Bundled Manrope; semantic styles retain Dynamic Type scaling.
+/// Bundled Nunito, the variable font with Vietnamese (Milu design system 2026-11-04: Nunito for
+/// headings, words, buttons and amounts; SF only where iOS draws the text itself). Semantic styles
+/// keep Dynamic Type scaling.
 enum Typography {
     private static let registered: Void = {
-        guard let url = Bundle.main.url(forResource: "Manrope", withExtension: "ttf") else {
-            assertionFailure("Missing bundled Manrope font")
+        guard let url = Bundle.main.url(forResource: "Nunito", withExtension: "ttf") else {
+            assertionFailure("Missing bundled Nunito font")
             return
         }
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
@@ -49,19 +51,18 @@ enum Typography {
         return .custom(instance(for: weight), fixedSize: size)
     }
 
-    /// Each weight is the Manrope instance of its name (regular 400, medium 500, semibold 600,
-    /// bold 700, heavy/black ExtraBold 800). It rendered one step lighter for a while; that read
-    /// thin and fragile, and the weights went back to their names after trying other typefaces
-    /// side by side (user choice 2026-10-30, over Be Vietnam Pro, Plus Jakarta Sans, Inter and
-    /// SF Pro). Selects the font's named instance rather than asking SwiftUI to synthesize a weight.
+    /// Each weight is the Nunito instance of its name (regular 400, medium 500, semibold 600,
+    /// bold 700, heavy ExtraBold 800, black 900). Selects the font's named instance rather than
+    /// asking SwiftUI to synthesize a weight.
     static func instance(for weight: Font.Weight) -> String {
         switch weight {
-        case .ultraLight, .thin, .light: "Manrope-Light"
-        case .medium: "Manrope-Medium"
-        case .semibold: "Manrope-SemiBold"
-        case .bold: "Manrope-Bold"
-        case .heavy, .black: "Manrope-ExtraBold"
-        default: "Manrope-Regular"
+        case .ultraLight, .thin, .light: "Nunito-Light"
+        case .medium: "Nunito-Medium"
+        case .semibold: "Nunito-SemiBold"
+        case .bold: "Nunito-Bold"
+        case .heavy: "Nunito-ExtraBold"
+        case .black: "Nunito-Black"
+        default: "Nunito-Regular"
         }
     }
 
@@ -87,13 +88,12 @@ enum Typography {
     static func configureNativeAppearance() {
         _ = registered
         guard let regular = UIFont(name: instance(for: .regular), size: 10) else {
-            assertionFailure("Manrope registration failed")
+            assertionFailure("Nunito registration failed")
             return
         }
-        // Only text attributes: iOS owns the tab bar's material, geometry and icons. SemiBold:
-        // Regular read too thin under the filled icons (user request 2026-10-30). Named directly so
-        // the lighter app-wide weights leave it as it is.
-        let tabFont = UIFont(name: "Manrope-SemiBold", size: 10) ?? regular
+        // Only text attributes: iOS owns the tab bar's material, geometry and icons. Nunito
+        // SemiBold 10, as the Milu tab bar.
+        let tabFont = UIFont(name: "Nunito-SemiBold", size: 10) ?? regular
         let appearance = UITabBarAppearance()
         for layout in [appearance.stackedLayoutAppearance,
                        appearance.inlineLayoutAppearance,

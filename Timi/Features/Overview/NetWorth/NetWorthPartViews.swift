@@ -35,7 +35,7 @@ struct NetWorthPartView: View {
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle(part.title)
         .navigationBarTitleDisplayMode(.inline)

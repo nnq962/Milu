@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @State private var selectedTab: AppTab = .overview
@@ -91,11 +92,19 @@ struct ContentView: View {
             // A search-role tab sits apart in its own circle beside the bar, as Search does in App
             // Store: there, by the thumb on every tab, it adds a transaction (user choice 2026-10-29),
             // a loan on "Vay nợ".
-            Tab(addTitle, systemImage: "plus", value: AppTab.add, role: .search) {
+            // The + drawn Regular (user request 2026-11-05: the bar's default read bold); the
+            // weight is set in the image itself, as the bar ignores SwiftUI's font weight.
+            Tab(value: AppTab.add, role: .search) {
                 Color.clear
+            } label: {
+                Label { Text(addTitle) } icon: { Image(uiImage: Self.regularPlus) }
             }
         }
     }
+
+    private static let regularPlus = UIImage(systemName: "plus",
+                                             withConfiguration: UIImage.SymbolConfiguration(weight: .regular))
+        ?? UIImage()
 
     private func tabLabel(_ title: String, symbol: String, tab: AppTab) -> some View {
         Label(title, systemImage: selectedTab == tab ? "\(symbol).fill" : symbol)

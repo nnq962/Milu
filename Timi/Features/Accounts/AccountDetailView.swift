@@ -51,7 +51,7 @@ struct AccountDetailView: View {
                 .padding(.top, Spacing.l)
                 .padding(.bottom, Spacing.xxl)
             }
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
             .navigationTitle(account.name)
             .navigationBarTitleDisplayMode(.inline)
@@ -86,7 +86,7 @@ struct AccountDetailView: View {
                 .padding(.horizontal, Spacing.page)
                 .padding(.top, Spacing.l)
                 .frame(maxHeight: .infinity, alignment: .top)
-                .background(Palette.background)
+                .pageBackground()
         }
     }
 }

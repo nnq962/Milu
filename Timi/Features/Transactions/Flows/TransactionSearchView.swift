@@ -58,7 +58,7 @@ struct TransactionSearchView: View {
             // No bar above it: iOS 26's soft top edge drew a light band behind the chips.
             .scrollEdgeEffectHiddenIfAvailable(true)
         }
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         // The keyboard comes up once the screen has slid in: started during the slide, it took
         // frames from it and the slide caught near its end (as TimiAmountField waits too).

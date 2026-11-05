@@ -51,10 +51,10 @@ enum SampleData {
 
     // Hũ tiết kiệm mẫu (màn Tài khoản).
     static let savingsGoals = [
-        SavingsGoal(name: "Hũ tiết kiệm", icon: "hugeicons-piggy-bank", saved: 28_000_000, target: 40_000_000),
-        SavingsGoal(name: "Mua xe", icon: "hugeicons-car-01", saved: 15_000_000, target: 50_000_000,
+        SavingsGoal(name: "Hũ tiết kiệm", icon: IconCatalog.emojiName("💰"), saved: 28_000_000, target: 40_000_000),
+        SavingsGoal(name: "Mua xe", icon: IconCatalog.emojiName("🚗"), saved: 15_000_000, target: 50_000_000,
                     dueDate: Calendar.current.date(byAdding: .month, value: 14, to: .now)),
-        SavingsGoal(name: "Du lịch Đà Nẵng", icon: "hugeicons-luggage-01", saved: 8_000_000, target: 20_000_000,
+        SavingsGoal(name: "Du lịch Đà Nẵng", icon: IconCatalog.emojiName("🧳"), saved: 8_000_000, target: 20_000_000,
                     dueDate: Calendar.current.date(byAdding: .month, value: 6, to: .now)),
     ]
 

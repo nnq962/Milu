@@ -160,9 +160,9 @@ struct LoansContent: View {
             if lentLoans.isEmpty {
                 // The same card on every filter, "Tất cả" too (user request 2026-11-04, after a
                 // single line there). One short sentence, no button named (strict review
-                // 2026-10-31); 3D pictures, as on Tài khoản (user request 2026-11-03).
+                // 2026-10-31); Fluent Flat pictures, as on Tài khoản (user request 2026-11-03).
                 EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
-                               message: "Khoản cho vay sẽ hiện ở đây.", picture: "fluent-handshake")
+                               message: "Khoản cho vay sẽ hiện ở đây.", picture: IconCatalog.emojiName("🤝"))
             }
             if !lentLoans.isEmpty {
                 LoanRowList(loans: lentLoans, today: today, onOpen: onEdit)
@@ -178,7 +178,7 @@ struct LoansContent: View {
         } content: {
             if borrowedLoans.isEmpty {
                 EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
-                               message: "Khoản đi vay sẽ hiện ở đây.", picture: "fluent-money")
+                               message: "Khoản đi vay sẽ hiện ở đây.", picture: IconCatalog.emojiName("💵"))
             }
             if !borrowedLoans.isEmpty {
                 LoanRowList(loans: borrowedLoans, today: today, onOpen: onEdit)
@@ -219,7 +219,7 @@ struct SettledLoansView: View {
             if loans.isEmpty {
                 // Reopening the last one empties this list while the screen is open.
                 EmptyStateCard(icon: "hugeicons-checkmark-badge-01", title: "Chưa có khoản nào tất toán",
-                               message: "Khoản vay đã thu hoặc trả đủ sẽ nằm ở đây.", picture: "fluent-goal")
+                               message: "Khoản vay đã thu hoặc trả đủ sẽ nằm ở đây.", picture: IconCatalog.emojiName("🎯"))
             } else {
                 LoanRowList(loans: loans) { editingLoan = $0 }
             }
@@ -227,7 +227,7 @@ struct SettledLoansView: View {
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
         .contentMargins(.top, Spacing.l, for: .scrollContent)
         .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle("Khoản vay đã tất toán")
         .navigationBarTitleDisplayMode(.inline)

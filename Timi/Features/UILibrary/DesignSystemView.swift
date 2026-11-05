@@ -81,11 +81,11 @@ struct DesignSystemView: View {
                 }
                 .padding(.horizontal, Spacing.page)
                 .padding(.vertical, Spacing.m)
-                .background(Palette.background)
+                .pageBackground()
             }
         }
         .preferredColorScheme(forcedScheme)
-        .background(Palette.background)
+        .pageBackground()
         .foregroundStyle(Palette.label)
         .navigationTitle("Thư viện UI")
         .navigationBarTitleDisplayMode(.inline)

@@ -63,7 +63,7 @@ struct GoalDetailView: View {
                 .padding(.top, Spacing.l)
                 .padding(.bottom, Spacing.xxl)
             }
-            .background(Palette.background)
+            .pageBackground()
             .foregroundStyle(Palette.label)
             .navigationTitle(goal.name)
             .navigationBarTitleDisplayMode(.inline)
@@ -127,7 +127,7 @@ struct GoalDetailView: View {
                 .padding(.horizontal, Spacing.page)
                 .padding(.top, Spacing.l)
                 .frame(maxHeight: .infinity, alignment: .top)
-                .background(Palette.background)
+                .pageBackground()
         }
     }
 

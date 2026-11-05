@@ -87,7 +87,7 @@ struct AssistantView: View {
         }
         // Under the keyboard too: its rounded glass showed the window's white at its corners
         // (user report 2026-10-31).
-        .background { Palette.background.ignoresSafeArea() }
+        .background { PageBackground().ignoresSafeArea() }
         .foregroundStyle(Palette.label)
         // A bar of the system's: the chat scrolls under the glass, behind iOS's own edge fade.
         .bottomBar {
