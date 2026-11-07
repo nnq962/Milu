@@ -18,21 +18,28 @@ extension View {
         }
     }
 
-    /// A glass circle of the system's, `diameter` wide, outside a toolbar (the close button of
-    /// the search screen); a blurred material disc before iOS 26.
+    /// "Bộ lọc" on a bar: in the bar's glass circle, the glass tinted with the primary colour
+    /// while a filter is on, as Mail on iOS 26 (review 2026-11-07: a circled glyph in the glass
+    /// circle read as a ring in a ring). Before iOS 26 the glyph says it (`FilterGlyph`).
     @ViewBuilder
-    func nativeCircleButton(diameter: CGFloat) -> some View {
-        if #available(iOS 26.0, *) {
-            buttonStyle(.glass)
+    func filterBarButtonStyle(isActive: Bool) -> some View {
+        if #available(iOS 26.0, *), isActive {
+            buttonStyle(.glassProminent)
                 .buttonBorderShape(.circle)
-                .buttonSizing(.flexible)
-                .controlSize(.regular)
-                .frame(width: diameter, height: diameter)
+                .tint(Palette.primary)
         } else {
-            buttonStyle(.plain)
-                .frame(width: diameter, height: diameter)
-                .background(.regularMaterial, in: Circle())
+            buttonBorderShape(.circle)
+                .tint(Palette.primary)
         }
+    }
+}
+
+/// The glyph of "Bộ lọc" on a bar: iOS 26's plain lines in the glass circle; before iOS 26, with
+/// no glass, the circled one, filled while a filter is on.
+enum FilterGlyph {
+    static func name(isActive: Bool) -> String {
+        if #available(iOS 26.0, *) { return "line.3.horizontal.decrease" }
+        return isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
     }
 }
 

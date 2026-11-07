@@ -14,9 +14,12 @@ struct ContactPickerSheet: View {
     @State private var query = ""
     @State private var isAdding = false
 
+    /// Spaces alone are not a search (review 2026-11-07).
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
+
     /// Every word found in the name, accents aside, as the other searches do.
     private var people: [Contact] {
-        let words = query.searchKey.split(separator: " ")
+        let words = trimmedQuery.searchKey.split(separator: " ")
         return store.sortedContacts.filter { person in
             let key = person.name.searchKey
             return words.allSatisfy { key.contains($0) }
@@ -28,20 +31,21 @@ struct ContactPickerSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.section) {
                     let people = people
-                    if people.isEmpty && !query.isEmpty {
+                    if people.isEmpty && !trimmedQuery.isEmpty {
                         EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                                       message: "Danh bạ chưa có ai tên “\(query.trimmingCharacters(in: .whitespaces))”.")
+                                       message: "Danh bạ chưa có ai tên “\(trimmedQuery)”.",
+                                       picture: IconCatalog.emojiName("🧭"))
                     }
                     if !people.isEmpty {
-                        FormGroup(title: query.isEmpty ? "Danh bạ" : nil) {
+                        FormGroup(title: trimmedQuery.isEmpty ? "Danh bạ" : nil) {
                             ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
                                 row(person)
                                     .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
                             }
                         }
-                    } else if query.isEmpty {
+                    } else if trimmedQuery.isEmpty {
                         EmptyStateCard(icon: "hugeicons-user-group", title: "Danh bạ trống",
-                                       message: "Người bạn thêm sẽ hiện ở đây.")
+                                       message: "Người bạn thêm sẽ hiện ở đây.", picture: IconCatalog.emojiName("📞"))
                     }
                 }
             }
@@ -73,7 +77,7 @@ struct ContactPickerSheet: View {
         .sheet(isPresented: $isAdding) {
             // The person just added is the one picked.
             // The name searched, unless someone already has it (the form would open on "Danh bạ đã có").
-            ContactEditorView(target: .new(name: store.contact(named: Contact.clean(query)) == nil ? query : "")) { person in
+            ContactEditorView(target: .new(name: store.contact(named: Contact.clean(query)) == nil ? Contact.clean(query) : "")) { person in
                 selection = person.id
                 dismiss()
             }
@@ -93,8 +97,9 @@ struct ContactPickerSheet: View {
             HStack(spacing: RowMetrics.gap) {
                 InitialsAvatar(name: person.name, size: RowMetrics.listLogo)
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    // A row's name, as on their loan rows (`ListRow`, review 2026-11-07).
                     Text(person.name)
-                        .textRole(.body)
+                        .textRole(.bodyStrong)
                         .lineLimit(2)
                     Text(relationship.name)
                         .textRole(.caption)

@@ -42,7 +42,7 @@ struct TransactionDetailView: View {
             } else {
                 // Deleted from the form opened here: the sheet closes as that form does.
                 EmptyStateCard(icon: "hugeicons-inbox", title: "Giao dịch đã bị xoá",
-                               message: "Giao dịch này không còn trong lịch sử.")
+                               message: "Giao dịch này không còn trong lịch sử.", picture: IconCatalog.emojiName("🧹"))
             }
         }
         // By item, the transaction as it was when the pencil was tapped.
@@ -59,7 +59,8 @@ struct TransactionDetailView: View {
         // A balance adjustment is neither income nor spending (user choice 2026-10-29).
         SummaryCard(title: transaction.isAdjustment ? "Điều chỉnh số dư" : transaction.kind.title, amount: transaction.amount,
                     icon: store.categoryIcon(transaction.categoryID),
-                    tone: transaction.kind == .income ? .signedIncome : .signedExpense) {
+                    // Money out in ink with "−", as on its row ("B+"; review 2026-11-07: red here only).
+                    tone: transaction.kind == .income ? .signedIncome : .outflow) {
             if let excluded = Self.notCountedText(transaction, store: store) {
                 StatusBadge(title: excluded)
                     .padding(.top, Spacing.s)
@@ -109,8 +110,7 @@ struct TransactionDetailView: View {
                                 subtitle: similarSubtitle(other),
                                 trailingSubtitle: Self.time(other.date),
                                 amount: other.amount,
-                                amountTone: other.kind == .income ? .signedIncome : .signedExpense,
-                                showsChevron: false)
+                                amountTone: other.kind == .income ? .signedIncome : .outflow)
                     }
                     .buttonStyle(.row)
                     .overlay(alignment: .top) { if index > 0 { RowDivider() } }
@@ -169,14 +169,14 @@ struct TransferDetailSheet: View {
                 if let transfer {
                     // Neither income nor spending: no sign.
                     SummaryCard(title: "Số tiền chuyển", amount: transfer.amount,
-                                icon: "hugeicons-arrow-data-transfer-horizontal", tone: .neutral)
+                                icon: IconCatalog.emojiName("💸"), tone: .neutral)
                     details(transfer)
                     if !transfer.note.isEmpty {
                         FormGroup(title: "Ghi chú") { FormNoteText(text: transfer.note) }
                     }
                 } else {
                     EmptyStateCard(icon: "hugeicons-inbox", title: "Chuyển khoản đã bị xoá",
-                                   message: "Chuyển khoản này không còn trong lịch sử.")
+                                   message: "Chuyển khoản này không còn trong lịch sử.", picture: IconCatalog.emojiName("🧹"))
                 }
             }
             .onChange(of: store.accountTransfer(id: transferID) == nil) { _, gone in if gone { dismiss() } }
@@ -199,8 +199,8 @@ struct TransferDetailSheet: View {
             FormInfoRow(title: "Đến", value: name(transfer.toAccountID), valueIcon: icon(transfer.toAccountID))
             if transfer.fee > 0 {
                 FormDivider(hasIcon: false)
-                // Money out: red with "-" by `MoneyText` (strict review 2026-10-31).
-                FormAmountInfoRow(title: "Phí", amount: transfer.fee, tone: .signedExpense)
+                // Money out: in ink with "−" ("B+", 2026-11-03).
+                FormAmountInfoRow(title: "Phí", amount: transfer.fee, tone: .outflow)
             }
             FormDivider(hasIcon: false)
             FormInfoRow(title: "Thời gian", value: TransactionDetailView.when(transfer.date))

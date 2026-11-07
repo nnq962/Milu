@@ -21,6 +21,8 @@ struct OverviewView: View {
     @State private var isAddingAccount = false
     @State private var isAddingLoan = false
     @State private var isAddingGoal = false
+    /// Off the top: the bar shows its soft edge; at the top the hill runs on under it.
+    @State private var isScrolled = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
@@ -38,42 +40,50 @@ struct OverviewView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                // Sections 28 apart, as on every tab; a heading 8 above its card.
-                VStack(alignment: .leading, spacing: Spacing.section) {
-                    // The head and its blocks close together, as one set of widgets (user pick
-                    // "A" 2026-11-04); then the first steps and the rest 28 apart as before.
-                    VStack(spacing: Spacing.m) {
-                        OverviewHeader {
-                            path.append(NetWorthRoute())
+                // Milu's hill of three dogs (Figma 272:727, user request 2026-11-07): "Cả nhà Milu"
+                // over Vàng, Than and Nâu, the same head as Tài khoản and Giao dịch; the blocks 24
+                // under it.
+                VStack(alignment: .leading, spacing: 0) {
+                    SkyHeader(overline: "Cả nhà Milu", sky: .hill, showsPaw: false)
+                    // Sections 28 apart, as on every tab; a heading 8 above its card.
+                    VStack(alignment: .leading, spacing: Spacing.section) {
+                        // The head and its blocks close together, as one set of widgets (user pick
+                        // "A" 2026-11-04); then the first steps and the rest 28 apart as before.
+                        VStack(spacing: Spacing.m) {
+                            OverviewHeader {
+                                path.append(NetWorthRoute())
+                            }
+                            OverviewTiles(
+                                onOpenReport: { path.append(ReportRoute(month: .now)) },
+                                onOpenToday: { selectedDay = CalendarDay(date: .now) },
+                                onAddGoal: { isAddingGoal = true },
+                                onAddLoan: { isAddingLoan = true })
+                            WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
+                                     onSelectDay: { selectedDay = CalendarDay(date: $0) })
                         }
-                        OverviewTiles(
-                            onOpenReport: { path.append(ReportRoute(month: .now)) },
-                            onOpenToday: { selectedDay = CalendarDay(date: .now) },
-                            onAddGoal: { isAddingGoal = true },
-                            onAddLoan: { isAddingLoan = true })
-                        WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
-                                 onSelectDay: { selectedDay = CalendarDay(date: $0) })
-                    }
-                    OnboardingCard { step in
-                        switch step {
-                        case .account: isAddingAccount = true
-                        case .transaction: adding = .expense
-                        case .loan: isAddingLoan = true
-                        case .askAI: isShowingAssistant = true
+                        OnboardingCard { step in
+                            switch step {
+                            case .account: isAddingAccount = true
+                            case .transaction: adding = .expense
+                            case .loan: isAddingLoan = true
+                            case .askAI: isShowingAssistant = true
+                            }
+                        }
+                        // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
+                        // `showsAttention` back to true to bring it back.
+                        if Self.showsAttention { AttentionCard() }
+                        // Last, at the foot of the page (user request 2026-10-31).
+                        ProUpgradeCard {
+                            information = Information(title: TimiProNote.title, message: TimiProNote.message)
                         }
                     }
-                    // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
-                    // `showsAttention` back to true to bring it back.
-                    if Self.showsAttention { AttentionCard() }
-                    // Last, at the foot of the page (user request 2026-10-31).
-                    ProUpgradeCard {
-                        information = Information(title: TimiProNote.title, message: TimiProNote.message)
-                    }
+                    .padding(.horizontal, Spacing.page)
+                    .padding(.top, Spacing.xxl)
+                    .padding(.bottom, Spacing.xxl)
                 }
-                .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.xs)
-                .padding(.bottom, Spacing.xxl)
             }
+            .topScrollEdgeIfAvailable(scrolled: isScrolled)
+            .onScrolledFromTop { isScrolled = $0 }
             // The plain page, as every tab: the light of lime behind the head went (user request
             // 2026-11-03).
             .pageBackground()

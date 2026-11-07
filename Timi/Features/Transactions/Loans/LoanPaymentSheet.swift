@@ -56,11 +56,11 @@ struct LoanPaymentSheet: View {
     }
 
     private func validate() -> Bool {
-        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsErrors = true }
         return canSave
     }
 
-    /// "Hết 45tr" (the chip adds the figure): pays off everything left.
+    /// "Hết 45.000.000đ" (the chip adds the figure, whole: Milu has no "tr"/"k"): pays off everything left.
     private var presets: [AmountPreset] {
         left > 0 ? [AmountPreset(title: "Hết", value: left)] : []
     }

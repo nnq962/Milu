@@ -24,7 +24,6 @@ struct TransactionsView: View {
     /// The day the page was last drawn for: left open overnight, it moves on (`followToday`).
     @State private var today = Date.now
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSearching = false
     /// Trợ lý AI from the ✦ on the bar.
     @State private var isShowingAssistant = false
@@ -75,7 +74,7 @@ struct TransactionsView: View {
                     }
                     // A new month or segment fades over; a new filter shows its list at once, no
                     // animation (user request 2026-11-01: every animation tried felt jerky).
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: pageIdentity)
+                    .animation(Motion.gentle(.smooth(duration: 0.3)), value: pageIdentity)
                 }
                 // Scrolled up, the page goes behind the bar's band, not under its buttons (review
                 // 2026-11-07: "Sổ giao dịch" and "Thu chi" read through Q and Hỏi Milu).
@@ -85,7 +84,7 @@ struct TransactionsView: View {
                 // it shows starts in view.
                 .onChange(of: listIdentity) {
                     guard isPastFilter else { return }
-                    withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.filterAnchor, anchor: .top) }
+                    withAnimation(Motion.gentle(.smooth(duration: 0.35))) { scroller.scrollTo(Self.filterAnchor, anchor: .top) }
                 }
             }
             .pageBackground()
@@ -161,7 +160,7 @@ struct TransactionsView: View {
         }
     }
 
-    /// A new day: the chart lights it, and a page that showed the month just ended shows the new
+    /// A new day: the rows' "Hôm nay" moves on, and a page that showed the month just ended shows the new
     /// one (another month picked stays picked).
     private func followToday() {
         let now = Date.now
@@ -182,7 +181,7 @@ struct TransactionsView: View {
                     ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
                 }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: IconSize.glyphGap) {
                     Text(segment.title)
                         .textRole(.heading)
                         .lineLimit(1)
@@ -205,8 +204,8 @@ struct TransactionsView: View {
         }
     }
 
-    @ScaledMetric(relativeTo: .title3) private var sectionChevron: CGFloat = 16
-    @ScaledMetric(relativeTo: .subheadline) private var reportGlyph: CGFloat = 13
+    @ScaledMetric(relativeTo: .title3) private var sectionChevron: CGFloat = IconSize.headingChevron
+    @ScaledMetric(relativeTo: .subheadline) private var reportGlyph: CGFloat = IconSize.chevron
 
     private var searchButton: some View {
         Button { isSearching = true } label: {
@@ -250,7 +249,9 @@ struct TransactionsView: View {
         switch segment {
         case .flows:
             VStack(alignment: .leading, spacing: Spacing.l) {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                // One above the other at the accessibility sizes, where side by side the two ran
+                // past the card (review 2026-11-07).
+                AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s, stackedSpacing: Spacing.m) {
                     MonthTitleButton(month: $displayedMonth)
                     Spacer(minLength: Spacing.s)
                     reportLink
@@ -324,7 +325,7 @@ struct TransactionsView: View {
             // tiên" under it).
             EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
                            title: emptyTitle, message: emptyMessage,
-                           picture: filter == .transfer ? IconCatalog.emojiName("💵") : IconCatalog.emojiName("📝"))
+                           picture: filter == .transfer ? IconCatalog.emojiName("💸") : IconCatalog.emojiName("📝"))
                 // As the parts of Tài khoản, both ways: the one leaving goes at once, the one coming
                 // fades in, so the last day never shows through the empty card or the other way.
                 .transition(.emptySwap)

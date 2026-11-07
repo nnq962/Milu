@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// A heading: inside a card's top on main screens (`HeaderCard`, user request 2026-11-02), over a
-/// group of rows in sheets and forms. Two weights (user choice 2026-10-28):
-/// - `.section` names a part of a main screen ("Hũ tiết kiệm", "Hôm nay, 28/10"): 17 SemiBold
+/// A heading: over a card on main screens (`OutsideHeaderSection`, 2026-11-07) or inside its top
+/// (`HeaderCard`), over a group of rows in sheets and forms. Two weights (user choice 2026-10-28):
+/// - `.section` names a part of a main screen ("Hũ tiết kiệm", "Hôm nay, 28/10"): 17 `title`
 ///   ink, so it stands out among the cards on the page.
 /// - `.group` names a group of rows inside a sheet or form ("THÔNG BÁO" in Settings): small grey
 ///   capitals (`overline`); the sheet title above is already the strong one.

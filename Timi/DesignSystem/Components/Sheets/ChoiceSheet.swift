@@ -16,7 +16,8 @@ struct ChoiceSheet<Value: Hashable>: View {
             FormGroup {
                 ForEach(Array(options.enumerated()), id: \.element) { index, option in
                     Button {
-                        Haptics.selection()
+                        // No buzz here: the row that opened this sheet buzzes as its value changes
+                        // (`sensoryFeedback`); both made two for one tap (review 2026-11-07).
                         selection = option
                         dismiss()
                     } label: {

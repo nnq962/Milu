@@ -33,6 +33,6 @@ struct QuickCategoryGrid: View {
                 }
             }
         }
-        .animation(.snappy(duration: 0.2), value: selection)
+        .animation(Motion.gentle(.snappy(duration: 0.2)), value: selection)
     }
 }

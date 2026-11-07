@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The month's spending day by day, under "Đã chi" on Thu chi (user pick "B+" 2026-11-03: the
-/// head read as words alone): a thin column per day, as tall as that day's spending against the
-/// month's biggest day. Days gone by in ink, today in lime and never lower than `todayMinimum`, so
+/// The month's spending day by day (user pick "B+" 2026-11-03; no longer on Giao dịch since its
+/// month card, 2026-11-07, kept in the UI library): a thin column per day, as tall as that day's spending against the
+/// month's biggest day. Days gone by in ink, today in `accent` and never lower than `todayMinimum`, so
 /// it shows on a day with nothing spent yet; a day gone by with nothing spent a low stub in the
 /// track colour, days still to come a fainter one (review 2026-11-03: the two read the same). The
 /// first and last day of the month under it. Hidden from VoiceOver: the figure above says the
@@ -10,7 +10,7 @@ import SwiftUI
 struct DailySpendBars: View {
     let month: Date
     /// The page's day, which it moves on at midnight (`TransactionsView.followToday`), not the
-    /// clock read here: left open overnight, the lime stayed on yesterday (review 2026-11-03).
+    /// clock read here: left open overnight, today's colour stayed on yesterday (review 2026-11-03).
     let today: Date
 
     @Environment(FinanceStore.self) private var store
@@ -18,7 +18,7 @@ struct DailySpendBars: View {
     private static let height: CGFloat = 40
     /// What a day with nothing, or still to come, shows: enough to see the month's shape.
     private static let stub: CGFloat = 3
-    /// Today at least this tall, so its lime is there to see.
+    /// Today at least this tall, so its colour is there to see.
     private static let todayMinimum: CGFloat = 8
 
     var body: some View {

@@ -86,42 +86,44 @@ struct LoanRow: View {
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
         let borrowed = loan.direction == .borrowed
-        ListRow(title: loan.name, subtitle: subtitle) {
+        ListRow(title: loan.name, subtitle: subtitle()) {
             InitialsAvatar(name: loan.name, size: RowMetrics.listLogo)
         } trailing: {
-            // Still owed by me: money going out, red with "-" as on the top card and the loan's
-            // sheet (strict review 2026-10-31); under it the deadline in the urgency's colour.
+            // Still owed by me: money going out, in ink with "−" as every amount going out
+            // ("B+", review 2026-11-07); under it the deadline in the urgency's colour.
             ListRowAmount(amount: loan.isSettled ? loan.principal : loan.outstanding,
                           tone: Self.amountTone(loan),
                           note: urgency.text, noteColor: Self.urgencyColor(urgency))
         }
         // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đ, còn 7 ngày".
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([loan.name, subtitle,
-                             loan.isSettled ? loan.principal.vnd
-                                 : "còn \(borrowed ? "nợ " : "")\(loan.outstanding.vnd)",
-                             urgency.text].joined(separator: ", "))
+        .accessibilityLabel([loan.name, subtitle(spoken: true),
+                             loan.isSettled ? MoneyText.spoken(loan.principal)
+                                 : "còn \(borrowed ? "nợ " : "")\(MoneyText.spoken(loan.outstanding))",
+                             urgency.text].filter { !$0.isEmpty }.joined(separator: ", "))
         .accessibilityHint("Xem khoản vay")
     }
 
     /// The deadline's day and how much is repaid once something is ("Hạn 6/11 · Đã trả 40%"); the
     /// relationship when there is no deadline; "Lãi 1tr" too when it bears interest. Settled: the
     /// side with the relationship ("Cho vay · Bạn bè"), since both sides' amounts are in ink there
-    /// (re-review 2026-10-31).
-    private var subtitle: String {
+    /// (re-review 2026-10-31). `spoken`: the interest in words for VoiceOver ("đồng", not "đ").
+    private func subtitle(spoken: Bool = false) -> String {
         let relationship = loan.contactID.flatMap { store.contact(id: $0) }
             .map { store.relationship(id: $0.relationshipID).name }
         if loan.isSettled { return [loan.direction.title, relationship].compactMap { $0 }.joined(separator: " · ") }
         let due = loan.dueDate.map { "Hạn \($0.shortDay)" } ?? relationship
-        let interest = loan.monthlyInterestRate > 0 ? "Lãi \(loan.monthlyInterest.vnd)" : nil
+        let interest = loan.monthlyInterestRate > 0
+            ? "Lãi \(spoken ? MoneyText.spoken(loan.monthlyInterest) : loan.monthlyInterest.vnd)" : nil
         // How much is repaid only once something is: "Chưa trả" made the line wrap for little.
         let paid = loan.paidRatio > 0 ? loan.paidText : nil
         return [due, interest, paid].compactMap { $0 }.joined(separator: " · ")
     }
 
-    /// What is left: still owed by me red with "-"; owed to me, or settled, in ink.
+    /// What is left: still owed by me with "−", in ink as all money going out ("B+", review
+    /// 2026-11-07); owed to me, or settled, plain.
     static func amountTone(_ loan: Loan) -> MoneyText.Tone {
-        loan.direction == .borrowed && !loan.isSettled ? .signedExpense : .neutral
+        loan.direction == .borrowed && !loan.isSettled ? .outflow : .neutral
     }
 
     /// The deadline in words takes the urgency's colour: red overdue, orange within a week,
@@ -135,13 +137,14 @@ struct LoanRow: View {
         }
     }
 
-    /// The bar on the loan's sheet takes the deadline's colour when it is close, else the side's.
+    /// The bar on the loan's sheet takes the deadline's colour when it is close, else the
+    /// progress colour, either side: red only once overdue (review 2026-11-07).
     static func progressColor(for loan: Loan, urgency: LoanUrgency) -> Color {
         switch urgency {
         case .overdue: Palette.negative
         case .soon: Palette.warning
         case .settled: Palette.progressDone
-        default: loan.direction == .borrowed ? Palette.negative : Palette.progress
+        default: Palette.progress
         }
     }
 }

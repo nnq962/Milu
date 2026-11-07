@@ -9,8 +9,6 @@ struct InputsPart: View {
     @State private var iosNote = ""
     @State private var showsError = false
     @State private var errorName = ""
-    @State private var search = ""
-    @FocusState private var isSearching: Bool
 
     var body: some View {
         PartSection(part: .inputs) {
@@ -39,9 +37,6 @@ struct InputsPart: View {
                 FormAmountInfoRow(title: "Tiền gốc", amount: 5_000_000)
                 FormDivider(hasIcon: false)
                 FormAmountInfoRow(title: "Phí chuyển", amount: 5_000, tone: .signedExpense)
-            }
-            SampleCard(label: "Tìm kiếm · SearchField") {
-                SearchField(prompt: "Tìm giao dịch", text: $search, isFocused: $isSearching)
             }
             SampleCard(label: "Số tiền lớn · TimiAmountField") {
                 VStack(spacing: Spacing.xxl) {

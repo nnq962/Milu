@@ -57,7 +57,7 @@ struct LoanDetailSheet: View {
                     history(loan)
                 } else {
                     EmptyStateCard(icon: "hugeicons-inbox", title: "Khoản vay đã bị xoá",
-                                   message: "Khoản vay này không còn trong danh sách.")
+                                   message: "Khoản vay này không còn trong danh sách.", picture: IconCatalog.emojiName("🧹"))
                 }
             }
             // Gone some other way while open: close. (Its form closes this sheet itself before
@@ -80,17 +80,19 @@ struct LoanDetailSheet: View {
                 }
             }
         }
-        .timiSheetStyle()
+        // Half the screen first, as Mail's sheets: the sums show at once, pulled up for the history
+        // (review 2026-11-07).
+        .timiSheetStyle([.medium, .large])
     }
 
     private func summary(_ loan: Loan) -> some View {
         let urgency = LoanUrgency(loan, today: today)
         let lent = loan.direction == .lent
         // Settled: what was repaid, the principal the row shows, not a big "0 đ" (re-review
-        // 2026-10-31). Open: what is left, in the row's colour (red with "-" while I owe it).
+        // 2026-10-31). Open: what is left, in the row's colour (ink with "−" while I owe it).
         let label = loan.isSettled ? (lent ? "Đã thu đủ" : "Đã trả đủ") : (lent ? "Còn phải thu" : "Còn phải trả")
         return SummaryCard(title: label, amount: loan.isSettled ? loan.principal : loan.outstanding,
-                           icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02",
+                           icon: lent ? IconCatalog.emojiName("🤝") : IconCatalog.emojiName("💵"),
                            tone: LoanRow.amountTone(loan)) {
             StatusBadge(title: urgency.text, tone: urgency.tone)
                 .padding(.top, Spacing.s)
@@ -136,7 +138,7 @@ struct LoanDetailSheet: View {
             }
             // In or out as on the history rows; nothing yet, a plain 0.
             FormAmountInfoRow(title: lent ? "Đã thu tổng cộng" : "Đã trả tổng cộng", amount: paid,
-                              tone: paid == 0 ? .neutral : lent ? .signedIncome : .signedExpense)
+                              tone: paid == 0 ? .neutral : lent ? .signedIncome : .outflow)
         }
     }
 
@@ -170,8 +172,8 @@ struct LoanDetailSheet: View {
         let title = lent ? "Lịch sử thu nợ" : "Lịch sử trả nợ"
         let earlier = Self.repaidBeforeTimi(loan, payments: payments)
         if payments.isEmpty && earlier == 0 {
-            VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                SectionHeader(title: title, style: .group)
+            // The history's title over its card, as on a goal and an account (review 2026-11-07).
+            OutsideHeaderSection(title: title) {
                 EmptyStateCard(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
                                title: lent ? "Chưa có lần thu nào" : "Chưa có lần trả nào",
                                message: lent ? "Các lần thu nợ sẽ hiện ở đây." : "Các lần trả nợ sẽ hiện ở đây.",
@@ -179,30 +181,32 @@ struct LoanDetailSheet: View {
                 if let reason = store.readOnlyReason(loan) { FormFooter(message: reason) }
             }
         } else {
-            FormGroup(title: title, footer: store.readOnlyReason(loan)) {
-                ForEach(Array(payments.enumerated()), id: \.element.id) { index, payment in
-                    Button { paying = .edit(payment) } label: {
-                        ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
-                                title: lent ? "Thu nợ" : "Trả nợ", subtitle: breakdown(payment),
-                                trailingSubtitle: payment.date.shortDay,
-                                // A repayment on what I borrowed is money out: ink "-", as in the
-                                // account's history and on Giao dịch (review 2026-11-06, "B+").
-                                amount: payment.total,
-                                amountTone: lent ? .signedIncome : .outflow, showsChevron: false)
-                    }
-                    .buttonStyle(.row)
-                    // On an archived account: shown, not changed (the footer says why).
-                    .disabled(store.readOnlyReason(payment) != nil)
-                    // Under the titles, the icon column scaled with the text as the rows' icons.
-                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .icon) } }
-                }
-                if earlier > 0 {
-                    // Not a repayment of the app's: no account, no date, nothing to open.
-                    ListRow(icon: "hugeicons-checkmark-circle-02",
-                            title: lent ? "Đã thu trước đó" : "Đã trả trước đó",
-                            subtitle: "Trước khi ghi vào Timi",
-                            amount: earlier, amountTone: .neutral, showsChevron: false)
-                        .overlay(alignment: .top) { if !payments.isEmpty { RowDivider(column: .icon) } }
+            OutsideHeaderSection(title: title) {
+                FormGroup(footer: store.readOnlyReason(loan)) {
+                  ForEach(Array(payments.enumerated()), id: \.element.id) { index, payment in
+                      Button { paying = .edit(payment) } label: {
+                          ListRow(icon: lent ? IconCatalog.emojiName("💰") : IconCatalog.emojiName("🪙"),
+                                  title: Self.paymentTitle(payment, lent: lent), subtitle: breakdown(payment),
+                                  trailingSubtitle: payment.date.shortDay,
+                                  // A repayment on what I borrowed is money out: ink "-", as in the
+                                  // account's history and on Giao dịch (review 2026-11-06, "B+").
+                                  amount: payment.total,
+                                  amountTone: lent ? .signedIncome : .outflow, showsChevron: false)
+                      }
+                      .buttonStyle(.row)
+                      // On an archived account: shown, not changed (the footer says why).
+                      .disabled(store.readOnlyReason(payment) != nil)
+                      // Under the titles, the icon column scaled with the text as the rows' icons.
+                      .overlay(alignment: .top) { if index > 0 { RowDivider(column: .icon) } }
+                  }
+                  if earlier > 0 {
+                      // Not a repayment of the app's: no account, no date, nothing to open.
+                      ListRow(icon: IconCatalog.emojiName("🧾"),
+                              title: lent ? "Đã thu trước đó" : "Đã trả trước đó",
+                              subtitle: "Trước khi ghi vào Timi",
+                              amount: earlier, amountTone: .neutral, showsChevron: false)
+                          .overlay(alignment: .top) { if !payments.isEmpty { RowDivider(column: .icon) } }
+                  }
                 }
             }
         }
@@ -215,11 +219,18 @@ struct LoanDetailSheet: View {
         return max(loan.principal - loan.outstanding - payments.reduce(0) { $0 + $1.principal }, 0)
     }
 
-    /// "Gốc 5tr · Lãi 375k · Vietcombank".
-    private func breakdown(_ payment: LoanPayment) -> String {
+    /// "Thu lãi" / "Trả lãi" when only interest was paid, as its sheet says (review 2026-11-07);
+    /// otherwise "Thu nợ" / "Trả nợ".
+    static func paymentTitle(_ payment: LoanPayment, lent: Bool) -> String {
+        payment.principal == 0 ? (lent ? "Thu lãi" : "Trả lãi") : (lent ? "Thu nợ" : "Trả nợ")
+    }
+
+    /// "Gốc 5.000.000đ · Lãi 375.000đ · Vietcombank"; `spoken`, the amounts in words.
+    private func breakdown(_ payment: LoanPayment, spoken: Bool = false) -> String {
+        let money = { (amount: Double) in spoken ? MoneyText.spoken(amount) : amount.vnd }
         var parts: [String] = []
-        if payment.principal > 0 { parts.append("Gốc \(payment.principal.vnd)") }
-        if payment.interest > 0 { parts.append("Lãi \(payment.interest.vnd)") }
+        if payment.principal > 0 { parts.append("Gốc \(money(payment.principal))") }
+        if payment.interest > 0 { parts.append("Lãi \(money(payment.interest))") }
         parts.append(store.account(id: payment.accountID)?.name ?? "Tài khoản đã xoá")
         return parts.joined(separator: " · ")
     }

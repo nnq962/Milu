@@ -130,7 +130,7 @@ struct FoundationPart: View {
                 }
             }
 
-            SampleCard(label: "Bóng thẻ · cardSurface(shadowed:)") {
+            SampleCard(label: "Viền thẻ · cardSurface(outlined:)") {
                 // Light-mode shadow on the left, flat surface on the right; neither has a border.
                 HStack(spacing: Spacing.l) {
                     Color.clear
@@ -138,7 +138,7 @@ struct FoundationPart: View {
                         .cardSurface(radius: CardCorners.card)
                     Color.clear
                         .frame(height: 64)
-                        .cardSurface(radius: CardCorners.card, shadowed: false)
+                        .cardSurface(radius: CardCorners.card, outlined: false)
                 }
                 .padding(Spacing.s)
                 .background(Palette.background, in: RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous))

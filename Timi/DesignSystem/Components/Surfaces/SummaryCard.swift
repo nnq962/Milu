@@ -28,7 +28,8 @@ struct SummaryCard<Content: View>: View {
                     Image(picture)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: pictureSize, height: pictureSize)
+                        .frame(width: RowMetrics.capped(pictureSize, base: RowMetrics.picture),
+                               height: RowMetrics.capped(pictureSize, base: RowMetrics.picture))
                         .accessibilityHidden(true)
                 } else if let icon {
                     RowIcon(name: icon, size: RowMetrics.featureIcon)

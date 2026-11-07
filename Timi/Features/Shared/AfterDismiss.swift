@@ -22,7 +22,8 @@ enum AfterDismiss {
     static func run(_ change: @escaping @MainActor () -> Void) {
         Task { @MainActor in
             try? await Task.sleep(for: delay)
-            withAnimation(.smooth(duration: 0.35)) { change() }
+            // No slide with Reduce Motion (review 2026-11-07).
+            withAnimation(Motion.gentle(.smooth(duration: 0.35))) { change() }
         }
     }
 }

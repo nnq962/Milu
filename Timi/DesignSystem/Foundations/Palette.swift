@@ -82,6 +82,9 @@ enum Palette {
     /// The top edge of Than's sky on Giao dịch (Milu `than/skyTop`, Figma 239:6884), run on
     /// above the head during a pull-down.
     static let thanSkyTop = dynamic(0xCBE6F3, dark: 0x152C44)
+    /// The top edge of the three dogs' hill on Tổng quan (Figma 272:727 / 272:728, the scene's own
+    /// gradient start), run on above the head during a pull-down.
+    static let hillSkyTop = dynamic(0xCDEFEA, dark: 0x142E38)
 
     // MARK: Money and meaning
     //

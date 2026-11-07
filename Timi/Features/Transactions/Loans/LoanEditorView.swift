@@ -122,7 +122,7 @@ struct LoanEditorView: View {
 
     /// ✓ with something missing: shows what, keeps the sheet open (SheetScaffold buzzes).
     private func validate() -> Bool {
-        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsErrors = true }
         return canSave
     }
 
@@ -134,8 +134,8 @@ struct LoanEditorView: View {
             ScaledSegmentedPicker(title: "Loại khoản vay", selection: $direction,
                                   options: LoanDirection.allCases) { $0.title }
                 .controlSize(.large)
-            // Its repayments moved money one way: the side cannot flip under them.
-            .disabled(hasPayments || isMoneyLocked)
+                // Its repayments moved money one way: the side cannot flip under them.
+                .disabled(hasPayments || isMoneyLocked)
 
             SheetAmountHeader(title: "Số tiền gốc", fieldSaysCaption: true) {
                 TimiAmountField(text: $principalText, showsSuggestions: !isMoneyLocked,
@@ -200,7 +200,7 @@ struct LoanEditorView: View {
 
             // Titled like every group of the form; the switch names it, the date is just "Ngày".
             FormGroup(title: "Kế hoạch", error: dueError) {
-                FormToggleRow(title: "Hạn trả", isOn: $hasDueDate.animation(.smooth(duration: 0.25)))
+                FormToggleRow(title: "Hạn trả", isOn: $hasDueDate.animation(Motion.gentle(.smooth(duration: 0.25))))
                 if hasDueDate {
                     FormDivider(hasIcon: false)
                     FormDateRow(title: "Ngày", date: $dueDate, earliest: isExisting ? nil : firstDueDay,
@@ -214,7 +214,7 @@ struct LoanEditorView: View {
                 actions(original)
             }
         }
-        .animation(.smooth(duration: 0.25), value: direction)
+        .animation(Motion.gentle(.smooth(duration: 0.25)), value: direction)
         .timiSheetStyle()
         // A loan from before Timi repaid only through it: what is left was worked out, not typed,
         // so the field stays empty ("empty = the principal less what came back through Timi").
@@ -233,7 +233,7 @@ struct LoanEditorView: View {
     /// what came back through Timi (or, on a new loan saved before that rule, what it already said);
     /// a figure typed in "Còn lại" does not carry over.
     private func setExisting(_ value: Bool) {
-        withAnimation(.smooth(duration: 0.25)) {
+        withAnimation(Motion.gentle(.smooth(duration: 0.25))) {
             if value {
                 // Something came back: "Còn lại" shows what is left ("0" when all of it).
                 if outstandingText.isEmpty, repaid > 0 {
@@ -277,6 +277,9 @@ struct LoanEditorView: View {
                            isInvalid: showsErrors && personError != nil)
         }
         .buttonStyle(.row)
+        // The row's name as its label, the value once as its value: the label's words already
+        // held the value, so VoiceOver read it twice (review 2026-11-07).
+        .accessibilityLabel(lentLabel)
         .accessibilityValue(person?.name ?? "Chưa chọn")
     }
 

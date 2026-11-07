@@ -54,7 +54,7 @@ struct GoalEditorView: View {
     @State private var showsNameError = false
 
     private func failClose() {
-        withAnimation(.smooth(duration: 0.3)) { showsNameError = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsNameError = true }
         Haptics.error()
     }
     /// "Mục tiêu mới" on a goal that reached its target: the new one is above what it holds.
@@ -68,7 +68,7 @@ struct GoalEditorView: View {
     /// ✓ stays on so what is missing can be pointed out instead of the button just doing
     /// nothing (sheet review 2026-10-30: it greyed out here, against the app's rule).
     private func validate() -> Bool {
-        withAnimation(.smooth(duration: 0.3)) { showsNameError = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsNameError = true }
         return canSave
     }
 
@@ -113,7 +113,7 @@ struct GoalEditorView: View {
             }
 
             FormGroup(title: "Kế hoạch", footer: monthlyNote) {
-                FormToggleRow(title: "Thời hạn", isOn: $hasDueDate.animation(.smooth(duration: 0.3)))
+                FormToggleRow(title: "Thời hạn", isOn: $hasDueDate.animation(Motion.gentle(.smooth(duration: 0.3))))
                 if hasDueDate {
                     FormDivider(hasIcon: false)
                     FormDateRow(title: "Đến ngày", date: $dueDate, earliest: Self.tomorrow)

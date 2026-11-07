@@ -16,9 +16,9 @@ struct InstitutionPickerSheet: View {
         NavigationStack {
             ScrollView {
                 if results.isEmpty {
-                    EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                                   message: "Thử tên viết tắt, như vcb.",
-                                   picture: IconCatalog.emojiName(type == .eWallet ? "📱" : "🏦"))
+                    EmptyStateCard(title: "Không tìm thấy",
+                                   message: type == .eWallet ? "Thử tên ngắn, như momo." : "Thử tên viết tắt, như vcb.",
+                                   picture: IconCatalog.emojiName("🧭"))
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, institution in
@@ -28,14 +28,14 @@ struct InstitutionPickerSheet: View {
                                 }
                         }
                     }
-                    // The card of Sổ ví, where these logos show next: corners 17, the hairline
+                    // The card of Sổ ví, where these logos show next: its corners, the hairline
                     // stopping where the row's ✓ does (review 2026-11-06).
                     .cardSurface(radius: CardCorners.card)
                 }
             }
             .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-            // The top margin of every page (strict review 2026-10-31).
-            .contentMargins(.top, Spacing.l, for: .scrollContent)
+            // The top margin of every sheet's page (`SheetPage`, review 2026-11-07).
+            .contentMargins(.top, Spacing.s, for: .scrollContent)
             .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
             .scrollDismissesKeyboard(.immediately)
             .pageBackground()

@@ -7,7 +7,6 @@ struct AccountDetailView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     /// Tells the + beside the tab bar which account to start on (absent in previews).
-    @Environment(AddTransactionContext.self) private var addContext: AddTransactionContext?
     let accountID: Account.ID
     /// ✕ on the left: the first screen of `AccountDetailSheet`.
     var showsClose = false
@@ -25,8 +24,9 @@ struct AccountDetailView: View {
                                          accountTransfers: store.accountTransfers(of: account),
                                          loans: store.loanMoves(of: account),
                                          loanPayments: store.loanPayments(of: account))
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.section) {
+            // The detail page of every sheet (`SheetPage`, review 2026-11-07): ✕ on the first
+            // screen, the pencil, the sheets' margins.
+            SheetPage(title: account.name, showsClose: showsClose, canEdit: true, onEdit: { isEditing = true }) {
                     SummaryCard(title: "Số dư", amount: account.balance, icon: account.iconName,
                                 tone: account.isLocked || account.isArchived ? .muted : .balance) {
                         if let subtitle = Self.subtitle(for: account) {
@@ -34,38 +34,24 @@ struct AccountDetailView: View {
                                 .textRole(.caption)
                                 .foregroundStyle(Palette.secondaryLabel)
                                 .padding(.top, Spacing.xs)
+                                .accessibilityLabel(FormDateRow.spokenDays(in: subtitle))
                         }
                     }
 
                     if activity.isEmpty {
-                        HeaderCard(title: "Lịch sử") {
-                            EmptyStateCard(icon: "hugeicons-inbox", title: "Chưa có giao dịch",
+                        // Over its card, as the days once there are some (user request 2026-11-07).
+                        OutsideHeaderSection(title: "Lịch sử") {
+                            EmptyStateCard(title: "Chưa có giao dịch",
                                            message: "Giao dịch của tài khoản sẽ hiện ở đây.",
                                            picture: IconCatalog.emojiName("🧾"))
                         }
                     } else {
                         // One card a day with its totals, as on "Giao dịch" (review 2026-10-31: one
                         // long list here, by day there), the day's title over its card in the same
-                        // words and size as there (user request 2026-11-07).
+                        // words and size as there (user request 2026-11-07). `SheetPage` sets them 24 apart.
                         ActivityDayList(groups: ActivityDayList.byDay(activity), viewedAccount: account.id,
                                         headingOutside: true) { editingItem = $0 }
                     }
-                }
-                .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.l)
-                .padding(.bottom, Spacing.xxl)
-            }
-            .pageBackground()
-            .foregroundStyle(Palette.label)
-            .navigationTitle(account.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if showsClose {
-                    ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    EditToolbarButton { isEditing = true }
-                }
             }
             .sheet(isPresented: $isEditing, onDismiss: {
                 guard let leave else { return }
@@ -86,17 +72,12 @@ struct AccountDetailView: View {
             .sheet(item: $editingItem) { item in
                 ActivityEditor(item: item)
             }
-            // Also on switching tabs: the + on another tab does not start on this account.
-            .onAppear { addContext?.accountID = accountID }
-            .onDisappear { if addContext?.accountID == accountID { addContext?.accountID = nil } }
         } else {
-            EmptyStateCard(icon: "hugeicons-alert-02", title: "Không tìm thấy tài khoản",
-                           message: "Tài khoản này có thể đã bị xoá.")
-                // The margins of every page: 20 at the sides, 16 on top (strict review 2026-10-31).
-                .padding(.horizontal, Spacing.page)
-                .padding(.top, Spacing.l)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .pageBackground()
+            // In the sheet's own page, so ✕ is still there (review 2026-11-07).
+            SheetPage(title: "Tài khoản", showsClose: showsClose, canEdit: false, onEdit: {}) {
+                EmptyStateCard(title: "Không tìm thấy tài khoản",
+                               message: "Tài khoản này có thể đã bị xoá.", picture: IconCatalog.emojiName("🧭"))
+            }
         }
     }
 }
@@ -280,7 +261,7 @@ struct AccountTransferRow: View {
             // Money out in ink, as a spending is ("B+"; review 2026-11-06).
             tone = outgoing ? .outflow : .signedIncome
         }
-        // Short, as every amount in a row's second line ("Gốc 5tr · Lãi 375k").
+        // Whole, as every amount (Milu: no "tr"/"k"): "Gốc 5.000.000đ · Lãi 375.000đ".
         let fee = transfer.fee > 0 ? transfer.fee.vnd : nil
         let subtitle: String
         switch viewedAccount {
@@ -288,7 +269,8 @@ struct AccountTransferRow: View {
         case transfer.fromAccountID?: subtitle = fee.map { "Gồm phí \($0)" } ?? "Chuyển khoản"
         default: subtitle = "Chuyển khoản"
         }
-        return ListRow(icon: "hugeicons-arrow-data-transfer-horizontal", title: title,
+        // Fluent pictures for money moves too, as every row of a day (review 2026-11-07).
+        return ListRow(icon: IconCatalog.emojiName("💸"), title: title,
                        subtitle: subtitle,
                        trailingSubtitle: detail == .time
                            ? transfer.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
@@ -314,7 +296,7 @@ struct LoanMoveRow: View {
         let account = loan.movedAccountID.flatMap { store.account(id: $0)?.name } ?? "Tài khoản đã xoá"
         let title = viewedAccount == nil ? loan.direction.title : lent ? "Cho \(loan.name) vay" : "Vay của \(loan.name)"
         let subtitle = viewedAccount == nil ? "\(loan.name) · \(account)" : "Khoản vay"
-        ListRow(icon: lent ? "hugeicons-hand-coins" : "hugeicons-money-receive-02", title: title,
+        ListRow(icon: lent ? IconCatalog.emojiName("🤝") : IconCatalog.emojiName("💵"), title: title,
                 subtitle: subtitle,
                 trailingSubtitle: detail == .time
                     ? loan.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
@@ -326,7 +308,7 @@ struct LoanMoveRow: View {
 
 /// A loan's repayment (user choice 2026-10-29): money in when a loan given is repaid, out when
 /// one taken is; neither income nor spending, though its interest counts as one. On "Giao dịch":
-/// "Thu nợ", "Minh Trần · Vietcombank"; in an account's history: "Thu nợ Minh Trần", "Gốc 5tr · Lãi 375k".
+/// "Thu nợ", "Minh Trần · Vietcombank"; in an account's history: "Thu nợ Minh Trần", "Gốc 5.000.000đ · Lãi 375.000đ".
 struct LoanPaymentRow: View {
     let payment: LoanPayment
     var viewedAccount: Account.ID? = nil
@@ -342,7 +324,7 @@ struct LoanPaymentRow: View {
         let account = store.account(id: payment.accountID)?.name ?? "Tài khoản đã xoá"
         let parts = [payment.principal > 0 ? "Gốc \(payment.principal.vnd)" : nil,
                      payment.interest > 0 ? "Lãi \(payment.interest.vnd)" : nil].compactMap { $0 }
-        ListRow(icon: lent ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
+        ListRow(icon: lent ? IconCatalog.emojiName("💰") : IconCatalog.emojiName("🪙"),
                 title: viewedAccount == nil ? kind : "\(kind) \(name)",
                 subtitle: viewedAccount == nil ? "\(name) · \(account)" : parts.joined(separator: " · "),
                 trailingSubtitle: detail == .time

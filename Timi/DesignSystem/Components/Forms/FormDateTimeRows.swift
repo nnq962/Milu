@@ -34,12 +34,23 @@ struct FormDateRow: View {
             ? day : "\(day), \(calendar.component(.year, from: date))"
     }
 
+    /// A line with short days in it ("Đã lưu trữ 2/11", "Từ ngày 8/10/2025") as VoiceOver should
+    /// say it: "2 tháng 11", not "2 phần 11" (review 2026-11-07).
+    static func spokenDays(in text: String) -> String {
+        text.replacing(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/) { match in
+            let day = "\(match.1) tháng \(match.2)"
+            return match.3.map { "\(day), \($0)" } ?? day
+        }
+    }
+
     var body: some View {
         Button { isPicking = true } label: {
             FormValueRowContent(title: title, icon: icon, value: valueText, isInvalid: isInvalid)
         }
         .buttonStyle(.row)
-        // Read as a day ("8 tháng 10"), not "8/10", which VoiceOver may read as a fraction.
+        // Read as a day ("8 tháng 10"), not "8/10", which VoiceOver may read as a fraction; the
+        // row's name as the label, so the day is read once (review 2026-11-07).
+        .accessibilityLabel(title)
         .accessibilityValue(Self.spokenDay(date))
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: .date, earliest: earliest, latest: latest)
@@ -66,6 +77,7 @@ struct FormTimeRow: View {
             FormValueRowContent(title: title, icon: icon, value: valueText)
         }
         .buttonStyle(.row)
+        .accessibilityLabel(title)
         .accessibilityValue(valueText)
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: .hourAndMinute)
@@ -95,6 +107,7 @@ struct FormDateTimeRow: View {
             FormValueRowContent(title: title, icon: nil, value: valueText)
         }
         .buttonStyle(.row)
+        .accessibilityLabel(title)
         .accessibilityValue("\(FormDateRow.spokenDay(date)), \(date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam)))")
         .sheet(isPresented: $isPicking) {
             DateTimeSheet(title: title, date: $date, component: [.date, .hourAndMinute], latest: latest)

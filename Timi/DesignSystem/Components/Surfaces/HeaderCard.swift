@@ -37,3 +37,28 @@ extension HeaderCard where Trailing == EmptyView {
         self.init(title: title, inset: inset, radius: radius, trailing: { EmptyView() }, content: content)
     }
 }
+
+/// A heading on the page over its card, at the card's edge, 8 above it: the days of Giao dịch and
+/// of an account's history, the "Lịch sử" of an account or a goal (user requests 2026-11-07). The
+/// same words and size as a `HeaderCard`'s heading, only outside the card.
+struct OutsideHeaderSection<Trailing: View, Content: View>: View {
+    let title: String
+    @ViewBuilder var trailing: Trailing
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.headerGap) {
+            SectionHeader(title: title) { trailing }
+                // At the card's edge, not the rows' 16 in: as "Ví & ngân hàng".
+                .padding(.horizontal, -RowMetrics.horizontal)
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+extension OutsideHeaderSection where Trailing == EmptyView {
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.init(title: title, trailing: { EmptyView() }, content: content)
+    }
+}

@@ -46,13 +46,19 @@ enum IconSize {
     /// A picture beside a row's value, on the right ("💼 Đồng nghiệp", "🏦 Techcombank"): the
     /// line of words it sits in, not the row's column.
     static let valueArtwork: CGFloat = 24
-    /// A glyph inside a control beside or instead of words (a button's icon, send, mic, the
-    /// search field's lens, filter): a step under the row glyph, as iOS's own buttons.
+    /// A glyph inside a control beside or instead of words (a button's icon, send, mic): a step
+    /// under the row glyph, as iOS's own buttons.
     static let control: CGFloat = 20
     /// A glyph inside a line of text (↑, a lock, a warning).
     static let inline: CGFloat = 14
     /// The › at a row's end: SF, Semibold, tertiary.
     static let chevron: CGFloat = 13
+    /// The ⌄ beside a page's `heading` ("Thu chi ⌄"): one step up from `chevron` (2026-11-07).
+    static let headingChevron: CGFloat = 16
+    /// A × that removes something (a chip, a recent search): this share of its scaled size.
+    static let removeScale: CGFloat = 0.85
+    /// Words to the ⌄ or › that ends them ("Tháng 11 ⌄", "Báo cáo ›", "Thu chi ⌄").
+    static let glyphGap: CGFloat = 6
 }
 
 /// Every row on a card (form, list, option sheet) shares these, so rows line up everywhere:
@@ -80,7 +86,8 @@ enum RowMetrics {
     /// A glyph in a toolbar's glass circle (+ on Tài khoản, the edit pencil), and the frame it sits in.
     static let toolbarGlyph: CGFloat = IconSize.bar
     static let toolbarGlyphFrame: CGFloat = IconSize.barFrame
-    /// The › at the end of a row (`RowChevron`), on every list and form.
+    /// A small glyph in a control (a chip's icon, ‹ › of a period). The › at a row's end is
+    /// `IconSize.chevron`.
     static let chevron: CGFloat = 16
     /// The › or ⌄ after a link in words ("Lưu trữ (2) ›", "Tháng 10 ⌄", "Tìm hiểu thêm ›"), and
     /// the × of a chip.
@@ -123,7 +130,7 @@ enum ControlHeight {
 ///   wrap to two lines (26 − 14, concentric with the card around it).
 /// - `small` 8: a small cell: a day on the calendar, a chat bubble's tail.
 /// - `mark` 3: the end of a chart bar.
-/// - `Capsule()`: buttons, chips, badges, the search field, progress bars, the filter's tray and
+/// - `Capsule()`: buttons, chips, badges, progress bars, the filter's tray and
 ///   pill, and any one-line control whose height sets its ends (iOS 26's controls).
 enum CardCorners {
     static let card: CGFloat = 26

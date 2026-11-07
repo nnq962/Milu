@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A row of words that pick what a list shows ("Tất cả · Thu · Chi · Chuyển khoản", user pick "B"
-/// 2026-11-03 for Giao dịch, after chips read basic), the chosen one in ink over a short lime
+/// 2026-11-03; Giao dịch now uses `SegmentPills`, 2026-11-07), the chosen one in ink over a short
 /// line. One weight for every word, so choosing one does not shift the others. Scrolls when the
 /// words overflow. The page itself ("Thu chi", "Vay nợ") is picked from a menu on the
 /// bar (2026-11-04), no longer with a larger style of these.

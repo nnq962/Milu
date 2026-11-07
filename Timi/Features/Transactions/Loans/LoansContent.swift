@@ -29,7 +29,7 @@ enum LoanFilter: String, CaseIterable, Identifiable {
 struct SettledLoansRoute: Hashable {}
 
 /// The figures of "Vay nợ" under its heading, as Thu chi's beside its month: what others owe you,
-/// then what you owe, red with "−" while something is owed, as on its rows. Loans with people
+/// then what you owe, in ink with "−" while something is owed, as on its rows ("B+"). Loans with people
 /// only: a credit card's debt stays on Tài khoản. VoiceOver also hears how many people each side
 /// is, which the rows below show.
 struct LoansFigures: View {
@@ -42,10 +42,11 @@ struct LoansFigures: View {
         let debts = Set(active.filter { $0.direction == .borrowed }.map { $0.contactID?.uuidString ?? $0.name }).count
         let lent = store.totalLent
         let owed = store.totalBorrowed
-        FigurePair(label: "Đang cho vay", amount: lent,
+        // "Cho vay" | "Đi vay", the pair the filter and the sections name (review 2026-11-07).
+        FigurePair(label: "Cho vay", amount: lent,
                   secondaryLabel: "Đi vay", secondaryAmount: owed,
-                  secondaryTone: owed > 0 ? .signedExpense : .neutral,
-                  accessibilityLabel: "Đang cho vay \(lent.vnd), \(Self.who(lenders)). Đi vay \(owed > 0 ? "-" : "")\(owed.vnd), \(Self.who(debts))")
+                  secondaryTone: owed > 0 ? .outflow : .neutral,
+                  accessibilityLabel: "Cho vay \(MoneyText.spoken(lent)), \(Self.who(lenders)). Đi vay \(MoneyText.spoken(owed)), \(Self.who(debts))")
     }
 
     private static func who(_ people: Int) -> String {
@@ -98,7 +99,8 @@ struct LoansContent: View {
             // Only the sections with a match: their empty cards are for a first visit (one even
             // points at a + the search does not have). Nothing at all: one "Không tìm thấy".
             if lentLoans.isEmpty && borrowedLoans.isEmpty && settledLoans.isEmpty {
-                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage)
+                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage,
+                               picture: IconCatalog.emojiName("🧭"))
             } else {
                 if !lentLoans.isEmpty { lentSection }
                 if !borrowedLoans.isEmpty { borrowedSection }
@@ -117,8 +119,9 @@ struct LoansContent: View {
         let count = store.loans.count(where: \.isSettled)
         if count > 0 {
             NavigationLink(value: SettledLoansRoute()) {
-                NavigationRowContent(title: "Khoản vay đã tất toán", icon: "hugeicons-checkmark-badge-01",
-                                   value: "\(count)", spokenValue: "\(count) khoản")
+                NavigationRowContent(title: "Khoản vay đã tất toán", icon: IconCatalog.emojiName("🗂"),
+                                   value: "\(count)", spokenValue: "\(count) khoản",
+                                   iconSize: IconSize.rowArtwork)
             }
             .buttonStyle(.row)
             .listCard()
@@ -140,8 +143,9 @@ struct LoansContent: View {
     /// (reviews 2026-10-31, 2026-11-03). Search, where the card is not, keeps it.
     private var showsRemaining: Bool { isSearching }
 
+    /// Each part's heading over its card, as the days of Thu chi beside it (review 2026-11-07).
     private var lentSection: some View {
-        HeaderCard(title: "Cho vay") {
+        OutsideHeaderSection(title: "Cho vay") {
             // What is left beside the heading once there is a loan: no "Còn 0đ" over the empty card.
             if !lentLoans.isEmpty && showsRemaining {
                 remainingLabel(lentLoans.reduce(0) { $0 + $1.outstanding }, tone: .neutral)
@@ -163,9 +167,9 @@ struct LoansContent: View {
     }
 
     private var borrowedSection: some View {
-        HeaderCard(title: "Đi vay") {
+        OutsideHeaderSection(title: "Đi vay") {
             if !borrowedLoans.isEmpty && showsRemaining {
-                remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }, tone: .signedExpense)
+                remainingLabel(borrowedLoans.reduce(0) { $0 + $1.outstanding }, tone: .outflow)
             }
         } content: {
             if borrowedLoans.isEmpty {
@@ -182,12 +186,12 @@ struct LoansContent: View {
 
     /// Search only: the page keeps these behind `settledEntry`.
     private var settledSection: some View {
-        HeaderCard(title: "Đã tất toán") {
+        OutsideHeaderSection(title: "Đã tất toán") {
             LoanRowList(loans: settledLoans, today: today, onOpen: onEdit)
         }
     }
 
-    /// "Còn 45tr" beside a heading: the amount by `MoneyText(.caption)` as a day's totals on Thu chi,
+    /// "Còn 45.000.000đ" beside a heading: the amount by `MoneyText(.caption)` as a day's totals on Thu chi,
     /// in its rows' colour (re-review 2026-10-31: grey text there, MoneyText here).
     private func remainingLabel(_ amount: Double, tone: MoneyText.Tone) -> some View {
         HStack(spacing: Spacing.xs) {
@@ -197,7 +201,7 @@ struct LoansContent: View {
             MoneyText(amount: amount, size: .caption, tone: tone)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Còn \(tone == .signedExpense ? "nợ " : "")\(amount.vnd)")
+        .accessibilityLabel("Còn \(tone == .outflow ? "nợ " : "")\(MoneyText.spoken(amount))")
     }
 }
 

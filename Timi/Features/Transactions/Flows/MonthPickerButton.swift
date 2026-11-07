@@ -6,20 +6,15 @@ import SwiftUI
 /// the button over the words, which read as the words being squeezed.
 ///
 /// The capsule is a flat fill; `compact` is plain words (14, `HeaderLink`) for beside a section
-/// heading (Lịch thu chi on Tổng quan); `lead` puts words before the month in the small label of a
-/// page's figure, "Đã chi tháng 11 ⌄" (the head of Thu chi, user pick "A" 2026-11-03: the capsule
-/// read heavy over the figure).
+/// heading (Lịch thu chi on Tổng quan). The head of Giao dịch has its own, `MonthTitleButton`.
 struct MonthPickerButton: View {
     @Binding var month: Date
     var compact = false
-    var lead: String? = nil
 
     @State private var isPicking = false
     /// The ⌄ grows with the words beside it: fixed, it looked tiny at the accessibility sizes
     /// (review 2026-10-31).
     @ScaledMetric(relativeTo: .body) private var chevron = RowMetrics.inlineGlyph
-    /// The ⌄ after the small words of `lead`, growing with them as well.
-    @ScaledMetric(relativeTo: .caption) private var leadChevron = RowMetrics.linkChevron
 
     var body: some View {
         let calendar = Calendar.current
@@ -27,10 +22,7 @@ struct MonthPickerButton: View {
         let number = calendar.component(.month, from: month)
         let title = Self.name(of: month)
         Group {
-            if let lead {
-                Button { isPicking = true } label: { leadLabel(lead, title) }
-                    .headerLinkButton()
-            } else if compact {
+            if compact {
                 Button { isPicking = true } label: { HeaderLink(title: title, opensMenu: true) }
                     .headerLinkButton()
             } else {
@@ -55,22 +47,6 @@ struct MonthPickerButton: View {
         let number = calendar.component(.month, from: start)
         let year = calendar.component(.year, from: start)
         return year == calendar.component(.year, from: .now) ? "Tháng \(number)" : "Tháng \(number)/\(String(year))"
-    }
-
-    /// "Đã chi tháng 11 ⌄" in the figure's small label, its colour and size; the area that takes a
-    /// tap reaches past the words, as a `HeaderLink`'s, so it is 44 tall at any size. The words may
-    /// wrap at the largest text sizes, where on one line they pushed the page past the screen
-    /// (review 2026-11-03).
-    private func leadLabel(_ lead: String, _ title: String) -> some View {
-        HStack(spacing: Spacing.xs) {
-            Text("\(lead) \(title.lowercased())")
-                .monospacedDigit()
-                .fixedSize(horizontal: false, vertical: true)
-            TimiIcon("hugeicons-arrow-down-01", size: leadChevron)
-        }
-        .textRole(.captionStrong)
-        .foregroundStyle(Palette.secondaryLabel)
-        .contentShape(Rectangle().inset(by: -Spacing.m))
     }
 
     private func capsuleLabel(_ title: String) -> some View {
@@ -99,14 +75,14 @@ struct MonthTitleButton: View {
     @State private var isPicking = false
     /// SF's ⌄, the size and weight of the "›" of "Báo cáo" at the other end of the row (user
     /// report 2026-11-07: the Hugeicons arrow read thinner beside it).
-    @ScaledMetric(relativeTo: .subheadline) private var chevron: CGFloat = 13
+    @ScaledMetric(relativeTo: .subheadline) private var chevron: CGFloat = IconSize.chevron
 
     var body: some View {
         let calendar = Calendar.current
         let number = calendar.component(.month, from: month)
         let year = calendar.component(.year, from: month)
         Button { isPicking = true } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: IconSize.glyphGap) {
                 Text(MonthPickerButton.name(of: month))
                     .textRole(.accessory)
                     .monospacedDigit()
@@ -126,7 +102,8 @@ struct MonthTitleButton: View {
         .id("\(year)-\(number)")
         .transition(.identity)
         .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
-        .sensoryFeedback(.selection, trigger: month)
+        // No buzz of its own: the sheet's ✓ buzzes and "Tháng này" does; with one here too a new
+        // month buzzed twice (review 2026-11-07).
         .sheet(isPresented: $isPicking) { MonthPickerSheet(month: $month) }
     }
 }
@@ -201,14 +178,15 @@ struct MonthPickerSheet: View {
     static func earliest(in store: FinanceStore) -> Date {
         let calendar = Calendar.current
         let oldest = (store.transactions.map(\.date) + store.accountTransfers.map(\.date)
-            + store.loanMoves.map(\.date) + store.listedLoanPayments.map(\.date)).min() ?? .now
+            + store.goalTransfers.map(\.date) + store.loanMoves.map(\.date)
+            + store.listedLoanPayments.map(\.date)).min() ?? .now
         let year = min(calendar.component(.year, from: oldest), calendar.component(.year, from: .now) - 1)
         return calendar.date(from: DateComponents(year: year, month: 1, day: 1)) ?? oldest
     }
 
     var body: some View {
         SheetScaffold(title: "Chọn tháng", onConfirm: {
-            withAnimation(.smooth(duration: 0.3)) { month = draft }
+            withAnimation(Motion.gentle(.smooth(duration: 0.3))) { month = draft }
             dismiss()
         }, fitsContent: true) {
             VStack(spacing: Spacing.s) {
@@ -222,7 +200,7 @@ struct MonthPickerSheet: View {
                 if showsThisMonth {
                     Button {
                         Haptics.selection()
-                        withAnimation(.smooth(duration: 0.3)) { month = Date.now.startOfMonth }
+                        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { month = Date.now.startOfMonth }
                         dismiss()
                     } label: {
                         // The frame inside the label, so all 44 take the tap (strict review 2026-10-31).

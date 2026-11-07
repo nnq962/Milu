@@ -113,6 +113,17 @@ struct TransactionSearchFilter: Equatable {
                filter.accountIDs.isDisjoint(with: [transfer.fromAccountID, transfer.toAccountID]) { return false }
             return true
         }
+
+        /// Money put into or taken from a goal: listed with the transfers on Giao dịch, so it is
+        /// found under "Tất cả" and "Chuyển khoản" too (review 2026-11-07); by its amount, its day
+        /// and either side, its account or its goal (a goal is in the list once it bought something).
+        /// It has no category group.
+        func matches(_ transfer: GoalTransfer) -> Bool {
+            guard filter.kind == .all || filter.kind == .transfer, filter.groupIDs.isEmpty,
+                  fits(amount: transfer.amount, date: transfer.date) else { return false }
+            return filter.accountIDs.isEmpty || filter.accountIDs.contains(transfer.accountID)
+                || filter.accountIDs.contains(transfer.goalID)
+        }
     }
 
     /// One kind of narrowing, for a chip that drops it.
@@ -121,6 +132,8 @@ struct TransactionSearchFilter: Equatable {
     struct Chip: Identifiable {
         let part: Part
         let title: String
+        /// The title in words for VoiceOver, when it holds amounts.
+        var spoken: String? = nil
         var id: Part { part }
     }
 
@@ -157,9 +170,13 @@ struct TransactionSearchFilter: Equatable {
             chips.append(Chip(part: .period, title: period.title))
         }
         switch (minAmount, maxAmount) {
-        case let (min?, max?): chips.append(Chip(part: .amount, title: "\(min.vnd)–\(max.vnd)"))
-        case let (min?, nil): chips.append(Chip(part: .amount, title: "Từ \(min.vnd)"))
-        case let (nil, max?): chips.append(Chip(part: .amount, title: "Đến \(max.vnd)"))
+        case let (min?, max?):
+            chips.append(Chip(part: .amount, title: "\(min.vnd)–\(max.vnd)",
+                              spoken: "Từ \(MoneyText.spoken(min)) đến \(MoneyText.spoken(max))"))
+        case let (min?, nil):
+            chips.append(Chip(part: .amount, title: "Từ \(min.vnd)", spoken: "Từ \(MoneyText.spoken(min))"))
+        case let (nil, max?):
+            chips.append(Chip(part: .amount, title: "Đến \(max.vnd)", spoken: "Đến \(MoneyText.spoken(max))"))
         default: break
         }
         if accountIDs.count == 1, let id = accountIDs.first {
@@ -229,58 +246,26 @@ struct TransactionFilterSheet: View {
     private var sources: [(id: UUID, name: String, icon: String)] {
         (store.accounts + store.archivedAccounts).map { ($0.id, $0.name, $0.iconName) }
             + store.savingsGoals.filter { !store.goalTransactions($0).isEmpty }.map { ($0.id, $0.name, $0.icon) }
-            + deletedGoalIDs.map { ($0, "Hũ đã xoá", "hugeicons-piggy-bank") }
-    }
-
-    private var kindChips: some View {
-        HStack(spacing: Spacing.s) {
-            ForEach(TransactionFilter.allCases) { kind in
-                TagChip(title: kind.title, isProminent: draft.kind == kind) {
-                    draft.setKind(kind, groupsOf: store)
-                }
-                .accessibilityAddTraits(draft.kind == kind ? .isSelected : [])
+            // Numbered when there are several, so each row can be told apart (review 2026-11-07).
+            + deletedGoalIDs.enumerated().map { index, id in
+                (id, deletedGoalIDs.count > 1 ? "Hũ đã xoá \(index + 1)" : "Hũ đã xoá", "hugeicons-piggy-bank")
             }
-        }
-        .padding(.horizontal, RowMetrics.horizontal)
     }
 
     var body: some View {
         // ✓ stays on; the red lines already say what to fix (sheet review 2026-10-30).
         SheetScaffold(title: "Bộ lọc", validate: { amountError == nil && dateError == nil }, onConfirm: apply) {
-            // The four kinds in full, as plain chips (glass is for the bars) starting at the 16 of
-            // the heading and the rows below (strict review 2026-10-31).
-            VStack(alignment: .leading, spacing: Spacing.headerGap) {
-                SectionHeader(title: "Loại", style: .group)
-                ViewThatFits(in: .horizontal) {
-                    kindChips
-                    ScrollView(.horizontal) { kindChips }
-                        .scrollIndicators(.hidden)
-                        .scrollEdgeEffectHiddenIfAvailable(true)
-                }
-                .sensoryFeedback(.selection, trigger: draft.kind)
-            }
-
-            FormGroup(title: "Thời gian", error: dateError) {
-                FormPickerRow(title: "Khoảng thời gian", selection: $draft.period,
-                              options: TransactionSearchFilter.Period.allCases) { $0.title }
-                if draft.period == .custom {
-                    FormDivider(hasIcon: false)
-                    FormDateRow(title: "Từ ngày", date: $draft.from, latest: .now, isInvalid: dateError != nil)
-                    FormDivider(hasIcon: false)
-                    FormDateRow(title: "Đến ngày", date: $draft.to, latest: .now, isInvalid: dateError != nil)
-                }
-            }
-
-            FormGroup(title: "Số tiền", error: amountError) {
-                FormAmountRow(title: "Từ", text: $minText)
-                FormDivider(hasIcon: false)
-                FormAmountRow(title: "Đến", text: $maxText)
-            }
-
             // One row each, opening the list to tick (sheet review 2026-10-30: every account and
             // every group inline made the sheet very long). "Tất cả" says what no tick means.
             // Titled as every other group of the sheet (strict review 2026-10-31).
             FormGroup(title: "Phạm vi") {
+                // The kind is one row of the scope, first and opening its choices as the period
+                // does (user request 2026-11-07: as chips it stood at the heading's 16 and out of
+                // line with the cards below).
+                FormPickerRow(title: "Loại",
+                              selection: Binding { draft.kind } set: { draft.setKind($0, groupsOf: store) },
+                              options: TransactionFilter.allCases) { $0.title }
+                FormDivider(hasIcon: false)
                 NavigationLink {
                     MultiPickPage(title: "Tài khoản", options: sources.map { ($0.id.uuidString, $0.name, $0.icon) },
                                   selection: Binding {
@@ -304,23 +289,46 @@ struct TransactionFilterSheet: View {
                 }
             }
 
-            if draft.isActive || minAmount != nil || maxAmount != nil {
+            FormGroup(title: "Thời gian", error: dateError) {
+                FormPickerRow(title: "Khoảng thời gian", selection: $draft.period,
+                              options: TransactionSearchFilter.Period.allCases) { $0.title }
+                if draft.period == .custom {
+                    FormDivider(hasIcon: false)
+                    FormDateRow(title: "Từ ngày", date: $draft.from, latest: .now, isInvalid: dateError != nil)
+                    FormDivider(hasIcon: false)
+                    FormDateRow(title: "Đến ngày", date: $draft.to, latest: .now, isInvalid: dateError != nil)
+                }
+            }
+
+            FormGroup(title: "Số tiền", error: amountError) {
+                FormAmountRow(title: "Từ", text: $minText)
+                FormDivider(hasIcon: false)
+                FormAmountRow(title: "Đến", text: $maxText)
+            }
+
+            if showsReset {
                 FormGroup {
                     // Not the ✕ glyph, which read as the sheet's close button.
                     FormActionRow(title: "Đặt lại bộ lọc", icon: "hugeicons-filter-horizontal") {
-                        withAnimation(.smooth(duration: 0.25)) {
+                        withAnimation(Motion.gentle(.smooth(duration: 0.25))) {
                             draft = TransactionSearchFilter()
                             minText = ""
                             maxText = ""
                         }
                     }
                 }
+                // Fades in, as in Vay nợ's filter, also when an amount is typed (review 2026-11-07).
+                .transition(.opacity)
             }
         }
         .timiSheetStyle()
-        .animation(.smooth(duration: 0.25), value: draft.period)
-        .animation(.smooth(duration: 0.25), value: draft.kind)
+        .animation(Motion.gentle(.smooth(duration: 0.25)), value: draft.period)
+        .animation(Motion.gentle(.smooth(duration: 0.25)), value: draft.kind)
+        .animation(Motion.gentle(.smooth(duration: 0.25)), value: showsReset)
     }
+
+    /// Something is on, or an amount typed though not yet applied.
+    private var showsReset: Bool { draft.isActive || minAmount != nil || maxAmount != nil }
 
     private func apply() {
         draft.minAmount = minAmount

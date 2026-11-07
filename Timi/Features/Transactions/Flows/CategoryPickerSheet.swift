@@ -41,6 +41,9 @@ struct CategoryPickerRow: View {
                            isInvalid: isEmpty ? showsError : !Self.isPickable(selection, kind: kind, in: store, kept: kept))
         }
         .buttonStyle(.row)
+        // The row's name as its label, the value once as its value: the label's words already
+        // held the value, so VoiceOver read it twice (review 2026-11-07).
+        .accessibilityLabel("Hạng mục")
         .accessibilityValue(name)
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isPicking) {
@@ -61,23 +64,29 @@ struct CategoryPickerSheet: View {
     @State private var query = ""
     @State private var isManaging = false
 
+    /// Every word found, in any order, accents aside, as the other searches ("trua an" finds
+    /// "Ăn trưa", review 2026-11-07).
     private var matches: [Category] {
-        let words = query.trimmingCharacters(in: .whitespaces).searchKey
+        let words = trimmedQuery.searchKey.split(separator: " ")
         return store.pickableItems(kind).filter { item in
             let group = item.parentID.map(store.categoryName) ?? ""
-            return "\(item.name) \(group)".searchKey.contains(words)
+            let key = "\(item.name) \(group)".searchKey
+            return words.allSatisfy { key.contains($0) }
         }
     }
+
+    /// Spaces alone are not a search: the grouped list stays.
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 // The gap between groups of the form sheets (`SheetScaffold`, strict review 2026-10-31).
                 VStack(alignment: .leading, spacing: Spacing.xxl) {
-                    if !query.isEmpty {
+                    if !trimmedQuery.isEmpty {
                         if matches.isEmpty {
                             EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
-                                           message: "Không có hạng mục nào khớp từ này.")
+                                           message: "Không có hạng mục nào khớp từ này.", picture: IconCatalog.emojiName("🧭"))
                         } else {
                             section(nil, items: matches, showsGroup: true)
                         }

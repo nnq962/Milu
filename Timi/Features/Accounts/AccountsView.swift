@@ -170,7 +170,7 @@ struct AccountsView: View {
         // Three jars to a row up to Large, one a row from XL (saved and target no longer fit a
         // third of the page). Two a row from XL to AX2 left an odd jar alone beside a gap, as
         // the wallets' two-column grid did on 2026-10-30 (review 2026-11-06).
-        let columns = dynamicTypeSize >= .xLarge ? 1 : 3
+        let columns = dynamicTypeSize >= GoalJar.oneColumnFrom ? 1 : 3
         return PageSection(title: "Hũ tiết kiệm") {
             if store.activeGoals.isEmpty {
                 // Every goal may be done already: then the empty card says none is on its way.
@@ -181,9 +181,9 @@ struct AccountsView: View {
             } else {
                 // Jars three to a row, 10 apart; one a row from XL
                 // (Milu: a grid goes to fewer columns when names or figures no longer fit).
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .top),
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: WalletRow.gap, alignment: .top),
                                          count: columns),
-                          spacing: 10) {
+                          spacing: WalletRow.gap) {
                     ForEach(Array(store.activeGoals.enumerated()), id: \.element.id) { index, goal in
                         GoalSheetLink(goalID: goal.id) {
                             GoalJar(goal: goal, water: Palette.jarWater(at: index))
@@ -235,12 +235,15 @@ private struct ArchiveEntryRow: View {
     var unit: String = ""
 
     @ScaledMetric(relativeTo: .body) private var column = WalletRow.logo
+    /// With its second line, 68 tall (Figma 137:1741).
+    private static let twoLineHeight: CGFloat = 68
 
     var body: some View {
         // The columns of the wallet rows above (`WalletRow`): the mark in a 32 column 12 in, the
         // words 10 after it, the › 14 from the edge (HIG review 2026-11-05: at Figma's 3 and 5
         // the box and › stood out of line with the rows above).
-        HStack(spacing: 10) {
+        // One line: on the words' baseline, the picture on their middle (review 2026-11-07).
+        HStack(alignment: detail == nil ? .firstTextBaseline : .center, spacing: WalletRow.gap) {
             // 🗂️ in its own colours (user request 2026-11-05, in place of Figma's line box).
             // Grows with the text no further than 1.6 times (HIG review 2026-11-05: free, it
             // reached ~60 at AX5 and took a third of the row).
@@ -251,9 +254,11 @@ private struct ArchiveEntryRow: View {
                 .frame(width: RowMetrics.capped(column, base: WalletRow.logo),
                        height: RowMetrics.capped(column, base: WalletRow.logo))
                 .accessibilityHidden(true)
+                .centeredOnTextLine()
             VStack(alignment: .leading, spacing: Spacing.xxs) {
+                // A row's name, as the wallets' above it (`LedgerRow`, review 2026-11-07).
                 Text(title)
-                    .textRole(.button)
+                    .textRole(.bodyStrong)
                     .foregroundStyle(Palette.label)
                 if let detail {
                     Text(detail)
@@ -271,9 +276,9 @@ private struct ArchiveEntryRow: View {
             RowChevron()
         }
         .padding(.leading, Spacing.m)
-        .padding(.trailing, 14)
+        .padding(.trailing, WalletRow.trailing)
         .padding(.vertical, Spacing.m)
-        .frame(minHeight: detail == nil ? 52 : 68)
+        .frame(minHeight: detail == nil ? RowMetrics.minHeight : Self.twoLineHeight)
         // A card of its own, as the wallets' (user request 2026-11-05: an option with an
         // outline, no hairline over it).
         .cardSurface(radius: CardCorners.card)
@@ -294,31 +299,19 @@ struct ArchiveAndDoneSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                // A list whose last item went back (restored, reopened) goes with its heading,
-                // not left as a heading over an empty card (review 2026-11-06); with both gone
-                // the sheet closes.
-                VStack(alignment: .leading, spacing: Spacing.section) {
-                    if !store.archivedAccounts.isEmpty {
-                        ArchivedAccountsList(title: "Tài khoản đã lưu trữ")
-                    }
-                    if !store.completedGoals.isEmpty {
-                        CompletedGoalsList(title: "Hũ đã hoàn thành")
-                    }
+            // A list whose last item went back (restored, reopened) goes with its heading, not
+            // left as a heading over an empty card (review 2026-11-06); with both gone the sheet
+            // closes. The page of every sheet (`SheetPage`, review 2026-11-07).
+            SheetPage(title: "Lưu trữ & hoàn thành", showsClose: true, canEdit: false, onEdit: {}) {
+                if !store.archivedAccounts.isEmpty {
+                    ArchivedAccountsList(title: "Tài khoản đã lưu trữ")
+                }
+                if !store.completedGoals.isEmpty {
+                    CompletedGoalsList(title: "Hũ đã hoàn thành")
                 }
             }
             .onChange(of: store.archivedAccounts.isEmpty && store.completedGoals.isEmpty) { _, empty in
                 if empty { dismiss() }
-            }
-            .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-            .contentMargins(.top, Spacing.l, for: .scrollContent)
-            .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-            .pageBackground()
-            .foregroundStyle(Palette.label)
-            .navigationTitle("Lưu trữ & hoàn thành")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
         }
         // Half height first, as short lists usually are; drag up for the rest (HIG: size a sheet

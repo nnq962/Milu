@@ -5,8 +5,8 @@ extension View {
     /// shadow, as Milu keeps shadows for what truly floats over the content.
     /// Inside a `HeaderCard` it turns into a flat tile in `surfaceMuted` (the goal tiles), so a
     /// card never sits white on white.
-    func cardSurface(radius: CGFloat = CardCorners.card, color: Color = Palette.surface, shadowed: Bool = true) -> some View {
-        modifier(CardSurface(radius: radius, color: color, shadowed: shadowed))
+    func cardSurface(radius: CGFloat = CardCorners.card, color: Color = Palette.surface, outlined: Bool = true) -> some View {
+        modifier(CardSurface(radius: radius, color: color, outlined: outlined))
     }
 
     /// Shared light-mode shadow for cards, chat bubbles and round action backgrounds.
@@ -47,7 +47,7 @@ extension View {
 private struct CardSurface: ViewModifier {
     let radius: CGFloat
     let color: Color
-    let shadowed: Bool
+    let outlined: Bool
 
     @Environment(\.isInHeaderCard) private var isInHeaderCard
 
@@ -63,14 +63,14 @@ private struct CardSurface: ViewModifier {
                 }
             }
             .overlay {
-                if !isInHeaderCard && shadowed {
+                if !isInHeaderCard && outlined {
                     shape.strokeBorder(Palette.separator, lineWidth: 1)
                 }
             }
     }
 }
 
-/// No borders in either appearance; dark surfaces separate through their fill alone.
+/// A shadow in light only; in dark the surfaces separate through their fill alone.
 private struct CardShadow: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -89,8 +89,7 @@ private struct CardShadow: ViewModifier {
 extension View {
     /// A card holding rows (accounts, transactions, settings): no padding, the rows bring
     /// their own. One helper so every list card looks the same.
-    /// Corners 24, as form groups: concentric with the rows' 16 inset and their ~9 icon corners
-    /// (user report 2026-10-30: at 28 the corners crowded the first and last rows' icons).
+    /// Corners `CardCorners.card` (26, iOS 26's grouped lists), as form groups.
     /// Inside a `HeaderCard` the rows go straight under its heading, with no card of their own.
     func listCard() -> some View {
         modifier(ListCard())

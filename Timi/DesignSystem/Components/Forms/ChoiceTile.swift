@@ -22,6 +22,10 @@ struct ChoiceTile: View {
     @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.iconColumn
 
     var body: some View {
+        // No more than 1.6 times, as every row icon: uncapped, three tiles ran past the sheet's
+        // width at the accessibility sizes (review 2026-11-07).
+        let tileSize = RowMetrics.capped(tileSize, base: RowMetrics.iconChoice)
+        let glyph = RowMetrics.capped(glyph, base: RowMetrics.iconColumn)
         let tile = RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous)
         Button(action: action) {
             VStack(spacing: Spacing.s) {

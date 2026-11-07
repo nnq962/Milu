@@ -41,7 +41,7 @@ enum TextRole: CaseIterable, Identifiable {
     /// Row subtitles, a column's label, chart axes. Milu / Caption, 12 SemiBold
     case footnote
     /// Small capitals naming a group ("NÂU GIỮ VÍ", a group of rows in a sheet). Milu / Overline,
-    /// 10 ExtraBold, spaced
+    /// 11 ExtraBold (Milu 10; 11 is the HIG's smallest), spaced
     case overline
 
     var id: Self { self }
@@ -60,7 +60,8 @@ enum TextRole: CaseIterable, Identifiable {
         case .accessory, .tileName: 14
         case .caption, .captionStrong, .buttonCompact: 13
         case .footnote: 12
-        case .overline: 10
+        // 11, the smallest the HIG reads as legible (review 2026-11-07: 10 under every form group).
+        case .overline: 11
         }
     }
 
@@ -92,7 +93,7 @@ enum TextRole: CaseIterable, Identifiable {
         case .tileName: 17
         case .caption, .captionStrong, .buttonCompact: 19
         case .footnote: 17
-        case .overline: 15
+        case .overline: 16
         }
     }
 

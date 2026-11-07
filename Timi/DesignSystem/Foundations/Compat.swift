@@ -117,3 +117,13 @@ extension View {
         }
     }
 }
+
+/// The app's animations under Reduce Motion: none (the change shows at once), as iOS does for
+/// movement it would otherwise slide, grow or fade in place (HIG; review 2026-11-07: forms, the
+/// filters and the search ignored the setting). Read where the animation starts, so it works in
+/// `withAnimation` and in `Binding.animation` as well as in `.animation(_:value:)`.
+enum Motion {
+    static func gentle(_ animation: Animation) -> Animation? {
+        UIAccessibility.isReduceMotionEnabled ? nil : animation
+    }
+}

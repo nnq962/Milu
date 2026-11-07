@@ -1,34 +1,28 @@
 import SwiftUI
 
 /// "Hũ đã hoàn thành": every closed goal (spent or taken out after reaching its target), the most
-/// recent first, as rows: ring, name, how and when it ended, and the target it met. Tapping one
+/// recent first, as rows: its picture, name, how and when it ended, and the target it met. Tapping one
 /// opens it (read-only history; the pencil offers "Mở lại hũ" and "Xoá hũ").
 struct CompletedGoalsView: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         let goals = store.completedGoals
         // Laid out as "Tài khoản đã lưu trữ": one scroll view, the same margins, empty or not.
-        ScrollView {
+        SheetPage(title: "Hũ đã hoàn thành", showsClose: true, canEdit: false, onEdit: {}) {
             if goals.isEmpty {
                 // Reopening the last goal empties this list while the screen is open.
-                EmptyStateCard(icon: "hugeicons-piggy-bank", title: "Chưa có hũ nào hoàn thành",
+                EmptyStateCard(title: "Chưa có hũ nào hoàn thành",
                                message: "Hũ đã đủ mục tiêu sẽ hiện ở đây.",
                                picture: IconCatalog.emojiName("🏆"))
             } else {
                 CompletedGoalsList()
             }
         }
-        .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
-        .contentMargins(.top, Spacing.l, for: .scrollContent)
-        .contentMargins(.bottom, Spacing.xxl, for: .scrollContent)
-        .pageBackground()
-        .foregroundStyle(Palette.label)
-        .navigationTitle("Hũ đã hoàn thành")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
-        }
+        // Gone with its last item, as "Lưu trữ & hoàn thành" (review 2026-11-07): the row that
+        // opened it has left the page.
+        .onChange(of: store.completedGoals.isEmpty) { _, isEmpty in if isEmpty { dismiss() } }
     }
 }
 
@@ -41,23 +35,28 @@ struct CompletedGoalsList: View {
 
     var body: some View {
         let goals = store.completedGoals
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            if let title {
-                SectionHeader(title: title)
-            }
-            VStack(spacing: 0) {
-                ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
-                    // Slides over the list inside the same sheet, ‹ back to it (user choice
-                    // 2026-11-01: one sheet, not one on top of another).
-                    NavigationLink { GoalDetailView(goalID: goal.id) } label: {
-                        CompletedGoalRow(goal: goal, subtitle: completedText(goal))
-                    }
-                    .buttonStyle(.row)
-                    .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
-                }
-            }
-            .cardSurface(radius: CardCorners.card)
+        // At the card's edge, as every heading over its card (`OutsideHeaderSection`, review
+        // 2026-11-07).
+        if let title {
+            OutsideHeaderSection(title: title) { list(goals) }
+        } else {
+            list(goals)
         }
+    }
+
+    private func list(_ goals: [SavingsGoal]) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(goals.enumerated()), id: \.element.id) { index, goal in
+                // Slides over the list inside the same sheet, ‹ back to it (user choice
+                // 2026-11-01: one sheet, not one on top of another).
+                NavigationLink { GoalDetailView(goalID: goal.id) } label: {
+                    CompletedGoalRow(goal: goal, subtitle: completedText(goal))
+                }
+                .buttonStyle(.row)
+                .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
+            }
+        }
+        .cardSurface(radius: CardCorners.card)
     }
 
     /// "Đã dùng: Mua xe · 29/10": how it ended and the day it closed.
@@ -76,7 +75,7 @@ private struct CompletedGoalRow: View {
 
     var body: some View {
         LedgerRow(title: goal.name, subtitle: subtitle, figure: goal.target.vnd,
-                  spoken: [goal.name, subtitle, "mục tiêu \(MoneyText.spoken(goal.target))"].joined(separator: ", "),
+                  spoken: [goal.name, FormDateRow.spokenDays(in: subtitle), "mục tiêu \(MoneyText.spoken(goal.target))"].joined(separator: ", "),
                   hint: "Xem hũ") {
             // Its Fluent Flat picture, 32, as the wallets beside it (user request 2026-11-05).
             GoalPictureMark(goal: goal)

@@ -28,7 +28,7 @@ struct ProgressPart: View {
                     BudgetStatusLine(level: .over, message: "Vượt hạn mức 1,3tr")
                 }
             }
-            // Under "Đã chi" on Thu chi: this month of the sample data, today in lime.
+            // This month of the sample data, today in `accent`.
             SampleCard(label: "Chi theo ngày · DailySpendBars") {
                 DailySpendBars(month: .now, today: .now)
             }

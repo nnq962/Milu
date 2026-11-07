@@ -64,7 +64,7 @@ struct GoalTransferSheet: View {
     /// ✓ stays on so what is missing can be pointed out instead of the button just doing
     /// nothing (sheet review 2026-10-30: it greyed out here, against the app's rule).
     private func validate() -> Bool {
-        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsErrors = true }
         return canSave
     }
     /// Deleting a deposit whose money was already taken out would leave the goal below 0đ.
@@ -124,8 +124,10 @@ struct GoalTransferSheet: View {
                             : "Tiền của lần nạp này đã được rút hoặc dùng. Xoá lần rút hoặc khoản chi đó trước.",
                         canConfirm: canDelete
                     ) {
-                        store.delete(editing)
+                        // The sheet first, then the row out of the goal's history (`AfterDismiss`),
+                        // as every other delete (review 2026-11-07).
                         dismiss()
+                        AfterDismiss.run { store.delete(editing) }
                     }
                 }
             }
@@ -133,7 +135,7 @@ struct GoalTransferSheet: View {
         .timiSheetStyle()
     }
 
-    /// "Mỗi tháng 167k" with a deadline, and "Còn thiếu 2tr" when it differs.
+    /// "Mỗi tháng 167.000đ" with a deadline, and "Còn thiếu 2.000.000đ" when it differs.
     private var presets: [AmountPreset] {
         guard goal.remaining > 0 else { return [] }
         var chips: [AmountPreset] = []
@@ -159,18 +161,21 @@ struct GoalTransferSheet: View {
             transfer.amount = amount
             transfer.date = date
             transfer.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
-            store.update(transfer)
             dismiss()
+            AfterDismiss.run { store.update(transfer) }
             return
         }
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        if closesGoal {
-            store.withdrawAll(from: goal, to: accountID, date: date, note: trimmedNote)
-        } else {
-            store.add(GoalTransfer(goalID: goal.id, accountID: accountID, direction: direction,
-                                   amount: amount, date: date, note: trimmedNote))
-        }
+        let (goal, closesGoal, direction, amount, date) = (goal, closesGoal, direction, amount, date)
         dismiss()
+        AfterDismiss.run {
+            if closesGoal {
+                store.withdrawAll(from: goal, to: accountID, date: date, note: trimmedNote)
+            } else {
+                store.add(GoalTransfer(goalID: goal.id, accountID: accountID, direction: direction,
+                                       amount: amount, date: date, note: trimmedNote))
+            }
+        }
     }
 }
 

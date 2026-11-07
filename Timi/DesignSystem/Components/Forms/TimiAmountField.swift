@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A ready amount offered before anything is typed ("Mỗi tháng 167k" on a goal deposit); with no
+/// A ready amount offered before anything is typed ("Mỗi tháng 167.000đ" on a goal deposit); with no
 /// label, the amount alone ("10tr").
 struct AmountPreset: Hashable {
     /// The words before the figure ("Mỗi tháng"); empty shows the figure alone.

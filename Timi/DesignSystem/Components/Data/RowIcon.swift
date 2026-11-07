@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// A bank or wallet logo in its own colours: a rounded tile in the card colour with a hairline edge, so
-/// logos of any shape and colour sit evenly in a list (Wallet-style). The mark sits 14% in from
-/// the edge: many logos are drawn edge to edge (Vietcombank), and would otherwise touch the border.
-/// 8% in since 2026-11-05 (user request: a little larger; Figma draws a 26 mark in the 32 tile).
+/// logos of any shape and colour sit evenly in a list (Wallet-style). The mark sits 15% in from
+/// the edge: many logos are drawn edge to edge (Vietcombank), and square ones touched the border
+/// at 8% (user request 2026-11-07).
 struct InstitutionLogo: View {
     let image: String
     var size: CGFloat = RowMetrics.iconColumn
@@ -12,7 +12,9 @@ struct InstitutionLogo: View {
         Image(image)
             .resizable()
             .scaledToFit()
-            .padding(size * 0.08)
+            // 15% in: the tile's corners round at 28%, so at 8% a square logo (MoMo, ZaloPay) ran
+            // into the curve; this keeps its corners inside it (user request 2026-11-07).
+            .padding(size * 0.15)
             .frame(width: size, height: size)
             .background(Palette.surface)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.28, style: .continuous))
@@ -25,7 +27,7 @@ struct InstitutionLogo: View {
 }
 
 /// The icon of an account, category or goal, never on a tile: a glyph in ink, or, for names
-/// under `Institutions/`, the bank or wallet logo. Both fill the same square, `size` (24 in a row,
+/// under `Institutions/`, the bank or wallet logo. Both fill the same square, `size` (32 in a row,
 /// the icon column), so a logo is never bigger than a plain icon: the logo tile takes the whole
 /// square and the glyph its usual 20/24 of it (Hugeicons glyphs carry their own inner margin).
 /// `size` is the size at the default text size; the icon grows with the text on its own, so no

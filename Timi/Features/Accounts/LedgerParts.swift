@@ -21,7 +21,7 @@ struct LedgerRow<Mark: View>: View {
     static var textColumn: CGFloat { WalletRow.textColumn }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: WalletRow.gap) {
             mark
             // From XXXL every row stacks, so one list never mixes the two (second review
             // 2026-11-05: at XXXL "Vietcombank" broke as "Vietcomban / k").
@@ -44,9 +44,9 @@ struct LedgerRow<Mark: View>: View {
             RowChevron()
         }
         .padding(.leading, Spacing.m)
-        .padding(.trailing, 14)
+        .padding(.trailing, WalletRow.trailing)
         .padding(.vertical, Spacing.s)
-        .frame(minHeight: 54)
+        .frame(minHeight: WalletRow.minHeight)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken)
@@ -100,9 +100,15 @@ struct WalletRow: View {
     var subtitle: String? = nil
     var isMuted = false
 
+    static let logo: CGFloat = IconSize.rowArtwork
+    /// The mark to the names (Figma 10).
+    static let gap: CGFloat = 10
+    /// The › 14 from the card's edge (Figma).
+    static let trailing: CGFloat = 14
+    /// A row at least 54 tall (Figma).
+    static let minHeight: CGFloat = 54
     /// Where the hairline between rows starts: the column of the names (12 + 32 + 10).
-    static let textColumn: CGFloat = 54
-    static let logo: CGFloat = 32
+    static let textColumn: CGFloat = Spacing.m + logo + gap
 
     var body: some View {
         LedgerRow(title: account.name,
@@ -122,7 +128,8 @@ struct WalletRow: View {
     /// "Ví tiền mặt, số dư hai triệu ba trăm năm mươi nghìn đồng" (Milu's own example).
     private var spoken: String {
         let figure = (account.balance < 0 ? "trừ " : "") + MoneyText.spoken(abs(account.balance))
-        return [account.name, "số dư \(figure)", account.isLocked ? "đã khoá" : nil, subtitle]
+        return [account.name, "số dư \(figure)", account.isLocked ? "đã khoá" : nil,
+                subtitle.map(FormDateRow.spokenDays)]
             .compactMap { $0 }.joined(separator: ", ")
     }
 }
@@ -135,7 +142,7 @@ struct LedgerDivider: View {
             .fill(Palette.separator)
             .frame(height: 1)
             .padding(.leading, WalletRow.textColumn)
-            .padding(.trailing, 14)
+            .padding(.trailing, WalletRow.trailing)
     }
 }
 
@@ -184,13 +191,20 @@ struct GoalJar: View {
     /// Two lines of the name (14 on a 17 line).
     @ScaledMetric(relativeTo: .subheadline) private var nameHeight: CGFloat = 34
 
-    private static let radius: CGFloat = 15
+    /// The card's corner, as every card (`CardCorners`, review 2026-11-07: it was 15 by hand).
+    private static let radius: CGFloat = CardCorners.card
+    /// From this text size the jars go one a row (Sổ ví's grid and the jar's two-line name both
+    /// follow it).
+    static let oneColumnFrom: DynamicTypeSize = .xLarge
+    /// Figma's insets of a jar's card: 10 under, 9 at the sides.
+    private static let bottomInset: CGFloat = 10
+    private static let sideInset: CGFloat = 9
 
     var body: some View {
         let done = goal.isReached || goal.isClosed
         let width = RowMetrics.capped(jarWidth, base: 94)
         // One jar a row from XL, as Sổ ví lays them (review 2026-11-06).
-        let oneColumn = typeSize >= .xLarge
+        let oneColumn = typeSize >= Self.oneColumnFrom
         VStack(spacing: 0) {
             // As wide as Figma's 94, growing with the text, but never past its column: at XXXL the
             // grown jar pushed the stamps over the page's margins (HIG review 2026-11-05).
@@ -221,30 +235,40 @@ struct GoalJar: View {
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             ViewThatFits(in: .horizontal) {
-                VStack(spacing: 1) {
-                    Text(goal.saved.vnd)
-                        .textRole(.captionStrong)
-                        .foregroundStyle(Palette.label)
-                    Text("/ \(goal.target.vnd)")
-                        .textRole(.footnote)
-                        .foregroundStyle(Palette.secondaryLabel)
-                }
-                .monospacedDigit()
-                .fixedSize()
-                EmptyView()
+                figures
+                    .fixedSize()
+                // Their room kept, unseen: a jar whose figures do not fit stays as tall as the
+                // others of its row, which a grid does not stretch (review 2026-11-07).
+                figures
+                    .lineLimit(1)
+                    .hidden()
             }
             .padding(.top, Spacing.xxs)
             Spacer(minLength: 0)
         }
         .padding(.top, Spacing.s)
-        .padding(.bottom, 10)
-        .padding(.horizontal, 9)
+        .padding(.bottom, Self.bottomInset)
+        .padding(.horizontal, Self.sideInset)
         .frame(maxWidth: .infinity)
         .cardSurface(radius: Self.radius)
         .contentShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken(done: done))
         .accessibilityHint("Xem hũ")
+    }
+
+    /// Saved over the target, two lines.
+    private var figures: some View {
+        VStack(spacing: 1) {
+            Text(goal.saved.vnd)
+                .textRole(.captionStrong)
+                .foregroundStyle(Palette.label)
+            Text("/ \(goal.target.vnd)")
+                .textRole(.footnote)
+                .foregroundStyle(Palette.secondaryLabel)
+        }
+        .monospacedDigit()
+        .accessibilityHidden(true)
     }
 
     /// "Du lịch Đà Nẵng, đã góp tám triệu đồng trên hai mươi triệu đồng, 40 phần trăm".

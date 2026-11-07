@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// A savings goal as a row in Tài khoản's list, like the accounts above it (HIG review
-/// 2026-10-30: two big tiles read as a second layout on the page and went uneven with an odd
-/// count). A small ring of how far along with the goal's icon in it, the name and when it is due,
+/// A savings goal as a row, in Tài sản ròng and the UI library (Tài khoản shows its goals as
+/// jars, `GoalJar`, since 2026-11-05). A small ring of how far along with the goal's icon in it, the name and when it is due,
 /// what is saved of the target and the percent. The ring turns red when the goal is overdue.
 struct GoalRow: View {
     let goal: SavingsGoal
@@ -59,7 +58,7 @@ struct GoalRing: View {
     var body: some View {
         // As every row's leading, no bigger than `RowMetrics.leadingMaxScale` times its size.
         let size = RowMetrics.capped(scaled, base: base)
-        // Red when overdue, lime once full or closed (`progressDone`), ink on the way.
+        // Red when overdue, green once full or closed (`progressDone`), the progress colour on the way.
         ProgressRing(progress: goal.isClosed ? 1 : goal.progress,
                      color: goal.isOverdue ? Palette.negative
                          : goal.isClosed || goal.isReached ? Palette.progressDone : Palette.progress)

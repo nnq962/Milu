@@ -227,7 +227,7 @@ struct AddTransactionView: View {
 
     /// ✓ with something missing: shows what, keeps the sheet open (SheetScaffold buzzes).
     private func validate() -> Bool {
-        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsErrors = true }
         return canSave
     }
 
@@ -239,10 +239,10 @@ struct AddTransactionView: View {
     var body: some View {
         SheetScaffold(title: title(for: isEditing), validate: validate, onConfirm: confirmAction) {
             if !modes.isEmpty {
-                // Its words at the user's text size, as the segments of Thu chi (strict review 2026-10-31).
+                // Its words at the user's text size (strict review 2026-10-31).
                 ScaledSegmentedPicker(title: "Loại giao dịch", selection: $mode, options: modes) { $0.title }
                     .controlSize(.large)
-                .disabled(isModeFixed || isReadOnly)
+                    .disabled(isModeFixed || isReadOnly)
             }
 
             VStack(spacing: Spacing.s) {
@@ -276,8 +276,9 @@ struct AddTransactionView: View {
             .disabled(isReadOnly)
             // What this spending leaves of its limit, as it is typed (user choice 2026-10-30).
             if let budgetNotice {
+                // Under the group it speaks of: 8 below it rather than the form's 24 between groups.
                 BudgetNoticeRow(notice: budgetNotice)
-                    .padding(.top, -Spacing.l)
+                    .padding(.top, -(Spacing.xxl - Spacing.s))
                     .transition(.opacity)
             }
 
@@ -337,8 +338,8 @@ struct AddTransactionView: View {
                   !CategoryPickerRow.isPickable(categoryID, kind: kind, in: store) else { return }
             categoryID = pickedByKind[kind] ?? ""
         }
-        .animation(.smooth(duration: 0.3), value: leftover >= 1)
-        .animation(.smooth(duration: 0.3), value: budgetNotice == nil)
+        .animation(Motion.gentle(.smooth(duration: 0.3)), value: leftover >= 1)
+        .animation(Motion.gentle(.smooth(duration: 0.3)), value: budgetNotice == nil)
         .onAppear(perform: fillDefaults)
     }
 
@@ -398,12 +399,16 @@ struct AddTransactionView: View {
     @ViewBuilder
     private var transferRows: some View {
         // "Chọn" until picked; picking on one side the account already on the other swaps them.
+        // One buzz a pick, also when it swaps the sides and so changes both (review 2026-11-07:
+        // each side buzzed its own).
         optionalAccountRow(title: "Từ", selection: accountID) { new in
+            if new != accountID { Haptics.selection() }
             if new == toAccountID { toAccountID = self.accountID }
             self.accountID = new
         }
         FormDivider(hasIcon: false)
         optionalAccountRow(title: "Đến", selection: toAccountID) { new in
+            if new != toAccountID { Haptics.selection() }
             if new == accountID { accountID = self.toAccountID }
             self.toAccountID = new
         }
@@ -541,7 +546,7 @@ private struct BudgetNoticeRow: View {
         BudgetStatusLine(level: level, message: notice.text)
             .padding(.horizontal, RowMetrics.horizontal)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .animation(.snappy, value: notice)
+            .animation(Motion.gentle(.snappy), value: notice)
     }
 }
 
@@ -564,7 +569,8 @@ private struct OptionalAccountRow: View {
                            isInvalid: isInvalid)
         }
         .buttonStyle(.row)
-        .sensoryFeedback(.selection, trigger: selection)
+        .accessibilityLabel(title)
+        .accessibilityValue(selection.flatMap { store.account(id: $0)?.name } ?? "Chưa chọn")
         .sheet(isPresented: $isPicking) {
             ChoiceSheet(title: title,
                         selection: Binding<Account.ID?> { selection } set: { if let new = $0 { set(new) } },

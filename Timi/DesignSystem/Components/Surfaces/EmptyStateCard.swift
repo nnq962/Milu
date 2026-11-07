@@ -1,11 +1,15 @@
 import SwiftUI
 
-/// Empty list placeholder: an icon, a title and one line saying what
-/// will appear here. No button: adding goes through the page's own + (user choice 2026-10-28).
-/// With `picture`, a decorative picture stands in for the line icon, as on the cards of the
-/// main tabs (2026-11-03).
+/// What a part shows before it has anything, or when what was opened is gone: a picture, a title
+/// and one line on what will appear here, centred. No button: adding goes through the page's own
+/// + (user choice 2026-10-28). One look for every empty card of the app (review 2026-11-07: the
+/// Sổ ví card and this one had their own sizes and gaps), Milu's (Figma 120:1650): a Fluent Flat
+/// picture 52, no more than 1.6 times, title and line centred.
+///
+/// `picture` is the emoji's asset (`IconCatalog.emojiName`); `icon`, a line glyph, drawn only
+/// where there is no picture (some Cài đặt pages); with a picture it can be left out. Inside a `HeaderCard` it draws no card of its own (`listCard`).
 struct EmptyStateCard: View {
-    let icon: String
+    var icon: String? = nil
     let title: String
     let message: String
     var picture: String? = nil
@@ -13,29 +17,32 @@ struct EmptyStateCard: View {
     @ScaledMetric(relativeTo: .body) private var pictureSize = RowMetrics.picture
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: Spacing.s) {
             if let picture {
                 Image(picture)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: pictureSize, height: pictureSize)
+                    .frame(width: RowMetrics.capped(pictureSize, base: RowMetrics.picture),
+                           height: RowMetrics.capped(pictureSize, base: RowMetrics.picture))
                     .accessibilityHidden(true)
-            } else {
-                // Plain glyph in ink, no tile, drawn like the logo atop an account so the two match
-                // in size (user choice 2026-10-28).
+            } else if let icon {
                 RowIcon(name: icon, size: RowMetrics.featureIcon)
             }
-            Text(title)
-                .textRole(.title)
-                .padding(.top, Spacing.m)
-            Text(message)
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryLabel)
-                .multilineTextAlignment(.center)
-                .padding(.top, Spacing.xs)
+            VStack(spacing: Spacing.xxs) {
+                Text(title)
+                    .textRole(.title)
+                    .foregroundStyle(Palette.label)
+                Text(message)
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryLabel)
+            }
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity)
-        .card(padding: Spacing.leadCard)
+        .padding(.horizontal, Spacing.xxl)
+        .padding(.vertical, Spacing.xl)
+        .frame(maxWidth: .infinity, minHeight: 150)
+        .listCard()
         .accessibilityElement(children: .combine)
     }
 }

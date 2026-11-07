@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// A part of a main page in Milu: its heading on the page in Section title ("Ví & ngân hàng"),
-/// what its numbers are on the right in small grey words ("Số dư", "Tiến độ"), and under it, 12
-/// down, its card or tiles. The heading is not numbered and sits outside the card (Milu Sổ ví).
+/// and under it, 12 down, its card or tiles (the grey "Số dư", "Tiến độ" on the right went,
+/// user request 2026-11-07). The heading is not numbered and sits outside the card (Milu Sổ ví).
 struct PageSection<Content: View>: View {
     let title: String
     @ViewBuilder var content: Content
@@ -22,41 +22,15 @@ struct PageSection<Content: View>: View {
     }
 }
 
-/// What a part of a page shows before it has anything: its Fluent Flat picture, a title and a line
-/// on what it is for, centred (Milu "Tài khoản / Nội dung trống · Căn giữa", Figma 120:1650,
-/// 2026-11-05). Static: neither the card nor its parts take a tap; the + on the bar adds.
+/// An empty card by its emoji ("👝"): `EmptyStateCard`, the one look of the app's empty cards.
 struct EmptyNoteCard: View {
-    /// The picture's emoji, drawn from `MiluEmoji2D` ("👝").
+    /// The picture's emoji, drawn from `MiluEmoji2D`.
     let emoji: String
     let title: String
     let message: String
 
-    @ScaledMetric(relativeTo: .body) private var picture: CGFloat = 52
-
     var body: some View {
-        VStack(spacing: 9) {
-            Image(IconCatalog.emojiName(emoji))
-                .resizable()
-                .scaledToFit()
-                .frame(width: RowMetrics.capped(picture, base: 52), height: RowMetrics.capped(picture, base: 52))
-                .accessibilityHidden(true)
-            VStack(spacing: 3) {
-                Text(title)
-                    .textRole(.title)
-                    .foregroundStyle(Palette.label)
-                Text(message)
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryLabel)
-            }
-            .multilineTextAlignment(.center)
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, Spacing.xxl)
-        .padding(.top, Spacing.xl)
-        .padding(.bottom, 21)
-        .frame(maxWidth: .infinity, minHeight: 150)
-        .cardSurface(radius: CardCorners.card)
-        .accessibilityElement(children: .combine)
+        EmptyStateCard(title: title, message: message, picture: IconCatalog.emojiName(emoji))
     }
 }
 

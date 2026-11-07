@@ -19,6 +19,9 @@ struct FormPickerRow<Value: Hashable>: View {
             FormValueRowContent(title: title, icon: icon, value: optionTitle(selection), valueIcon: optionIcon?(selection))
         }
         .buttonStyle(.row)
+        // The row's name as its label, the value once as its value: the label's words already
+        // held the value, so VoiceOver read it twice (review 2026-11-07).
+        .accessibilityLabel(title)
         .accessibilityValue(optionTitle(selection))
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isPicking) {
@@ -110,12 +113,15 @@ struct FormAmountInfoRow: View {
     var tone: MoneyText.Tone = .neutral
 
     var body: some View {
-        HStack(spacing: Spacing.s) {
+        // On the words' baseline as every one-line row; the figure keeps its room by priority,
+        // and goes under the title at the accessibility sizes (review 2026-11-07).
+        AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             FormRowLabel(title: title)
             Spacer(minLength: Spacing.s)
             MoneyText(amount: amount, tone: tone)
-                .fixedSize()
+                .layoutPriority(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .formRowFrame()
         .accessibilityElement(children: .combine)
     }
@@ -226,7 +232,7 @@ struct FormActionRow: View {
 }
 
 /// A red text row at the end of a form ("Xoá tài khoản"), as at the end of iOS Contacts. Nothing is
-/// deleted on the first tap: iOS's own confirmation sheet asks first (`question`, an optional
+/// deleted on the first tap: iOS's own alert asks first (`question`, an optional
 /// `message`, a red button repeating `title`); the phone gives a warning buzz when it goes.
 /// With `choices`, the alert offers those buttons instead (each red), e.g. which account gets the
 /// money back before a goal goes.
@@ -242,7 +248,7 @@ struct FormDestructiveRow: View {
     let question: String
     var message: String? = nil
     var choices: [Choice] = []
-    /// False: the alert only explains (`message`) and offers "Huỷ", e.g. nowhere to send the money.
+    /// False: the alert only explains (`message`) and offers "OK", e.g. nowhere to send the money.
     var canConfirm = true
     /// A bin before the title, in the same red, so the row reads as "delete" at a glance.
     var icon: String? = "hugeicons-delete-02"

@@ -54,15 +54,19 @@ struct ListRow<Leading: View, Trailing: View>: View {
 
     var body: some View {
         let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
-        HStack(spacing: RowMetrics.gap) {
+        // No second line: the picture on the words' middle (as form rows, review 2026-11-07).
+        HStack(alignment: (subtitle?.isEmpty ?? true) ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             leading
+                .centeredOnTextLine()
             // Title and amount on one baseline; stacked, the words take the row's width so every
             // row starts at the same edge.
             AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     // Whole at the accessibility sizes, where one line cut "Cho vay" to "Ch…".
+                    // 16 ExtraBold, as the names of Sổ ví's rows (Milu: `bodyStrong` is a row's name;
+                    // review 2026-11-07: transactions and loans read lighter than wallets).
                     Text(title)
-                        .textRole(.body)
+                        .textRole(.bodyStrong)
                         .lineLimit(isAccessibilitySize ? nil : 1)
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
@@ -91,8 +95,8 @@ extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
     init(icon: String, title: String, subtitle: String? = nil, trailingSubtitle: String? = nil,
          amount: Double, amountTone: MoneyText.Tone = .balance, showsChevron: Bool = true) {
         self.init(title: title, subtitle: subtitle, showsChevron: showsChevron) {
-            // No tile, coloured ones neither; amounts carry the meaning. Line glyphs, not 3D
-            // pictures (tried and taken back, user request 2026-11-03).
+            // No tile, coloured ones neither; amounts carry the meaning. The picture `RowIcon`
+            // draws for the name (an emoji or a glyph).
             RowIcon(name: icon)
         } trailing: {
             ListRowAmount(amount: amount, tone: amountTone, note: trailingSubtitle)

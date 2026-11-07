@@ -18,6 +18,7 @@ struct SegmentPills<Option: Hashable & Identifiable>: View {
     /// 40 tall pills in a tray 4 in, at least 62 wide, the words 16 from their ends (Figma 18: with
     /// the tray's edge, four filters then ran a few points past the page and lost the tray).
     private static var pillHeight: CGFloat { 40 }
+    private static var pillMinWidth: CGFloat { 62 }
     private static var inset: CGFloat { Spacing.xs }
 
     var body: some View {
@@ -26,6 +27,9 @@ struct SegmentPills<Option: Hashable & Identifiable>: View {
             FlowLayout(spacing: Spacing.xs) { ForEach(options) { pill($0) } }
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // One group for VoiceOver, "Bộ lọc", with the chosen pill marked as selected.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Bộ lọc")
         .sensoryFeedback(.selection, trigger: selection)
     }
 
@@ -51,10 +55,12 @@ struct SegmentPills<Option: Hashable & Identifiable>: View {
                 .lineLimit(1)
                 .fixedSize()
                 .foregroundStyle(selected ? Palette.onPrimary : Palette.secondaryLabel)
-                .padding(.horizontal, 16)
-                .frame(minWidth: 62, minHeight: Self.pillHeight)
+                .padding(.horizontal, Spacing.l)
+                .frame(minWidth: Self.pillMinWidth, minHeight: Self.pillHeight)
                 .background { Capsule().fill(selected ? Palette.primary : .clear) }
-                .contentShape(Capsule())
+                // The tap reaches the tray's 4 around the 40 tall pill: 48, over the HIG's 44
+                // (review 2026-11-07).
+                .contentShape(Rectangle().inset(by: -Spacing.xs))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])

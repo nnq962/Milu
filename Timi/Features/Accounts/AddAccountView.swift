@@ -195,6 +195,9 @@ struct AddAccountView: View {
                            isInvalid: showsErrors && missesInstitution)
         }
         .buttonStyle(.row)
+        // The row's name as its label, the value once as its value: the label's words already
+        // held the value, so VoiceOver read it twice (review 2026-11-07).
+        .accessibilityLabel(type == .eWallet ? "Ví" : "Ngân hàng")
         .accessibilityValue(institution?.shortName ?? "Chưa chọn")
     }
 
@@ -202,7 +205,7 @@ struct AddAccountView: View {
     private func validate() -> Bool {
         // One animation for the whole sheet: the red line fades in and the groups below slide
         // down to make room, instead of jumping. The error haptic comes from SheetScaffold.
-        withAnimation(.smooth(duration: 0.3)) { showsErrors = true }
+        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsErrors = true }
         return !missesInstitution && !missesName
     }
 
