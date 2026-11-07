@@ -5,30 +5,17 @@ import SwiftUI
 /// down, its card or tiles. The heading is not numbered and sits outside the card (Milu Sổ ví).
 struct PageSection<Content: View>: View {
     let title: String
-    /// A column's name for what the rows show at their right ("Số dư").
-    var note: String? = nil
     @ViewBuilder var content: Content
-
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                Text(title)
-                    .textRole(.heading)
-                    .foregroundStyle(Palette.label)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: Spacing.s)
-                // Not at the accessibility sizes: beside the heading it broke "Hũ tiết kiệm" over
-                // two lines (review 2026-11-06), and the rows say what their figures are anyway.
-                if let note, !dynamicTypeSize.isAccessibilitySize {
-                    Text(note)
-                        .textRole(.footnote)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        // Read with the rows, which say what each figure is.
-                        .accessibilityHidden(true)
-                }
-            }
+            // The heading alone: the column names "Số dư" and "Tiến độ" beside it are gone (user
+            // request 2026-11-07: the rows show what their figures are).
+            Text(title)
+                .textRole(.heading)
+                .foregroundStyle(Palette.label)
+                .accessibilityAddTraits(.isHeader)
+                .frame(maxWidth: .infinity, alignment: .leading)
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -146,7 +146,7 @@ struct AccountsView: View {
     }
 
     private var paymentSection: some View {
-        PageSection(title: "Ví & ngân hàng", note: accounts.isEmpty ? nil : "Số dư") {
+        PageSection(title: "Ví & ngân hàng") {
             if accounts.isEmpty {
                 EmptyNoteCard(emoji: "👝", title: "Chưa có tài khoản",
                               message: "Số dư ví và tài khoản của bạn sẽ hiện ở đây.")
@@ -171,7 +171,7 @@ struct AccountsView: View {
         // third of the page). Two a row from XL to AX2 left an odd jar alone beside a gap, as
         // the wallets' two-column grid did on 2026-10-30 (review 2026-11-06).
         let columns = dynamicTypeSize >= .xLarge ? 1 : 3
-        return PageSection(title: "Hũ tiết kiệm", note: store.activeGoals.isEmpty ? nil : "Tiến độ") {
+        return PageSection(title: "Hũ tiết kiệm") {
             if store.activeGoals.isEmpty {
                 // Every goal may be done already: then the empty card says none is on its way.
                 EmptyNoteCard(emoji: "🫙",

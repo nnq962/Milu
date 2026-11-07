@@ -45,8 +45,10 @@ struct AccountDetailView: View {
                         }
                     } else {
                         // One card a day with its totals, as on "Giao dịch" (review 2026-10-31: one
-                        // long list here, by day there).
-                        ActivityDayList(groups: ActivityDayList.byDay(activity), viewedAccount: account.id) { editingItem = $0 }
+                        // long list here, by day there), the day's title over its card in the same
+                        // words and size as there (user request 2026-11-07).
+                        ActivityDayList(groups: ActivityDayList.byDay(activity), viewedAccount: account.id,
+                                        headingOutside: true) { editingItem = $0 }
                     }
                 }
                 .padding(.horizontal, Spacing.page)

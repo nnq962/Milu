@@ -92,9 +92,12 @@ struct FormRowLabel: View {
     var iconSize: CGFloat = RowMetrics.iconColumn
 
     var body: some View {
-        HStack(spacing: RowMetrics.gap) {
+        // One line: the icon's centre on the middle of the words, not on their line's box (see
+        // `centeredOnTextLine`); with a subtitle, centred on the two lines.
+        HStack(alignment: subtitle == nil ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             if let icon {
                 FormRowIcon(icon: icon, size: iconSize)
+                    .centeredOnTextLine()
             }
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(title)
@@ -122,11 +125,28 @@ struct FormRowIcon: View {
 }
 
 extension View {
+    /// In an HStack lined up on `.firstTextBaseline`: this picture's centre on the middle of the
+    /// capitals of the body text beside it, half Nunito's cap height (0.705 em) above the
+    /// baseline. Centred on the text's box instead, an emoji sat about 4 points low, since that
+    /// box keeps more room under the words than over them (user report 2026-11-07).
+    func centeredOnTextLine() -> some View {
+        modifier(TextLineCentered())
+    }
+
     func formRowFrame() -> some View {
         self
             .padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, RowMetrics.vertical)
             .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .leading)
             .contentShape(Rectangle())
+    }
+}
+
+private struct TextLineCentered: ViewModifier {
+    /// Half the cap height of 16 point Nunito, growing with the text.
+    @ScaledMetric(relativeTo: .body) private var lift: CGFloat = 16 * 0.705 / 2
+
+    func body(content: Content) -> some View {
+        content.alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + lift }
     }
 }

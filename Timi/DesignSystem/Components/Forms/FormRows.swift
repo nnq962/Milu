@@ -58,15 +58,18 @@ struct FormValueRowContent: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: Spacing.s) {
+        // On the words' baseline, not centred: Nunito keeps room above for Vietnamese marks, so a
+        // › centred on the line sat above the words beside it (user report 2026-11-07).
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             // Value at the right of the label; under it at the accessibility sizes, where one
             // line cut "Hôm nay, 13:…" short (review 2026-10-31).
-            AdaptiveStack(spacing: Spacing.s) {
+            AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                 FormRowLabel(title: title, icon: icon, isInvalid: isInvalid)
                 if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Spacing.s) }
-                HStack(spacing: Spacing.s) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                     if let valueIcon {
                         RowIcon(name: valueIcon, size: IconSize.valueArtwork)
+                            .centeredOnTextLine()
                     }
                     // A new date, time or choice rolls in, so the change is easy to notice (not
                     // under Reduce Motion).
@@ -130,7 +133,9 @@ struct NavigationRowContent: View {
     var iconSize: CGFloat = RowMetrics.iconColumn
 
     var body: some View {
-        let row = HStack(spacing: Spacing.s) {
+        // One line: the › on the words' baseline (see `FormValueRowContent`); with a subtitle,
+        // centred on the two lines.
+        let row = HStack(alignment: subtitle == nil ? .firstTextBaseline : .center, spacing: Spacing.s) {
             FormRowLabel(title: title, subtitle: subtitle, icon: icon, iconSize: iconSize)
             Spacer(minLength: Spacing.s)
             if let value {
@@ -165,7 +170,7 @@ struct FormNavigationRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: Spacing.s) {
+            HStack(alignment: subtitle == nil ? .firstTextBaseline : .center, spacing: Spacing.s) {
                 FormRowLabel(title: title, subtitle: subtitle, icon: icon)
                 Spacer(minLength: Spacing.s)
                 if let value {
