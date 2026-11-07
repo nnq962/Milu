@@ -58,7 +58,7 @@ struct ArchivedAccountsList: View {
                     .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
                 }
             }
-            .cardSurface(radius: 17)
+            .cardSurface(radius: CardCorners.card)
         }
     }
 }

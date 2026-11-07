@@ -96,7 +96,7 @@ struct OverviewHeader: View {
                 // Rounded, not a capsule: at accessibility sizes it wraps to two lines, and a
                 // capsule round two lines read as a blob (Simulator check 2026-11-04).
                 .background(change > 0 ? Palette.incomeSoft : Palette.expenseSoft,
-                            in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous))
                 .padding(.top, Spacing.xxs)
         }
     }

@@ -161,7 +161,7 @@ private struct DateTimeSheet: View {
             .padding(Spacing.m)
             .environment(\.locale, .vietnam)
             .tint(Palette.primary)
-            .cardSurface(radius: CardCorners.inset)
+            .cardSurface(radius: CardCorners.card)
         }
     }
 

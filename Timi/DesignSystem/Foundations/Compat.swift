@@ -14,6 +14,32 @@ extension View {
         }
     }
 
+    /// iOS 26's soft scroll edge under the top bar once `scrolled`: what scrolls up blurs and
+    /// fades as it nears the bar, as in Notes (user request 2026-11-07, over the hard band of the
+    /// review the same day), so big words never sit sharp under the bar's buttons. At the top no
+    /// edge at all, so the page's sky runs on under the bar. The system's own effect, no blur of
+    /// our own.
+    @ViewBuilder
+    func topScrollEdgeIfAvailable(scrolled: Bool) -> some View {
+        if #available(iOS 26.0, *) {
+            scrollEdgeEffectStyle(.soft, for: .top)
+                .scrollEdgeEffectHidden(!scrolled, for: .top)
+        } else {
+            self
+        }
+    }
+
+    /// Whether the scroll view has left its top by more than a few points: a yes or no, written
+    /// only when it flips, so scrolling does not rebuild the page (user report 2026-11-07).
+    @ViewBuilder
+    func onScrolledFromTop(_ action: @escaping (Bool) -> Void) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y + $0.contentInsets.top > 4 } action: { _, new in action(new) }
+        } else {
+            self
+        }
+    }
+
     /// The line under a bar's title (Trợ lý AI); before iOS 26 the bar has no room for one.
     @ViewBuilder
     func navigationSubtitleIfAvailable(_ subtitle: String) -> some View {
@@ -43,21 +69,6 @@ extension View {
             safeAreaBar(edge: .bottom, content: bar)
         } else {
             safeAreaInset(edge: .bottom, content: bar)
-        }
-    }
-
-    /// Calls `action` with how far a scroll view has moved from its top, never below 0 (iOS 18);
-    /// before it, never: what hangs on it stays as it is at the top.
-    @ViewBuilder
-    func onScrollOffsetChange(_ action: @escaping (CGFloat) -> Void) -> some View {
-        if #available(iOS 18.0, *) {
-            onScrollGeometryChange(for: CGFloat.self) { geometry in
-                max(geometry.contentOffset.y + geometry.contentInsets.top, 0)
-            } action: { _, offset in
-                action(offset)
-            }
-        } else {
-            self
         }
     }
 

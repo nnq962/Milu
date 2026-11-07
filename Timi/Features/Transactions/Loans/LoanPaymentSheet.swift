@@ -114,8 +114,8 @@ struct LoanPaymentSheet: View {
                     FormDestructiveRow(title: lent ? "Xoá lần thu" : "Xoá lần trả",
                                        question: lent ? "Xoá lần thu nợ này?" : "Xoá lần trả nợ này?",
                                        message: "Số còn lại và số dư tài khoản sẽ được tính lại.") {
-                        store.delete(original)
                         dismiss()
+                        AfterDismiss.run { store.delete(original) }
                     }
                 }
             }
@@ -140,7 +140,7 @@ struct LoanPaymentSheet: View {
         payment.interest = interest
         payment.accountID = account
         payment.date = date
-        store.save(payment)
         dismiss()
+        AfterDismiss.run { store.save(payment) }
     }
 }

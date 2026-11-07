@@ -45,7 +45,7 @@ struct AttentionCard: View {
                     .foregroundStyle(Palette.secondaryLabel)
             }
             .frame(minWidth: leafSize, minHeight: leafSize)
-            .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous))
+            .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous))
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(reminder.title)
                     .textRole(.body)

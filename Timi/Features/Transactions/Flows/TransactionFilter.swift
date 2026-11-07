@@ -30,7 +30,8 @@ struct TransactionFilterTabs: View {
     @Binding var selection: TransactionFilter
 
     var body: some View {
-        // Words with dots between them, as the page above (user pick "B" 2026-11-03).
-        TextTabs(selection: $selection, options: TransactionFilter.allCases) { $0.title }
+        // Pills in a tray, as Milu draws Giao dịch (Figma 239:7381; user pick 2026-11-07 after
+        // trying iOS's segmented control).
+        SegmentPills(selection: $selection, options: TransactionFilter.allCases) { $0.title }
     }
 }

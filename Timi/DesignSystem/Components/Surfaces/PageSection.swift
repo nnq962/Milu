@@ -68,7 +68,7 @@ struct EmptyNoteCard: View {
         .padding(.top, Spacing.xl)
         .padding(.bottom, 21)
         .frame(maxWidth: .infinity, minHeight: 150)
-        .cardSurface(radius: CardCorners.flow)
+        .cardSurface(radius: CardCorners.card)
         .accessibilityElement(children: .combine)
     }
 }

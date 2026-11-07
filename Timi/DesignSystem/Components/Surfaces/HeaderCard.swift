@@ -12,7 +12,7 @@ struct HeaderCard<Trailing: View, Content: View>: View {
     /// Where the heading starts: the rows' 16 by default; the padding of a padded `card()` inside
     /// (`Spacing.card`), so the heading stands on the same edge as what is under it.
     var inset: CGFloat = RowMetrics.horizontal
-    var radius: CGFloat = CardCorners.inset
+    var radius: CGFloat = CardCorners.card
     @ViewBuilder var trailing: Trailing
     @ViewBuilder var content: Content
 
@@ -32,7 +32,7 @@ struct HeaderCard<Trailing: View, Content: View>: View {
 }
 
 extension HeaderCard where Trailing == EmptyView {
-    init(title: String, inset: CGFloat = RowMetrics.horizontal, radius: CGFloat = CardCorners.inset,
+    init(title: String, inset: CGFloat = RowMetrics.horizontal, radius: CGFloat = CardCorners.card,
          @ViewBuilder content: () -> Content) {
         self.init(title: title, inset: inset, radius: radius, trailing: { EmptyView() }, content: content)
     }

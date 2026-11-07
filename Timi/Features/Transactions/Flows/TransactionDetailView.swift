@@ -46,9 +46,11 @@ struct TransactionDetailView: View {
             }
         }
         // By item, the transaction as it was when the pencil was tapped.
-        .sheet(item: $editing, onDismiss: {
-            if store.transaction(id: transactionID) == nil { dismiss() }
-        }) { TransactionEditSheet(transaction: $0) }
+        // Deleting from the form closes this sheet with it, before the transaction goes.
+        .sheet(item: $editing) { TransactionEditSheet(transaction: $0).environment(\.recordSheetDismiss, dismiss) }
+        // Gone some other way while open: close. (Its form closes this sheet itself before
+        // deleting, `recordSheetDismiss`.)
+        .onChange(of: store.transaction(id: transactionID) == nil) { _, gone in if gone { dismiss() } }
     }
 
     /// "Chi tiêu" or "Thu nhập", the signed amount and the category's icon (the category itself is
@@ -177,11 +179,11 @@ struct TransferDetailSheet: View {
                                    message: "Chuyển khoản này không còn trong lịch sử.")
                 }
             }
-            .sheet(isPresented: $isEditing, onDismiss: {
-                if store.accountTransfer(id: transferID) == nil { dismiss() }
-            }) {
+            .onChange(of: store.accountTransfer(id: transferID) == nil) { _, gone in if gone { dismiss() } }
+            .sheet(isPresented: $isEditing) {
                 if let transfer = store.accountTransfer(id: transferID) {
                     AddTransactionView(editingTransfer: transfer)
+                        .environment(\.recordSheetDismiss, dismiss)
                 }
             }
         }

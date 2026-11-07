@@ -18,11 +18,6 @@ struct AccountsView: View {
     /// Trợ lý AI, from the ✦ on the bar, as on Tổng quan.
     @State private var isShowingAssistant = false
     @State private var isShowingSettings = false
-    /// How far the page has scrolled: "Milu" fades out with the first 20 to 60 points, so it
-    /// never sits over the words under it (review 2026-11-06: over the rows, then, with a switch
-    /// at 90, still over "NÂU GIỮ VÍ" and the title on the way). It follows the finger, so it is
-    /// no animation for Reduce Motion to stop.
-    @State private var scrolled: CGFloat = 0
 
     /// What the + button can add.
     enum NewItem: String, Identifiable, CaseIterable {
@@ -60,15 +55,14 @@ struct AccountsView: View {
                     .padding(.bottom, Spacing.xxl)
                 }
             }
-            .onScrollOffsetChange { scrolled = $0 }
             .pageBackground()
             .foregroundStyle(Palette.label)
-            // No title on the bar: Q on the left opens Cài đặt, the wordmark beside it, as Milu
-            // draws the bar over the sky. The title stays for VoiceOver and the back button.
+            // No title on the bar: Q on the left opens Cài đặt; no wordmark (user request
+            // 2026-11-07). The title stays for VoiceOver and the back button.
             .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2,
                                      trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
-                Wordmark()
-                    .opacity(wordmarkOpacity)
+                // An empty slot, not EmptyView: with nothing there, iOS shows the title.
+                Color.clear.frame(height: 1).accessibilityHidden(true)
             })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
@@ -106,12 +100,6 @@ struct AccountsView: View {
                 }
             }
         }
-    }
-
-    /// Full at the top, gone 60 points down.
-    private var wordmarkOpacity: Double {
-        let fade: CGFloat = (scrolled - 20) / 40
-        return Double(1 - min(max(fade, 0), 1))
     }
 
     private var assistantButton: some View {
@@ -171,7 +159,7 @@ struct AccountsView: View {
                             .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
                     }
                 }
-                .cardSurface(radius: 17)
+                .cardSurface(radius: CardCorners.card)
                 .transition(.emptySwap)
             }
         }
@@ -236,21 +224,6 @@ struct AccountsView: View {
     }
 }
 
-/// "Milu" in the bar, beside the profile: the wordmark in Black, deep blue. Decoration: the page's
-/// title says where VoiceOver is. A logo in the bar, not text to read: it keeps its size at every
-/// text size, as the bar's buttons do (HIG), so no `TextRole`.
-private struct Wordmark: View {
-    var body: some View {
-        Text("Milu")
-            .font(Typography.font(.title2, size: 23, weight: .black))
-            .tracking(-1.2)
-            .foregroundStyle(Palette.deep)
-            .lineLimit(1)
-            .fixedSize()
-            .accessibilityHidden(true)
-    }
-}
-
 /// One row on the page, a card of its own: 🗂️, the name of what it opens and
 /// either the counts of both kinds under it or one count at its end, then ›. 68 tall with the
 /// line under, 52 with one count (Figma 137:1708, 137:1719).
@@ -303,8 +276,8 @@ private struct ArchiveEntryRow: View {
         .frame(minHeight: detail == nil ? 52 : 68)
         // A card of its own, as the wallets' (user request 2026-11-05: an option with an
         // outline, no hairline over it).
-        .cardSurface(radius: 17)
-        .contentShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
+        .cardSurface(radius: CardCorners.card)
+        .contentShape(RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([title, detail ?? count.map { "\($0) \(unit)" }].compactMap { $0 }.joined(separator: ", "))
         .accessibilityHint("Mở danh sách")

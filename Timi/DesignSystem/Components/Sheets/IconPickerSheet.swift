@@ -45,7 +45,7 @@ struct IconPickerSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(Spacing.l)
-        .cardSurface(radius: CardCorners.inset)
+        .cardSurface(radius: CardCorners.card)
     }
 
     private func cell(_ icon: CatalogIcon) -> some View {

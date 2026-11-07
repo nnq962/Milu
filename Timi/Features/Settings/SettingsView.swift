@@ -279,7 +279,7 @@ struct SettingsView: View {
         .padding(.horizontal, RowMetrics.horizontal)
         .padding(.vertical, Spacing.card)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .cardSurface(radius: CardCorners.inset)
+        .cardSurface(radius: CardCorners.card)
     }
 
     private func mail(subject: String) {
@@ -298,7 +298,7 @@ extension View {
         padding(.horizontal, RowMetrics.horizontal)
             .padding(.vertical, Spacing.card)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.inset)
+            .cardSurface(radius: CardCorners.card)
     }
 }
 

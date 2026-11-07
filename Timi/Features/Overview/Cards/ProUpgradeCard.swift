@@ -13,7 +13,7 @@ struct ProUpgradeCard: View {
     @ScaledMetric(relativeTo: .body) private var crownSize: CGFloat = RowMetrics.picture
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: CardCorners.large, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous)
         Button(action: onUpgrade) {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 HStack(alignment: .top, spacing: Spacing.l) {
@@ -44,7 +44,7 @@ struct ProUpgradeCard: View {
             }
             .padding(Spacing.leadCard)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(radius: CardCorners.large)
+            .cardSurface(radius: CardCorners.card)
             .contentShape(shape)
         }
         .buttonStyle(.card)

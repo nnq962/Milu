@@ -30,7 +30,7 @@ struct InstitutionPickerSheet: View {
                     }
                     // The card of Sổ ví, where these logos show next: corners 17, the hairline
                     // stopping where the row's ✓ does (review 2026-11-06).
-                    .cardSurface(radius: 17)
+                    .cardSurface(radius: CardCorners.card)
                 }
             }
             .contentMargins(.horizontal, Spacing.page, for: .scrollContent)

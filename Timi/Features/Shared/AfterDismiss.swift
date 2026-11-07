@@ -6,6 +6,14 @@ import SwiftUI
 /// and the list jumped (user report 2026-11-05: "giật lung tung, sheet tự nhiên biến mất"). iOS
 /// gives no callback when a sheet started by `dismiss()` or a pop has finished, so this waits a
 /// sheet's slide.
+extension EnvironmentValues {
+    /// The sheet that shows the record a form edits (a transaction's, a loan's), given to that
+    /// form: deleting there closes both at once, then the record goes. Closing the form alone left
+    /// the record's sheet up as the record went, and it read "đã bị xoá" for a moment as it slid
+    /// away (user report 2026-11-07; Tài khoản deletes from the record's own sheet).
+    @Entry var recordSheetDismiss: DismissAction? = nil
+}
+
 @MainActor
 enum AfterDismiss {
     /// A little longer than iOS's sheet and push slides.

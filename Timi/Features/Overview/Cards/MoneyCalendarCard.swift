@@ -113,7 +113,7 @@ struct CalendarDayCell: View {
         let calendar = Calendar.current
         let today = calendar.isDateInToday(date)
         let isAhead = date > calendar.startOfDay(for: .now) && !today
-        let shape = RoundedRectangle(cornerRadius: CardCorners.calendarDay, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: CardCorners.small, style: .continuous)
         let tile = isAhead ? Color.clear : today ? Palette.accent : Palette.surfaceMuted
         let height = typeSize.isAccessibilitySize ? dotsHeight : figuresHeight
         Button(action: action) {

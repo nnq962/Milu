@@ -5,7 +5,7 @@ extension View {
     /// shadow, as Milu keeps shadows for what truly floats over the content.
     /// Inside a `HeaderCard` it turns into a flat tile in `surfaceMuted` (the goal tiles), so a
     /// card never sits white on white.
-    func cardSurface(radius: CGFloat = CardCorners.large, color: Color = Palette.surface, shadowed: Bool = true) -> some View {
+    func cardSurface(radius: CGFloat = CardCorners.card, color: Color = Palette.surface, shadowed: Bool = true) -> some View {
         modifier(CardSurface(radius: radius, color: color, shadowed: shadowed))
     }
 
@@ -98,7 +98,7 @@ extension View {
 
     /// The app's card: 20 inside, large continuous corners and the light-mode shadow. Inside a
     /// `HeaderCard` only the padding stays, less of it on top, where the heading already is.
-    func card(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.large) -> some View {
+    func card(padding: CGFloat = Spacing.card, radius: CGFloat = CardCorners.card) -> some View {
         modifier(PaddedCard(padding: padding, radius: radius))
     }
 }
@@ -112,7 +112,7 @@ private struct ListCard: ViewModifier {
         } else {
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .cardSurface(radius: CardCorners.inset)
+                .cardSurface(radius: CardCorners.card)
         }
     }
 }

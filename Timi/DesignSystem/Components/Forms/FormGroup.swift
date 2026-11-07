@@ -20,7 +20,7 @@ struct FormGroup<Content: View>: View {
                 SectionHeader(title: title, style: .group)
             }
             VStack(spacing: 0) { content }
-                .cardSurface(radius: CardCorners.inset)
+                .cardSurface(radius: CardCorners.card)
             if let error {
                 FormErrorText(message: error)
                     .padding(.horizontal, RowMetrics.horizontal)

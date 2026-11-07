@@ -34,6 +34,7 @@ struct AddTransactionView: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.recordSheetDismiss) private var recordSheetDismiss
     @AppStorage(StorageKey.lastAccountID) private var lastAccountID = ""
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
     @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
@@ -433,16 +434,18 @@ struct AddTransactionView: View {
         if let editingTransfer {
             FormDestructiveRow(title: "Xoá chuyển khoản", question: "Xoá chuyển khoản này?",
                                message: "Số dư hai tài khoản sẽ được tính lại.") {
-                store.delete(editingTransfer)
-                dismiss()
+                // The sheets first (this and the transfer's own), then the row out of its list,
+                // animated (`AfterDismiss`), as on Tài khoản.
+                (recordSheetDismiss ?? dismiss)()
+                AfterDismiss.run { store.delete(editingTransfer) }
             }
         } else if let editing {
             FormDestructiveRow(title: "Xoá giao dịch", question: "Xoá giao dịch “\(store.title(of: editing))”?",
                                message: store.goal(id: editing.accountID) != nil
                                    ? "Số tiền được trả lại vào hũ."
                                    : "Số dư tài khoản sẽ được tính lại.") {
-                store.delete(editing)
-                dismiss()
+                (recordSheetDismiss ?? dismiss)()
+                AfterDismiss.run { store.delete(editing) }
             }
         }
     }
@@ -464,9 +467,13 @@ struct AddTransactionView: View {
     private func save() {
         guard canSave, let accountID else { return }
         if let goal = goalBought {
-            store.spend(from: goal, categoryID: categoryID, amount: amount, date: date, note: note,
-                        isExcluded: isExcluded, leftoverAccount: leftover >= 1 ? leftoverAccount : nil)
+            let (category, amount, date, note, excluded) = (categoryID, amount, date, note, isExcluded)
+            let leftoverTo = leftover >= 1 ? leftoverAccount : nil
             dismiss()
+            AfterDismiss.run {
+                store.spend(from: goal, categoryID: category, amount: amount, date: date, note: note,
+                            isExcluded: excluded, leftoverAccount: leftoverTo)
+            }
             return
         }
         if mode == .transfer {
@@ -479,7 +486,8 @@ struct AddTransactionView: View {
             transfer.fee = fee
             transfer.date = date
             transfer.note = note
-            if editingTransfer == nil { store.add(transfer) } else { store.update(transfer) }
+            let isNew = editingTransfer == nil
+            AfterDismiss.run { if isNew { store.add(transfer) } else { store.update(transfer) } }
         } else {
             guard let kind = mode.kind else { return }
             // No name of its own: it shows its category.
@@ -492,7 +500,9 @@ struct AddTransactionView: View {
             transaction.accountID = accountID
             transaction.date = date
             transaction.note = note
-            if editing == nil { store.add(transaction) } else { store.update(transaction) }
+            let isNew = editing == nil
+            // The sheet slides away first, then the row comes in, animated (`AfterDismiss`).
+            AfterDismiss.run { if isNew { store.add(transaction) } else { store.update(transaction) } }
         }
         if store.account(id: accountID) != nil { lastAccountID = accountID.uuidString }
         dismiss()

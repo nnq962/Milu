@@ -71,8 +71,8 @@ private struct OverviewTile<Graphic: View>: View {
             }
             .padding(OverviewTileMetrics.padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .cardSurface(radius: CardCorners.inset, color: onLime ? Palette.accent : Palette.surface)
-            .contentShape(RoundedRectangle(cornerRadius: CardCorners.inset, style: .continuous))
+            .cardSurface(radius: CardCorners.card, color: onLime ? Palette.accent : Palette.surface)
+            .contentShape(RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous))
         }
         .buttonStyle(.card)
         .accessibilityElement(children: .ignore)
@@ -180,7 +180,7 @@ private struct TodayTile: View {
                     GeometryReader { proxy in
                         VStack {
                             Spacer(minLength: 0)
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            RoundedRectangle(cornerRadius: CardCorners.mark, style: .continuous)
                                 .fill(isToday ? Palette.accent : day.spent > 0 ? Palette.progress : Palette.progressTrack)
                                 .frame(height: proxy.size.height * height * grown)
                         }
@@ -318,7 +318,7 @@ struct WeekCard: View {
         let byDay = Dictionary(grouping: store.reportableTransactions(in: DateInterval(start: monday, end: end))) {
             calendar.startOfDay(for: $0.date)
         }
-        HeaderCard(title: "Tuần này", inset: Spacing.card, radius: CardCorners.large) {
+        HeaderCard(title: "Tuần này", inset: Spacing.card, radius: CardCorners.card) {
             Button(action: onOpenCalendar) { HeaderLink(title: "Lịch", opensPage: true) }
                 .headerLinkButton()
         } content: {
@@ -360,7 +360,7 @@ struct MoneyCalendarPage: View {
 
     var body: some View {
         ScrollView {
-            HeaderCard(title: "Theo ngày", inset: Spacing.card, radius: CardCorners.large) {
+            HeaderCard(title: "Theo ngày", inset: Spacing.card, radius: CardCorners.card) {
                 MonthPickerButton(month: $month, compact: true)
             } content: {
                 MoneyCalendarCard(displayedMonth: $month) { selectedDay = Day(date: $0) }

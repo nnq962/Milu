@@ -1,0 +1,58 @@
+<svg width="402" height="256" viewBox="0 0 402 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_239_6899)">
+<rect width="402" height="256" fill="url(#paint0_linear_239_6899)"/>
+<g opacity="0.13" clip-path="url(#clip1_239_6899)">
+<path d="M-22 115C-2 99 12 98 24 104C34 88 57 89 68 105C84 100 99 105 109 116L-22 115Z" fill="#7895A6"/>
+</g>
+<g clip-path="url(#clip2_239_6899)">
+<path d="M-30 254V215C-4 197 23 194 48 204C64 182 96 185 111 204C135 197 163 207 172 223C198 210 222 211 242 222C266 190 300 184 325 199C343 182 374 179 395 195C418 191 443 205 451 222V270H-30V254Z" fill="#34566E"/>
+</g>
+<g clip-path="url(#clip3_239_6899)">
+<path d="M-26 270V235C1 210 31 207 53 222C73 208 98 213 111 231C135 218 160 220 178 235C203 225 227 228 241 238C272 217 302 216 322 231C348 207 379 211 395 232C419 222 440 230 454 244V270H-26Z" fill="#486A80"/>
+</g>
+<g clip-path="url(#clip4_239_6899)">
+<path d="M-16 270V250C1 229 24 229 39 242C57 227 85 235 93 251C116 239 140 242 154 257C177 247 201 249 211 261C240 244 268 244 288 258C310 240 336 241 353 254C375 239 401 244 419 260V270H-16Z" fill="#7895A6"/>
+</g>
+<g opacity="0.65">
+<path d="M239.628 138.757C251.628 151.757 266.628 155.757 278.628 144.757" stroke="#BCD9E8" stroke-width="1.3" stroke-linejoin="round" stroke-dasharray="2.5 4"/>
+</g>
+<path d="M280 129L312 114L303 141L296 132L286 138L289 130L280 129Z" fill="#F6E4B7" stroke="#BCD9E8" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M289 130L312 114L296 132L286 138" stroke="#BCD9E8" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+<g opacity="0.8">
+<path d="M350 120.2C350.267 121.8 351.2 122.734 352.8 123C351.2 123.267 350.267 124.2 350 125.8C349.733 124.2 348.8 123.267 347.2 123C348.8 122.734 349.733 121.8 350 120.2Z" fill="#F6E4B7"/>
+</g>
+<g opacity="0.8">
+<path d="M220 120C220.267 121.067 220.933 121.733 222 122C220.933 122.267 220.267 122.933 220 124C219.733 122.933 219.067 122.267 218 122C219.067 121.733 219.733 121.067 220 120Z" fill="#F6E4B7"/>
+</g>
+<g opacity="0.8">
+<path d="M370 28.2002C370.267 29.1335 370.867 29.7335 371.8 30.0002C370.867 30.2669 370.267 30.8669 370 31.8002C369.733 30.8669 369.133 30.2669 368.2 30.0002C369.133 29.7335 369.733 29.1335 370 28.2002Z" fill="#F6E4B7"/>
+</g>
+<g opacity="0.8">
+<path d="M204 216.4C204.267 217.2 204.8 217.733 205.6 218C204.8 218.267 204.267 218.8 204 219.6C203.733 218.8 203.2 218.267 202.4 218C203.2 217.733 203.733 217.2 204 216.4Z" fill="#F6E4B7"/>
+</g>
+<g opacity="0.8">
+<path d="M124 34.7002C124.267 35.3002 124.7 35.7335 125.3 36.0002C124.7 36.2669 124.267 36.7002 124 37.3002C123.733 36.7002 123.3 36.2669 122.7 36.0002C123.3 35.7335 123.733 35.3002 124 34.7002Z" fill="#F6E4B7"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_239_6899" x1="201" y1="0" x2="201" y2="256" gradientUnits="userSpaceOnUse">
+<stop stop-color="#152C44"/>
+<stop offset="1" stop-color="#2D4E65"/>
+</linearGradient>
+<clipPath id="clip0_239_6899">
+<rect width="402" height="256" fill="white"/>
+</clipPath>
+<clipPath id="clip1_239_6899">
+<rect width="402" height="256" fill="white"/>
+</clipPath>
+<clipPath id="clip2_239_6899">
+<rect width="402" height="256" fill="white"/>
+</clipPath>
+<clipPath id="clip3_239_6899">
+<rect width="402" height="256" fill="white"/>
+</clipPath>
+<clipPath id="clip4_239_6899">
+<rect width="402" height="256" fill="white"/>
+</clipPath>
+</defs>
+</svg>

@@ -91,6 +91,86 @@ struct MonthPickerButton: View {
     }
 }
 
+/// "Tháng 11 ⌄" ("Tháng 9/2025 ⌄" another year) at the head of Thu chi's month card, opening the
+/// wheels (`MonthPickerSheet`). Its tap reaches 44 tall.
+struct MonthTitleButton: View {
+    @Binding var month: Date
+
+    @State private var isPicking = false
+    /// SF's ⌄, the size and weight of the "›" of "Báo cáo" at the other end of the row (user
+    /// report 2026-11-07: the Hugeicons arrow read thinner beside it).
+    @ScaledMetric(relativeTo: .subheadline) private var chevron: CGFloat = 13
+
+    var body: some View {
+        let calendar = Calendar.current
+        let number = calendar.component(.month, from: month)
+        let year = calendar.component(.year, from: month)
+        Button { isPicking = true } label: {
+            HStack(spacing: 6) {
+                Text(MonthPickerButton.name(of: month))
+                    .textRole(.accessory)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
+                Image(systemName: "chevron.down")
+                    .font(.system(size: chevron, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            // The link colour, as "Báo cáo ›" beside it and every word-button (`HeaderLink`).
+            .foregroundStyle(Palette.primary)
+            // Laid out as its words, so the card's 20 frames them; the tap reaches 44 tall.
+            .contentShape(Rectangle().inset(by: -Spacing.m))
+        }
+        .buttonStyle(.plain)
+        // A new button for each month, as `MonthPickerButton`: the old label's width stayed.
+        .id("\(year)-\(number)")
+        .transition(.identity)
+        .accessibilityLabel("Chọn tháng, tháng \(number) năm \(String(year))")
+        .sensoryFeedback(.selection, trigger: month)
+        .sheet(isPresented: $isPicking) { MonthPickerSheet(month: $month) }
+    }
+}
+
+/// Two figures side by side, each its word small over its amount (the month card of Giao dịch,
+/// user design 2026-11-07): "Đã chi" and "Đã thu" on Thu chi, what is lent and owed on Vay nợ.
+/// At large text sizes the second goes under the first. One element for VoiceOver.
+struct FigurePair: View {
+    let label: String
+    let amount: Double
+    var tone: MoneyText.Tone = .neutral
+    let secondaryLabel: String
+    let secondaryAmount: Double
+    var secondaryTone: MoneyText.Tone = .neutral
+    let accessibilityLabel: String
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: Spacing.l) {
+                figure(label, amount, tone)
+                figure(secondaryLabel, secondaryAmount, secondaryTone)
+            }
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                figure(label, amount, tone)
+                figure(secondaryLabel, secondaryAmount, secondaryTone)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func figure(_ word: String, _ value: Double, _ tone: MoneyText.Tone) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(word)
+                .textRole(.footnote)
+                .foregroundStyle(Palette.secondaryLabel)
+                .lineLimit(1)
+            MoneyText(amount: value, size: .heading, tone: tone)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 /// Picks a month on the iOS month-and-year wheels (user choice 2026-10-30: native, over the drawn
 /// grid of twelve months), in the short sheet `MonthPickerButton` opens. Like every sheet of the
 /// app (`SheetScaffold`, user choice 2026-10-31): "Chọn tháng" with ✕ and ✓, the wheels on a card,
@@ -138,7 +218,7 @@ struct MonthPickerSheet: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: Self.wheelsHeight)
                     .padding(Spacing.m)
-                    .cardSurface(radius: CardCorners.inset)
+                    .cardSurface(radius: CardCorners.card)
                 if showsThisMonth {
                     Button {
                         Haptics.selection()

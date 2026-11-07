@@ -11,6 +11,7 @@ import SwiftUI
 struct LoanEditorView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.recordSheetDismiss) private var recordSheetDismiss
 
     private let original: Loan?
     @State private var direction: LoanDirection
@@ -292,8 +293,10 @@ struct LoanEditorView: View {
         FormGroup {
             FormDestructiveRow(title: "Xoá khoản vay", question: "Xoá khoản vay với “\(original.name)”?",
                                message: deleteMessage(original)) {
-                store.delete(original)
-                dismiss()
+                // The form and the loan's sheet first, then the loan out of its list, animated
+                // (`AfterDismiss`), as on Tài khoản.
+                (recordSheetDismiss ?? dismiss)()
+                AfterDismiss.run { store.delete(original) }
             }
         }
     }
@@ -318,8 +321,8 @@ struct LoanEditorView: View {
         loan.date = date
         loan.monthlyInterestRate = rate
         loan.dueDate = hasDueDate ? dueDate : nil
-        store.save(loan)
         dismiss()
+        AfterDismiss.run { store.save(loan) }
     }
 
     /// "1,5" for 1.5, as the rate is typed back.

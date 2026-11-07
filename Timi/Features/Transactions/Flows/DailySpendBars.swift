@@ -40,7 +40,7 @@ struct DailySpendBars: View {
                         : amount == 0 ? Palette.progressTrack : Palette.progress
                     let barHeight = isAhead ? Self.stub
                         : max(Self.height * amount / biggest, isToday ? Self.todayMinimum : Self.stub)
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    RoundedRectangle(cornerRadius: CardCorners.mark, style: .continuous)
                         .fill(color)
                         .frame(height: barHeight)
                         .frame(maxWidth: .infinity)

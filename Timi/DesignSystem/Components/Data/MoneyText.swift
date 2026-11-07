@@ -17,7 +17,7 @@ struct MoneyText: View {
     /// `muted` grey, for money that does not count (a locked account); `outflow` money out in a
     /// list of money, "-" in ink: red on every row read as alarm ("B+" 2026-11-03), so in a list
     /// only money in takes a colour.
-    enum Tone { case balance, neutral, signedIncome, signedExpense, signedNet, transfer, muted, outflow }
+    enum Tone { case balance, neutral, income, signedIncome, signedExpense, signedNet, transfer, muted, outflow }
 
     let amount: Double
     var size: Size = .row
@@ -30,7 +30,7 @@ struct MoneyText: View {
         // Milu writes the minus as U+2212 "−", a dash as wide as the "+".
         case .signedExpense, .outflow: return "\u{2212}" + value
         case .signedNet: return (amount > 0 ? "+" : amount < 0 ? "\u{2212}" : "") + value
-        case .neutral, .balance, .transfer, .muted: return (amount < 0 ? "\u{2212}" : "") + value
+        case .neutral, .balance, .transfer, .muted, .income: return (amount < 0 ? "\u{2212}" : "") + value
         }
     }
 
@@ -39,7 +39,8 @@ struct MoneyText: View {
         // Money in emerald with its "+", money out coral, between the user's own accounts grey,
         // everywhere (the user's palette 2026-11-02; money in was ink before).
         case .signedExpense: Palette.expense
-        case .signedIncome: Palette.income
+        // A month's income as a total, green with no "+" (the month card on Giao dịch, 2026-11-07).
+        case .signedIncome, .income: Palette.income
         case .signedNet: amount > 0 ? Palette.income : amount < 0 ? Palette.expense : Palette.label
         case .balance: amount < 0 ? Palette.expense : Palette.label
         case .transfer: Palette.transfer
@@ -56,7 +57,7 @@ struct MoneyText: View {
         switch tone {
         case .signedIncome: sign = "cộng "
         case .signedExpense, .outflow: sign = "trừ "
-        case .signedNet, .neutral, .balance, .transfer, .muted: sign = amount < 0 ? "trừ " : (tone == .signedNet && amount > 0 ? "cộng " : "")
+        case .signedNet, .neutral, .balance, .transfer, .muted, .income: sign = amount < 0 ? "trừ " : (tone == .signedNet && amount > 0 ? "cộng " : "")
         }
         return sign + figure
     }

@@ -26,87 +26,95 @@ struct TransactionsView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSearching = false
-    /// Trợ lý AI from the ✦ on the bar, and the first transaction from the empty list's button.
+    /// Trợ lý AI from the ✦ on the bar.
     @State private var isShowingAssistant = false
-    @State private var isAddingFirst = false
     @State private var editingLoan: Loan?
     /// A row tapped to read it (then change or delete it from its sheet).
     @State private var editingItem: AccountDetailView.Activity?
-    /// Where the filter row is on screen: above the scroll view's top means the user has scrolled
-    /// past it.
-    @State private var filterTop: CGFloat = 0
+    /// Whether the filter row has gone up past the scroll view's top. A yes or no, written only
+    /// when it flips: its position, written every frame, rebuilt the whole page on every frame
+    /// of a scroll (user report 2026-11-07).
+    @State private var isPastFilter = false
+    @State private var isShowingSettings = false
+    /// Off the top of the page: the bar's soft edge shows (a yes or no, written on a flip).
+    @State private var isScrolled = false
 
     var body: some View {
         NavigationStack {
             ScrollViewReader { scroller in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: Spacing.section) {
-                        // The head's card first: "Thu chi · Vay nợ" went up into the bar, in the
-                        // title's place (user pick "B" 2026-11-04).
-                        switch segment {
-                        case .flows: summaryHead
-                        case .loans: LoansSummaryHead()
-                        }
-
-                        // Then the filter words with the list they narrow, not with the head: they
-                        // leave the totals as they are, and "Thu" under "Đã chi" read as broken
-                        // (review 2026-11-03). A new filter or month: the list fades over to what
-                        // it shows now. It keeps at least a screen's height, so a shorter one
-                        // leaves the page where it is instead of snapping it up.
-                        VStack(alignment: .leading, spacing: Spacing.s) {
+                    // Milu's Giao dịch (Figma 317:6594, "Thu chi · Tất cả", 2026-11-07), laid out as
+                    // Sổ ví: Than's sky with "Sổ giao dịch", the head of Tài khoản's height and
+                    // shape, then "Thu chi ⌄" and "Báo cáo", the month with its figures, the
+                    // filter and a card for each day. Spaced as Sổ ví (user report 2026-11-07): 24
+                    // under the sky, 12 from a heading to its card, 28 between the parts.
+                    VStack(alignment: .leading, spacing: 0) {
+                        SkyHeader(overline: "Than ghi chép", title: "Sổ giao dịch",
+                                  mascot: thanMascot, placement: .thanAtRest, sky: .than)
+                        VStack(alignment: .leading, spacing: 0) {
+                            sectionHead
+                            figuresRow
+                                .padding(.top, Spacing.m)
+                                .padding(.bottom, Spacing.section - Spacing.m)
+                            // The filter with the list it narrows: it leaves the totals as they
+                            // are. A new month or segment: the list fades over to what it shows
+                            // now. It keeps at least a screen's height, so a shorter one leaves
+                            // the page where it is instead of snapping it up.
                             switch segment {
                             case .flows:
                                 filterRow { TransactionFilterTabs(selection: $filter) }
                                 listContainer { flowList }
                             case .loans:
-                                filterRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
+                                filterRow { SegmentPills(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
                                 listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                             }
                         }
+                        .padding(.horizontal, Spacing.page)
+                        .padding(.top, Spacing.xxl)
+                        .padding(.bottom, Spacing.xxl)
                     }
                     // A new month or segment fades over; a new filter shows its list at once, no
                     // animation (user request 2026-11-01: every animation tried felt jerky).
                     .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: pageIdentity)
-                    .padding(.horizontal, Spacing.page)
-                    .padding(.top, Spacing.l)
-                    .padding(.bottom, Spacing.xxl)
                 }
+                // Scrolled up, the page goes behind the bar's band, not under its buttons (review
+                // 2026-11-07: "Sổ giao dịch" and "Thu chi" read through Q and Hỏi Milu).
+                .topScrollEdgeIfAvailable(scrolled: isScrolled)
+                .onScrolledFromTop { isScrolled = $0 }
                 // Scrolled down into the list: a new filter glides back to the filter row, so what
                 // it shows starts in view.
                 .onChange(of: listIdentity) {
-                    guard filterTop < 0 else { return }
+                    guard isPastFilter else { return }
                     withAnimation(.smooth(duration: 0.35)) { scroller.scrollTo(Self.filterAnchor, anchor: .top) }
                 }
             }
-            // The plain page colour, as on Tài khoản (user report 2026-11-03: the ground read muddy).
             .pageBackground()
             .foregroundStyle(Palette.label)
-            // No title on the bar (user pick "B" 2026-11-04): "Thu chi · Vay nợ" on its left, words
-            // rather than a segmented control (user pick "B" 2026-11-03). The title stays for
-            // VoiceOver and the back button.
-            .modifier(HiddenTitleBar(title: "Giao dịch", leadingCircles: 0, trailingCircles: 2) { Color.clear.frame(height: 1) })
+            // The bar of Tài khoản: Q, opening Cài đặt, on the left, ✦ Hỏi Milu and search on the
+            // right; no wordmark (user request 2026-11-07). The title stays for VoiceOver and the
+            // back button.
+            .modifier(HiddenTitleBar(title: "Giao dịch", leadingCircles: 1, trailingCircles: 2,
+                                     trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
+                // An empty slot, not EmptyView: with nothing there, iOS shows the title.
+                Color.clear.frame(height: 1).accessibilityHidden(true)
+            })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { pageMenu }
+                // Plain items: the bar draws their glass, which then takes part in push and pop.
                 // The + beside the tab bar adds a transaction, or a loan while "Vay nợ" shows
-                // (`AddTransactionContext.addsLoan`): no + of its own on the bar, which made two +
-                // doing two things side by side and moved ✦ and search on each switch (review
-                // 2026-11-03). The month is picked on the page; search opens a screen of its own
-                // (TransactionSearchView).
-                // Plain items: the bar draws their glass, which then takes part in push and pop
-                // (glass drawn inside the item showed as a square mid-transition). The spacer
-                // gives each its own glass rather than one shared pill.
+                // (`AddTransactionContext.addsLoan`). The spacer gives each its own glass.
+                ToolbarItem(placement: .topBarLeading) { ProfileBarButton { isShowingSettings = true } }
                 ToolbarItem(placement: .topBarTrailing) { assistantButton }
                 if #available(iOS 26.0, *) {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
                 ToolbarItem(placement: .topBarTrailing) { searchButton }
             }
+            .sheet(isPresented: $isShowingSettings) { SettingsView() }
             .fullScreenCover(isPresented: $isShowingAssistant) {
                 NavigationStack { AssistantView() }
                     .presentationBackground(Palette.background)
             }
-            .sheet(isPresented: $isAddingFirst) { AddTransactionView() }
             .fullScreenCover(isPresented: $isSearching) {
                 TransactionSearchView(segment: segment)
             }
@@ -131,8 +139,11 @@ struct TransactionsView: View {
     /// The filter row, where a new filter scrolls back to.
     private func filterRow(@ViewBuilder _ filter: () -> some View) -> some View {
         filter()
+            // 28 under the month card (the filter and the days are the next part), 12 over the
+            // first day, as a heading over its card.
+            .padding(.vertical, Spacing.m)
             .id(Self.filterAnchor)
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { filterTop = $0 }
+            .onGeometryChange(for: Bool.self) { $0.frame(in: .scrollView).minY < 0 } action: { isPastFilter = $0 }
     }
 
     /// A new month or segment is another list: the old fades out over the new one in the same
@@ -161,29 +172,41 @@ struct TransactionsView: View {
         today = now
     }
 
-    /// The page shown, in the bar's glass on the left: tapped, iOS's own menu opens from it to
-    /// pick "Thu chi" or "Vay nợ", the one shown ticked (user request 2026-11-04, in place of a
-    /// segmented control).
-    private var pageMenu: some View {
-        Menu {
-            Picker("Trang", selection: $segment) {
-                ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
+    /// "Thu chi ⌄" as the section's heading, iOS's own menu opening from it to pick "Thu chi" or
+    /// "Vay nợ", the one shown ticked (Figma 262:3298). As tall as its words, its tap 44 tall.
+    /// "Báo cáo" is in the month card.
+    private var sectionHead: some View {
+        HStack(spacing: Spacing.s) {
+            Menu {
+                Picker("Trang", selection: $segment) {
+                    ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(segment.title)
+                        .textRole(.heading)
+                        .lineLimit(1)
+                    // SF's ⌄, as the month's and the "›" of "Báo cáo" (user request 2026-11-07),
+                    // larger with the heading.
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: sectionChevron, weight: .semibold))
+                        .accessibilityHidden(true)
+                }
+                .foregroundStyle(Palette.label)
+                // Laid out as its words, as "Ví & ngân hàng" on Tài khoản; the tap reaches 44 tall.
+                .contentShape(Rectangle().inset(by: -Spacing.s))
             }
-        } label: {
-            HStack(spacing: Spacing.xs) {
-                // Regular words, as iOS's own glass buttons (user request 2026-11-04).
-                // Nunito SemiBold 15, as "Hỏi Milu" beside it (user pick 2026-11-05).
-                Text(segment.title)
-                    .font(Typography.font(.subheadline, size: 15, weight: .semibold))
-                TimiIcon("hugeicons-arrow-down-01", size: RowMetrics.linkChevron)
-            }
-            .foregroundStyle(Palette.primary)
+            .tint(Palette.primary)
+            .accessibilityLabel("Trang")
+            .accessibilityValue(segment.title)
+            .accessibilityHint("Chọn Thu chi hoặc Vay nợ")
+            .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: Spacing.s)
         }
-        .tint(Palette.primary)
-        .accessibilityLabel("Trang")
-        .accessibilityValue(segment.title)
-        .accessibilityHint("Chọn Thu chi hoặc Vay nợ")
     }
+
+    @ScaledMetric(relativeTo: .title3) private var sectionChevron: CGFloat = 16
+    @ScaledMetric(relativeTo: .subheadline) private var reportGlyph: CGFloat = 13
 
     private var searchButton: some View {
         Button { isSearching = true } label: {
@@ -219,49 +242,61 @@ struct TransactionsView: View {
         return "\(filter.rawValue)-\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
-    /// The head of "Thu chi", in a card as "Cho vay | Đi vay" beside it (user request 2026-11-03:
-    /// on the bare page both read loose): "Đã chi tháng 11 ⌄", which picks the month, and "Báo cáo
-    /// ›" to the month's report on one line, what went out in large type, and the month's spending
-    /// day by day under it ("B+", 2026-11-03). No more words ("too many words", 2026-11-03: income
-    /// is under "Thu", the limit on Tổng quan).
-    private var summaryHead: some View {
-        let reported = store.reportableTransactions(inMonthOf: displayedMonth)
-        let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
-        return VStack(alignment: .leading, spacing: Spacing.xxs) {
-            // "Báo cáo ›" goes under the month at the largest text sizes, where on one line the
-            // two pushed the page past the screen (review 2026-11-03).
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline) {
-                    monthButton
+    /// Under the heading, 12 down, a card (user design 2026-11-07): on Thu chi the month, opening
+    /// the wheels, and "Báo cáo" at its head, then what went out and came in that month side by
+    /// side; on Vay nợ what is lent and owed.
+    @ViewBuilder
+    private var figuresRow: some View {
+        switch segment {
+        case .flows:
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                    MonthTitleButton(month: $displayedMonth)
                     Spacer(minLength: Spacing.s)
                     reportLink
                 }
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    monthButton
-                    reportLink
-                }
+                flowFigures
             }
-            // Ink, not red: the figure of the page, read every day (red is for a line of money out).
-            // VoiceOver hears what it is, which the month button above carries on screen.
-            MoneyText(amount: spent, size: .display, tone: .neutral)
-                .accessibilityLabel("Đã chi \(monthName.lowercased()), \(MoneyText.spoken(spent))")
-            DailySpendBars(month: displayedMonth, today: today)
-                .padding(.top, Spacing.m)
+            .card()
+        case .loans:
+            LoansFigures()
+                .card()
         }
-        .card()
     }
 
-    private var monthButton: some View {
-        MonthPickerButton(month: $displayedMonth, lead: "Đã chi")
+    /// What went out this month and what came in (Figma 317:6599).
+    private var flowFigures: some View {
+        let reported = store.reportableTransactions(inMonthOf: displayedMonth)
+        let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
+        let earned = reported.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
+        let month = monthName.lowercased()
+        return FigurePair(label: "Đã chi", amount: spent,
+                          secondaryLabel: "Đã thu", secondaryAmount: earned,
+                          secondaryTone: earned > 0 ? .income : .neutral,
+                          accessibilityLabel: "Đã chi \(month), \(MoneyText.spoken(spent)). Đã thu \(MoneyText.spoken(earned))")
     }
 
+    /// "Báo cáo ›", in the link colour as the month beside it, to the month's report.
     private var reportLink: some View {
         NavigationLink {
             ReportView(period: ReportPeriod(.month, containing: displayedMonth))
         } label: {
-            HeaderLink(title: "Báo cáo", opensPage: true)
+            HStack(spacing: Spacing.xs) {
+                // 14, as "Tháng 11" at the other end of the row (HIG: one size for one row).
+                Text("Báo cáo")
+                    .textRole(.accessory)
+                    .lineLimit(1)
+                    .fixedSize()
+                // SF's ›, as iOS ends a link to a page (user request 2026-11-07, over the chart).
+                Image(systemName: "chevron.right")
+                    .font(.system(size: reportGlyph, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(Palette.primary)
+            .contentShape(Rectangle().inset(by: -Spacing.m))
         }
         .headerLinkButton()
+        .accessibilityLabel("Báo cáo \(monthName.lowercased())")
     }
 
     /// The month's rows a filter lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
@@ -285,25 +320,33 @@ struct TransactionsView: View {
     private var flowList: some View {
         let groups = ActivityDayList.byDay(filteredItems)
         if groups.isEmpty {
-            VStack(spacing: Spacing.l) {
-                EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
-                               title: emptyTitle, message: emptyMessage,
-                               picture: filter == .transfer ? IconCatalog.emojiName("💵") : IconCatalog.emojiName("📝"))
-                // Before anything is recorded, the way to start, under the card (2026-11-03).
-                if hasNothingRecorded {
-                    TimiButton("Ghi khoản đầu tiên", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {
-                        isAddingFirst = true
-                    }
-                }
-            }
+            // The card alone: the + beside the tabs adds (user request 2026-11-07, no "Ghi khoản đầu
+            // tiên" under it).
+            EmptyStateCard(icon: filter == .transfer ? "hugeicons-arrow-data-transfer-horizontal" : "hugeicons-inbox",
+                           title: emptyTitle, message: emptyMessage,
+                           picture: filter == .transfer ? IconCatalog.emojiName("💵") : IconCatalog.emojiName("📝"))
+                // As the parts of Tài khoản, both ways: the one leaving goes at once, the one coming
+                // fades in, so the last day never shows through the empty card or the other way.
+                .transition(.emptySwap)
         } else {
-            // Tapping a row opens it to read, change or delete, as in an account's history.
-            ActivityDayList(groups: groups) { editingItem = $0 }
+            // Tapping a row opens it to read, change or delete, as in an account's history. One
+            // view, so the days leave and come as one (`.emptySwap`), not each with its own fade.
+            VStack(alignment: .leading, spacing: Spacing.section) {
+                ActivityDayList(groups: groups, headingOutside: true) { editingItem = $0 }
+            }
+            .transition(.emptySwap)
         }
     }
 
     /// "Tháng 9" this year, "Tháng 9/2025" another: the month in the empty list's words.
     private var monthName: String { MonthPickerButton.name(of: displayedMonth) }
+
+    /// Than read from what is recorded, as Nâu on Tài khoản, the same every time the tab opens
+    /// (user request 2026-11-07): curious before the first transaction or loan, at rest after.
+    /// The swap hops in from the feet (`SkyHeader`).
+    private var thanMascot: String {
+        hasNothingRecorded && store.loans.isEmpty ? "cun-than-dau-trang-to-mo" : "cun-than-dau-trang"
+    }
 
     /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.
     private var hasNothingRecorded: Bool {

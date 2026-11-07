@@ -147,7 +147,7 @@ private struct TransactionCard: View {
 
     var body: some View {
         TransactionListRow(transaction: transaction, detail: .day)
-            .cardSurface(radius: CardCorners.flow, color: Palette.surfaceMuted, shadowed: false)
+            .cardSurface(radius: CardCorners.card, color: Palette.surfaceMuted, shadowed: false)
             .accessibilityElement(children: .combine)
     }
 }
@@ -155,8 +155,8 @@ private struct TransactionCard: View {
 enum Bubble {
     /// A bubble rounds like a list card, with a small tail corner (re-review 2026-10-31:
     /// written as 24 and 8; a `CardCorners.bubbleTail` token would be the clean home for the 8).
-    static let radius = CardCorners.inset
-    static let tail = CardCorners.calendarDay
+    static let radius = CardCorners.card
+    static let tail = CardCorners.small
     /// Wide enough that a question fills most of the row (user request 2026-10-31: close to the
     /// margins), short enough that it still reads as the user's side.
     static let maxWidth: CGFloat = 0.85

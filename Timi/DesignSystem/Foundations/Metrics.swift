@@ -111,16 +111,30 @@ enum ControlHeight {
     static let small: CGFloat = 36
 }
 
-/// Corner radii. Every card one radius, 28 (UI review 2026-10-30: cards were 22, 26 and 32 side
-/// by side); tiles inside a card round less (20), so the inner corner never bulges past the outer.
+/// Corner radii, by role, after iOS's own (user request 2026-11-07: native over the Milu Figma,
+/// one scale, no radius picked by eye). Three sizes and the capsule; anything inside a rounded
+/// shape takes `concentric(in:inset:)`, so its corner runs parallel to the one around it (HIG:
+/// concentric shapes). All continuous, as iOS draws them.
+///
+/// - `card` 26: every surface on a page or in a sheet: cards, list cards, form groups, tiles of
+///   Tổng quan, chat cards, empty-state cards. Measured on iOS 26's Settings (its grouped
+///   sections, Simulator 2026-11-07).
+/// - `inner` 12: a block inside a card: a text field, a picture tile, a date leaf, a chip that may
+///   wrap to two lines (26 − 14, concentric with the card around it).
+/// - `small` 8: a small cell: a day on the calendar, a chat bubble's tail.
+/// - `mark` 3: the end of a chart bar.
+/// - `Capsule()`: buttons, chips, badges, the search field, progress bars, the filter's tray and
+///   pill, and any one-line control whose height sets its ends (iOS 26's controls).
 enum CardCorners {
-    /// Cards on a page with 20 inside (overview cards, totals).
-    static let large: CGFloat = 28
-    /// A form group, a list of rows (`listCard`), or the card in a short sheet.
-    static let inset: CGFloat = 24
-    /// Tiles inside a card (Số dư / Cho vay / Nợ, Tiền vào / Tiền ra), chat cards.
-    static let flow: CGFloat = 20
-    /// Text fields and inline pickers, 44pt tall.
-    static let field: CGFloat = 12
-    static let calendarDay: CGFloat = 8
+    static let card: CGFloat = 26
+    static let inner: CGFloat = 12
+    static let small: CGFloat = 8
+    static let mark: CGFloat = 3
+
+    /// The corner of a shape `inset` points inside one of corner `outer`: the two curves stay
+    /// parallel (a block 14 inside a card: 26 − 14 = 12). Never below `small`, so it still reads
+    /// rounded.
+    static func concentric(in outer: CGFloat = card, inset: CGFloat) -> CGFloat {
+        max(outer - inset, small)
+    }
 }

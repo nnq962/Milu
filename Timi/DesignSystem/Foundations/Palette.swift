@@ -79,6 +79,9 @@ enum Palette {
     static let skyTop = dynamic(0x9ED8F2, dark: 0x142B47)
     /// The small letters Nâu signs the Sổ ví with ("NÂU GIỮ VÍ"): the brown of Nâu's ink.
     static let nauInk = dynamic(0x63482B, dark: 0xE7C79A)
+    /// The top edge of Than's sky on Giao dịch (Milu `than/skyTop`, Figma 239:6884), run on
+    /// above the head during a pull-down.
+    static let thanSkyTop = dynamic(0xCBE6F3, dark: 0x152C44)
 
     // MARK: Money and meaning
     //

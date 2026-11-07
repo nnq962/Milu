@@ -1,14 +1,32 @@
 import SwiftUI
 
-/// The Accounts sky extends behind the navigation bar. The text determines the header's
-/// height, while the sky and mascot stay anchored to its lower edge (Figma 79:1333, 2026-11-05:
-/// the 402 × 240 "Nền trời Milu" with its sun or moon and a horizon of clouds, its edge at 240).
+/// The head of a tab's page: a dog's sky running on behind the navigation bar, its role small
+/// over the page's large title, the dog on the right resting on the edge. Tài khoản (Nâu, Figma
+/// 79:1333) and Giao dịch (Than, Figma 317:6594) share it, so both are the same height with the
+/// words in the same place (user request 2026-11-07). The words set the height; the sky and the
+/// dog stay anchored to the lower edge, the 240 of the 402-wide drawing.
 struct SkyHeader: View {
     let overline: String
     let title: String
     /// The dog's picture in `MiluArt` ("cun-nau-mac-dinh").
     let mascot: String
     var placement: MascotPlacement = .nauAtRest
+    var sky: Sky = .nau
+
+    /// Whose sky: its picture (anchored by its foot, as wide as the screen), the colour it runs on
+    /// in above, and the colour of the role over the title.
+    struct Sky {
+        let image: String
+        /// The picture's height at 402 wide.
+        let height: CGFloat
+        let top: Color
+        let ink: Color
+
+        /// Nâu's: sun or moon and a horizon of clouds (402 × 240).
+        static let nau = Sky(image: "milu-hero-sky", height: 240, top: Palette.skyTop, ink: Palette.nauInk)
+        /// Than's: clouds and a paper plane (402 × 256, its top under the bar).
+        static let than = Sky(image: "than-hero-sky", height: 256, top: Palette.thanSkyTop, ink: Palette.deep)
+    }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -22,6 +40,9 @@ struct SkyHeader: View {
         static let nauAtRest = MascotPlacement(left: 247, top: 158, width: 166.3)
         /// The curious and happy Figma instances have an inset around the same SVG viewport.
         static let nauGreeting = MascotPlacement(left: 250.2, top: 159.7, width: 162)
+        /// Than with its tongue out on Giao dịch (Figma 320:3768, "Than ghi chép · Hero đồng bộ"),
+        /// in "cun-than-dau-trang", whose mountain runs on past the edge.
+        static let thanAtRest = MascotPlacement(left: 231.6, top: 158, width: 196.7)
     }
 
     private static let referenceWidth: CGFloat = 402
@@ -43,7 +64,7 @@ struct SkyHeader: View {
                     .font(Typography.font(.caption2, size: 11, weight: .heavy))
                     .tracking(1.6)
             }
-            .foregroundStyle(Palette.nauInk)
+            .foregroundStyle(sky.ink)
             Text(title)
                 .textRole(.hero)
                 .foregroundStyle(Palette.label)
@@ -80,12 +101,12 @@ struct SkyHeader: View {
             let width = proxy.size.width
             let edge = proxy.size.height
             let scale = width / Self.referenceWidth
-            let skyHeight = Self.referenceEdge * scale
+            let skyHeight = sky.height * scale
             ZStack(alignment: .topLeading) {
-                Palette.skyTop
+                sky.top
                     .frame(width: width, height: Self.overscroll + edge)
                     .offset(y: -Self.overscroll)
-                Image("milu-hero-sky")
+                Image(sky.image)
                     .resizable()
                     .frame(width: width, height: skyHeight)
                     .offset(y: edge - skyHeight)

@@ -35,6 +35,9 @@ struct ActivityDayList: View {
     let groups: [(day: Date, items: [AccountDetailView.Activity])]
     /// The account whose history this is (its page): transfers read "Chuyển đến …" / "Nhận từ …".
     var viewedAccount: Account.ID? = nil
+    /// The day's title and totals on the page over its card, at the card's edge, as the sections
+    /// of Tài khoản (Giao dịch, user request 2026-11-07); otherwise inside the card's top.
+    var headingOutside = false
     let onOpen: (AccountDetailView.Activity) -> Void
 
     static func byDay(_ items: [AccountDetailView.Activity]) -> [(day: Date, items: [AccountDetailView.Activity])] {
@@ -44,17 +47,29 @@ struct ActivityDayList: View {
 
     var body: some View {
         ForEach(groups, id: \.day) { group in
-            HeaderCard(title: group.day.transactionDayTitle) {
-                dayTotals(group)
-            } content: {
-                VStack(spacing: 0) {
-                    ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
-                        ActivityRow(item: item, side: viewedAccount == nil ? .list : .account, viewedAccount: viewedAccount,
-                                    detail: .time, onEdit: onOpen)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
-                    }
+            if headingOutside {
+                VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                    SectionHeader(title: group.day.transactionDayTitle) { dayTotals(group) }
+                        // At the card's edge, not the rows' 16 in: as "Ví & ngân hàng".
+                        .padding(.horizontal, -RowMetrics.horizontal)
+                    rows(group).listCard()
                 }
-                .listCard()
+            } else {
+                HeaderCard(title: group.day.transactionDayTitle) {
+                    dayTotals(group)
+                } content: {
+                    rows(group).listCard()
+                }
+            }
+        }
+    }
+
+    private func rows(_ group: (day: Date, items: [AccountDetailView.Activity])) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+                ActivityRow(item: item, side: viewedAccount == nil ? .list : .account, viewedAccount: viewedAccount,
+                            detail: .time, onEdit: onOpen)
+                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
             }
         }
     }

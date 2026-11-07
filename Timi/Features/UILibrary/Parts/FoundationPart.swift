@@ -43,9 +43,8 @@ struct FoundationPart: View {
     ]
 
     private let radii: [(name: String, value: CGFloat)] = [
-        ("large", CardCorners.large),
-        ("inset", CardCorners.inset), ("flow", CardCorners.flow), ("field", CardCorners.field),
-        ("calendarDay", CardCorners.calendarDay),
+        ("card", CardCorners.card), ("inner", CardCorners.inner),
+        ("small", CardCorners.small), ("mark", CardCorners.mark),
     ]
 
     var body: some View {
@@ -54,11 +53,11 @@ struct FoundationPart: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.m), count: 3), spacing: Spacing.l) {
                     ForEach(colors, id: \.name) { item in
                         VStack(alignment: .leading, spacing: Spacing.xs) {
-                            RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous)
+                            RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous)
                                 .fill(item.color)
                                 .frame(height: 48)
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: CardCorners.field, style: .continuous)
+                                    RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous)
                                         .strokeBorder(Palette.separator, lineWidth: 1)
                                 }
                             Text(item.name).textRole(.captionStrong).lineLimit(1).minimumScaleFactor(0.8)
@@ -136,13 +135,13 @@ struct FoundationPart: View {
                 HStack(spacing: Spacing.l) {
                     Color.clear
                         .frame(height: 64)
-                        .cardSurface(radius: CardCorners.flow)
+                        .cardSurface(radius: CardCorners.card)
                     Color.clear
                         .frame(height: 64)
-                        .cardSurface(radius: CardCorners.flow, shadowed: false)
+                        .cardSurface(radius: CardCorners.card, shadowed: false)
                 }
                 .padding(Spacing.s)
-                .background(Palette.background, in: RoundedRectangle(cornerRadius: CardCorners.flow, style: .continuous))
+                .background(Palette.background, in: RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous))
             }
         }
     }

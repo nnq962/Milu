@@ -60,10 +60,13 @@ struct LoanDetailSheet: View {
                                    message: "Khoản vay này không còn trong danh sách.")
                 }
             }
-            .sheet(item: $editingLoan, onDismiss: {
-                if store.loan(id: loanID) == nil { dismiss() }
-            }) { loan in
+            // Gone some other way while open: close. (Its form closes this sheet itself before
+            // deleting, `recordSheetDismiss`.)
+            .onChange(of: store.loan(id: loanID) == nil) { _, gone in if gone { dismiss() } }
+            .sheet(item: $editingLoan) { loan in
                 LoanEditorView(loan: loan)
+                    // Deleting there closes this sheet too, before the loan goes.
+                    .environment(\.recordSheetDismiss, dismiss)
             }
             .sheet(item: $paying) { target in
                 if let loan = store.loan(id: loanID) {

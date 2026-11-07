@@ -21,7 +21,7 @@ struct AppearancePicker: View {
         }
         .padding(.horizontal, Spacing.xl)
         .padding(.vertical, Spacing.l)
-        .cardSurface(radius: CardCorners.inset)
+        .cardSurface(radius: CardCorners.card)
     }
 
     private func choice(_ option: AppAppearance) -> some View {

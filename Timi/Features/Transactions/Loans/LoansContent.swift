@@ -28,11 +28,11 @@ enum LoanFilter: String, CaseIterable, Identifiable {
 /// Opens "Khoản vay đã tất toán".
 struct SettledLoansRoute: Hashable {}
 
-/// The head of "Vay nợ": what others owe you and what you owe, side by side at one size, with how
-/// many people under each, in a card as the head of Thu chi beside it (user request 2026-11-03,
-/// after a day on the bare page read loose). Loans with people only: a credit card's debt stays
-/// on Tài khoản.
-struct LoansSummaryHead: View {
+/// The figures of "Vay nợ" under its heading, as Thu chi's beside its month: what others owe you,
+/// then what you owe, red with "−" while something is owed, as on its rows. Loans with people
+/// only: a credit card's debt stays on Tài khoản. VoiceOver also hears how many people each side
+/// is, which the rows below show.
+struct LoansFigures: View {
     @Environment(FinanceStore.self) private var store
 
     var body: some View {
@@ -40,26 +40,16 @@ struct LoansSummaryHead: View {
         // People, not loans: two open loans to Minh Trần are one person.
         let lenders = Set(active.filter { $0.direction == .lent }.map { $0.contactID?.uuidString ?? $0.name }).count
         let debts = Set(active.filter { $0.direction == .borrowed }.map { $0.contactID?.uuidString ?? $0.name }).count
+        let lent = store.totalLent
         let owed = store.totalBorrowed
-        let lentWho = Self.who(lenders)
-        let owedWho = Self.who(debts)
-        // "Đi vay", the chip's and the section's word, not "Đang nợ"; red with "-" while
-        // something is owed, as on its rows (strict review 2026-10-31). VoiceOver gets the words on
-        // screen, "Không có ai" included.
-        SplitTotals(items: [
-            .init("Cho vay", amount: store.totalLent, accessibilityLabel: "Cho vay \(store.totalLent.vnd), \(lentWho)"),
-            .init("Đi vay", amount: owed, tone: owed > 0 ? .signedExpense : .neutral,
-                  accessibilityLabel: "Đi vay \(owed > 0 ? "-" : "")\(owed.vnd), \(owedWho)"),
-        ]) { item in
-            Text(item.title == "Cho vay" ? lentWho : owedWho)
-                .textRole(.caption)
-                .foregroundStyle(Palette.secondaryLabel)
-        }
-        .card()
+        FigurePair(label: "Đang cho vay", amount: lent,
+                  secondaryLabel: "Đi vay", secondaryAmount: owed,
+                  secondaryTone: owed > 0 ? .signedExpense : .neutral,
+                  accessibilityLabel: "Đang cho vay \(lent.vnd), \(Self.who(lenders)). Đi vay \(owed > 0 ? "-" : "")\(owed.vnd), \(Self.who(debts))")
     }
 
     private static func who(_ people: Int) -> String {
-        people == 0 ? "Không có ai" : "\(people) người"
+        people == 0 ? "không có ai" : "\(people) người"
     }
 }
 
@@ -163,9 +153,11 @@ struct LoansContent: View {
                 // 2026-10-31); Fluent Flat pictures, as on Tài khoản (user request 2026-11-03).
                 EmptyStateCard(icon: "hugeicons-hand-coins", title: "Chưa có ai vay",
                                message: "Khoản cho vay sẽ hiện ở đây.", picture: IconCatalog.emojiName("🤝"))
+                    .transition(.emptySwap)
             }
             if !lentLoans.isEmpty {
                 LoanRowList(loans: lentLoans, today: today, onOpen: onEdit)
+                    .transition(.emptySwap)
             }
         }
     }
@@ -179,9 +171,11 @@ struct LoansContent: View {
             if borrowedLoans.isEmpty {
                 EmptyStateCard(icon: "hugeicons-money-receive-02", title: "Chưa vay ai",
                                message: "Khoản đi vay sẽ hiện ở đây.", picture: IconCatalog.emojiName("💵"))
+                    .transition(.emptySwap)
             }
             if !borrowedLoans.isEmpty {
                 LoanRowList(loans: borrowedLoans, today: today, onOpen: onEdit)
+                    .transition(.emptySwap)
             }
         }
     }

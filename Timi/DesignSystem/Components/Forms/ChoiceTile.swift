@@ -22,7 +22,7 @@ struct ChoiceTile: View {
     @ScaledMetric(relativeTo: .caption) private var glyph = RowMetrics.iconColumn
 
     var body: some View {
-        let tile = RoundedRectangle(cornerRadius: CardCorners.field + Spacing.xs, style: .continuous)
+        let tile = RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous)
         Button(action: action) {
             VStack(spacing: Spacing.s) {
                 TimiIcon(icon, size: glyph)
