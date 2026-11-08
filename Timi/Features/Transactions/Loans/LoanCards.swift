@@ -80,14 +80,22 @@ struct LoanRow: View {
     let loan: Loan
     /// Passed in so the deadline moves on overnight with the page.
     var today = Date.now
+    /// False inside the person's own sheet (Danh bạ): "Cho vay" or "Đi vay" with money going out
+    /// or coming in, where their initial and name would repeat on every row (review 2026-11-08).
+    var showsPerson = true
 
     @Environment(FinanceStore.self) private var store
 
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
         let borrowed = loan.direction == .borrowed
-        ListRow(title: loan.name, subtitle: subtitle(), hasTrailingNote: true) {
-            InitialsAvatar(name: loan.name, size: RowMetrics.listLogo)
+        ListRow(title: title, subtitle: subtitle(), hasTrailingNote: true) {
+            if showsPerson {
+                InitialsAvatar(name: loan.name, size: RowMetrics.listLogo)
+            } else {
+                RowIcon(name: borrowed ? "hugeicons-money-receive-02" : "hugeicons-money-send-02",
+                        size: RowMetrics.listLogo)
+            }
         } trailing: {
             // Still owed by me: money going out, in ink with "−" as every amount going out
             // ("B+", review 2026-11-07); under it the deadline in the urgency's colour.
@@ -98,27 +106,36 @@ struct LoanRow: View {
         // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đồng, còn 7 ngày".
         .accessibilityElement(children: .ignore)
         // The deadline's day in words ("hạn 6 tháng 11"), not "6/11" (review 2026-11-08).
-        .accessibilityLabel([loan.name, FormDateRow.spokenDays(in: subtitle(spoken: true)),
+        .accessibilityLabel([title, FormDateRow.spokenDays(in: subtitle(spoken: true)),
                              loan.isSettled ? MoneyText.spoken(loan.principal)
                                  : "còn \(borrowed ? "nợ " : "")\(MoneyText.spoken(loan.outstanding))",
                              urgency.text].filter { !$0.isEmpty }.joined(separator: ", "))
         .accessibilityHint("Xem khoản vay")
     }
 
+    /// The loan's person, or its side ("Cho vay") without them (`showsPerson`).
+    private var title: String { showsPerson ? loan.name : loan.direction.title }
+
     /// The deadline's day and how much is repaid once something is ("Hạn 6/11 · Đã trả 40%"); the
     /// relationship when there is no deadline; "Lãi 1tr" too when it bears interest. Settled: the
     /// side with the relationship ("Cho vay · Bạn bè"), since both sides' amounts are in ink there
     /// (re-review 2026-10-31). `spoken`: the interest in words for VoiceOver ("đồng", not "đ").
+    /// Without the person (`showsPerson` false) the side is the title and the relationship is on
+    /// the sheet already: settled, or open with nothing else to say, the day it began ("Từ 12/3").
     private func subtitle(spoken: Bool = false) -> String {
-        let relationship = loan.contactID.flatMap { store.contact(id: $0) }
-            .map { store.relationship(id: $0.relationshipID).name }
-        if loan.isSettled { return [loan.direction.title, relationship].compactMap { $0 }.joined(separator: " · ") }
+        let relationship = showsPerson ? loan.contactID.flatMap { store.contact(id: $0) }
+            .map { store.relationship(id: $0.relationshipID).name } : nil
+        let since = "Từ \(loan.date.shortDay)"
+        if loan.isSettled {
+            return showsPerson ? [loan.direction.title, relationship].compactMap { $0 }.joined(separator: " · ") : since
+        }
         let due = loan.dueDate.map { "Hạn \($0.shortDay)" } ?? relationship
         let interest = loan.monthlyInterestRate > 0
             ? "Lãi \(spoken ? MoneyText.spoken(loan.monthlyInterest) : loan.monthlyInterest.vnd)" : nil
         // How much is repaid only once something is: "Chưa trả" made the line wrap for little.
         let paid = loan.paidRatio > 0 ? loan.paidText : nil
-        return [due, interest, paid].compactMap { $0 }.joined(separator: " · ")
+        let parts = [due, interest, paid].compactMap { $0 }
+        return parts.isEmpty && !showsPerson ? since : parts.joined(separator: " · ")
     }
 
     /// What is left: still owed by me with "−", in ink as all money going out ("B+", review
@@ -154,12 +171,14 @@ struct LoanRow: View {
 struct LoanRowList: View {
     let loans: [Loan]
     var today = Date.now
+    /// See `LoanRow.showsPerson`.
+    var showsPerson = true
     let onOpen: (Loan) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(loans.enumerated()), id: \.element.id) { index, loan in
-                Button { onOpen(loan) } label: { LoanRow(loan: loan, today: today) }
+                Button { onOpen(loan) } label: { LoanRow(loan: loan, today: today, showsPerson: showsPerson) }
                     .buttonStyle(.row)
                     .overlay(alignment: .top) {
                         // From where the names start, the avatar column scaled with the text.

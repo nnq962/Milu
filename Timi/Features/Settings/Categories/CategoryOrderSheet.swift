@@ -24,7 +24,10 @@ struct CategoryOrderSheet: View {
         NavigationStack {
             ReorderTable(items: $order,
                          footer: "Kéo tay nắm ở cuối dòng để đổi chỗ. Thứ tự này cũng là thứ tự khi chọn hạng mục.")
-                .ignoresSafeArea(edges: .bottom)
+                // Up behind the bar, as every sheet's list: the rows pass under it as they
+                // scroll (user report 2026-11-08: the bar was a solid band). The table insets
+                // its first row below the bar on its own.
+                .ignoresSafeArea()
                 .navigationTitle(title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -191,15 +194,31 @@ private struct ReorderTable: UIViewControllerRepresentable {
 
         override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool { true }
 
+        /// Asked each time the lifted row passes another: the row that would be last loses its
+        /// line as it slides into that place, not on the drop (user report 2026-11-08: the last
+        /// row lifted, the one sliding down to the foot carried its line onto the card's edge).
+        override func tableView(_ tableView: UITableView, targetIndexPathForMoveFromRowAt source: IndexPath,
+                                toProposedIndexPath proposed: IndexPath) -> IndexPath {
+            var order = items.map(\.id)
+            let moved = order.remove(at: source.row)
+            order.insert(moved, at: min(proposed.row, order.count))
+            showLines(lastID: order.last)
+            return proposed
+        }
+
         override func tableView(_ tableView: UITableView, moveRowAt source: IndexPath, to destination: IndexPath) {
             let moved = items.remove(at: source.row)
             items.insert(moved, at: destination.row)
             onMove(items)
             // The row now last loses its line, the one that was last gains one, at once as the
             // row is dropped (known by what each row shows, not where the table has it yet).
-            let last = items.last?.id
+            showLines(lastID: items.last?.id)
+        }
+
+        /// A line under every row but the one at the foot.
+        private func showLines(lastID: String?) {
             for case let cell as RowCell in tableView.visibleCells {
-                cell.showsLine = cell.categoryID != last
+                cell.showsLine = cell.categoryID != lastID
             }
         }
     }
@@ -215,6 +234,8 @@ private struct ReorderTable: UIViewControllerRepresentable {
         /// What the row shows, to tell the last one after a drop.
         var categoryID: String?
         private let line = UIView()
+        /// Where a row's line runs (from under the words), as iOS last placed one.
+        private static var linePlace: (CGFloat, CGFloat)?
 
         override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
             super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -239,8 +260,15 @@ private struct ReorderTable: UIViewControllerRepresentable {
                 line.isHidden = true
                 return
             }
-            line.frame = CGRect(x: place.minX, y: bounds.height - place.height,
-                                width: place.width, height: place.height)
+            // With the last row dragged out of the list, iOS draws the row left at the foot a
+            // section's closing line, edge to edge (user report 2026-11-08): from where the words
+            // start instead, as every other row's.
+            let ground = subviews.first { $0 !== line && String(describing: type(of: $0)).contains("Background") }
+            let edgeToEdge = ground.map { place.minX <= $0.frame.minX + 1 } ?? false
+            if !edgeToEdge { Self.linePlace = (place.minX, place.maxX) }
+            let (start, end) = edgeToEdge ? (Self.linePlace ?? (place.minX, place.maxX)) : (place.minX, place.maxX)
+            line.frame = CGRect(x: start, y: bounds.height - place.height,
+                                width: end - start, height: place.height)
             line.isHidden = !showsLine
             bringSubviewToFront(line)
         }

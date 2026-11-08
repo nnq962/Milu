@@ -1,8 +1,9 @@
 import SwiftUI
 
 /// Adds or edits a person in "Danh bạ": name and relationship (the built-in ones or one the user
-/// added, `RelationshipPickerSheet`). At the end of an existing one: "Xoá khỏi danh bạ", which only
-/// explains when they still have loans (user choice 2026-10-29). Names are unique (case aside,
+/// added, `RelationshipPickerSheet`). An existing one also lists their loans, each opening its
+/// sheet (review 2026-11-08: "1 khoản vay" on the row led nowhere), then "Xoá khỏi danh bạ", with a
+/// line under it saying why not while they still have loans (user choice 2026-10-29). Names are unique (case aside,
 /// accents count) and at most `Contact.maxNameLength`; ✓ with no name says "Nhập tên.".
 struct ContactEditorView: View {
     enum Target: Identifiable {
@@ -28,6 +29,8 @@ struct ContactEditorView: View {
     @State private var name: String
     @State private var relationshipID: String
     @State private var isPickingRelationship = false
+    /// The loan opened from the list, in its own sheet.
+    @State private var openLoan: Loan?
     /// Set by the first ✓: from then on a missing name is shown in red.
     @State private var showsErrors = false
 
@@ -73,10 +76,10 @@ struct ContactEditorView: View {
 
     var body: some View {
         let relationship = store.relationship(id: relationshipID)
-        SheetScaffold(title: original == nil ? "Thêm vào danh bạ" : "Sửa thông tin",
+        SheetScaffold(title: original == nil ? "Thêm vào danh bạ" : "Sửa liên hệ",
                       validate: validate, onConfirm: save) {
             FormGroup(title: "Thông tin", error: nameError) {
-                FormTextRow(title: "Tên", text: $name, isInvalid: nameError != nil,
+                FormTextRow(title: "Tên", text: $name, prompt: "Nguyễn Văn A", isInvalid: nameError != nil,
                             maxLength: Contact.maxNameLength, focusesOnAppear: original == nil)
                 FormDivider(hasIcon: false)
                 Button { isPickingRelationship = true } label: {
@@ -88,10 +91,25 @@ struct ContactEditorView: View {
             }
 
             if let original {
-                FormGroup { deleteRow(original) }
+                // Open ones as Vay nợ orders them (overdue first, then the nearest deadline), then
+                // settled, newest first; Vay nợ's rows, the person left out (they are the sheet).
+                let all = store.loans(of: original)
+                let loans = all.filter { !$0.isSettled }.byUrgency()
+                    + all.filter(\.isSettled).sorted { $0.date > $1.date }
+                if !loans.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Khoản vay", style: .group)
+                        LoanRowList(loans: loans, showsPerson: false) { openLoan = $0 }
+                    }
+                }
+                // Short under the row; the alert says that settled ones count too.
+                FormGroup(footer: loans.isEmpty ? nil : "Còn \(loans.count) khoản vay nên chưa xoá được.") {
+                    deleteRow(original, loans: loans)
+                }
             }
         }
         .timiSheetStyle()
+        .sheet(item: $openLoan) { LoanDetailSheet(loanID: $0.id) }
         .sheet(isPresented: $isPickingRelationship) {
             RelationshipPickerSheet(selection: $relationshipID)
         }
@@ -100,10 +118,9 @@ struct ContactEditorView: View {
 
     /// Deletes someone with no loans; for someone with loans the alert only says why not (settled
     /// ones count too, so it says so when there are some).
-    private func deleteRow(_ contact: Contact) -> some View {
-        let loans = store.loans(of: contact)
+    private func deleteRow(_ contact: Contact, loans: [Loan]) -> some View {
         let settled = loans.contains(where: \.isSettled) ? " (kể cả khoản đã tất toán)" : ""
-        let canDelete = store.canDelete(contact)
+        let canDelete = loans.isEmpty
         return FormDestructiveRow(
             title: "Xoá khỏi danh bạ",
             question: canDelete ? "Xoá “\(contact.name)”?" : "Không xoá được “\(contact.name)”",

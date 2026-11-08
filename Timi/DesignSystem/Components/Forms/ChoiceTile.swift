@@ -85,15 +85,20 @@ struct ChoiceTileGrid<Item: Hashable, Cell: View>: View {
 /// "Chọn nhanh" look of Thêm giao dịch for a picture (user request 2026-11-05), but the pictures
 /// without names, five a row like the full sheet (2026-11-06): only a tile that names a category
 /// carries a name. "Xem thêm" goes without its words too: five a row cut them to "Xem thê…"
-/// and left a line of its own under the grid; "…" on the last tile is the usual "more". An icon
-/// chosen in the sheet that is not among the suggestions takes the first place, so the choice
-/// always shows here.
+/// and left a line of its own under the grid; "…" on the last tile is the usual "more".
+///
+/// The tiles keep the order they opened with (user report 2026-11-08: an icon not among the
+/// suggestions used to take the first tile, and choosing another sent every tile one place on);
+/// "Đã chọn" above them shows the choice instead, one picked under "…" included.
 struct IconTilePicker: View {
     @Binding var selection: String
     let suggestions: [String]
     var groups: [IconGroup] = IconCatalog.emojiGroups
 
     @State private var isShowingAll = false
+    /// The suggestions as they were when the picker first showed: a form whose suggestions follow
+    /// what is being edited (a category's group) does not shuffle the tiles under the finger.
+    @State private var shownIcons: [String] = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Tile: Hashable {
@@ -105,12 +110,42 @@ struct IconTilePicker: View {
     private static let count = 9
 
     private var tiles: [Tile] {
-        let icons = Array(suggestions.prefix(Self.count))
-        let shown = icons.contains(selection) ? icons : [selection] + icons.dropLast()
-        return shown.map(Tile.icon) + [.more]
+        let icons = shownIcons.isEmpty ? Array(suggestions.prefix(Self.count)) : shownIcons
+        return icons.map(Tile.icon) + [.more]
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            chosenRow
+            FormDivider(hasIcon: false)
+            grid
+        }
+        .onAppear {
+            if shownIcons.isEmpty { shownIcons = Array(suggestions.prefix(Self.count)) }
+        }
+        // A change that stays on screen ticks through `sensoryFeedback`, as the rule says.
+        .sensoryFeedback(.selection, trigger: selection)
+        .sheet(isPresented: $isShowingAll) {
+            IconPickerSheet(selection: $selection, groups: groups)
+        }
+    }
+
+    /// "Đã chọn" and the picture, whichever tile or sheet it came from.
+    private var chosenRow: some View {
+        HStack(spacing: Spacing.s) {
+            FormRowLabel(title: "Đã chọn")
+            Spacer(minLength: Spacing.s)
+            TimiIcon(selection, size: RowMetrics.iconColumn)
+                .contentTransition(.opacity)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
+        }
+        .formRowFrame()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Biểu tượng đã chọn")
+        .accessibilityValue(Self.title(of: selection))
+    }
+
+    private var grid: some View {
         ChoiceTileGrid(items: tiles, columns: 5) { tile in
             switch tile {
             case .icon(let name):
@@ -127,11 +162,6 @@ struct IconTilePicker: View {
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
-        // A change that stays on screen ticks through `sensoryFeedback`, as the rule says.
-        .sensoryFeedback(.selection, trigger: selection)
-        .sheet(isPresented: $isShowingAll) {
-            IconPickerSheet(selection: $selection, groups: groups)
-        }
     }
 
     private static func title(of name: String) -> String {
