@@ -24,9 +24,14 @@ extension FinanceStore {
     }
 
     func total(_ kind: TransactionKind, in interval: DateInterval) -> Double {
-        reportableTransactions(in: interval)
-            .filter { $0.kind == kind }
-            .reduce(0) { $0 + $1.amount }
+        total(kind, of: reportableTransactions(in: interval))
+    }
+
+    /// From transactions already read (`reportableTransactions(in:)`): a page that needs several
+    /// figures of one period reads it once (review 2026-11-08: Báo cáo read every transaction
+    /// some 25 times per redraw).
+    func total(_ kind: TransactionKind, of items: [FinanceTransaction]) -> Double {
+        items.filter { $0.kind == kind }.reduce(0) { $0 + $1.amount }
     }
 
     /// Chi tiêu trong tháng gộp theo nhóm hạng mục ("Ăn sáng" và "Ăn trưa" vào "Ăn uống"), lớn nhất
@@ -36,14 +41,28 @@ extension FinanceStore {
     }
 
     func expensesByCategory(in interval: DateInterval) -> [CategoryTotal] {
-        let expenses = reportableTransactions(in: interval).filter { $0.kind == .expense }
-        return totals(of: expenses) { groupID(of: $0.categoryID) }
+        expensesByCategory(of: reportableTransactions(in: interval))
+    }
+
+    func expensesByCategory(of items: [FinanceTransaction]) -> [CategoryTotal] {
+        totals(of: items.filter { $0.kind == .expense }) { groupID(of: $0.categoryID) }
+    }
+
+    /// Income in a stretch of time by group ("Lương", "Thưởng"), largest first: the left side of
+    /// Dòng tiền on Báo cáo.
+    func incomesByCategory(of items: [FinanceTransaction]) -> [CategoryTotal] {
+        totals(of: items.filter { $0.kind == .income }) { groupID(of: $0.categoryID) }
     }
 
     /// One group's spending split by its items ("Ăn sáng", "Ăn trưa"…), largest first. An old
     /// transaction filed under the group itself stays a line of its own, named after the group.
     func expensesByItem(inGroup groupID: String, in interval: DateInterval) -> [CategoryTotal] {
-        totals(of: expenses(inGroup: groupID, in: interval)) { $0.categoryID }
+        expensesByItem(of: expenses(inGroup: groupID, in: interval))
+    }
+
+    /// The same from one group's spending already read (`expenses(inGroup:in:)`).
+    func expensesByItem(of expenses: [FinanceTransaction]) -> [CategoryTotal] {
+        totals(of: expenses) { $0.categoryID }
     }
 
     /// One group's reported spending in a stretch of time, newest first.
@@ -56,7 +75,11 @@ extension FinanceStore {
     /// Money in and out per account (and per hũ), most spending first; accounts with neither are left
     /// out.
     func totalsByAccount(in interval: DateInterval) -> [AccountTotal] {
-        Dictionary(grouping: reportableTransactions(in: interval)) { $0.accountID }
+        totalsByAccount(of: reportableTransactions(in: interval))
+    }
+
+    func totalsByAccount(of items: [FinanceTransaction]) -> [AccountTotal] {
+        Dictionary(grouping: items) { $0.accountID }
             .map { id, items in
                 AccountTotal(id: id,
                              name: account(id: id)?.name ?? goal(id: id)?.name ?? "Tài khoản đã xoá",

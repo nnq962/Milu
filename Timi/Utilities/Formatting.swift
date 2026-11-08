@@ -45,7 +45,7 @@ extension String {
 }
 
 extension Date {
-    /// "Hôm nay, 14/5", "Hôm qua, 13/5" hoặc "Thứ Hai, 12/5"
+    /// "Hôm nay, 14/05", "Hôm qua, 13/05" hoặc "Thứ Hai, 12/05"
     var transactionDayTitle: String {
         let calendar = Calendar.current
         let prefix = calendar.isDateInToday(self) ? "Hôm nay"
@@ -56,18 +56,18 @@ extension Date {
         return "\(prefix), \(dayMonth)\(year)"
     }
 
-    /// The one short date of the app: "6/11", "6/11/2025" in another year (strict review
-    /// 2026-10-31: five helpers wrote "06/11", "6/11/2026" or no year at all).
+    /// The one short date of the app: "06/11", "06/11/2025" in another year (user choice
+    /// 2026-11-08: dd/mm everywhere; before, "6/11").
     var shortDay: String {
         let calendar = Calendar.current
         let sameYear = calendar.isDate(self, equalTo: .now, toGranularity: .year)
         return sameYear ? dayMonth : "\(dayMonth)/\(calendar.component(.year, from: self))"
     }
 
-    /// "22/5"
+    /// "22/05": two digits each, as every date of the app (user choice 2026-11-08).
     var dayMonth: String {
         let calendar = Calendar.current
-        return "\(calendar.component(.day, from: self))/\(calendar.component(.month, from: self))"
+        return String(format: "%02d/%02d", calendar.component(.day, from: self), calendar.component(.month, from: self))
     }
 
     /// Whole days from today to this date: 0 today, negative once past.

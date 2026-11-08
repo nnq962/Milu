@@ -64,13 +64,13 @@ struct ContentView: View {
     /// apart from the bar); picking it opens the add sheet through `tabSelection`.
     private var legacyTabs: some View {
         TabView(selection: tabSelection) {
-            OverviewView()
+            TabPage(tab: .overview) { OverviewView() }.equatable()
                 .tabItem { tabLabel("Tổng quan", symbol: "house", tab: .overview) }
                 .tag(AppTab.overview)
-            AccountsView()
+            TabPage(tab: .accounts) { AccountsView() }.equatable()
                 .tabItem { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
                 .tag(AppTab.accounts)
-            TransactionsView()
+            TabPage(tab: .transactions) { TransactionsView() }.equatable()
                 .tabItem { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
                 .tag(AppTab.transactions)
             Color.clear
@@ -83,13 +83,13 @@ struct ContentView: View {
     private var modernTabs: some View {
         TabView(selection: tabSelection) {
             Tab(value: AppTab.overview) {
-                OverviewView()
+                TabPage(tab: .overview) { OverviewView() }.equatable()
             } label: { tabLabel("Tổng quan", symbol: "house", tab: .overview) }
             Tab(value: AppTab.accounts) {
-                AccountsView()
+                TabPage(tab: .accounts) { AccountsView() }.equatable()
             } label: { tabLabel("Tài khoản", symbol: "creditcard", tab: .accounts) }
             Tab(value: AppTab.transactions) {
-                TransactionsView()
+                TabPage(tab: .transactions) { TransactionsView() }.equatable()
             } label: { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
             // A search-role tab sits apart in its own circle beside the bar, as Search does in App
             // Store: there, by the thumb on every tab, it adds a transaction (user choice 2026-10-29),
@@ -112,6 +112,19 @@ struct ContentView: View {
         Label(title, systemImage: selectedTab == tab ? "\(symbol).fill" : symbol)
             .environment(\.symbolVariants, selectedTab == tab ? .fill : .none)
     }
+}
+
+/// A tab's page, the same page as long as it is the same tab. `ContentView` redraws on every tab
+/// change (the chosen tab's icon is filled), which rebuilt the page's struct; SwiftUI could not
+/// tell it was unchanged and re-ran the whole page, a second of work on Giao dịch per switch (user
+/// report 2026-11-08: the tab bar lagged). Equal by tab, so only the page's own state redraws it.
+private struct TabPage<Content: View>: View, Equatable {
+    let tab: AppTab
+    @ViewBuilder let content: () -> Content
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.tab == rhs.tab }
+
+    var body: some View { content() }
 }
 
 #Preview {

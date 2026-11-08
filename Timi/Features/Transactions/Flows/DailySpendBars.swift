@@ -48,9 +48,10 @@ struct DailySpendBars: View {
             }
             .frame(height: Self.height, alignment: .bottom)
             HStack {
-                Text("1/\(number)")
+                // dd/mm, as every date of the app (user choice 2026-11-08).
+                Text(String(format: "01/%02d", number))
                 Spacer()
-                Text("\(days)/\(number)")
+                Text(String(format: "%02d/%02d", days, number))
             }
             .textRole(.footnote)
             .monospacedDigit()

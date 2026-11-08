@@ -68,22 +68,25 @@ struct ReportPeriod: Hashable {
     /// Whether it holds today; nothing after it has happened yet.
     func isCurrent(now: Date = .now) -> Bool { interval.holds(now) }
 
-    /// "Tháng 10", "Tháng 10/2025", "27/10 – 2/11".
+    /// "Tháng 10", "Tháng 10/2025", "27/10 – 02/11".
     var title: String {
         let calendar = Self.calendar
         let year = calendar.component(.year, from: start)
         let isThisYear = year == calendar.component(.year, from: .now)
         switch unit {
         case .week:
+            // Another year says which, as a month does (review 2026-11-08).
             let last = calendar.date(byAdding: .day, value: 6, to: start) ?? start
-            return "\(dayMonth(start)) – \(dayMonth(last))"
+            let range = "\(dayMonth(start)) – \(dayMonth(last))"
+            let lastYear = calendar.component(.year, from: last)
+            return lastYear == calendar.component(.year, from: .now) ? range : "\(range)/\(String(lastYear))"
         case .month:
             let month = calendar.component(.month, from: start)
             return isThisYear ? "Tháng \(month)" : "Tháng \(month)/\(year.formatted(.number.grouping(.never)))"
         }
     }
 
-    /// Under a bar: "27/10", "T10".
+    /// Under a bar: "27/10", "03/11", "T10".
     var shortTitle: String {
         let calendar = Self.calendar
         switch unit {
@@ -95,9 +98,8 @@ struct ReportPeriod: Hashable {
     /// "tháng trước", "tuần trước".
     var previousName: String { "\(unit.title.lowercased()) trước" }
 
-    private func dayMonth(_ date: Date) -> String {
-        "\(Self.calendar.component(.day, from: date))/\(Self.calendar.component(.month, from: date))"
-    }
+    /// "03/11", as every date of the app (`Date.dayMonth`).
+    private func dayMonth(_ date: Date) -> String { date.dayMonth }
 }
 
 /// How much a total moved against the period before: nil when there was nothing before to compare.
@@ -113,5 +115,10 @@ enum Change {
         if abs(ratio) < 0.005 { return "không đổi" }
         let arrow = ratio > 0 ? "↑" : "↓"
         return abs(ratio) > 1 ? "\(arrow) \(abs(now - before).vnd)" : "\(arrow) \(abs(ratio).percentText)"
+    }
+
+    /// A line with the arrows said as words, for VoiceOver: "↑ 15%" → "tăng 15%".
+    static func spoken(_ text: String) -> String {
+        text.replacingOccurrences(of: "↑", with: "tăng").replacingOccurrences(of: "↓", with: "giảm")
     }
 }

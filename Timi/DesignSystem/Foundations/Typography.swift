@@ -140,9 +140,10 @@ enum Typography {
 }
 
 extension View {
-    /// One line at its own size whenever it fits. When too wide, it steps down a text size at a
-    /// time (four steps, each a point or so), so it shrinks only as far as needed; only past
-    /// those does it scale down freely, to `minimum`. Plain `minimumScaleFactor` with the app's
+    /// One line at its own size whenever it fits. When too wide, it steps down two text sizes
+    /// (a couple of points), and only past that does it scale down freely, to `minimum`. Three
+    /// tries, not six: each try is the text again, laid out on every showing, and six made the
+    /// tabs take a second to appear (user report 2026-11-08). Plain `minimumScaleFactor` with the app's
     /// exact line height shrank words that fitted, and words a point too wide dropped to near
     /// the floor (the calendar, the tiles, every `MoneyText`; Simulator and review 2026-11-08).
     /// `alignment` places the words when they fill their slot after shrinking: `.center` in
@@ -168,10 +169,7 @@ private struct ShrinksOnlyToFit: ViewModifier {
     func body(content: Content) -> some View {
         ViewThatFits(in: .horizontal) {
             content.lineLimit(1).fixedSize()
-            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(1))
             content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(2))
-            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(3))
-            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(4))
             content.lineLimit(1)
                 .minimumScaleFactor(minimum)
                 .multilineTextAlignment(alignment)

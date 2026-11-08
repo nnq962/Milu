@@ -9,15 +9,17 @@ struct ReportTransactionList: View {
     let transactions: [FinanceTransaction]
     var limit = 5
 
+    /// Pushed from the card rather than by its last row, so the row going (six down to five)
+    /// does not close the open list (review 2026-11-08).
+    @State private var isShowingAll = false
+
     var body: some View {
-        // A main page's heading, as every part of Báo cáo (strict review 2026-10-31).
-        HeaderCard(title: "Giao dịch · \(transactions.count)") {
+        // A main page's heading over the card, as every part of Báo cáo (user report 2026-11-08).
+        OutsideHeaderSection(title: "Giao dịch · \(transactions.count)") {
             VStack(spacing: 0) {
                 TransactionRows(transactions: Array(transactions.prefix(limit)))
                 if transactions.count > limit {
-                    NavigationLink {
-                        AllReportTransactionsView(title: title, transactions: transactions)
-                    } label: {
+                    Button { isShowingAll = true } label: {
                         HStack {
                             Text("Xem tất cả \(transactions.count) giao dịch")
                                 .textRole(.body)
@@ -35,6 +37,9 @@ struct ReportTransactionList: View {
             }
             .listCard()
         }
+        .navigationDestination(isPresented: $isShowingAll) {
+            AllReportTransactionsView(title: title, transactions: transactions)
+        }
     }
 }
 
@@ -45,7 +50,9 @@ private struct AllReportTransactionsView: View {
 
     var body: some View {
         ScrollView {
-            TransactionRows(transactions: transactions)
+            // Built as they scroll in: a month of a busy group is hundreds of rows (review
+            // 2026-11-08, "Hiệu năng").
+            TransactionRows(transactions: transactions, isLazy: true)
                 .listCard()
         }
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)
@@ -62,21 +69,30 @@ private struct AllReportTransactionsView: View {
 /// The rows, each opening its sheet.
 private struct TransactionRows: View {
     let transactions: [FinanceTransaction]
+    var isLazy = false
 
     @Environment(FinanceStore.self) private var store
     @State private var opened: AccountDetailView.Activity?
 
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(transactions.enumerated()), id: \.element.id) { index, transaction in
-                Button { opened = activity(for: transaction) } label: {
-                    TransactionListRow(transaction: transaction, detail: .day)
-                }
-                .buttonStyle(.row)
-                .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+        Group {
+            if isLazy {
+                LazyVStack(spacing: 0) { rows }
+            } else {
+                VStack(spacing: 0) { rows }
             }
         }
         .sheet(item: $opened) { ActivityEditor(item: $0) }
+    }
+
+    private var rows: some View {
+        ForEach(Array(transactions.enumerated()), id: \.element.id) { index, transaction in
+            Button { opened = activity(for: transaction) } label: {
+                TransactionListRow(transaction: transaction, detail: .day)
+            }
+            .buttonStyle(.row)
+            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+        }
     }
 
     /// What a row stands for: itself, or the transfer or repayment a fee or interest comes from.

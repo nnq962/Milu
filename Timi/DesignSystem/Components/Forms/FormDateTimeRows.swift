@@ -34,11 +34,11 @@ struct FormDateRow: View {
             ? day : "\(day), \(calendar.component(.year, from: date))"
     }
 
-    /// A line with short days in it ("Đã lưu trữ 2/11", "Từ ngày 8/10/2025") as VoiceOver should
-    /// say it: "2 tháng 11", not "2 phần 11" (review 2026-11-07).
+    /// A line with short days in it ("Đã lưu trữ 02/11", "Từ ngày 08/10/2025") as VoiceOver
+    /// should say it: "2 tháng 11", not "2 phần 11" (review 2026-11-07), and not "không hai".
     static func spokenDays(in text: String) -> String {
         text.replacing(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/) { match in
-            let day = "\(match.1) tháng \(match.2)"
+            let day = "\(Int(match.1) ?? 0) tháng \(Int(match.2) ?? 0)"
             return match.3.map { "\(day), \($0)" } ?? day
         }
     }

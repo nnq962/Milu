@@ -311,7 +311,7 @@ struct ReportTests {
         // Thursday 29 October 2026 is in the week of Monday 26 October.
         let week = ReportPeriod(.week, containing: date(29, 10))
         #expect(Calendar.current.isDate(week.start, inSameDayAs: date(26, 10)))
-        #expect(week.title == "26/10 – 1/11")
+        #expect(week.title == "26/10 – 01/11")
         #expect(week.interval.holds(date(1, 11)))
         #expect(!week.interval.holds(date(2, 11)))
     }

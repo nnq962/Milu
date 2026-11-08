@@ -206,8 +206,7 @@ struct MockAssistant {
         guard let biggest = expenses.max(by: { $0.amount < $1.amount }) else {
             return "Tháng này bạn chưa có khoản chi nào."
         }
-        let components = Calendar.current.dateComponents([.day, .month], from: biggest.date)
-        let day = "\(components.day ?? 0)/\(components.month ?? 0)"
+        let day = biggest.date.dayMonth
         // "Đi chợ WinMart (Đi chợ, …)" when the note says what it was; just the category otherwise.
         let category = store.categoryName(biggest.categoryID)
         let what = biggest.note.isEmpty ? "**\(category)**"

@@ -4,6 +4,15 @@ import SwiftUI
 struct ReportPeriodBar: View {
     @Binding var period: ReportPeriod
 
+    @Environment(FinanceStore.self) private var store
+    /// How far back ‹ goes, found once on showing: it walks every record (review 2026-11-09:
+    /// it ran on every redraw, each ‹ › included).
+    @State private var earliest: Date?
+
+    @State private var isPicking = false
+    /// The ⌄ the size of the one on Thu chi's month (`MonthTitleButton`), growing with the words.
+    @ScaledMetric(relativeTo: .subheadline) private var chevron: CGFloat = IconSize.chevron
+
     var body: some View {
         VStack(spacing: Spacing.m) {
             // Words at the user's text size and the height of the segments on Thu chi (strict
@@ -13,25 +22,57 @@ struct ReportPeriodBar: View {
 
             HStack {
                 step(-1, icon: "hugeicons-arrow-left-01", label: "\(period.unit.title) trước")
+                    // No further back than the pickers go, the start of the oldest record's year:
+                    // before it only empty periods (review 2026-11-08).
+                    .disabled(earliest.map { period.start <= $0 } ?? false)
                 Spacer(minLength: Spacing.s)
-                Text(period.title)
-                    .textRole(.title)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
+                // The name opens a picker, so a far month is one pick away, not many taps of ‹
+                // (user request 2026-11-08): the month wheels as on Thu chi, or a calendar for a week.
+                Button { isPicking = true } label: {
+                    HStack(spacing: IconSize.glyphGap) {
+                        Text(period.title)
+                            .textRole(.title)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: chevron, weight: .semibold))
+                            .foregroundStyle(Palette.primary)
+                            .accessibilityHidden(true)
+                    }
+                    .foregroundStyle(Palette.label)
+                    .contentShape(Rectangle().inset(by: -Spacing.m))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Chọn \(period.unit.title.lowercased()), \(period.title)")
                 Spacer(minLength: Spacing.s)
                 step(1, icon: "hugeicons-arrow-right-01", label: "\(period.unit.title) sau")
                     .disabled(period.isCurrent())
             }
         }
-        .sensoryFeedback(.selection, trigger: period)
+        .onAppear { if earliest == nil { earliest = MonthPickerSheet.earliest(in: store) } }
+        // A tick from ‹ › and the segments themselves; the pickers' ✓ and "Tháng này" tick their
+        // own, and a tick on every change of the period made those two (review 2026-11-08).
+        .sheet(isPresented: $isPicking) {
+            switch period.unit {
+            case .month:
+                MonthPickerSheet(month: Binding { period.start } set: { period = ReportPeriod(.month, containing: $0) })
+            case .week:
+                WeekPickerSheet(period: $period)
+            }
+        }
     }
 
-    /// A past period keeps its place (October → 2026); the current one stays current.
+    /// A past period keeps its place; the current one stays current. Anchored on the fourth day
+    /// (a week's Thursday): a week belongs to the month holding its Thursday, and a month's first
+    /// such week holds its fourth day, so Tháng 10 → Tuần → Tháng is Tháng 10 again (review
+    /// 2026-11-08: anchored on the first day it came back as Tháng 9).
     private var unit: Binding<ReportPeriod.Unit> {
         Binding {
             period.unit
         } set: { unit in
-            period = ReportPeriod(unit, containing: period.isCurrent() ? .now : period.start)
+            let anchor = ReportPeriod.calendar.date(byAdding: .day, value: 3, to: period.start) ?? period.start
+            period = ReportPeriod(unit, containing: period.isCurrent() ? .now : anchor)
+            Haptics.selection()
         }
     }
 
@@ -40,6 +81,7 @@ struct ReportPeriodBar: View {
         // glass trailed it (user choice 2026-10-31: no glass inside content). It grows with the
         // text, as the period's name beside it does.
         Button {
+            Haptics.selection()
             withAnimation(.snappy) { period = period.shifted(by: count) }
         } label: {
             TimiIcon(icon, size: glyph)
@@ -51,6 +93,67 @@ struct ReportPeriodBar: View {
 
     @ScaledMetric(relativeTo: .body) private var diameter = ControlHeight.regular
     @ScaledMetric(relativeTo: .body) private var glyph = RowMetrics.toolbarGlyph
+}
+
+/// Picks a week on the iOS calendar: any day picks the week holding it, Monday to Sunday, as
+/// Báo cáo counts them. Like the month wheels (`MonthPickerSheet`): "Chọn tuần" with ✕ and ✓, the
+/// calendar on a card, days ahead out of reach, and "Tuần này" back to the current one.
+struct WeekPickerSheet: View {
+    @Binding var period: ReportPeriod
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(FinanceStore.self) private var store
+    /// The day picked; its week is written to `period` on ✓.
+    @State private var draft: Date
+    /// Back no further than the oldest record's year, found once (not on every redraw).
+    @State private var earliest = Date.distantPast
+
+    init(period: Binding<ReportPeriod>) {
+        _period = period
+        _draft = State(initialValue: period.wrappedValue.start)
+    }
+
+    var body: some View {
+        let picked = ReportPeriod(.week, containing: draft)
+        SheetScaffold(title: "Chọn tuần", onConfirm: {
+            withAnimation(Motion.gentle(.smooth(duration: 0.3))) { period = picked }
+            dismiss()
+        }, fitsContent: true) {
+            VStack(spacing: Spacing.s) {
+                VStack(spacing: Spacing.s) {
+                    DatePicker("Tuần", selection: $draft, in: earliest...Date.now,
+                               displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .environment(\.locale, .vietnam)
+                        .environment(\.calendar, ReportPeriod.calendar)
+                        .tint(Palette.primary)
+                    // Which week the day stands for.
+                    Text("Tuần \(picked.title)")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryLabel)
+                        .monospacedDigit()
+                }
+                .padding(Spacing.m)
+                .cardSurface(radius: CardCorners.card)
+                if !period.isCurrent() {
+                    Button {
+                        Haptics.selection()
+                        withAnimation(Motion.gentle(.smooth(duration: 0.3))) { period = ReportPeriod(.week) }
+                        dismiss()
+                    } label: {
+                        Text("Tuần này")
+                            .padding(.horizontal, Spacing.l)
+                            .frame(minHeight: ControlHeight.regular)
+                            .contentShape(Rectangle())
+                    }
+                    .textRole(.bodyStrong)
+                    .tint(Palette.primary)
+                }
+            }
+            .onAppear { earliest = MonthPickerSheet.earliest(in: store) }
+        }
+    }
 }
 
 /// "↑ 12% so với cùng kỳ tháng trước": red when it got worse (more spending, less income), green
@@ -70,16 +173,21 @@ struct ChangeLabel: View {
         Group {
             if let ratio = Change.ratio(now, from: before), let text = Change.text(now, from: before) {
                 if abs(ratio) < 0.005 {
-                    Text("Như \(short)")
+                    // "Bằng", not "Như": "Như cùng kỳ" read oddly (review 2026-11-08).
+                    Text("Bằng \(short)")
                         .foregroundStyle(Palette.secondaryLabel)
-                        .accessibilityLabel("Như \(name)")
+                        .accessibilityLabel("Bằng \(name)")
                 } else {
                     Text(period.isCurrent() ? "\(text) · cùng kỳ" : "\(text) so với \(name)")
                         .foregroundStyle((ratio > 0) == risingIsBad ? Palette.negative : Palette.positive)
-                        .accessibilityLabel("\(text) so với \(name)")
+                        // In words, "tăng 12%": VoiceOver may read the arrow as a symbol.
+                        .accessibilityLabel("\(Change.spoken(text)) so với \(name)")
                 }
             } else {
-                Text("Chưa có số \(period.previousName)")
+                // Named as what is compared ("cùng kỳ tháng trước" while this one runs), and in
+                // full words (review 2026-11-08: "Chưa có số tháng trước" was clipped, and wrong
+                // when last month had spending only after these days).
+                Text("Chưa có số liệu \(name)")
                     .foregroundStyle(Palette.secondaryLabel)
             }
         }
@@ -88,9 +196,10 @@ struct ChangeLabel: View {
     }
 }
 
-/// A part of a report page: its heading (`.section`, as on every main page), the rows in a list
-/// card under it, and a line under the card for a computed figure only. Forms keep `FormGroup`
-/// and its small grey heading (strict review 2026-10-31: Báo cáo used the form's).
+/// A part of a report page: its heading on the page over the card, at the card's edge, as every
+/// main page (`OutsideHeaderSection`, user report 2026-11-08: Báo cáo alone had it inside), the
+/// rows in a list card, and a line under the card for a computed figure only. Forms keep
+/// `FormGroup` and its small grey heading (strict review 2026-10-31).
 struct ReportSection<Content: View>: View {
     let title: String
     var footer: String? = nil
@@ -98,8 +207,7 @@ struct ReportSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.headerGap) {
-            // The heading inside the card; the footer stays under it, on the page.
-            HeaderCard(title: title) {
+            OutsideHeaderSection(title: title) {
                 VStack(spacing: 0) { content }
                     .listCard()
             }
@@ -154,6 +262,7 @@ struct BreakdownRowLabel: View {
                         .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
                         .lineLimit(1)
+                        .accessibilityLabel(Change.spoken(detail))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
