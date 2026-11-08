@@ -82,7 +82,7 @@ struct LoanEditorView: View {
         guard isExisting else { return nil }
         if outstanding > principal { return "Số còn lại không được lớn hơn số tiền gốc." }
         if repaidInApp > 0, outstanding > principal - repaidInApp {
-            return "Đã \(direction == .lent ? "thu" : "trả") \(repaidInApp.vnd) qua Timi: còn lại tối đa \((principal - repaidInApp).vnd)."
+            return "Đã \(direction == .lent ? "thu" : "trả") \(repaidInApp.vnd) qua Milu: còn lại tối đa \((principal - repaidInApp).vnd)."
         }
         return nil
     }
@@ -217,7 +217,7 @@ struct LoanEditorView: View {
         .animation(Motion.gentle(.smooth(duration: 0.25)), value: direction)
         .timiSheetStyle()
         // A loan from before Timi repaid only through it: what is left was worked out, not typed,
-        // so the field stays empty ("empty = the principal less what came back through Timi").
+        // so the field stays empty ("empty = the principal less what came back through Milu").
         .onAppear {
             if let original, original.isExisting, store.repaidPrincipal(of: original) > 0,
                original.outstanding == original.principal - store.repaidPrincipal(of: original) {

@@ -203,7 +203,7 @@ struct LoanDetailSheet: View {
                       // Not a repayment of the app's: no account, no date, nothing to open.
                       ListRow(icon: IconCatalog.emojiName("🧾"),
                               title: lent ? "Đã thu trước đó" : "Đã trả trước đó",
-                              subtitle: "Trước khi ghi vào Timi",
+                              subtitle: "Trước khi ghi vào Milu",
                               amount: earlier, amountTone: .neutral, showsChevron: false)
                           .overlay(alignment: .top) { if !payments.isEmpty { RowDivider(column: .icon) } }
                   }

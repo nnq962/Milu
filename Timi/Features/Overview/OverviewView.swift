@@ -60,7 +60,8 @@ struct OverviewView: View {
                         OverviewHeader(onOpenNetWorth: { path.append(NetWorthRoute()) },
                                        onAddAccount: { isAddingAccount = true })
                         SpendingTiles(onOpenReport: { path.append(ReportRoute(month: .now)) },
-                                      onOpenToday: { selectedDay = CalendarDay(date: .now) })
+                                      onOpenToday: { selectedDay = CalendarDay(date: .now) },
+                                      onOpenBudget: { path.append(BudgetRoute()) })
                         WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
                                  onSelectDay: { selectedDay = CalendarDay(date: $0) })
                         SavingTiles(onAddGoal: { isAddingGoal = true },
@@ -115,6 +116,7 @@ struct OverviewView: View {
             .navigationDestination(for: ReportRoute.self) { ReportView(period: ReportPeriod(.month, containing: $0.month)) }
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
             .navigationDestination(for: CalendarRoute.self) { _ in MoneyCalendarPage() }
+            .navigationDestination(for: BudgetRoute.self) { _ in BudgetView() }
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(item: $adding) { AddTransactionView(mode: $0) }
@@ -145,6 +147,9 @@ struct OverviewView: View {
         .accessibilityLabel("Thông báo")
     }
 }
+
+/// Pushes Hạn mức chi tiêu from Tổng quan ("Còn tiêu được" with no limit set).
+struct BudgetRoute: Hashable {}
 
 /// Pushes Báo cáo for a month from Tổng quan ("Tháng này").
 struct ReportRoute: Hashable {

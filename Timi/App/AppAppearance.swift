@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// "Giao diện" in Cài đặt: follow the system, or keep Timi light or dark (user request 2026-10-31).
+/// "Giao diện" in Cài đặt: follow the system, or keep Milu light or dark (user request 2026-10-31).
 /// Set on the window itself, not with `preferredColorScheme`, so open sheets change with the page
 /// and the change can cross-fade instead of snapping.
 enum AppAppearance: String, CaseIterable, Identifiable {

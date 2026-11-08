@@ -4,7 +4,7 @@ import SwiftUI
 /// "Xoá toàn bộ dữ liệu" (Cài đặt): đưa dữ liệu về như lúc mới tải, trừ lượt AI.
 ///
 /// Xoá mọi dòng trong SwiftData và mọi tuỳ chọn trong UserDefaults (hạn mức, nhắc nhở, giao diện,
-/// lịch sử tìm kiếm…), **trừ lượt AI** (đã dùng, thưởng, các bước "Làm quen với Timi" đã nhận: khoá
+/// lịch sử tìm kiếm…), **trừ lượt AI** (đã dùng, thưởng, các bước "Làm quen với Milu" đã nhận: khoá
 /// `ai.*`), để không xoá đi làm lại lấy lượt mới (người dùng chọn 2026-11-08). Sau đó `TimiApp` dựng
 /// lại store, lượt AI (đọc lại từ khoá giữ nguyên), các cuộc trò chuyện và cả cây giao diện, nên app
 /// mở lại ở Tổng quan; các bước đã nhận vẫn tính là xong. Không thêm lại dữ liệu mẫu, kể cả ở các

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// Trợ lý AI's question allowance (user choice 2026-10-29): the free plan gets 20 a month, full
-/// again on the 1st; each "Làm quen với Timi" step done adds 5 once, kept until used. A question
+/// again on the 1st; each "Làm quen với Milu" step done adds 5 once, kept until used. A question
 /// takes from the month first, then from the bonus. With none left, Trợ lý AI stops sending and
 /// invites to Pro. Saved in UserDefaults; Pro (300 a month) is not on sale yet.
 @Observable

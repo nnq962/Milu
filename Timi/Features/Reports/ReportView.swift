@@ -86,6 +86,31 @@ struct ReportView: View {
                     .buttonStyle(.automatic)
                     .padding(.top, Spacing.m)
                     .overlay(alignment: .top) { SplitLine() }
+            } else if period.unit == .month {
+                // No limit yet: the way to set one, where people look for it (review 2026-11-08).
+                NavigationLink { BudgetView(month: period.start) } label: {
+                    // The link under the words at the accessibility sizes, where side by side the
+                    // words were cut to "Hạn…" (review 2026-11-08).
+                    ViewThatFits(in: .horizontal) {
+                        HStack {
+                            Text("Hạn mức tháng")
+                                .textRole(.captionStrong)
+                                .foregroundStyle(Palette.secondaryLabel)
+                                .fixedSize()
+                            Spacer(minLength: Spacing.s)
+                            HeaderLink(title: "Đặt hạn mức", opensPage: true)
+                        }
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text("Hạn mức tháng")
+                                .textRole(.captionStrong)
+                                .foregroundStyle(Palette.secondaryLabel)
+                            HeaderLink(title: "Đặt hạn mức", opensPage: true)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.top, Spacing.m)
+                .overlay(alignment: .top) { SplitLine() }
             }
         }
         .card(padding: Spacing.xl)
@@ -144,7 +169,7 @@ struct ReportView: View {
             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
             BudgetStatusLine(level: .init(progress),
                              message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
-                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
+                                 : "Đã dùng \(progress.percentText) hạn mức, còn \(progress.left.vnd)")
         }
         .foregroundStyle(Palette.label)
         .contentShape(Rectangle())

@@ -10,7 +10,7 @@ struct AssistantView: View {
     @Environment(AssistantChats.self) private var chats
     @State private var draft = ""
     @State private var isThinking = false
-    /// Set on the first question; `OnboardingRewards` pays "Hỏi Milu một câu" in Làm quen với Timi.
+    /// Set on the first question; `OnboardingRewards` pays "Hỏi Milu một câu" in Làm quen với Milu.
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
     @State private var viewingTransaction: FinanceTransaction?
     /// The chat card whose "Xoá" was tapped, until the alert is answered: deleting always asks
@@ -259,7 +259,7 @@ struct AssistantView: View {
 
     private var dictationMessage: String {
         switch dictation.failure {
-        case .denied: "Hãy cho phép Timi dùng micro và nhận dạng giọng nói trong Cài đặt."
+        case .denied: "Hãy cho phép Milu dùng micro và nhận dạng giọng nói trong Cài đặt."
         case .unavailable: "Nhận dạng giọng nói tiếng Việt hiện chưa sẵn sàng trên thiết bị này."
         case .audio, nil: "Không mở được micro. Bạn thử lại sau nhé."
         }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The chart colours of Báo cáo, Phân bổ hạn mức and the bars of Tổng quan and Tài khoản: the
+/// The chart colours of Báo cáo and the bars of Tổng quan and Tài khoản: the
 /// five largest groups in `Palette.chart`, the rest share one grey ("Khác"). What is not split
 /// (Chưa phân bổ) is the empty track, marked by a hollow dot.
 enum ChartShades {
@@ -16,7 +16,7 @@ enum ChartShades {
 }
 
 /// A bar split into coloured parts by amount, as the storage bar in iPhone Settings: spending by
-/// group against the month's limit (Tổng quan), limits by group (Phân bổ hạn mức). Thin gaps between the parts; `whole` is what the full bar stands for, and
+/// group against the month's limit (Tổng quan). Thin gaps between the parts; `whole` is what the full bar stands for, and
 /// what the parts leave of it is the empty track. As tall as every progress bar of the app.
 struct SegmentedBar: View {
     struct Segment: Identifiable {

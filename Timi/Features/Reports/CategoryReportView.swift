@@ -2,8 +2,8 @@ import SwiftUI
 
 /// One group of "Hạng mục" in a period (user request 2026-10-30): what it spent against the period
 /// before and its share of all spending, its monthly limit when looking at a month, each item inside
-/// it ("Ăn sáng", "Cà phê"…) with its share, and the transactions. Opened from Báo cáo and from a
-/// group's row on Hạn mức chi tiêu; ✎ in the toolbar sets the group's limit (it must fit in the
+/// it ("Ăn sáng", "Cà phê"…) with its share, and the transactions. Opened from Báo cáo and from
+/// "Xem chi tiêu của nhóm" in a group's limit sheet on Hạn mức chi tiêu; ✎ in the toolbar sets the group's limit (it must fit in the
 /// month's, `BudgetRules`).
 struct CategoryReportView: View {
     let groupID: String
@@ -115,7 +115,7 @@ struct CategoryReportView: View {
                             ProgressBar(value: progress.ratio, color: ProgressBar.budgetColor(progress.ratio))
                             BudgetStatusLine(level: .init(progress),
                                              message: progress.isOver ? "Vượt hạn mức \((-progress.left).vnd)"
-                                                 : "Đã dùng \(progress.ratio.percentText) hạn mức, còn \(progress.left.vnd)")
+                                                 : "Đã dùng \(progress.percentText) hạn mức, còn \(progress.left.vnd)")
                         }
                         .padding(.top, Spacing.m)
                         .overlay(alignment: .top) { SplitLine() }

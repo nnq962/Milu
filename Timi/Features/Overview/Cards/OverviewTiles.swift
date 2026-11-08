@@ -9,13 +9,15 @@ import SwiftUI
 struct SpendingTiles: View {
     let onOpenReport: () -> Void
     let onOpenToday: () -> Void
+    /// Hạn mức chi tiêu, where "Còn tiêu được" goes while no limit is set.
+    let onOpenBudget: () -> Void
 
     var body: some View {
         OutsideHeaderSection(title: "Chi tiêu") {
             Button(action: onOpenReport) { HeaderLink(title: "Báo cáo", opensPage: true) }
                 .headerLinkButton()
         } content: {
-            TilePair { BudgetTile(action: onOpenReport) } second: { TodayTile(action: onOpenToday) }
+            TilePair { BudgetTile(onOpenReport: onOpenReport, onOpenBudget: onOpenBudget) } second: { TodayTile(action: onOpenToday) }
         }
     }
 }
@@ -50,7 +52,7 @@ private struct TilePair<First: View, Second: View>: View {
 }
 
 /// One block: its graphic on top, a label, one figure, a line under it; on the card's white, on
-/// the primary blue for the one that leads, or on the warning's pale ground once the month's
+/// the primary blue for the one that leads, or on the pale red of "over" once the month's
 /// limit is passed.
 private struct OverviewTile<Graphic: View>: View {
     let label: String
@@ -108,13 +110,13 @@ private struct OverviewTile<Graphic: View>: View {
 
 /// What a tile stands on, and the ink its words take there.
 private enum TileGround {
-    case plain, accent, warning
+    case plain, accent, over
 
     var fill: Color {
         switch self {
         case .plain: Palette.surface
         case .accent: Palette.accent
-        case .warning: Palette.warningSoft
+        case .over: Palette.expenseSoft
         }
     }
 
@@ -123,7 +125,7 @@ private enum TileGround {
         switch self {
         case .plain: nil
         case .accent: Palette.onAccent
-        case .warning: Palette.warning
+        case .over: Palette.negative
         }
     }
 }
@@ -141,7 +143,8 @@ private enum OverviewTileMetrics {
 /// What the month's limit still allows, on the blue block: a ring of how much is used. Over the limit,
 /// by how much; with no limit set, what went out. Opens the month's report.
 private struct BudgetTile: View {
-    let action: () -> Void
+    let onOpenReport: () -> Void
+    let onOpenBudget: () -> Void
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -154,12 +157,16 @@ private struct BudgetTile: View {
         let used = monthlyBudget > 0 ? spent / monthlyBudget : 0
         let words = words(spent: spent, used: used)
         let over = monthlyBudget > 0 && spent > monthlyBudget
-        // Over the limit, the whole block turns to the warning's colours, which read in both
-        // modes (review 2026-11-08: an apricot ring all but vanished on the night blue).
+        // Over the limit, the whole block turns to the red of "over" on Hạn mức chi tiêu, the page
+        // it leads to (review 2026-11-08: amber here meant "nearing" everywhere else).
         OverviewTile(label: words.label, value: words.value, detail: words.detail,
-                     ground: over ? .warning : .accent,
-                     accessibility: words.spoken, hint: "Xem báo cáo tháng này", action: action) {
-            ring(min(used, 1) * shown, ink: over ? Palette.warning : Palette.onAccent)
+                     ground: over ? .over : .accent,
+                     accessibility: words.spoken,
+                     // No limit yet: to Hạn mức chi tiêu to set one (review 2026-11-08: "Chưa đặt
+                     // hạn mức" opened the report, which had no way to set it).
+                     hint: monthlyBudget > 0 ? "Xem báo cáo tháng này" : "Đặt hạn mức tháng",
+                     action: monthlyBudget > 0 ? onOpenReport : onOpenBudget) {
+            ring(min(used, 1) * shown, ink: over ? Palette.negative : Palette.onAccent)
         }
         .onAppear {
             guard shown == 0 else { return }
@@ -189,12 +196,14 @@ private struct BudgetTile: View {
         }
         if spent > monthlyBudget {
             let over = spent - monthlyBudget
-            return ("Vượt hạn mức", over.vndCompact, "Đã chi \(spent.vndCompact) / \(monthlyBudget.vndCompact)",
+            return ("Vượt hạn mức", over.vndCompact, "Đã chi \(spent.vndCompact) trên \(monthlyBudget.vndCompact)",
                     "Vượt hạn mức \(MoneyText.spoken(over)), đã chi \(MoneyText.spoken(spent)) trên \(MoneyText.spoken(monthlyBudget))")
         }
         let left = monthlyBudget - spent
-        return ("Còn tiêu được", left.vndCompact, "Đã dùng \(used.percentText) hạn mức",
-                "Còn tiêu được \(MoneyText.spoken(left)), đã dùng \(used.percentText) hạn mức \(MoneyText.spoken(monthlyBudget))")
+        // Rounded as on Hạn mức chi tiêu: "100%" only once nothing is left.
+        let percent = BudgetProgress(limit: monthlyBudget, spent: spent).percentText
+        return ("Còn tiêu được", left.vndCompact, "Đã dùng \(percent) hạn mức",
+                "Còn tiêu được \(MoneyText.spoken(left)), đã dùng \(percent) hạn mức \(MoneyText.spoken(monthlyBudget))")
     }
 }
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Làm quen với Timi": the four first steps as cards in a row the finger swipes through (user
+/// "Làm quen với Milu": the four first steps as cards in a row the finger swipes through (user
 /// request 2026-11-08). Each card is one short row: the step's Fluent Flat picture, its name over
 /// "+5 lượt AI", and a small button that does it; a done card keeps its place with "Đã nhận 5
 /// lượt AI" and a green tick, so the row reads as a checklist of turns earned. The next card
@@ -25,9 +25,9 @@ struct OnboardingCard: View {
 
         var detail: String {
             switch self {
-            case .account: "Ngân hàng, ví hay tiền mặt: Timi cộng lại thành tài sản của bạn."
-            case .transaction: "Một ly cà phê cũng được, để Timi bắt đầu hiểu bạn."
-            case .loan: "Ai đang nợ bạn? Timi nhắc giúp khi tới hạn."
+            case .account: "Ngân hàng, ví hay tiền mặt: Milu cộng lại thành tài sản của bạn."
+            case .transaction: "Một ly cà phê cũng được, để Milu bắt đầu hiểu bạn."
+            case .loan: "Ai đang nợ bạn? Milu nhắc giúp khi tới hạn."
             case .askAI: "Thử hỏi \"Tháng này tôi tiêu gì nhiều nhất?\""
             }
         }
@@ -101,7 +101,7 @@ struct OnboardingCard: View {
         let steps = Step.allCases
         let doneCount = steps.filter(isDone).count
         if doneCount < steps.count {
-            OutsideHeaderSection(title: "Làm quen với Timi") {
+            OutsideHeaderSection(title: "Làm quen với Milu") {
                 Text("\(doneCount)/\(steps.count)")
                     .textRole(.captionStrong)
                     .monospacedDigit()

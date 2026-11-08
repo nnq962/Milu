@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// "Timi Pro", last on Tổng quan, the page's one coloured card (user request 2026-11-08: "màu mè
+/// "Milu Pro", last on Tổng quan, the page's one coloured card (user request 2026-11-08: "màu mè
 /// hơn"): "Timi Pro" as the section's heading on the page; in the card Milu's sky running into
-/// honey with soft apricot suns, a "✦ PRO" tag, "Dùng Timi trọn vẹn" and one line under it, the
+/// honey with soft apricot suns, a "✦ PRO" tag, "Dùng Milu trọn vẹn" and one line under it, the
 /// Fluent Flat crown with sparkles, and "Tìm hiểu thêm" across the foot: Pro is not on sale yet,
 /// so the button says what a tap does. The whole card is one button.
 struct ProUpgradeCard: View {
@@ -16,7 +16,7 @@ struct ProUpgradeCard: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        OutsideHeaderSection(title: "Timi Pro") { card }
+        OutsideHeaderSection(title: "Milu Pro") { card }
     }
 
     private var card: some View {
@@ -27,7 +27,7 @@ struct ProUpgradeCard: View {
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         badge
                         // The `title` of every card's name on the page.
-                        Text("Dùng Timi trọn vẹn")
+                        Text("Dùng Milu trọn vẹn")
                             .textRole(.title)
                             .foregroundStyle(Palette.label)
                         Text("Không lo hết lượt AI.")
@@ -55,11 +55,11 @@ struct ProUpgradeCard: View {
         }
         .buttonStyle(.card)
         .accessibilityElement(children: .ignore)
-        // The heading above already says "Timi Pro"; Voice Control answers to the button's words.
-        .accessibilityLabel("Dùng Timi trọn vẹn, không lo hết lượt AI")
-        .accessibilityInputLabels(["Tìm hiểu thêm", "Timi Pro"])
+        // The heading above already says "Milu Pro"; Voice Control answers to the button's words.
+        .accessibilityLabel("Dùng Milu trọn vẹn, không lo hết lượt AI")
+        .accessibilityInputLabels(["Tìm hiểu thêm", "Milu Pro"])
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Tìm hiểu về Timi Pro, sắp ra mắt")
+        .accessibilityHint("Tìm hiểu về Milu Pro, sắp ra mắt")
     }
 
     /// The colours of Milu's sky (user request 2026-11-08: "màu mè hơn"): sky into honey across the

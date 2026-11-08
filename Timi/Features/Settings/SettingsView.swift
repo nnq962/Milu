@@ -126,19 +126,19 @@ struct SettingsView: View {
 
                     FormGroup(title: "Hỗ trợ") {
                         FormNavigationRow(title: "Câu hỏi thường gặp", icon: "hugeicons-help-circle") {
-                            note = Note(title: "Câu hỏi thường gặp", message: "Sắp có trong app. Hiện bạn có thể xem trên bản web của Timi.")
+                            note = Note(title: "Câu hỏi thường gặp", message: "Sắp có trong app. Hiện bạn có thể xem trên bản web của Milu.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Góp ý với Timi", icon: "hugeicons-bubble-chat") {
-                            mail(subject: "Góp ý cho Timi iOS")
+                        FormNavigationRow(title: "Góp ý với Milu", icon: "hugeicons-bubble-chat") {
+                            mail(subject: "Góp ý cho Milu iOS")
                         }
                         FormDivider()
                         FormNavigationRow(title: "Liên hệ hỗ trợ", subtitle: Self.supportEmail, icon: "hugeicons-mail-01") {
-                            mail(subject: "Hỗ trợ Timi iOS")
+                            mail(subject: "Hỗ trợ Milu iOS")
                         }
                     }
 
-                    FormGroup(title: "Về Timi") {
+                    FormGroup(title: "Về Milu") {
                         FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
                             note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
                         }
@@ -274,7 +274,7 @@ struct SettingsView: View {
             TimiButton("Nâng cấp", role: .primary, fullWidth: true) {
                 note = Note(title: TimiProNote.title, message: TimiProNote.message)
             }
-            .accessibilityHint("Xem gói Timi Pro")
+            .accessibilityHint("Xem gói Milu Pro")
         }
         .padding(.horizontal, RowMetrics.horizontal)
         .padding(.vertical, Spacing.card)

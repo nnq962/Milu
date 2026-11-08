@@ -463,3 +463,22 @@ struct BudgetNoticeScenarioTests {
         #expect(notice(store, 500_000, .transport, replacing: lunch)?.text == "Hạn mức tháng còn 2.000.000đ → còn 1.500.000đ")
     }
 }
+
+struct BudgetPercentTests {
+    /// Rounded down within the limit and up once over, so "100%" stands only beside nothing left.
+    @Test func percentRoundsTheWayTheStateReads() {
+        #expect(BudgetProgress(limit: 30_000_000, spent: 29_900_000).percentText == "99%")
+        #expect(BudgetProgress(limit: 30_000_000, spent: 30_000_000).percentText == "100%")
+        #expect(BudgetProgress(limit: 30_000_000, spent: 30_100_000).percentText == "101%")
+        #expect(BudgetProgress(limit: 1_000, spent: 796).percentText == "79%")
+        // 0.29 × 100 is 28.999… in floating point: still "29%".
+        #expect(BudgetProgress(limit: 100, spent: 29).percentText == "29%")
+        // A đồng left or over is never "100%", however large the limit.
+        #expect(BudgetProgress(limit: 300_000_000, spent: 299_999_999).percentText == "99%")
+        #expect(BudgetProgress(limit: 300_000_000, spent: 300_000_001).percentText == "101%")
+    }
+
+    @Test func capIsWhatTheFieldTakes() {
+        #expect(String(Int(BudgetRules.cap)).count == 12)
+    }
+}

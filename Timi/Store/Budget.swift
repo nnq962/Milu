@@ -15,6 +15,19 @@ struct BudgetProgress {
     /// From 80% up to the limit: worth a warning, not over yet.
     var isNearing: Bool { !isOver && ratio >= 0.8 }
 
+    /// The share used, rounded the way the state reads: down while within the limit, up once
+    /// over, so "100%" stands only beside nothing left and never beside "Còn lại 100.000đ" or
+    /// "Đã vượt" (review 2026-11-08), and 79,6% is not shown as the "80%" where amber starts.
+    var percentText: String {
+        // Cleared of float noise first: 0.29 × 100 is 28.999…, which would floor to 28.
+        let percent = (ratio * 100 * 1_000_000).rounded() / 1_000_000
+        var shown = isOver ? percent.rounded(.up) : percent.rounded(.down)
+        // Even a đồng left, or over, keeps it off "100%" (review 2026-11-08: 299.999.999đ of 300tr
+        // still read "100%" beside "Còn lại 1đ").
+        if isOver { shown = max(shown, 101) } else if left > 0 { shown = min(shown, 99) }
+        return (shown / 100).percentText
+    }
+
     /// What can be spent each day from today to the month's end, today included; nil for a month
     /// that is over or not started, or once nothing is left.
     func dailyAllowance(in month: Date, today: Date = .now) -> Double? {
@@ -60,16 +73,20 @@ struct CategoryBudgets: RawRepresentable, Equatable {
 /// The groups' limits together never go over the month's (user rule 2026-10-30), so a group can
 /// only get a limit once the month has one. Each returns what is wrong, or nil when it may be saved.
 enum BudgetRules {
+    /// The largest limit: what the amount field takes (12 digits), so a limit is never more than
+    /// can be typed back (review 2026-11-08: a raised month of 1.500 tỷ reopened cut to 150 tỷ).
+    static let cap: Double = 999_999_999_999
+
     /// What a group may still be given: the month's limit less the other groups'.
     static func room(for groupID: String, month: Double, groups: CategoryBudgets) -> Double {
         max(month - (groups.total - groups[groupID]), 0)
     }
 
     static func monthError(_ value: Double, groups: CategoryBudgets) -> String? {
+        // An emptied field never gets here: the editor turns it into "Bỏ hạn mức", which takes the
+        // groups' limits with the month's.
         guard value < groups.total else { return nil }
-        return value == 0
-            ? "Bỏ hạn mức các hạng mục trước."
-            : "Tối thiểu \(groups.total.vnd)."
+        return "Tối thiểu \(groups.total.vnd)."
     }
 
     static func groupError(_ value: Double, groupID: String, month: Double, groups: CategoryBudgets) -> String? {

@@ -16,7 +16,7 @@ enum StorageKey {
     static let appearance = "settings.appearance"
     /// The account the last transaction was added to, picked first next time.
     static let lastAccountID = "transactions.lastAccountID"
-    /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
+    /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Milu.
     static let askedAI = "onboarding.askedAI"
     /// True after "Xoá toàn bộ dữ liệu": an empty database stays empty, the sample data is not
     /// seeded again (user report 2026-11-02: it came straight back, so erasing seemed to do nothing).
