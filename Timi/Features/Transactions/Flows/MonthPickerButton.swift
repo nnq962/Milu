@@ -6,7 +6,7 @@ import SwiftUI
 /// the button over the words, which read as the words being squeezed.
 ///
 /// The capsule is a flat fill; `compact` is plain words (14, `HeaderLink`) for beside a section
-/// heading (Lịch thu chi on Tổng quan). The head of Giao dịch has its own, `MonthTitleButton`.
+/// heading (the "Theo ngày" card of the Lịch thu chi page). The head of Giao dịch has its own, `MonthTitleButton`.
 struct MonthPickerButton: View {
     @Binding var month: Date
     var compact = false

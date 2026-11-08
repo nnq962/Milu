@@ -77,7 +77,9 @@ enum BudgetRules {
         guard month > 0 else { return "Đặt hạn mức tháng trước." }
         let room = room(for: groupID, month: month, groups: groups)
         guard value > room else { return nil }
-        return "Chỉ còn \(room.vnd) chưa phân bổ."
+        // The most this group may take, as the note under the field says it: `room` counts the
+        // group's own limit, so "chưa phân bổ" overstated what was free (review 2026-11-08).
+        return room > 0 ? "Tối đa \(room.vnd)." : "Đã phân bổ hết hạn mức tháng."
     }
 }
 

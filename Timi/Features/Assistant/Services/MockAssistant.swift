@@ -25,7 +25,7 @@ struct MockAssistant {
     let store: FinanceStore
 
     static func welcome(name: String) -> String {
-        "Chào \(name)! Mình là Timi. Bạn có thể hỏi mình về tài chính hoặc nhờ mình ghi, sửa, xoá giao dịch."
+        "Chào \(name)! Mình là Milu. Bạn có thể hỏi mình về tài chính hoặc nhờ mình ghi, sửa, xoá giao dịch."
     }
 
     static let suggestions = ["Tháng này tôi tiêu gì nhiều nhất?", "Ghi một khoản chi", "Ai đang nợ tôi?"]

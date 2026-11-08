@@ -86,7 +86,7 @@ struct LoanRow: View {
     var body: some View {
         let urgency = LoanUrgency(loan, today: today)
         let borrowed = loan.direction == .borrowed
-        ListRow(title: loan.name, subtitle: subtitle()) {
+        ListRow(title: loan.name, subtitle: subtitle(), hasTrailingNote: true) {
             InitialsAvatar(name: loan.name, size: RowMetrics.listLogo)
         } trailing: {
             // Still owed by me: money going out, in ink with "−" as every amount going out
@@ -95,9 +95,10 @@ struct LoanRow: View {
                           tone: Self.amountTone(loan),
                           note: urgency.text, noteColor: Self.urgencyColor(urgency))
         }
-        // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đ, còn 7 ngày".
+        // In words: "Minh Trần, hạn 6/11, đã trả 40%, còn 45.000.000 đồng, còn 7 ngày".
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([loan.name, subtitle(spoken: true),
+        // The deadline's day in words ("hạn 6 tháng 11"), not "6/11" (review 2026-11-08).
+        .accessibilityLabel([loan.name, FormDateRow.spokenDays(in: subtitle(spoken: true)),
                              loan.isSettled ? MoneyText.spoken(loan.principal)
                                  : "còn \(borrowed ? "nợ " : "")\(MoneyText.spoken(loan.outstanding))",
                              urgency.text].filter { !$0.isEmpty }.joined(separator: ", "))

@@ -138,3 +138,44 @@ enum Typography {
         navigation.compactAppearance = bar
     }
 }
+
+extension View {
+    /// One line at its own size whenever it fits. When too wide, it steps down a text size at a
+    /// time (four steps, each a point or so), so it shrinks only as far as needed; only past
+    /// those does it scale down freely, to `minimum`. Plain `minimumScaleFactor` with the app's
+    /// exact line height shrank words that fitted, and words a point too wide dropped to near
+    /// the floor (the calendar, the tiles, every `MoneyText`; Simulator and review 2026-11-08).
+    /// `alignment` places the words when they fill their slot after shrinking: `.center` in
+    /// centred slots, so a shrunk "126tr" does not sit left of its neighbours.
+    func shrinksOnlyToFit(_ minimum: CGFloat, alignment: TextAlignment = .leading) -> some View {
+        modifier(ShrinksOnlyToFit(minimum: minimum, alignment: alignment))
+    }
+}
+
+private struct ShrinksOnlyToFit: ViewModifier {
+    let minimum: CGFloat
+    let alignment: TextAlignment
+
+    @Environment(\.dynamicTypeSize) private var size
+
+    /// `steps` text sizes below the current one, no smaller than the smallest.
+    private func smaller(_ steps: Int) -> DynamicTypeSize {
+        let all = DynamicTypeSize.allCases
+        let index = all.firstIndex(of: size) ?? 0
+        return all[max(index - steps, 0)]
+    }
+
+    func body(content: Content) -> some View {
+        ViewThatFits(in: .horizontal) {
+            content.lineLimit(1).fixedSize()
+            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(1))
+            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(2))
+            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(3))
+            content.lineLimit(1).fixedSize().dynamicTypeSize(smaller(4))
+            content.lineLimit(1)
+                .minimumScaleFactor(minimum)
+                .multilineTextAlignment(alignment)
+                .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment == .center ? .center : alignment == .trailing ? .trailing : .leading, vertical: .center))
+        }
+    }
+}

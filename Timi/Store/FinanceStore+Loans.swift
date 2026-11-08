@@ -21,6 +21,7 @@ extension FinanceStore {
             }
             moveMoney(of: loan, sign: 1)
             database?.save(loan)
+            if old == nil, loan.direction == .lent { lastCreated = Creation(kind: .lentLoan) }
             if let previous = old?.contactID, previous != loan.contactID { removeIfUnused(previous) }
         }
     }

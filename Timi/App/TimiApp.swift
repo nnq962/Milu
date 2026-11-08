@@ -42,10 +42,11 @@ struct TimiApp: App {
         }
     }
 
-    /// Xoá sạch rồi dựng lại mọi thứ như lần mở đầu tiên sau khi cài (`DataReset`).
+    /// Xoá dữ liệu rồi dựng lại mọi thứ, giữ lượt AI (`DataReset`).
     private func eraseAllData() {
         DataReset.eraseEverything(database: store.database)
-        // Store mới trên database trống: tự thêm hạng mục mặc định và dữ liệu mẫu như lúc mới cài.
+        // Store mới trên database trống: chỉ thêm hạng mục mặc định, không dữ liệu mẫu
+        // (`sampleDataOff`). Lượt AI đọc lại từ các khoá `ai.*` vẫn còn.
         store = FinanceStore(database: FinanceDatabase(context: container.mainContext))
         quota = AIQuota()
         chats = AssistantChats()

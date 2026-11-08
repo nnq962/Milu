@@ -60,7 +60,7 @@ struct FoundationPart: View {
                                     RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous)
                                         .strokeBorder(Palette.separator, lineWidth: 1)
                                 }
-                            Text(item.name).textRole(.captionStrong).lineLimit(1).minimumScaleFactor(0.8)
+                            Text(item.name).textRole(.captionStrong).shrinksOnlyToFit(0.8)
                             Text(Self.hex(item.color)).textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                                 .monospacedDigit()
                         }
@@ -74,8 +74,7 @@ struct FoundationPart: View {
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text(role.isNumeric ? "14.119.000đ" : role.name)
                                 .textRole(role)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.5)
+                                .shrinksOnlyToFit(0.5)
                             Text("\(role.name) · \(role.size.formatted())pt · \(weightName(role.weight))")
                                 .textRole(.footnote)
                                 .foregroundStyle(Palette.secondaryLabel)
@@ -107,7 +106,7 @@ struct FoundationPart: View {
                             RoundedRectangle(cornerRadius: item.value, style: .continuous)
                                 .fill(Palette.surfaceMuted)
                                 .frame(height: 64)
-                            Text(item.name).textRole(.captionStrong).lineLimit(1).minimumScaleFactor(0.7)
+                            Text(item.name).textRole(.captionStrong).shrinksOnlyToFit(0.7, alignment: .center)
                             Text("\(Int(item.value))").textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                         }
                     }

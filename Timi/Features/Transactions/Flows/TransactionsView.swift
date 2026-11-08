@@ -216,7 +216,7 @@ struct TransactionsView: View {
         .accessibilityLabel(segment == .flows ? "Tìm giao dịch" : "Tìm khoản vay")
     }
 
-    /// ✦ Hỏi Timi, as on Tổng quan and Tài khoản.
+    /// ✦ Hỏi Milu, as on Tổng quan and Tài khoản.
     private var assistantButton: some View {
         AssistantBarButton { isShowingAssistant = true }
     }
@@ -282,7 +282,7 @@ struct TransactionsView: View {
         NavigationLink {
             ReportView(period: ReportPeriod(.month, containing: displayedMonth))
         } label: {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: IconSize.glyphGap) {
                 // 14, as "Tháng 11" at the other end of the row (HIG: one size for one row).
                 Text("Báo cáo")
                     .textRole(.accessory)

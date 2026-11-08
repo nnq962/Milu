@@ -41,6 +41,8 @@ struct ContentView: View {
                 SavedAppearanceSetter().frame(width: 0, height: 0)
             }
             .environment(addContext)
+            // The first steps pay as the user does them, on whichever tab (user choice 2026-11-08).
+            .modifier(OnboardingRewards())
             .sheet(item: $adding) { kind in
                 switch kind {
                 case .transaction: AddTransactionView(preferredAccount: addContext.accountID)

@@ -8,26 +8,36 @@ struct GoalRow: View {
 
     var body: some View {
         ListRow(title: goal.name, subtitle: subtitle,
-                subtitleColor: goal.isOverdue ? Palette.negative : Palette.secondaryLabel) {
+                subtitleColor: goal.isOverdue ? Palette.negative : Palette.secondaryLabel,
+                hasTrailingNote: true) {
             // As wide as an account's logo, so the hairline between rows is `RowDivider(column: .logo)`.
             GoalRing(goal: goal, size: RowMetrics.listLogo)
         } trailing: {
-            ListRowTrailing(note: goal.isReached ? "Đủ" : goal.progressText,
+            ListRowTrailing(note: goal.isReached ? "Đã đủ" : goal.progressText,
                             noteColor: goal.isOverdue ? Palette.negative : Palette.secondaryLabel) {
-                // In the weight of every amount in a list (strict review 2026-10-31).
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    MoneyText(amount: goal.saved)
-                    Text(" / ").textRole(.amount)
-                    MoneyText(amount: goal.target)
-                }
+                // In the weight of every amount in a list (strict review 2026-10-31). Both figures
+                // short, always: each choosing on its own wrote "10.000.000đ / 40tr" (user report
+                // 2026-11-08), and the full pair, taking the row first, left the name "Mua…".
+                figures
             }
         }
-        // In words: "Mua xe, đã để dành 10.000.000 đ trên 40.000.000 đ, 25%".
+        // In words: "Mua xe, hạn 5 tháng 1, 2028, đã để dành 10.000.000 đồng trên 40.000.000 đồng,
+        // 25%" (review 2026-11-08: "đ" was read as a letter and the deadline left out).
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel([goal.name, "đã để dành \(goal.saved.vnd) trên \(goal.target.vnd)",
-                             goal.isReached ? "đã đủ mục tiêu" : goal.isOverdue ? "quá hạn" : goal.progressText]
-            .joined(separator: ", "))
+        .accessibilityLabel([goal.name, subtitle.map { FormDateRow.spokenDays(in: $0.lowercased()) },
+                             "đã để dành \(MoneyText.spoken(goal.saved)) trên \(MoneyText.spoken(goal.target))",
+                             // "Quá hạn …" is already in the subtitle read above: once.
+                             goal.isReached ? "đã đủ mục tiêu" : goal.progressText]
+            .compactMap { $0 }.joined(separator: ", "))
         .accessibilityHint("Xem hũ")
+    }
+
+    private var figures: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            MoneyText(amount: goal.saved, compact: true)
+            Text(" / ").textRole(.amount)
+            MoneyText(amount: goal.target, compact: true)
+        }
     }
 
     /// The due date, red once past it; nothing when the goal has none. The app's one short date

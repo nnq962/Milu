@@ -69,6 +69,7 @@ struct TimiButton<Label: View>: View {
     }
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         Button(action: action) {
@@ -77,7 +78,10 @@ struct TimiButton<Label: View>: View {
                 // Disabled: every role turns into a grey pill with faint text, so it never reads
                 // as tappable.
                 .foregroundStyle(isEnabled ? role.foreground : Palette.tertiaryLabel)
-                .lineLimit(1)
+                // Two lines at the accessibility sizes, centred, rather than "Thêm tài kh…"
+                // (review 2026-11-08).
+                .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, size == .compact ? Spacing.m : Spacing.xl)
                 .padding(.vertical, Spacing.xs)
                 .frame(maxWidth: fullWidth ? .infinity : nil,

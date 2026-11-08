@@ -3,7 +3,8 @@ import SwiftUI
 /// Every amount on screen: tabular digits, "đ" attached, sign and colour by meaning. Always the
 /// full figure in đồng, as a banking app writes it ("33.800.000đ"); only where that does not fit
 /// the room it is given does it shorten to "33,8tr" (user choice 2026-10-31: the app mixed the two
-/// forms with no rule). The choice is made by layout (`ViewThatFits`), not by the caller.
+/// forms with no rule). The choice is made by layout (`ViewThatFits`), not by the caller, except
+/// where figures stand together and must share one form (`compact:`, "10tr / 40tr").
 struct MoneyText: View {
     /// `caption`: a total beside a heading (a day's +/-).
     /// `heading`: a total inside a chart (Tổng chi in the ring).
@@ -22,6 +23,10 @@ struct MoneyText: View {
     let amount: Double
     var size: Size = .row
     var tone: Tone = .balance
+    /// Forces the full (false) or short (true) form; nil lets the room decide. For figures that
+    /// stand together ("10.000.000đ / 40.000.000đ"), which must share one form: each choosing on
+    /// its own wrote "10.000.000đ / 40tr" (user report 2026-11-08).
+    var compact: Bool? = nil
 
     private func text(compact: Bool) -> String {
         let value = compact ? abs(amount).vndCompact : abs(amount).vnd
@@ -70,7 +75,9 @@ struct MoneyText: View {
 
     var body: some View {
         Group {
-            if size == .large || size == .display {
+            if let compact {
+                label(text(compact: compact))
+            } else if size == .large || size == .display {
                 // A lead figure stays whole and shrinks its type to fit, as it always has: two
                 // columns of "-14.100.000đ" read better smaller than as "-14,1tr".
                 label(text(compact: false))
@@ -89,8 +96,10 @@ struct MoneyText: View {
         Text(text)
             .modifier(MoneyFont(size: size))
             .foregroundStyle(color)
-            .lineLimit(1)
-            .minimumScaleFactor(size == .large || size == .display ? 0.5 : 0.8)
+            // Its own size whenever it fits, shrinking only when too wide: plain
+            // `minimumScaleFactor` with the exact line box shrank every amount that fitted, by
+            // up to a fifth (Simulator 2026-11-08).
+            .shrinksOnlyToFit(size == .large || size == .display ? 0.5 : 0.8)
     }
 }
 

@@ -82,14 +82,6 @@ extension Date {
         let days = daysFromToday
         return days > 0 ? "Còn \(days) ngày" : days == 0 ? "Hôm nay" : "Quá hạn \(-days) ngày"
     }
-
-    /// "Hôm nay", "Hôm qua" hoặc "Thứ Năm, 16 tháng 10"
-    var relativeDayTitle: String {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(self) { return "Hôm nay" }
-        if calendar.isDateInYesterday(self) { return "Hôm qua" }
-        return formatted(.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam))
-    }
 }
 
 extension String {

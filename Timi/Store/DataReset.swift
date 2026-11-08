@@ -1,13 +1,15 @@
 import Foundation
 import SwiftUI
 
-/// "Xoá toàn bộ dữ liệu" (Cài đặt): đưa app về đúng như lúc mới tải về.
+/// "Xoá toàn bộ dữ liệu" (Cài đặt): đưa dữ liệu về như lúc mới tải, trừ lượt AI.
 ///
 /// Xoá mọi dòng trong SwiftData và mọi tuỳ chọn trong UserDefaults (hạn mức, nhắc nhở, giao diện,
-/// lịch sử tìm kiếm, lượt AI, bước "Làm quen với Timi"…). Sau đó `TimiApp` dựng lại store, lượt AI,
-/// các cuộc trò chuyện và cả cây giao diện, nên app mở lại ở Tổng quan như lần đầu, thẻ "Làm quen
-/// với Timi" hiện lại. Không thêm lại dữ liệu mẫu, kể cả ở các lần mở sau (`StorageKey.sampleDataOff`),
-/// và hạn mức về 0 thay vì hạn mức mẫu: trước đây dữ liệu mẫu quay lại y như cũ nên người dùng tưởng
+/// lịch sử tìm kiếm…), **trừ lượt AI** (đã dùng, thưởng, các bước "Làm quen với Timi" đã nhận: khoá
+/// `ai.*`), để không xoá đi làm lại lấy lượt mới (người dùng chọn 2026-11-08). Sau đó `TimiApp` dựng
+/// lại store, lượt AI (đọc lại từ khoá giữ nguyên), các cuộc trò chuyện và cả cây giao diện, nên app
+/// mở lại ở Tổng quan; các bước đã nhận vẫn tính là xong. Không thêm lại dữ liệu mẫu, kể cả ở các
+/// lần mở sau (`StorageKey.sampleDataOff`), và hạn mức về 0 thay vì hạn mức mẫu: trước đây dữ liệu
+/// mẫu quay lại y như cũ nên người dùng tưởng
 /// xoá không chạy (2026-11-02). Chỉ còn các hạng mục mặc định.
 ///
 /// App không lưu gì trong Keychain hay file riêng. Quyền mua Timi Pro (khi có) do StoreKit và
@@ -21,7 +23,9 @@ enum DataReset {
         // dưới bị mất khi app đóng, nên lần mở sau dữ liệu mẫu lại quay về (thử trên Simulator
         // 2026-11-02). Khoá của hệ thống (ngôn ngữ…) không nằm trong miền của app, nên xoá ở đây
         // không ảnh hưởng tới chúng.
-        for key in defaults.dictionaryRepresentation().keys {
+        // Lượt AI (đã dùng, thưởng, các bước đã nhận) giữ nguyên: xoá dữ liệu không được đổi lấy
+        // lượt mới, rồi làm lại các bước để nhận thêm (người dùng chọn 2026-11-08).
+        for key in defaults.dictionaryRepresentation().keys where !AIQuota.isOwnKey(key) {
             defaults.removeObject(forKey: key)
         }
         // Trống thật: không dữ liệu mẫu, không hạn mức mẫu (các `@AppStorage` lấy hạn mức mẫu làm

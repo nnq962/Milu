@@ -15,6 +15,8 @@ extension FinanceStore {
             transactions.sort { $0.date > $1.date }
             adjustBalance(of: transaction.accountID, by: transaction.signedAmount)
             database?.save(transaction)
+            // A balance correction, a fee or interest is the app's own entry, not one recorded.
+            if transaction.systemCategory?.isSystem != true { lastCreated = Creation(kind: .transaction) }
         }
     }
 

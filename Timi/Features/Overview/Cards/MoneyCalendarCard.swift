@@ -2,9 +2,9 @@ import SwiftUI
 
 /// "Lịch thu chi": a month grid and its legend; the page puts them on a card under the
 /// section heading that holds the month menu (2026-10-31). Each day shows its number and, under
-/// it, what went out in coral and what came in in green, both short ("757k", "2,5tr"):
+/// it, what went out in red and what came in in green, both short ("757k", "2,5tr"):
 /// at a glance which days cost what (user pick "B" 2026-11-04, after shades alone read pale).
-/// Every day gone by is a pale tile, today a lime one, days ahead a faint number on nothing (user
+/// Every day gone by is a pale tile, today a blue one, days ahead a faint number on nothing (user
 /// pick "A" 2026-11-04: figures floating on the card read as untidy). At accessibility text sizes
 /// the figures give way to a dot of each colour. Tapping a day hands its date to `onSelectDay`,
 /// where the full figures are.
@@ -39,6 +39,7 @@ struct MoneyCalendarCard: View {
                     Text(title)
                         .textRole(.footnote)
                         .foregroundStyle(Palette.secondaryLabel)
+                        .shrinksOnlyToFit(0.5, alignment: .center)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, Spacing.xs)
                         .accessibilityHidden(true)
@@ -81,7 +82,7 @@ struct CalendarLegend: View {
 }
 
 /// One day of "Lịch thu chi", and of "Tuần này" on Tổng quan: its number and, under it, what went
-/// out over what came in. A day gone by is a pale tile, today a lime one, a day ahead a faint
+/// out over what came in. A day gone by is a pale tile, today a blue one, a day ahead a faint
 /// number on nothing, not tappable.
 struct CalendarDayCell: View {
     let date: Date
@@ -117,16 +118,21 @@ struct CalendarDayCell: View {
         let tile = isAhead ? Color.clear : today ? Palette.accent : Palette.surfaceMuted
         let height = typeSize.isAccessibilitySize ? dotsHeight : figuresHeight
         Button(action: action) {
+            // At their own height, no cap: capped, a day with both figures squeezed them smaller
+            // than a day with one, and its number sat higher (user report 2026-11-08). Every day
+            // keeps the same three lines, so all the tiles of a row stand alike.
             VStack(spacing: 0) {
                 Text("\(calendar.component(.day, from: date))")
                     .textRole(today ? .captionStrong : .caption)
                     .monospacedDigit()
+                    // Shrinks rather than "…" at the accessibility sizes, where a seventh of the
+                    // card is narrower than "28" (review 2026-11-08).
+                    .shrinksOnlyToFit(0.5, alignment: .center)
                     .foregroundStyle(isAhead ? Palette.tertiaryLabel : today ? Palette.onAccent : Palette.label)
-                figures(onLime: today)
-                Spacer(minLength: 0)
+                figures(onAccent: today)
             }
-            .padding(.top, Spacing.xs + 2)
-            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .padding(.vertical, Spacing.xs + 2)
+            .frame(maxWidth: .infinity, minHeight: height, alignment: .top)
             .background(tile, in: shape)
             .contentShape(shape)
         }
@@ -134,40 +140,59 @@ struct CalendarDayCell: View {
         .buttonStyle(.card)
         .disabled(isAhead)
         .accessibilityLabel(label(today: today))
-        .accessibilityHint("Xem giao dịch trong ngày")
+        // A day ahead cannot be opened: no hint promising it.
+        .accessibilityHint(isAhead ? "" : "Xem giao dịch trong ngày")
     }
 
-    /// Out over in, each only when there is some. Short ("757k", "1,3tr", "2,1tỷ"), one line,
-    /// shrinking a little before a long one would be cut. At accessibility sizes, where no figure
-    /// fits a seventh of the card, a dot of each colour instead. On today's lime both are in ink:
-    /// coral and green on it fell under 4:1, at night near 1.5:1; out stays above in, as on every day.
+    /// Out on the first line, in always on the second, each shown only when there is some: a day
+    /// with money in only keeps the first line empty, so in sits in the same place on every day
+    /// (user request 2026-11-08). Short ("757k", "1,3tr", "2,1tỷ"), one line, shrinking a little
+    /// only when one is too wide for its tile. At accessibility sizes, where no figure
+    /// fits a seventh of the card, a dot of each colour instead, out on the left and in on the
+    /// right, each in its place even when the other is missing. On today's blue both are in its
+    /// ink (red and green on it fell under 4:1): out a filled dot, in a ring, so the two still
+    /// differ there (review 2026-11-08).
     @ViewBuilder
-    private func figures(onLime: Bool) -> some View {
-        let out = onLime ? Palette.onAccent : Palette.expense
-        let into = onLime ? Palette.onAccent : Palette.income
+    private func figures(onAccent: Bool) -> some View {
+        let out = onAccent ? Palette.onAccent : Palette.expense
+        let into = onAccent ? Palette.onAccent : Palette.income
         if typeSize.isAccessibilitySize {
             HStack(spacing: Spacing.xxs) {
-                if expense > 0 { LegendDot(color: out) }
-                if income > 0 { LegendDot(color: into) }
+                LegendDot(color: out)
+                    .opacity(expense > 0 ? 1 : 0)
+                Group {
+                    if onAccent {
+                        Circle().strokeBorder(into, lineWidth: 1.5)
+                            .frame(width: RowMetrics.legendDot, height: RowMetrics.legendDot)
+                    } else {
+                        LegendDot(color: into)
+                    }
+                }
+                .opacity(income > 0 ? 1 : 0)
+                .accessibilityHidden(true)
             }
             .padding(.top, Spacing.xxs)
         } else {
             VStack(spacing: 0) {
-                if expense > 0 {
-                    Text(Self.short(expense))
-                        .foregroundStyle(out)
-                }
-                if income > 0 {
-                    Text(Self.short(income))
-                        .foregroundStyle(into)
-                }
+                figure(expense, color: out)
+                figure(income, color: into)
             }
             .textRole(.footnote)
             .monospacedDigit()
             .lineLimit(1)
-            .minimumScaleFactor(Self.figureMinimumScale)
             .padding(.horizontal, Spacing.xxs)
         }
+    }
+
+    /// One line of figures; with nothing, the line is kept, unseen.
+    /// At its own width when it fits, centred under the day's number; shrunk only when too wide
+    /// for its tile, and centred then too (Simulator check 2026-11-08).
+    private func figure(_ amount: Double, color: Color) -> some View {
+        Text(amount > 0 ? Self.short(amount) : "0")
+            .shrinksOnlyToFit(Self.figureMinimumScale, alignment: .center)
+            .foregroundStyle(color)
+            .opacity(amount > 0 ? 1 : 0)
+            .accessibilityHidden(true)
     }
 
     /// A figure in at most five characters, to fit a seventh of the card at one size: as
@@ -184,12 +209,18 @@ struct CalendarDayCell: View {
         }
     }
 
-    /// Only the figures there are; an empty day says so (re-review 2026-10-31: "thu 0đ, chi 0đ").
+    /// Only the figures there are; an empty day says so (re-review 2026-10-31: "thu 0đ, chi 0đ"); a
+    /// day ahead only its name. The day in full words, the year only in another year: `.month()`
+    /// was read "3 thg 11, 2026" on every tile (review 2026-11-08).
     private func label(today: Bool) -> String {
-        let name = (today ? "Hôm nay, " : "") + date.formatted(.dateTime.weekday(.wide).day().month().year().locale(.vietnam))
+        let style = Date.FormatStyle.dateTime.weekday(.wide).day().month(.wide).locale(.vietnam)
+        let sameYear = Calendar.current.isDate(date, equalTo: .now, toGranularity: .year)
+        let name = (today ? "Hôm nay, " : "") + date.formatted(sameYear ? style : style.year())
+        if date > Calendar.current.startOfDay(for: .now), !today { return name }
         var figures: [String] = []
-        if income > 0 { figures.append("thu \(income.vnd)") }
-        if expense > 0 { figures.append("chi \(expense.vnd)") }
+        // Out before in, as the tile shows them (review 2026-11-08).
+        if expense > 0 { figures.append("chi \(MoneyText.spoken(expense))") }
+        if income > 0 { figures.append("thu \(MoneyText.spoken(income))") }
         return name + ", " + (figures.isEmpty ? "không có thu chi" : figures.joined(separator: ", "))
     }
 }

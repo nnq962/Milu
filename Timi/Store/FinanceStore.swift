@@ -23,6 +23,17 @@ final class FinanceStore {
     /// "Lưu trữ": out of every list, picker and total; reached from "Đã lưu trữ" on Tài khoản.
     var archivedAccounts: [Account]
     var loans: [Loan]
+    /// The last thing the user made from scratch, for the first steps' +5 (`OnboardingRewards`):
+    /// set only by the paths a person takes to create (a new account, a new income or expense, a
+    /// new loan lent), never by the sample data, a restored account, a balance correction or a
+    /// loan changed to lending (review 2026-11-08: counting items paid for those).
+    var lastCreated: Creation?
+
+    struct Creation: Equatable {
+        enum Kind { case account, transaction, lentLoan }
+        let kind: Kind
+        let id = UUID()
+    }
     /// Repayments of loans ("Thu nợ" / "Trả nợ"), newest first.
     var loanPayments: [LoanPayment]
     var paymentReminders: [PaymentReminder]

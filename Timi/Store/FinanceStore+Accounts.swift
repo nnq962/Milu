@@ -67,6 +67,7 @@ extension FinanceStore {
     func add(_ account: Account) {
         accounts.append(account)
         database?.save(account)
+        lastCreated = Creation(kind: .account)
     }
 
     /// Saves the edited details and, when `balance` differs from the current one, records the

@@ -37,15 +37,22 @@ struct ListRow<Leading: View, Trailing: View>: View {
     /// Grey, or red for a deadline passed.
     var subtitleColor: Color = Palette.secondaryLabel
     var showsChevron = true
+    /// The right side has a second line under its figure ("70%", "Còn 6 ngày"): the row is two
+    /// lines tall even with no subtitle, so the picture centres on the row, not on the title's
+    /// line, where it sat near the top (user report 2026-11-08: icons nearer the list's top than
+    /// its foot).
+    var hasTrailingNote = false
     let leading: Leading
     let trailing: Trailing
 
     init(title: String, subtitle: String? = nil, subtitleColor: Color = Palette.secondaryLabel,
-         showsChevron: Bool = true, @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: () -> Trailing) {
+         showsChevron: Bool = true, hasTrailingNote: Bool = false,
+         @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: () -> Trailing) {
         self.title = title
         self.subtitle = subtitle
         self.subtitleColor = subtitleColor
         self.showsChevron = showsChevron
+        self.hasTrailingNote = hasTrailingNote
         self.leading = leading()
         self.trailing = trailing()
     }
@@ -54,8 +61,12 @@ struct ListRow<Leading: View, Trailing: View>: View {
 
     var body: some View {
         let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
-        // No second line: the picture on the words' middle (as form rows, review 2026-11-07).
-        HStack(alignment: (subtitle?.isEmpty ?? true) ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
+        // One line only: the picture on the words' middle (as form rows, review 2026-11-07); two
+        // lines on either side: on the row's middle.
+        // At the accessibility sizes the right side goes under the words, so the picture stays by
+        // the name rather than floating in the middle of a tall block (review 2026-11-08).
+        let oneLine = isAccessibilitySize || ((subtitle?.isEmpty ?? true) && !hasTrailingNote)
+        HStack(alignment: oneLine ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             leading
                 .centeredOnTextLine()
             // Title and amount on one baseline; stacked, the words take the row's width so every
@@ -94,7 +105,8 @@ extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
     /// is the short line under the amount (a date "28/10", a time "08:15").
     init(icon: String, title: String, subtitle: String? = nil, trailingSubtitle: String? = nil,
          amount: Double, amountTone: MoneyText.Tone = .balance, showsChevron: Bool = true) {
-        self.init(title: title, subtitle: subtitle, showsChevron: showsChevron) {
+        self.init(title: title, subtitle: subtitle, showsChevron: showsChevron,
+                  hasTrailingNote: !(trailingSubtitle?.isEmpty ?? true)) {
             // No tile, coloured ones neither; amounts carry the meaning. The picture `RowIcon`
             // draws for the name (an emoji or a glyph).
             RowIcon(name: icon)
@@ -106,9 +118,8 @@ extension ListRow where Leading == RowIcon, Trailing == ListRowAmount {
 
 /// The right side of a `ListRow`: a figure, and under it a short grey line (a date, "Còn 6
 /// ngày", "25%") in `noteColor`. Right-aligned beside the words, left-aligned under them at the
-/// accessibility sizes. The figure keeps its room first (`layoutPriority`), so the title gives
-/// way before it; it may still shrink a little, as `MoneyText` allows (review 2026-10-31:
-/// `fixedSize` let long figures push the title out).
+/// accessibility sizes. The figure may shrink a little, as `MoneyText` allows (review
+/// 2026-10-31: `fixedSize` let long figures push the title out).
 struct ListRowTrailing<Figure: View>: View {
     var note: String? = nil
     var noteColor: Color = Palette.secondaryLabel
@@ -120,7 +131,6 @@ struct ListRowTrailing<Figure: View>: View {
         let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
         VStack(alignment: isAccessibilitySize ? .leading : .trailing, spacing: RowMetrics.lineGap) {
             figure
-                .layoutPriority(1)
             if let note {
                 Text(note)
                     .textRole(.caption)

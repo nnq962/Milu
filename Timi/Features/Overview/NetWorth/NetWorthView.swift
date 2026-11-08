@@ -5,14 +5,13 @@ import SwiftUI
 /// in its own list (accounts, goals, loans); the debts open their sheet.
 struct NetWorthView: View {
     @Environment(FinanceStore.self) private var store
-    @State private var selectedMonth: Date?
     @State private var isShowingDebt = false
 
     var body: some View {
         let history = store.netWorthHistory()
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.section) {
-                summary(history)
+                NetWorthSummary(history: history)
                 parts
             }
             .padding(.horizontal, Spacing.page)
@@ -27,44 +26,14 @@ struct NetWorthView: View {
         .sheet(isPresented: $isShowingDebt) { DebtSheet() }
     }
 
-    // MARK: - Số và biểu đồ
-
-    private func summary(_ history: [NetWorthPoint]) -> some View {
-        let picked = selectedMonth.flatMap { date in
-            history.min { abs($0.month.timeIntervalSince(date)) < abs($1.month.timeIntervalSince(date)) }
-        }
-        let shown = picked ?? history.last
-        let first = history.first?.value ?? 0
-        return VStack(alignment: .leading, spacing: Spacing.l) {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(picked.map { "Cuối tháng \(Calendar.current.component(.month, from: $0.month))" } ?? "Hiện tại")
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryLabel)
-                    .contentTransition(.opacity)
-                // Red below zero (strict review 2026-10-31: drawn by hand, it stayed ink).
-                MoneyText(amount: shown?.value ?? store.netWorth, size: .display, tone: .balance)
-                    .contentTransition(.numericText())
-                // Kept in place (only faded) while a month is picked, so the chart never jumps.
-                if history.count > 1 {
-                    NetWorthGrowth(change: store.netWorth - first, since: history[0])
-                        .opacity(picked == nil ? 1 : 0)
-                }
-            }
-            NetWorthChart(points: history, selection: $selectedMonth)
-                .frame(height: 180)
-                .sensoryFeedback(.selection, trigger: picked?.month)
-        }
-        .animation(.snappy, value: picked?.month)
-        .card(padding: Spacing.xl)
-    }
-
     // MARK: - Thành phần
 
     private var parts: some View {
         let accounts = store.countedAccounts.filter { $0.balance > 0 }
         let saved = store.totalSaved
         let lent = store.loans.filter { $0.direction == .lent && $0.outstanding > 0 }
-        return HeaderCard(title: "Gồm") {
+        // The heading on the page over its card, as on Tổng quan (review 2026-11-08).
+        return OutsideHeaderSection(title: "Thành phần") {
             VStack(spacing: 0) {
                 // Hidden with no account above zero, like Hũ and Cho vay: it opened an empty list
                 // (strict review 2026-10-31).
@@ -77,7 +46,7 @@ struct NetWorthView: View {
                          first: accounts.isEmpty)
                 }
                 if !lent.isEmpty {
-                    link(.lent, icon: "hugeicons-hand-coins", subtitle: "\(lent.count) người", amount: store.totalLent,
+                    link(.lent, icon: "hugeicons-hand-coins", subtitle: "\(lent.count) khoản", amount: store.totalLent,
                          first: accounts.isEmpty && saved <= 0)
                 }
                 Button { isShowingDebt = true } label: {
@@ -100,5 +69,61 @@ struct NetWorthView: View {
         }
         .buttonStyle(.row)
         .overlay(alignment: .top) { if !first { RowDivider() } }
+    }
+}
+
+/// The figure and its six months. Its own view, holding the picked month: a finger moving on the
+/// chart redraws only this, not the page, which worked out the six months' history again on every
+/// step (review 2026-11-08).
+private struct NetWorthSummary: View {
+    let history: [NetWorthPoint]
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var selectedMonth: Date?
+    /// 140, not 180 (user request 2026-11-08: lower). Fixed: the month names under it stop growing
+    /// at xxxLarge (`NetWorthChart`), so the plot keeps its room; scaled whole, it reached about
+    /// 465 at AX5 (review 2026-11-08).
+    private let chartHeight: CGFloat = 140
+
+    var body: some View {
+        let picked = selectedMonth.flatMap { date in
+            history.min { abs($0.month.timeIntervalSince(date)) < abs($1.month.timeIntervalSince(date)) }
+        }
+        let shown = picked ?? history.last
+        let first = history.first?.value ?? 0
+        let current = history.last?.value ?? 0
+        VStack(alignment: .leading, spacing: Spacing.l) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(title(picked))
+                    .textRole(.captionStrong)
+                    .foregroundStyle(Palette.secondaryLabel)
+                    .contentTransition(.opacity)
+                // Red below zero (strict review 2026-10-31: drawn by hand, it stayed ink). The
+                // digits roll only without Reduce Motion (review 2026-11-08).
+                MoneyText(amount: shown?.value ?? current, size: .display, tone: .balance)
+                    .contentTransition(reduceMotion ? .identity : .numericText())
+                // Kept in place (only faded) while a month is picked, so the chart never jumps.
+                if history.count > 1 {
+                    NetWorthGrowth(change: current - first, since: history[0])
+                        .opacity(picked == nil ? 1 : 0)
+                }
+            }
+            // No animation on the chart: animated, the picked dot faded out and back in as the
+            // finger moved, and was often gone (user report 2026-11-08).
+            NetWorthChart(points: history, selection: $selectedMonth)
+                .frame(height: chartHeight)
+                // A tick as the finger reaches a month, none as it lifts.
+                .sensoryFeedback(.selection, trigger: picked?.month) { _, new in new != nil }
+                .transaction { $0.animation = nil }
+        }
+        .animation(reduceMotion ? nil : .snappy, value: picked?.month)
+        .card(padding: Spacing.xl)
+    }
+
+    /// "Hiện có" (the word on Tổng quan's card) for today's figure, the last point, picked or not: "Cuối tháng 11" on the 8th
+    /// read as if the month were over (review 2026-11-08).
+    private func title(_ picked: NetWorthPoint?) -> String {
+        guard let picked, picked.month != history.last?.month else { return "Hiện có" }
+        return "Cuối tháng \(Calendar.current.component(.month, from: picked.month))"
     }
 }

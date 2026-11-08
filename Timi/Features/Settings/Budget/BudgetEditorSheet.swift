@@ -56,7 +56,7 @@ struct BudgetEditorSheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Spacing.l)
-            .animation(.easeOut(duration: 0.2), value: error)
+            .animation(Motion.gentle(.easeOut(duration: 0.2)), value: error)
         } content: {
             EmptyView()
         }
@@ -128,9 +128,10 @@ struct GroupBudgetEditor: View {
             categoryBudgets = kept
         })
         BudgetEditorSheet(amount: amount, title: name, caption: "Hạn mức mỗi tháng",
-                          note: month > 0
-                              ? "Còn \(room.vnd) chưa phân bổ."
-                              : "Cần đặt hạn mức tháng trước.",
+                          // Never "tối đa 0đ"; the no-month sentence as the error says it.
+                          note: month <= 0 ? "Đặt hạn mức tháng trước."
+                              : room > 0 ? "Có thể đặt tối đa \(room.vnd)."
+                              : "Đã phân bổ hết hạn mức tháng.",
                           presets: Self.presets(room: room)) {
             BudgetRules.groupError($0, groupID: groupID, month: month, groups: groups)
         }

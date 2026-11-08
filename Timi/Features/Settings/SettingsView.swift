@@ -182,7 +182,7 @@ struct SettingsView: View {
                     // Cuối trang, chữ đỏ, như "Xoá iPhone" cuối Cài đặt chung của iOS; hỏi lại trước khi xoá.
                     FormGroup {
                         FormDestructiveRow(title: "Xoá toàn bộ dữ liệu", question: "Xoá toàn bộ dữ liệu?",
-                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và cài đặt sẽ bị xoá, app trở về như lúc mới tải. Không thể hoàn tác.") {
+                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và cài đặt sẽ bị xoá. Lượt AI và các bước Làm quen đã nhận được giữ nguyên. Không thể hoàn tác.") {
                             eraseAllData()
                         }
                     }

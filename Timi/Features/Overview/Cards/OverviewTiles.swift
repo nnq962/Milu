@@ -1,67 +1,92 @@
 import SwiftUI
 
-/// Four small blocks under Tài sản ròng, two by two, as the home screen's widgets (user pick "A"
-/// 2026-11-04, after one white card under another read flat): what is left to spend this month,
-/// on the one lime block; what went out today with the last seven days; the savings goal nearest
-/// full; the loan nearest its deadline. Each says one thing, its picture or graphic on top, and
-/// opens what it is about. At accessibility text sizes they stack one under another.
-struct OverviewTiles: View {
+/// The small blocks of Tổng quan, two side by side as the home screen's widgets (user pick "A"
+/// 2026-11-04), now in two sections with their headings on the page (user request 2026-11-08):
+/// "Chi tiêu" (what is left to spend this month, on the one blue block; what went out today with
+/// the last seven days) and "Hũ và khoản vay" (the savings goal nearest full; the loan nearest its
+/// deadline). Each says one thing, its picture or graphic on top, and opens what it is about. At
+/// accessibility text sizes they stack one under another.
+struct SpendingTiles: View {
     let onOpenReport: () -> Void
     let onOpenToday: () -> Void
+
+    var body: some View {
+        OutsideHeaderSection(title: "Chi tiêu") {
+            Button(action: onOpenReport) { HeaderLink(title: "Báo cáo", opensPage: true) }
+                .headerLinkButton()
+        } content: {
+            TilePair { BudgetTile(action: onOpenReport) } second: { TodayTile(action: onOpenToday) }
+        }
+    }
+}
+
+struct SavingTiles: View {
     let onAddGoal: () -> Void
     let onAddLoan: () -> Void
+
+    var body: some View {
+        OutsideHeaderSection(title: "Hũ và khoản vay") {
+            TilePair { GoalTile(onAdd: onAddGoal) } second: { LoanTile(onAdd: onAddLoan) }
+        }
+    }
+}
+
+/// Two blocks side by side, as tall as each other; one under the other at accessibility sizes.
+private struct TilePair<First: View, Second: View>: View {
+    @ViewBuilder var first: First
+    @ViewBuilder var second: Second
 
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         if typeSize.isAccessibilitySize {
-            VStack(spacing: OverviewTileMetrics.gap) { budget; today; goal; loan }
+            VStack(spacing: OverviewTileMetrics.gap) { first; second }
         } else {
-            Grid(horizontalSpacing: OverviewTileMetrics.gap, verticalSpacing: OverviewTileMetrics.gap) {
-                GridRow { budget; today }
-                GridRow { goal; loan }
+            Grid(horizontalSpacing: OverviewTileMetrics.gap) {
+                GridRow { first; second }
             }
         }
     }
-
-    private var budget: some View { BudgetTile(action: onOpenReport) }
-    private var today: some View { TodayTile(action: onOpenToday) }
-    private var goal: some View { GoalTile(onAdd: onAddGoal) }
-    private var loan: some View { LoanTile(onAdd: onAddLoan) }
 }
 
-/// One block: its graphic on top, a label, one figure, a line under it; all on the card's white or,
-/// for the one that leads, the lime.
+/// One block: its graphic on top, a label, one figure, a line under it; on the card's white, on
+/// the primary blue for the one that leads, or on the warning's pale ground once the month's
+/// limit is passed.
 private struct OverviewTile<Graphic: View>: View {
     let label: String
     let value: String
     var valueColor: Color = Palette.label
     let detail: String
     var detailColor: Color = Palette.secondaryLabel
-    var onLime = false
+    var ground: TileGround = .plain
     let accessibility: String
     let hint: String
     let action: () -> Void
     @ViewBuilder let graphic: Graphic
 
-    @ScaledMetric(relativeTo: .body) private var graphicHeight = OverviewTileMetrics.graphic
+    @ScaledMetric(relativeTo: .body) private var scaledGraphic = OverviewTileMetrics.graphic
+    /// Grows with the text, no more than 1.6 times (review 2026-11-08: about 150 tall at AX5).
+    private var graphicHeight: CGFloat { RowMetrics.capped(scaledGraphic, base: OverviewTileMetrics.graphic) }
 
     var body: some View {
-        let ink = onLime ? Palette.onAccent : nil
+        let ink = ground.ink
         Button(action: action) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 graphic
                     .frame(height: graphicHeight, alignment: .bottomLeading)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    // One line, so the figures of two tiles side by side stand level whatever the
+                    // label (a long goal name wrapped and pushed its % lower).
                     Text(label)
                         .textRole(.captionStrong)
+                        // Shrinks a little before "Tháng này đã…" at the larger text sizes.
+                        .shrinksOnlyToFit(0.8)
                         .foregroundStyle(ink ?? Palette.secondaryLabel)
                     Text(value)
                         .textRole(.pageTitle)
                         .monospacedDigit()
                         .foregroundStyle(ink ?? valueColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .shrinksOnlyToFit(0.7)
                     Text(detail)
                         .textRole(.caption)
                         .foregroundStyle(ink ?? detailColor)
@@ -71,13 +96,35 @@ private struct OverviewTile<Graphic: View>: View {
             }
             .padding(OverviewTileMetrics.padding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .cardSurface(radius: CardCorners.card, color: onLime ? Palette.accent : Palette.surface)
+            .cardSurface(radius: CardCorners.card, color: ground.fill)
             .contentShape(RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous))
         }
         .buttonStyle(.card)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibility)
         .accessibilityHint(hint)
+    }
+}
+
+/// What a tile stands on, and the ink its words take there.
+private enum TileGround {
+    case plain, accent, warning
+
+    var fill: Color {
+        switch self {
+        case .plain: Palette.surface
+        case .accent: Palette.accent
+        case .warning: Palette.warningSoft
+        }
+    }
+
+    /// One ink for all the words on a coloured ground; nil keeps each word's own colour.
+    var ink: Color? {
+        switch self {
+        case .plain: nil
+        case .accent: Palette.onAccent
+        case .warning: Palette.warning
+        }
     }
 }
 
@@ -91,7 +138,7 @@ private enum OverviewTileMetrics {
 
 // MARK: - Còn tiêu được
 
-/// What the month's limit still allows, on the lime: a ring of how much is used. Over the limit,
+/// What the month's limit still allows, on the blue block: a ring of how much is used. Over the limit,
 /// by how much; with no limit set, what went out. Opens the month's report.
 private struct BudgetTile: View {
     let action: () -> Void
@@ -106,9 +153,13 @@ private struct BudgetTile: View {
         let spent = store.total(.expense, inMonthOf: .now)
         let used = monthlyBudget > 0 ? spent / monthlyBudget : 0
         let words = words(spent: spent, used: used)
-        OverviewTile(label: words.label, value: words.value, detail: words.detail, onLime: true,
+        let over = monthlyBudget > 0 && spent > monthlyBudget
+        // Over the limit, the whole block turns to the warning's colours, which read in both
+        // modes (review 2026-11-08: an apricot ring all but vanished on the night blue).
+        OverviewTile(label: words.label, value: words.value, detail: words.detail,
+                     ground: over ? .warning : .accent,
                      accessibility: words.spoken, hint: "Xem báo cáo tháng này", action: action) {
-            ring(min(used, 1) * shown)
+            ring(min(used, 1) * shown, ink: over ? Palette.warning : Palette.onAccent)
         }
         .onAppear {
             guard shown == 0 else { return }
@@ -118,13 +169,13 @@ private struct BudgetTile: View {
         }
     }
 
-    /// Ink on the lime: a faint track and the part used, from the top.
-    private func ring(_ fraction: Double) -> some View {
+    /// A faint track and the part used, from the top, in the block's ink.
+    private func ring(_ fraction: Double, ink: Color) -> some View {
         ZStack {
-            Circle().stroke(Palette.onAccent.opacity(0.14), lineWidth: OverviewTileMetrics.ringLine)
+            Circle().stroke(ink.opacity(0.14), lineWidth: OverviewTileMetrics.ringLine)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(Palette.onAccent, style: StrokeStyle(lineWidth: OverviewTileMetrics.ringLine, lineCap: .round))
+                .stroke(ink, style: StrokeStyle(lineWidth: OverviewTileMetrics.ringLine, lineCap: .round))
                 .rotationEffect(.degrees(-90))
         }
         .padding(OverviewTileMetrics.ringLine / 2)
@@ -134,22 +185,22 @@ private struct BudgetTile: View {
     private func words(spent: Double, used: Double) -> (label: String, value: String, detail: String, spoken: String) {
         guard monthlyBudget > 0 else {
             return ("Tháng này đã chi", spent.vndCompact, "Chưa đặt hạn mức",
-                    "Tháng này đã chi \(spent.vnd), chưa đặt hạn mức")
+                    "Tháng này đã chi \(MoneyText.spoken(spent)), chưa đặt hạn mức")
         }
         if spent > monthlyBudget {
             let over = spent - monthlyBudget
             return ("Vượt hạn mức", over.vndCompact, "Đã chi \(spent.vndCompact) / \(monthlyBudget.vndCompact)",
-                    "Vượt hạn mức \(over.vnd), đã chi \(spent.vnd) trên \(monthlyBudget.vnd)")
+                    "Vượt hạn mức \(MoneyText.spoken(over)), đã chi \(MoneyText.spoken(spent)) trên \(MoneyText.spoken(monthlyBudget))")
         }
         let left = monthlyBudget - spent
         return ("Còn tiêu được", left.vndCompact, "Đã dùng \(used.percentText) hạn mức",
-                "Còn tiêu được \(left.vnd), đã dùng \(used.percentText) hạn mức \(monthlyBudget.vnd)")
+                "Còn tiêu được \(MoneyText.spoken(left)), đã dùng \(used.percentText) hạn mức \(MoneyText.spoken(monthlyBudget))")
     }
 }
 
 // MARK: - Hôm nay
 
-/// What went out today, and a column for each of the last seven days, today's in lime. Opens
+/// What went out today, and a column for each of the last seven days, today's in the primary blue, the days before in the grey-blue of the chart's rest. Opens
 /// today's transactions.
 private struct TodayTile: View {
     let action: () -> Void
@@ -158,7 +209,7 @@ private struct TodayTile: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var grown: CGFloat = 0
 
-    /// A day with nothing still shows a stub; today at least this tall, so its lime is there to see.
+    /// A day with nothing still shows a stub; today at least this tall, so its blue is there to see.
     private static let stub: CGFloat = 0.08
     private static let todayMinimum: CGFloat = 0.18
 
@@ -170,18 +221,23 @@ private struct TodayTile: View {
         OverviewTile(label: "Hôm nay đã chi", value: today.vndCompact,
                      valueColor: today > 0 ? Palette.expense : Palette.label,
                      detail: "7 ngày qua: \(week.vndCompact)",
-                     accessibility: "Hôm nay đã chi \(today.vnd), 7 ngày qua \(week.vnd)",
+                     accessibility: "Hôm nay đã chi \(MoneyText.spoken(today)), 7 ngày qua \(MoneyText.spoken(week))",
                      hint: "Xem giao dịch hôm nay", action: action) {
             HStack(alignment: .bottom, spacing: Spacing.xs) {
                 ForEach(Array(days.enumerated()), id: \.offset) { index, day in
                     let isToday = index == days.count - 1
                     let share = day.spent > 0 ? day.spent / biggest : 0
-                    let height = isToday ? max(share, Self.todayMinimum) : max(share, Self.stub)
+                    // Today keeps a taller stub only when something went out; with 0đ it is the
+                    // same empty stub as any day (review 2026-11-08: a blue bar read as spending).
+                    let height = isToday && day.spent > 0 ? max(share, Self.todayMinimum) : max(share, Self.stub)
                     GeometryReader { proxy in
                         VStack {
                             Spacer(minLength: 0)
                             RoundedRectangle(cornerRadius: CardCorners.mark, style: .continuous)
-                                .fill(isToday ? Palette.accent : day.spent > 0 ? Palette.progress : Palette.progressTrack)
+                                // Today in the primary blue, the days before in the grey-blue of the
+                                // chart's rest (3:1 on the card by day and night), empty days a faint
+                                // stub: pale sky could not be told from an empty day (review 2026-11-08).
+                                .fill(day.spent == 0 ? Palette.progressTrack : isToday ? Palette.accent : Palette.chartRest)
                                 .frame(height: proxy.size.height * height * grown)
                         }
                     }
@@ -228,15 +284,23 @@ private struct GoalTile: View {
         let goal = goals.filter { !$0.isReached }.max { $0.progress < $1.progress } ?? goals.first
         Group {
             if let goal {
-                OverviewTile(label: goal.name, value: goal.isReached ? "Đủ" : goal.progressText,
+                OverviewTile(label: goal.name, value: goal.isReached ? "100%" : goal.progressText,
                              detail: goal.isReached ? "Đã đủ mục tiêu" : "Còn \(goal.remaining.vndCompact)",
-                             accessibility: "Hũ \(goal.name), đã để dành \(goal.progressText), còn \(goal.remaining.vnd)",
+                             // Said as shown: a full goal is "đã đủ mục tiêu", not "còn 0 đồng".
+                             accessibility: goal.isReached
+                                 ? "Hũ \(goal.name), đã đủ mục tiêu"
+                                 : "Hũ \(goal.name), đã để dành \(goal.progressText), còn \(MoneyText.spoken(goal.remaining))",
                              hint: "Xem hũ", action: { openGoal = Opened(id: goal.id) }) {
                     picture(GoalArtwork.name(for: goal.icon))
                 }
             } else {
-                OverviewTile(label: "Hũ tiết kiệm", value: "Chưa có", detail: "Tạo hũ đầu tiên",
-                             accessibility: "Chưa có hũ tiết kiệm", hint: "Tạo hũ", action: onAdd) {
+                // "Không còn" once every goal was closed: "Chưa có" told someone with a
+                // history of goals that they never had one (review 2026-11-08).
+                let hadSome = !store.savingsGoals.isEmpty
+                OverviewTile(label: "Hũ tiết kiệm", value: hadSome ? "Không còn" : "Chưa có",
+                             detail: hadSome ? "Tạo hũ mới" : "Tạo hũ đầu tiên",
+                             accessibility: hadSome ? "Không còn hũ đang để dành" : "Chưa có hũ tiết kiệm",
+                             hint: "Tạo hũ", action: onAdd) {
                     picture(IconCatalog.emojiName("🐷"))
                 }
             }
@@ -260,23 +324,24 @@ private struct LoanTile: View {
         Group {
             if let loan {
                 let urgency = LoanUrgency(loan)
-                let label: String = switch urgency {
-                case .overdue: "Quá hạn"
-                case .soon, .upcoming: "Sắp tới hạn"
-                default: loan.direction == .lent ? "Đang cho vay" : "Đang nợ"
-                }
+                // Which way the money goes on top, how soon in the line under it: "Quá hạn" in both
+                // read twice and hid whether it was lent or owed (review 2026-11-08).
+                let label = loan.direction == .lent ? "Cho vay" : "Đang nợ"
                 OverviewTile(label: label, value: loan.outstanding.vndCompact,
                              valueColor: loan.direction == .borrowed ? Palette.expense : Palette.label,
                              detail: "\(loan.name) · \(urgency.text)",
                              detailColor: LoanRow.urgencyColor(urgency),
-                             accessibility: "\(label), \(loan.name), còn \(loan.outstanding.vnd), \(urgency.text)",
+                             accessibility: "\(label), \(loan.name), còn \(MoneyText.spoken(loan.outstanding)), \(urgency.text)",
                              hint: "Xem khoản vay", action: { openLoan = Opened(id: loan.id) }) {
                     // The base size: the avatar grows with the text by itself.
                     InitialsAvatar(name: loan.name, size: OverviewTileMetrics.graphic)
                 }
             } else {
-                OverviewTile(label: "Khoản vay", value: "Chưa có", detail: "Ghi khoản cho vay",
-                             accessibility: "Chưa có khoản vay", hint: "Ghi khoản vay", action: onAdd) {
+                let hadSome = !store.loans.isEmpty
+                OverviewTile(label: "Khoản vay", value: hadSome ? "Không còn" : "Chưa có",
+                             detail: hadSome ? "Đã tất toán hết" : "Ghi khoản cho vay",
+                             accessibility: hadSome ? "Không còn khoản vay nào, đã tất toán hết" : "Chưa có khoản vay",
+                             hint: "Ghi khoản vay", action: onAdd) {
                     picture(IconCatalog.emojiName("🤝"))
                 }
             }
@@ -318,7 +383,8 @@ struct WeekCard: View {
         let byDay = Dictionary(grouping: store.reportableTransactions(in: DateInterval(start: monday, end: end))) {
             calendar.startOfDay(for: $0.date)
         }
-        HeaderCard(title: "Tuần này", inset: Spacing.card, radius: CardCorners.card) {
+        // The heading on the page over the card, as every section of Tổng quan (2026-11-08).
+        OutsideHeaderSection(title: "Tuần này") {
             Button(action: onOpenCalendar) { HeaderLink(title: "Lịch", opensPage: true) }
                 .headerLinkButton()
         } content: {
@@ -328,6 +394,7 @@ struct WeekCard: View {
                         Text(title)
                             .textRole(.footnote)
                             .foregroundStyle(Palette.secondaryLabel)
+                            .shrinksOnlyToFit(0.5, alignment: .center)
                             .frame(maxWidth: .infinity)
                             .accessibilityHidden(true)
                     }
@@ -360,7 +427,8 @@ struct MoneyCalendarPage: View {
 
     var body: some View {
         ScrollView {
-            HeaderCard(title: "Theo ngày", inset: Spacing.card, radius: CardCorners.card) {
+            // The heading on the page over its card, as on Tổng quan (review 2026-11-08).
+            OutsideHeaderSection(title: "Theo ngày") {
                 MonthPickerButton(month: $month, compact: true)
             } content: {
                 MoneyCalendarCard(displayedMonth: $month) { selectedDay = Day(date: $0) }

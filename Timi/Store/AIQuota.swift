@@ -56,6 +56,10 @@ final class AIQuota {
         return true
     }
 
+    /// Whether a step's +5 was already paid: the step stays done after its data is gone, so it
+    /// never offers again a reward it would not pay (review 2026-11-08).
+    func hasClaimed(_ step: String) -> Bool { claimed.contains(step) }
+
     /// Pays a finished onboarding step's +5, once per step.
     func claim(_ step: String) {
         guard !claimed.contains(step) else { return }
@@ -76,7 +80,11 @@ final class AIQuota {
         return "\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
+    /// Whether a saved key is the allowance's own, which "Xoá toàn bộ dữ liệu" keeps.
+    static func isOwnKey(_ key: String) -> Bool { key.hasPrefix(Keys.prefix) }
+
     private enum Keys {
+        static let prefix = "ai."
         static let month = "ai.month"
         static let used = "ai.used"
         static let bonus = "ai.bonus"

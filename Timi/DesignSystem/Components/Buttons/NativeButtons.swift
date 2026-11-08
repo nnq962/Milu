@@ -69,24 +69,25 @@ struct HeaderLink: View {
     let title: String
     /// "›" after the words when it opens a page.
     var opensPage = false
-    /// "⌄" after the words when it opens a menu (the month of Lịch thu chi).
+    /// "⌄" after the words when it opens a picker (the month of Lịch thu chi, its wheels).
     var opensMenu = false
 
-    /// The › or ⌄ grows with the words: fixed at 12 it looked like a dot beside them at the
-    /// accessibility sizes (review 2026-11-03).
-    @ScaledMetric(relativeTo: .subheadline) private var chevron = RowMetrics.linkChevron
+    /// The › or ⌄: SF Semibold 13 that grows with the words, 6 from them, the same glyph, size and
+    /// gap as Giao dịch's "Báo cáo ›" and "Tháng 11 ⌄" (review 2026-11-08: Hugeicons' › here and a
+    /// 12 with a 4 gap read thinner and tighter than there).
+    @ScaledMetric(relativeTo: .subheadline) private var chevron = IconSize.chevron
 
     var body: some View {
-        HStack(spacing: Spacing.xs) {
+        HStack(spacing: IconSize.glyphGap) {
             Text(title)
                 .textRole(.accessory)
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
-            if opensPage {
-                TimiIcon("hugeicons-arrow-right-01", size: chevron)
-            } else if opensMenu {
-                TimiIcon("hugeicons-arrow-down-01", size: chevron)
+            if opensPage || opensMenu {
+                Image(systemName: opensPage ? "chevron.right" : "chevron.down")
+                    .font(.system(size: chevron, weight: .semibold))
+                    .accessibilityHidden(true)
             }
         }
         .foregroundStyle(Palette.primary)

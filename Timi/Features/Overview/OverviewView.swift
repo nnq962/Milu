@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Home tab (redone 2026-11-02 after the user's references: blocks on a soft coloured ground): the
-/// head on its ground (`OverviewHeader`: the net worth and how it moved), then the
-/// four blocks and this week (`OverviewTiles`, `WeekCard`), the first steps and Timi Pro last;
-/// Q, Timi's ✦ and the bell on the bar, no greeting (user request 2026-11-04). One file per card
+/// Home tab: under Milu's hill, sections each with its heading on the page (2026-11-08): the first
+/// steps while any is left (`OnboardingCard`, a row to swipe), Tài sản ròng (`OverviewHeader`),
+/// Chi tiêu (`SpendingTiles`), Tuần này (`WeekCard`), Hũ và khoản vay (`SavingTiles`), Timi Pro;
+/// Q, "✨ Hỏi Milu" and the bell on the bar, no greeting (user request 2026-11-04). One file per card
 /// in `Cards/`, with the sheets they open.
 struct OverviewView: View {
     /// "Cần chú ý" on the page; off for now (user request 2026-10-30).
@@ -25,7 +25,6 @@ struct OverviewView: View {
     @State private var isScrolled = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
-    @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
 
     private struct Information: Identifiable {
         let id = UUID()
@@ -45,22 +44,11 @@ struct OverviewView: View {
                 // under it.
                 VStack(alignment: .leading, spacing: 0) {
                     SkyHeader(overline: "Cả nhà Milu", sky: .hill, showsPaw: false)
-                    // Sections 28 apart, as on every tab; a heading 8 above its card.
+                    // Sections 28 apart, as on every tab, each with its heading on the page 8
+                    // above its card (user request 2026-11-08: the headings out of the cards).
                     VStack(alignment: .leading, spacing: Spacing.section) {
-                        // The head and its blocks close together, as one set of widgets (user pick
-                        // "A" 2026-11-04); then the first steps and the rest 28 apart as before.
-                        VStack(spacing: Spacing.m) {
-                            OverviewHeader {
-                                path.append(NetWorthRoute())
-                            }
-                            OverviewTiles(
-                                onOpenReport: { path.append(ReportRoute(month: .now)) },
-                                onOpenToday: { selectedDay = CalendarDay(date: .now) },
-                                onAddGoal: { isAddingGoal = true },
-                                onAddLoan: { isAddingLoan = true })
-                            WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
-                                     onSelectDay: { selectedDay = CalendarDay(date: $0) })
-                        }
+                        // First while steps are left, so a new user sees what to do before the
+                        // empty figures (user request 2026-11-08: a friendlier first run).
                         OnboardingCard { step in
                             switch step {
                             case .account: isAddingAccount = true
@@ -69,6 +57,14 @@ struct OverviewView: View {
                             case .askAI: isShowingAssistant = true
                             }
                         }
+                        OverviewHeader(onOpenNetWorth: { path.append(NetWorthRoute()) },
+                                       onAddAccount: { isAddingAccount = true })
+                        SpendingTiles(onOpenReport: { path.append(ReportRoute(month: .now)) },
+                                      onOpenToday: { selectedDay = CalendarDay(date: .now) })
+                        WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
+                                 onSelectDay: { selectedDay = CalendarDay(date: $0) })
+                        SavingTiles(onAddGoal: { isAddingGoal = true },
+                                    onAddLoan: { isAddingLoan = true })
                         // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
                         // `showsAttention` back to true to bring it back.
                         if Self.showsAttention { AttentionCard() }
@@ -77,6 +73,10 @@ struct OverviewView: View {
                             information = Information(title: TimiProNote.title, message: TimiProNote.message)
                         }
                     }
+                    // The first steps fade away and the page closes up smoothly once the last is
+                    // done, rather than everything under them jumping up (review 2026-11-08).
+                    .animation(Motion.gentle(.smooth),
+                               value: OnboardingCard.isFinished(quota))
                     .padding(.horizontal, Spacing.page)
                     .padding(.top, Spacing.xxl)
                     .padding(.bottom, Spacing.xxl)
@@ -90,7 +90,12 @@ struct OverviewView: View {
             .foregroundStyle(Palette.label)
             // No title and no greeting on the bar (user request 2026-11-04), as on Tài khoản: Q on
             // the left, ✦ and the bell on the right. The title stays for the back button and VoiceOver.
-            .modifier(HiddenTitleBar(title: "Tổng quan", leadingCircles: 1, trailingCircles: 2) { Color.clear.frame(height: 1) })
+            // As Tài khoản and Giao dịch: the "Hỏi Milu" pill's width given, the empty slot hidden
+            // from VoiceOver (review 2026-11-08).
+            .modifier(HiddenTitleBar(title: "Tổng quan", leadingCircles: 1, trailingCircles: 2,
+                                     trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
+                Color.clear.frame(height: 1).accessibilityHidden(true)
+            })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 // Plain buttons: the bar draws their glass, which then takes part in push and pop.
@@ -101,10 +106,6 @@ struct OverviewView: View {
                     ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 }
                 ToolbarItem(placement: .topBarTrailing) { notificationButton }
-            }
-            // Here, not on the card: the card goes away as its last step is done.
-            .onChange(of: OnboardingCard.completedSteps(store, askedAI: hasAskedAI), initial: true) { _, steps in
-                steps.forEach(quota.claim)
             }
             .navigationDestination(for: NetWorthRoute.self) { _ in NetWorthView() }
             .fullScreenCover(isPresented: $isShowingAssistant) {

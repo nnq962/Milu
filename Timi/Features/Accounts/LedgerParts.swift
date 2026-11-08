@@ -87,8 +87,7 @@ struct LedgerRow<Mark: View>: View {
             .textRole(.amount)
             .tracking(-0.25)
             .foregroundStyle(figureColor)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .shrinksOnlyToFit(0.8)
     }
 }
 
@@ -232,8 +231,7 @@ struct GoalJar: View {
             }
             .textRole(.heading)
             .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .shrinksOnlyToFit(0.7, alignment: .center)
             ViewThatFits(in: .horizontal) {
                 figures
                     .fixedSize()

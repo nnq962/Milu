@@ -10,7 +10,7 @@ struct AssistantView: View {
     @Environment(AssistantChats.self) private var chats
     @State private var draft = ""
     @State private var isThinking = false
-    /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Timi.
+    /// Set on the first question; `OnboardingRewards` pays "Hỏi Milu một câu" in Làm quen với Timi.
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
     @State private var viewingTransaction: FinanceTransaction?
     /// The chat card whose "Xoá" was tapped, until the alert is answered: deleting always asks
@@ -94,7 +94,7 @@ struct AssistantView: View {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
         // iOS draws the title and its subtitle natively, not a glass rectangle (user report 2026-10-30).
-        .navigationTitle("Timi")
+        .navigationTitle("Milu")
         // Small and centred, as on every sheet, so ✕ keeps its place on the left.
         .toolbarTitleDisplayMode(.inline)
         .navigationSubtitleIfAvailable("Trợ lý tài chính · Bản thử nghiệm")
@@ -186,7 +186,7 @@ struct AssistantView: View {
     /// place, so the button never moves under the thumb.
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: Spacing.xs) {
-            TextField(dictation.isRecording ? "Đang nghe…" : "Hỏi Timi", text: $draft, axis: .vertical)
+            TextField(dictation.isRecording ? "Đang nghe…" : "Hỏi Milu", text: $draft, axis: .vertical)
                 .textRole(.body)
                 .lineLimit(1...5)
                 .focused($isInputFocused)

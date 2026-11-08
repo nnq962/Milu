@@ -23,7 +23,7 @@ struct AssistantSender: View {
     var body: some View {
         HStack(spacing: Spacing.s) {
             AssistantAvatar()
-            Text("Timi")
+            Text("Milu")
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryLabel)
         }
@@ -45,7 +45,7 @@ struct TypingIndicator: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement()
-        .accessibilityLabel("Timi đang trả lời")
+        .accessibilityLabel("Milu đang trả lời")
     }
 }
 
