@@ -92,11 +92,21 @@ struct CategoryEditorView: View {
 
     private var canSave: Bool {
         !cleanName.isEmpty && (isGroup || groupID != nil) && duplicate == nil && reservedName == nil
+            && reservedFirstItem == nil
     }
 
-    /// The system name this one matches ("Điều chỉnh số dư"), if any.
-    private var reservedName: String? {
-        Category.reservedNames.first { $0.compare(cleanName, options: .caseInsensitive) == .orderedSame }
+    /// The system name `text` matches ("Điều chỉnh số dư"), if any.
+    private static func reserved(_ text: String) -> String? {
+        Category.reservedNames.first { $0.compare(text, options: .caseInsensitive) == .orderedSame }
+    }
+
+    private var reservedName: String? { Self.reserved(cleanName) }
+
+    /// The same for a new group's first item, which transactions are named after (review
+    /// 2026-11-08: "Điều chỉnh số dư" went through there).
+    private var reservedFirstItem: String? {
+        guard isGroup, original == nil else { return nil }
+        return Self.reserved(Self.clean(firstItem))
     }
 
     /// Another group of this kind, or another item of the chosen group, with the same name (case
@@ -111,14 +121,27 @@ struct CategoryEditorView: View {
         }
     }
 
+    /// What is wrong with the form, the first item's name included: both said when both are
+    /// (review 2026-11-08: an empty name hid why the first item was red).
+    private var formError: String? {
+        let parts = [nameError, reservedFirstItem.map {
+            "“\($0)” là tên dành cho hệ thống, chọn tên khác cho hạng mục đầu tiên."
+        }].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// What is wrong with the name alone, which turns only its own row red.
     private var nameError: String? {
         if showsErrors, cleanName.isEmpty { return "Nhập tên." }
         if let reservedName { return "“\(reservedName)” là tên dành cho hệ thống." }
         guard let duplicate else { return nil }
-        let place = isGroup ? "Đã có nhóm" : "Nhóm này đã có"
-        return duplicate.isHidden
-            ? "\(place) “\(duplicate.name)”, đang ẩn trong Hạng mục đã ẩn."
-            : "\(place) “\(duplicate.name)”."
+        // A hidden item is now listed on its own group's page (review 2026-11-08).
+        guard duplicate.isHidden else {
+            return isGroup ? "Đã có nhóm “\(duplicate.name)”." : "Nhóm này đã có “\(duplicate.name)”."
+        }
+        return isGroup
+            ? "Đã có nhóm “\(duplicate.name)”, đang ẩn trong Hạng mục đã ẩn."
+            : "Nhóm này đã có “\(duplicate.name)”, đang ở mục Đã ẩn của nhóm."
     }
 
     private var title: String {
@@ -146,7 +169,7 @@ struct CategoryEditorView: View {
     var body: some View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
             // No footer on why "Nhóm" is locked: the greyed row says it (strict review 2026-10-31).
-            FormGroup(title: "Thông tin", error: nameError) {
+            FormGroup(title: "Thông tin", error: formError) {
                 FormTextRow(title: isGroup ? "Tên nhóm" : "Tên hạng mục", text: $name,
                             prompt: isGroup ? "Du lịch" : "Ăn sáng", isInvalid: nameError != nil,
                             maxLength: Category.maxNameLength)
@@ -154,6 +177,7 @@ struct CategoryEditorView: View {
                     FormDivider(hasIcon: false)
                     FormTextRow(title: "Hạng mục đầu tiên", text: $firstItem,
                                 prompt: cleanName.isEmpty ? "Vé máy bay" : cleanName,
+                                isInvalid: reservedFirstItem != nil,
                                 maxLength: Category.maxNameLength)
                 }
                 if !isGroup, let groupID {
@@ -175,13 +199,22 @@ struct CategoryEditorView: View {
 
             if let original {
                 FormGroup { leaveRow(original) }
+                // Deleting a hidden one nothing uses: red, in a card of its own at the end, as iOS
+                // sets a destructive row apart (review 2026-11-08).
+                if original.isHidden, !store.hasHistory(original) {
+                    FormGroup {
+                        deleteRow(original, noun: original.isGroup ? "nhóm" : "hạng mục", canGo: true, reason: "")
+                    }
+                }
             }
         }
         .timiSheetStyle()
     }
 
-    /// "Hiện lại" for a hidden one; otherwise "Ẩn" (with history) or "Xoá". The last item of a group
-    /// and the last group of a kind keep the row, but its alert only says why it cannot go.
+    /// "Hiện lại" for a hidden one ("Xoá" then follows in its own card once nothing uses it: a
+    /// hidden item whose transactions were all deleted could never go, review 2026-11-08);
+    /// otherwise "Ẩn" (with history) or "Xoá". The last item of a group and the last group of a
+    /// kind keep the row, but its alert only says why it cannot go.
     @ViewBuilder
     private func leaveRow(_ category: Category) -> some View {
         let noun = category.isGroup ? "nhóm" : "hạng mục"
@@ -194,6 +227,12 @@ struct CategoryEditorView: View {
         if category.isHidden {
             // An eye, not the box of "Ẩn": the two did the opposite with one icon (re-review 2026-10-31).
             FormActionRow(title: "Hiện lại \(noun)", icon: "hugeicons-eye") {
+                // A change that cannot be saved stops it, as ✓ does, rather than being dropped
+                // without a word (review 2026-11-08: a move to a group with a twin was lost).
+                guard validate() else {
+                    Haptics.error()
+                    return
+                }
                 applyEdits()
                 store.unhide(category)
                 Haptics.success()
@@ -211,14 +250,18 @@ struct CategoryEditorView: View {
                 dismiss()
             }
         } else {
-            FormDestructiveRow(title: "Xoá \(noun)",
-                               question: canGo ? "Xoá “\(category.name)”?" : "Không xoá được “\(category.name)”",
-                               message: !canGo ? reason
-                                   : category.isGroup ? "Các hạng mục trong nhóm cũng bị xoá." : "Không thể hoàn tác.",
-                               canConfirm: canGo) {
-                store.remove(category)
-                dismiss()
-            }
+            deleteRow(category, noun: noun, canGo: canGo, reason: reason)
+        }
+    }
+
+    private func deleteRow(_ category: Category, noun: String, canGo: Bool, reason: String) -> some View {
+        FormDestructiveRow(title: "Xoá \(noun)",
+                           question: canGo ? "Xoá “\(category.name)”?" : "Không xoá được “\(category.name)”",
+                           message: !canGo ? reason
+                               : category.isGroup ? "Các hạng mục trong nhóm cũng bị xoá." : "Không thể hoàn tác.",
+                           canConfirm: canGo) {
+            store.remove(category)
+            dismiss()
         }
     }
 

@@ -482,3 +482,39 @@ struct BudgetPercentTests {
         #expect(String(Int(BudgetRules.cap)).count == 12)
     }
 }
+
+struct CategoryOrderTests {
+    /// Groups take the new order in the places they held; the items of each stay with their group.
+    @Test func reorderingGroupsKeepsTheirItems() {
+        let store = FinanceStore(accounts: [], transactions: [], loans: [], paymentReminders: [], savingsGoals: [])
+        let groups = store.groups(.expense)
+        #expect(groups.count > 2)
+        let itemsBefore = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, store.items(of: $0).map(\.id)) })
+        let reversed = Array(groups.reversed())
+        store.reorder(reversed.map(\.id))
+        #expect(store.groups(.expense).map(\.id) == reversed.map(\.id))
+        for group in groups {
+            #expect(store.items(of: group).map(\.id) == itemsBefore[group.id])
+        }
+    }
+
+    /// A group's items in use take the new order; a hidden one keeps its place.
+    @Test func reorderingItemsLeavesAHiddenOneInPlace() throws {
+        let wallet = Account(name: "Ví", type: .cash, balance: 1_000_000)
+        let store = FinanceStore(accounts: [wallet], transactions: [], loans: [], paymentReminders: [], savingsGoals: [])
+        let group = try #require(store.groups(.expense).first { store.items(of: $0).count > 2 })
+        let items = store.items(of: group)
+        // Hide the second item (it has no transactions here, so give it one to hide rather than delete).
+        let hidden = items[1]
+        store.add(FinanceTransaction(amount: 1, categoryID: hidden.id, kind: .expense, accountID: wallet.id, date: .now))
+        store.remove(hidden)
+        let hiddenSlot = try #require(store.category(id: hidden.id)).sortOrder
+        let visible = store.items(of: group)
+        #expect(!visible.contains { $0.id == hidden.id })
+        let reversed = Array(visible.reversed())
+        #expect(store.reorder(reversed.map(\.id)))
+        #expect(store.items(of: group).map(\.id) == reversed.map(\.id))
+        #expect(store.category(id: hidden.id)?.sortOrder == hiddenSlot)
+        #expect(store.reorder(["missing"]) == false)
+    }
+}

@@ -63,9 +63,8 @@ extension FinanceStore {
     /// Whether a transaction is filed under it (for a group: under it or any of its items); such a
     /// category is hidden, not deleted.
     ///
-    /// Until the transaction form is wired to these categories, it still offers the 12 built-in
-    /// groups (`TransactionCategory`), so those count as used: they are hidden, never deleted, or a
-    /// new transaction could point at a group that no longer exists.
+    /// The built-in groups (`TransactionCategory`) always count as used: transactions from before
+    /// items existed may be filed under the group itself, so those groups are hidden, never deleted.
     func hasHistory(_ category: Category) -> Bool {
         if category.isGroup, TransactionCategory(rawValue: category.id) != nil { return true }
         let ids = Set([category.id] + categories.filter { $0.parentID == category.id }.map(\.id))
@@ -171,6 +170,28 @@ extension FinanceStore {
     var visibleItemCount: Int {
         let hiddenGroups = Set(categories.filter { $0.isGroup && $0.isHidden }.map(\.id))
         return categories.filter { !$0.isGroup && !$0.isHidden && !hiddenGroups.contains($0.parentID ?? "") }.count
+    }
+
+    /// Puts siblings (the groups of a kind, or a group's items in use) in the order of `ids`, in
+    /// the places they already held, so hidden siblings and every other list keep theirs. Two that
+    /// shared a place are set one apart, or the new order could not show. False when one of them
+    /// is gone, and then nothing moves.
+    @discardableResult
+    func reorder(_ ids: [String]) -> Bool {
+        var slots = ids.compactMap { id in categories.first { $0.id == id }?.sortOrder }.sorted()
+        guard slots.count == ids.count else { return false }
+        persist {
+            for index in slots.indices.dropFirst() where slots[index] <= slots[index - 1] {
+                slots[index] = slots[index - 1] + 1
+            }
+            for (id, slot) in zip(ids, slots) {
+                guard let index = categories.firstIndex(where: { $0.id == id }) else { continue }
+                categories[index].sortOrder = slot
+                database?.save(categories[index])
+            }
+            sortCategories()
+        }
+        return true
     }
 
     private func sortCategories() {
