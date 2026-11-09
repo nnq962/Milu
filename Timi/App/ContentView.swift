@@ -131,6 +131,6 @@ private struct TabPage<Content: View>: View, Equatable {
     ContentView()
         .environment(FinanceStore())
         .environment(AIQuota())
-        .environment(AssistantChats())
+        .environment(AssistantChats(saving: false))
         .environment(\.locale, .vietnam)
 }

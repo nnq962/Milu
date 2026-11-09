@@ -2,9 +2,7 @@ import SwiftUI
 
 struct MessageRow: View {
     @Environment(FinanceStore.self) private var store
-    @AppStorage(StorageKey.profileName) private var profileName = ""
     let message: ChatMessage
-    let onSuggestion: (String) -> Void
     let onAction: (CardAction, ChatMessage) -> Void
 
     var body: some View {
@@ -30,25 +28,6 @@ struct MessageRow: View {
                 AssistantSender()
                 answer
                 cardButtons
-                if message.showsSuggestions {
-                    FlowLayout(spacing: Spacing.s) {
-                        // Flat capsules 44 tall: no glass in a scrolling page, and a question
-                        // may wrap, which a 36 `TagChip` would cut (re-review 2026-10-31).
-                        ForEach(MockAssistant.suggestions, id: \.self) { suggestion in
-                            Button { onSuggestion(suggestion) } label: {
-                                Text(suggestion)
-                                    .textRole(.captionStrong)
-                                    .foregroundStyle(Palette.label)
-                                    .multilineTextAlignment(.leading)
-                                    .padding(.horizontal, Spacing.l)
-                                    .padding(.vertical, Spacing.s)
-                                    .frame(minHeight: ControlHeight.regular)
-                            }
-                            .flatCapsuleButton()
-                        }
-                    }
-                    .padding(.top, Spacing.xs)
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -135,9 +114,6 @@ struct MessageRow: View {
 
     /// Hiển thị **in đậm** và _in nghiêng_ theo cú pháp Markdown, giữ nguyên xuống dòng.
     private var formattedText: AttributedString {
-        // The greeting as plain words: the user's name in it is not Markdown ("*Minh*" stays
-        // as typed, review 2026-11-09).
-        if message.isWelcome { return AttributedString(MockAssistant.welcome(name: profileName)) }
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         return (try? AttributedString(markdown: message.text, options: options)) ?? AttributedString(message.text)
     }

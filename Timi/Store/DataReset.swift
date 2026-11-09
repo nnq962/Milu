@@ -18,6 +18,8 @@ import SwiftUI
 enum DataReset {
     static func eraseEverything(database: FinanceDatabase?) {
         database?.deleteEverything()
+        // The chats with Milu speak of the money too.
+        AssistantChats.deleteSaved()
         let defaults = UserDefaults.standard
         // Từng khoá một, không dùng `removePersistentDomain`: sau lệnh đó, các giá trị ghi ngay bên
         // dưới bị mất khi app đóng, nên lần mở sau dữ liệu mẫu lại quay về (thử trên Simulator

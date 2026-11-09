@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum TransactionKind: String, CaseIterable, Identifiable {
+enum TransactionKind: String, CaseIterable, Identifiable, Codable {
     case expense, income
 
     var id: Self { self }
@@ -107,7 +107,8 @@ enum TransactionCategory: String, CaseIterable, Identifiable {
     }
 }
 
-struct FinanceTransaction: Identifiable, Hashable {
+/// Codable: a snapshot of it is kept in a saved chat's card (`ChatMessage.Card`).
+struct FinanceTransaction: Identifiable, Hashable, Codable {
     /// Stable across launches: the same id is stored in the database.
     var id = UUID()
     /// Always empty now: a transaction has no name of its own and shows its category (user choice

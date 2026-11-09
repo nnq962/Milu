@@ -160,7 +160,7 @@ struct ReportRoute: Hashable {
     OverviewView()
         .environment(FinanceStore())
         .environment(AIQuota())
-        .environment(AssistantChats())
+        .environment(AssistantChats(saving: false))
         .environment(\.locale, .vietnam)
         .textRole(.body)
 }
