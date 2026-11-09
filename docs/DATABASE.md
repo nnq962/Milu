@@ -21,7 +21,8 @@ Code nằm ở `Timi/Persistence/`:
 4. **Kiểu liệt kê lưu dạng chuỗi** (`"expense"`, `"bank"`, `"lent"`…), không lưu enum của Swift. Web và backend đọc được ngay.
 5. **Mọi bảng có `createdAt` và `updatedAt`.** Đồng bộ sau này dựa vào `updatedAt` để biết dòng nào đã đổi.
 6. **Không xoá cứng tài khoản đang có lịch sử**: tài khoản đã có giao dịch hoặc nạp/rút hũ chỉ được "Lưu trữ" (`archivedAt` = ngày lưu trữ), giữ nguyên số dư và lịch sử; app đọc cả tài khoản đã lưu trữ và hiện chúng ở "Tài khoản đã lưu trữ", không tính vào tổng, không có trong ô chọn. Khôi phục thì xoá `archivedAt`. Chỉ tài khoản chưa có lịch sử mới bị xoá hẳn. Hũ thì vẫn xoá hẳn được (tiền còn lại rút về tài khoản trước), các dòng nạp/rút cũ của hũ được giữ.
-7. **Đổi schema = thêm phiên bản mới** (`TimiSchemaV2` + một bước trong `TimiMigrationPlan`), không sửa V1. Nếu sửa V1, máy đã cài app sẽ không mở được dữ liệu cũ.
+7. **Đổi schema = thêm phiên bản mới** (`TimiSchemaV2` + một bước trong `TimiMigrationPlan`), không sửa V1. Nếu sửa V1, máy đã cài app sẽ không mở được dữ liệu cũ. Cũng không sửa tại chỗ một lớp bản ghi đã phát hành: chép nó sang V(n+1) rồi mới đổi.
+8. **Thêm bảng hay đổi cách lưu thì chạy `PersistenceTests`**: các test ghi qua một store, mở store thứ hai trên cùng database (như lần mở app sau) rồi so sánh, kể cả "Xoá toàn bộ dữ liệu". Bảng mới cần thêm vào `Snapshot`/`load()`, `deleteEverything()` và hai chỗ gán snapshot trong `FinanceStore`, rồi thêm vào test.
 
 ## Icon
 

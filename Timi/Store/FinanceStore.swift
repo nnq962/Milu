@@ -51,7 +51,8 @@ final class FinanceStore {
     /// Relationships the user added in Danh bạ, in the order added; screens list `relationships`.
     var customRelationships: [Relationship]
 
-    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals) {
+    init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals,
+         goalTransfers: [GoalTransfer] = SampleData.goalTransfers, contacts: [Contact] = SampleData.contacts) {
         self.accounts = accounts
         self.archivedAccounts = []
         self.loans = loans
@@ -59,10 +60,11 @@ final class FinanceStore {
         self.paymentReminders = paymentReminders
         self.savingsGoals = savingsGoals
         self.transactions = transactions.sorted { $0.date > $1.date }
-        self.goalTransfers = SampleData.goalTransfers.sorted { $0.date > $1.date }
+        // Passed in, so a test's store holds only what it set up (review 2026-11-09).
+        self.goalTransfers = goalTransfers.sorted { $0.date > $1.date }
         self.accountTransfers = []
         self.categories = DefaultCategories.all
-        self.contacts = SampleData.contacts
+        self.contacts = contacts
         self.customRelationships = []
         self.database = nil
     }

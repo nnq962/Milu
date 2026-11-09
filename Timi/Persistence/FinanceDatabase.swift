@@ -18,11 +18,16 @@ final class FinanceDatabase {
 
     /// The on-device database; falls back to memory only if the file cannot be opened, so the app
     /// still starts (that session's changes are then not kept).
-    static func makeContainer() -> ModelContainer {
+    /// `inMemory`: a database that lives only while the app runs, for tests (same schema and
+    /// migration plan as the real one).
+    static func makeContainer(inMemory: Bool = false) -> ModelContainer {
         let schema = Schema(versionedSchema: TimiSchemaV7.self)
         do {
+            let configuration = inMemory
+                ? ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                : ModelConfiguration("Timi", schema: schema)
             return try ModelContainer(for: schema, migrationPlan: TimiMigrationPlan.self,
-                                      configurations: ModelConfiguration("Timi", schema: schema))
+                                      configurations: configuration)
         } catch {
             Logger(subsystem: "Timi", category: "database").fault("Cannot open the database: \(error)")
             return try! ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true))

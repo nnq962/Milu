@@ -11,7 +11,7 @@ struct FinanceStoreTests {
 
     private func makeStore(_ accounts: [Account]? = nil, loans: [Loan] = []) -> FinanceStore {
         FinanceStore(accounts: accounts ?? [wallet, bank], transactions: [], loans: loans,
-                     paymentReminders: [], savingsGoals: [])
+                     paymentReminders: [], savingsGoals: [], goalTransfers: [], contacts: [])
     }
 
     private func balance(_ store: FinanceStore, _ account: Account) -> Double {

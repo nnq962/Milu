@@ -151,6 +151,9 @@ extension TransactionRecord {
         title = transaction.title
         note = transaction.note
         occurredAt = transaction.date
+        // The transaction's own, so "recently used" keeps its order after a relaunch (a test
+        // found the row's creation time a few milliseconds off, review 2026-11-09).
+        createdAt = transaction.createdAt
         updatedAt = .now
     }
 }

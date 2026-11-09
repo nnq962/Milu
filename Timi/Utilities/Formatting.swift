@@ -14,7 +14,10 @@ extension Double {
     nonisolated var vndCompact: String {
         let value = abs(self)
         let sign = self < 0 ? "-" : ""
+        // Halves up, as people round: 1.250.000đ is "1,3tr" (a test found "1,2tr": the default
+        // rounds a half to the even digit, review 2026-11-09).
         let style = FloatingPointFormatStyle<Double>(locale: .vietnam).precision(.fractionLength(0...1))
+            .rounded(rule: .toNearestOrAwayFromZero)
         // The bounds where the smaller unit would round up to a thousand of itself: 999.600đ is
         // "1tr", not "1.000k" (calendar review 2026-11-04).
         switch value {
