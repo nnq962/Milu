@@ -90,6 +90,9 @@ struct FormRowLabel: View {
     /// The icon's size at the default text size; the 32 column unless a row asks for more (the
     /// 32 Fluent Flat pictures of "Thêm mới", as Sổ ví's rows, user request 2026-11-05).
     var iconSize: CGFloat = RowMetrics.iconColumn
+    /// Faded icon and title for a row that cannot be used; the subtitle stays as it is, since it
+    /// says why ("Sắp có"), and faded grey on grey was hard to read in dark mode (review 2026-11-09).
+    var isDimmed = false
 
     var body: some View {
         // One line: the icon's centre on the middle of the words, not on their line's box (see
@@ -98,11 +101,13 @@ struct FormRowLabel: View {
             if let icon {
                 FormRowIcon(icon: icon, size: iconSize)
                     .centeredOnTextLine()
+                    .opacity(isDimmed ? 0.45 : 1)
             }
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(title)
                     .textRole(.body)
                     .foregroundStyle(isInvalid ? Palette.negative : Palette.label)
+                    .opacity(isDimmed ? 0.45 : 1)
                 if let subtitle {
                     Text(subtitle)
                         .textRole(.caption)

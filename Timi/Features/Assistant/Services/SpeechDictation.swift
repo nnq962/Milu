@@ -68,6 +68,11 @@ final class SpeechDictation {
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        // On the phone when it can: what is said stays on it, as Cài đặt's privacy note says
+        // (review 2026-11-09: it went to Apple's servers).
+        if recognizer.supportsOnDeviceRecognition {
+            request.requiresOnDeviceRecognition = true
+        }
         self.request = request
         transcript = ""
 

@@ -1,29 +1,33 @@
+import MessageUI
 import SwiftUI
 
 /// Cài đặt, opened from the avatar on Tổng quan as a full sheet (like the account sheet in Apple's
 /// own apps). The profile card, this month's lượt AI with its upgrade button, then
-/// Quản lý tài chính, Giao diện, Thông báo, Hỗ trợ and Về Timi. Developer tools appear only
-/// in Debug builds. Rows the app cannot do yet open a short note.
+/// Quản lý tài chính, Giao diện, Thông báo, Hỗ trợ and Về Milu. Developer tools appear only
+/// in Debug builds. Notifications, still to come, are shown switched off and greyed, with "Sắp có".
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.eraseAllData) private var eraseAllData
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
-    @AppStorage(StorageKey.dailyReminder) private var dailyReminder = true
-    @AppStorage(StorageKey.dailyReminderMinutes) private var dailyReminderMinutes = 21 * 60
-    @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = true
     @AppStorage(StorageKey.appearance) private var appearance = AppAppearance.system
+    @AppStorage(StorageKey.profileName) private var profileName = ""
 
     @State private var note: Note?
+    @State private var isEditingName = false
+    /// The mail form in the app, when the phone can send mail.
+    @State private var isComposing = false
+    /// No mail account (or Mail would not open): the address to copy instead.
+    @State private var isOfferingCopy = false
+    /// The second ask before erasing everything: nothing can bring it back (review 2026-11-09).
+    @State private var isConfirmingErase = false
     /// The profile's initial: 44 like a header icon, larger with the text inside it, so the letter
     /// never spills out at large sizes (strict review 2026-10-31: a fixed 56).
     @ScaledMetric(relativeTo: .title3) private var avatarSize = RowMetrics.featureIcon
 
-    private static let supportEmail = "support@timi.nnqlab.dev"
+    private static let supportEmail = "support@milu.nnqlab.dev"
 
     /// A feature still to come: its row opens this instead of a dead end.
     private struct Note: Identifiable {
@@ -37,18 +41,6 @@ struct SettingsView: View {
         let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
         let build = info?["CFBundleVersion"] as? String ?? "1"
         return "\(short) (\(build))"
-    }
-
-    /// Persist a local time rather than a timestamp, so changing time zones keeps the selected hour.
-    private var reminderTime: Binding<Date> {
-        Binding {
-            let minutes = min(max(dailyReminderMinutes, 0), 24 * 60 - 1)
-            return Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0,
-                                         of: Date(timeIntervalSinceReferenceDate: 0)) ?? .now
-        } set: { date in
-            let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
-            dailyReminderMinutes = (parts.hour ?? 21) * 60 + (parts.minute ?? 0)
-        }
     }
 
     var body: some View {
@@ -106,49 +98,57 @@ struct SettingsView: View {
 
                     // No footers here: a footer only carries a computed figure or an error
                     // (strict review 2026-10-31).
+                    // Off and greyed with "Sắp có" until the app sends notifications: on, they
+                    // promised a reminder at 21:00 that never came (review 2026-11-09). Their
+                    // stored choices come back with the feature.
                     FormGroup(title: "Thông báo") {
-                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "Mỗi ngày",
-                                      icon: "hugeicons-notification-01", isOn: $dailyReminder)
-                        // Its hour only while the reminder is on, sliding in and out with the card
-                        // (user report 2026-10-31: it popped in with no animation).
-                        if dailyReminder {
-                            VStack(spacing: 0) {
-                                FormDivider()
-                                FormTimeRow(title: "Giờ nhắc", icon: "hugeicons-clock-01", date: reminderTime)
-                            }
-                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
-                        }
+                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "Sắp có",
+                                      icon: "hugeicons-notification-01", isOn: .constant(false))
+                            .disabled(true)
                         FormDivider()
-                        FormToggleRow(title: "Cảnh báo hạn mức", subtitle: "Khi dùng 80% và 100%",
-                                      icon: "hugeicons-alert-circle", isOn: $budgetAlerts)
+                        FormToggleRow(title: "Cảnh báo hạn mức", subtitle: "Sắp có",
+                                      icon: "hugeicons-alert-circle", isOn: .constant(false))
+                            .disabled(true)
                     }
-                    .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: dailyReminder)
 
+                    // Rows that open a note over the sheet have no ›; the mail row leaves the app,
+                    // so ↗ (review 2026-11-09). One mail row: "Góp ý" and "Liên hệ hỗ trợ" opened
+                    // the same address.
                     FormGroup(title: "Hỗ trợ") {
-                        FormNavigationRow(title: "Câu hỏi thường gặp", icon: "hugeicons-help-circle") {
-                            note = Note(title: "Câu hỏi thường gặp", message: "Sắp có trong app. Hiện bạn có thể xem trên bản web của Milu.")
+                        // A page of its own, pushed (review 2026-11-09: one grey block in a note).
+                        NavigationLink {
+                            FAQView()
+                        } label: {
+                            NavigationRowContent(title: "Câu hỏi thường gặp", icon: "hugeicons-help-circle")
                         }
+                        .buttonStyle(.row)
                         FormDivider()
-                        FormNavigationRow(title: "Góp ý với Milu", icon: "hugeicons-bubble-chat") {
-                            mail(subject: "Góp ý cho Milu iOS")
+                        // May break after "@" only, not inside a word (review 2026-11-09: "…nnqlab.de" / "v").
+                        FormNavigationRow(title: "Góp ý và hỗ trợ", subtitle: Self.supportEmail.replacingOccurrences(of: "@", with: "@\u{200B}"), icon: "hugeicons-mail-01",
+                                          accessory: .external) {
+                            mail()
                         }
-                        FormDivider()
-                        FormNavigationRow(title: "Liên hệ hỗ trợ", subtitle: Self.supportEmail, icon: "hugeicons-mail-01") {
-                            mail(subject: "Hỗ trợ Milu iOS")
-                        }
+                        .accessibilityHint("Mở thư gửi Milu")
                     }
 
                     FormGroup(title: "Về Milu") {
-                        FormNavigationRow(title: "Lịch sử phiên bản", icon: "hugeicons-history", value: version) {
-                            note = Note(title: "Phiên bản \(version)", message: "Bản thử nghiệm: hệ thống thiết kế, form kiểu iOS, logo ngân hàng và ví, biểu đồ Swift Charts, dữ liệu lưu trên máy.")
+                        // The version only: what changed in it was developers' words (review 2026-11-09).
+                        FormValueRowContent(title: "Phiên bản", icon: "hugeicons-history", value: version, showsChevron: false)
+                            .accessibilityElement(children: .combine)
+                        FormDivider()
+                        FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check", accessory: .none) {
+                            // What is true now: kept on the phone, gone only when erased (review
+                            // 2026-11-09: it said the data was wiped on reopening, which it is not).
+                            // What the app does today (reviews 2026-11-09: it said the AI sent
+                            // questions away, which the on-phone one does not, and that nothing
+                            // left the phone, while dictation went through Apple).
+                            note = Note(title: "Chính sách quyền riêng tư",
+                                        message: "Số liệu bạn ghi (tài khoản, giao dịch, hạn mức…) chỉ lưu trên máy này, không gửi lên máy chủ nào. Milu AI cũng trả lời ngay trên máy.\n\nRiêng khi nhập bằng giọng nói: iPhone nhận giọng ngay trên máy nếu hỗ trợ; nếu không, đoạn ghi âm được gửi tới dịch vụ nhận giọng nói của Apple.\n\nDữ liệu chỉ mất khi bạn xoá app hoặc chọn \"Xoá toàn bộ dữ liệu\". Chính sách đầy đủ sẽ có khi Milu phát hành.")
                         }
                         FormDivider()
-                        FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check") {
-                            note = Note(title: "Chính sách quyền riêng tư", message: "Dữ liệu trong bản thử nghiệm chỉ nằm trên máy và được đặt lại khi mở lại app. Chính sách đầy đủ sắp có.")
-                        }
-                        FormDivider()
-                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02") {
-                            note = Note(title: "Điều khoản sử dụng", message: "Sắp có trong app.")
+                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02", accessory: .none) {
+                            note = Note(title: "Điều khoản sử dụng",
+                                        message: "Đây là bản thử nghiệm của Milu. Số liệu trong app do bạn tự nhập và chỉ để tham khảo, không phải lời khuyên tài chính. Điều khoản đầy đủ sẽ có khi Milu phát hành.")
                         }
                         FormDivider()
                         NavigationLink {
@@ -180,11 +180,27 @@ struct SettingsView: View {
                     #endif
 
                     // Cuối trang, chữ đỏ, như "Xoá iPhone" cuối Cài đặt chung của iOS; hỏi lại trước khi xoá.
+                    // Asked twice: it cannot be undone and there is no backup (review 2026-11-09).
                     FormGroup {
                         FormDestructiveRow(title: "Xoá toàn bộ dữ liệu", question: "Xoá toàn bộ dữ liệu?",
-                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và cài đặt sẽ bị xoá. Lượt AI và các bước Làm quen đã nhận được giữ nguyên. Không thể hoàn tác.") {
+                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và cài đặt sẽ bị xoá. Lượt AI còn lại và các bước Làm quen đã xong vẫn được giữ. Không thể hoàn tác.",
+                                           warns: false) {
+                            // Once the first alert has gone: raised while it was closing, the
+                            // second could be dropped and the tap would do nothing (review 2026-11-09).
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(400))
+                                isConfirmingErase = true
+                            }
+                        }
+                    }
+                    .systemAlert("Xoá vĩnh viễn?", isPresented: $isConfirmingErase) {
+                        Button("Huỷ", role: .cancel) {}
+                        Button("Xoá hết", role: .destructive) {
+                            Haptics.warning()
                             eraseAllData()
                         }
+                    } message: {
+                        Text("Milu chưa tự sao lưu nên không thể lấy lại dữ liệu đã xoá.")
                     }
 
                 }
@@ -201,51 +217,96 @@ struct SettingsView: View {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
             .sheet(item: $note) { NoteSheet(title: $0.title, message: $0.message) }
+            .sheet(isPresented: $isEditingName) { ProfileNameSheet() }
+            .sheet(isPresented: $isComposing) {
+                MailComposer(recipient: Self.supportEmail, subject: "Góp ý cho Milu iOS")
+                    .ignoresSafeArea()
+            }
+            // No mail account set up in Mail (it may be installed): nothing failed, so it says so.
+            .systemAlert("Chưa có tài khoản Mail trên máy", isPresented: $isOfferingCopy) {
+                Button("Đóng", role: .cancel) {}
+                Button("Sao chép địa chỉ") {
+                    UIPasteboard.general.string = Self.supportEmail
+                    Haptics.success()
+                }
+            } message: {
+                Text("Bạn có thể sao chép địa chỉ \(Self.supportEmail) và gửi thư từ ứng dụng thư bạn dùng.")
+            }
         }
         .timiSheetStyle()
     }
 
-    /// Who is signed in and their plan; the avatar repeats the one on Tổng quan. A row's gap after
-    /// it, as after every icon on this page (re-review 2026-10-31: 12).
+    /// The name the user set (tap to change), its initial, and the plan. No email until there is
+    /// signing in (review 2026-11-09: a made-up "quyet@example.com" and the developer's name
+    /// showed on every install). At the accessibility sizes the plan goes under the name, which
+    /// otherwise broke one word a line beside it (review 2026-11-09).
     private var profile: some View {
-        HStack(spacing: RowMetrics.gap) {
-            Text("Q")
-                .textRole(.heading)
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        return Button { isEditingName = true } label: {
+            HStack(spacing: RowMetrics.gap) {
+                Group {
+                    if let initial = ProfileName.initial(of: profileName) {
+                        Text(initial).textRole(.heading)
+                    } else {
+                        Image(systemName: "person.fill").font(.title2)
+                    }
+                }
                 .foregroundStyle(Palette.primary)
                 .frame(width: avatarSize, height: avatarSize)
                 .background(Palette.primaryTint, in: Circle())
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                Text("Quyet")
-                    .textRole(.heading)
-                // Placeholder until the app has an authenticated profile.
-                Text("quyet@example.com")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryLabel)
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    Text(profileName.isEmpty ? "Thêm tên" : profileName)
+                        .textRole(.heading)
+                        .foregroundStyle(profileName.isEmpty ? Palette.secondaryLabel : Palette.label)
+                    Text(profileName.isEmpty ? "Chạm để đặt tên" : "Chạm để đổi tên")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryLabel)
+                    if stacked {
+                        StatusBadge(title: "Miễn phí", tone: .neutral, showsDot: false)
+                            .padding(.top, Spacing.xs)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if !stacked {
+                    StatusBadge(title: "Miễn phí", tone: .neutral, showsDot: false)
+                        .fixedSize()
+                }
             }
-            Spacer(minLength: Spacing.s)
-            StatusBadge(title: "Miễn phí", tone: .neutral, showsDot: false)
+            .settingsCard()
+            .contentShape(Rectangle())
         }
-        .settingsCard()
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.card)
+        // The name and the plan; what a tap does is the hint, not "Chạm để…" read aloud.
+        .accessibilityLabel(profileName.isEmpty ? "Chưa đặt tên, gói Miễn phí" : "\(profileName), gói Miễn phí")
+        .accessibilityHint(profileName.isEmpty ? "Đặt tên của bạn" : "Đổi tên của bạn")
     }
 
-    /// "Hạn mức AI tháng này" (user's words, 2026-10-31): what is left, large, over the bar of
-    /// what has been used and one quiet line of the details, then a plain "Nâng cấp" button
+    /// "Lượt AI tháng này": what is left, large (the free lượt left plus the bonus), over a bar of
+    /// what is left on the same scale and one quiet line of the details, then "Tìm hiểu Milu Pro"
     /// across the card. What Pro gives is not listed here: the plans sheet will show it (user
-    /// choice 2026-10-31). The remaining total includes the bonus; the bar measures only the free
-    /// lượt.
+    /// choice 2026-10-31).
     private var aiQuotaCard: some View {
-        let used = quota.usedThisMonth
-        let details = ["Đã dùng \(used)/\(AIQuota.monthlyFree) lượt",
-                       quota.bonus > 0 ? "+\(quota.bonus) lượt thưởng" : nil].compactMap { $0 }
+        // One scale for the figure and the bar: what is left of this month's free lượt plus the
+        // bonus (review 2026-11-09: the bar filled with the free ones alone, full and orange
+        // while 15 bonus lượt were still there).
+        let total = AIQuota.monthlyFree + quota.bonus
+        // The month's free ones used, and the bonus still there (a bonus lượt used is taken off
+        // the bonus, so "đã dùng" stops at 20, review 2026-11-09).
+        let details = ["Đã dùng \(quota.usedThisMonth)/\(AIQuota.monthlyFree) lượt miễn phí",
+                       quota.bonus > 0 ? "còn \(quota.bonus) lượt thưởng" : nil].compactMap { $0 }
+        // "3 trên 20", not a slash read aloud (review 2026-11-09).
+        let spokenDetails = ["Đã dùng \(quota.usedThisMonth) trên \(AIQuota.monthlyFree) lượt miễn phí",
+                             quota.bonus > 0 ? "còn \(quota.bonus) lượt thưởng" : nil].compactMap { $0 }
         return VStack(alignment: .leading, spacing: Spacing.l) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                    Text("Hạn mức AI tháng này")
+                    // "Lượt", not "Hạn mức": right above "Hạn mức chi tiêu" the same word meant
+                    // two things (review 2026-11-09).
+                    Text("Lượt AI tháng này")
                         .textRole(.bodyStrong)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Làm mới \(quota.renewsOn.shortDay)")
+                    Text("Làm mới ngày \(quota.renewsOn.shortDay)")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                 }
@@ -260,21 +321,24 @@ struct SettingsView: View {
                 }
                 .accessibilityElement(children: .combine)
                 VStack(alignment: .leading, spacing: Spacing.s) {
-                    // Fills as lượt are used; orange once 3 or fewer free ones are left.
-                    ProgressBar(value: Double(used) / Double(AIQuota.monthlyFree),
-                                color: quota.monthlyLeft <= 3 ? Palette.warning : Palette.progress)
+                    // What is left, shrinking as lượt are used; orange once 3 or fewer are left.
+                    ProgressBar(value: total > 0 ? Double(quota.remaining) / Double(total) : 0,
+                                color: quota.remaining <= 3 ? Palette.warning : Palette.progress)
                         .accessibilityHidden(true)
                     Text(details.joined(separator: " · "))
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel(spokenDetails.joined(separator: ", "))
                 }
             }
-            TimiButton("Nâng cấp", role: .primary, fullWidth: true) {
+            // Says what it opens: Pro is not on sale yet (review 2026-11-09: "Nâng cấp" led to
+            // "Sắp ra mắt").
+            TimiButton("Tìm hiểu Milu Pro", role: .primary, fullWidth: true) {
                 note = Note(title: TimiProNote.title, message: TimiProNote.message)
             }
-            .accessibilityHint("Xem gói Milu Pro")
+            .accessibilityHint("Gói Milu Pro sắp ra mắt")
         }
         .padding(.horizontal, RowMetrics.horizontal)
         .padding(.vertical, Spacing.card)
@@ -282,12 +346,16 @@ struct SettingsView: View {
         .cardSurface(radius: CardCorners.card)
     }
 
-    private func mail(subject: String) {
-        let query = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "mailto:\(Self.supportEmail)?subject=\(query)") {
-            openURL(url)
+    /// The mail form inside the app; with no mail account set up, the address to copy (review
+    /// 2026-11-09: Mail opened its account set-up and the copy offer never came).
+    private func mail() {
+        if MFMailComposeViewController.canSendMail() {
+            isComposing = true
+        } else {
+            isOfferingCopy = true
         }
     }
+
 }
 
 extension View {

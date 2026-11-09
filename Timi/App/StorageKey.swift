@@ -14,6 +14,8 @@ enum StorageKey {
     static let budgetAlerts = "settings.budgetAlerts"
     /// "Giao diện": `AppAppearance` (Hệ thống, Sáng, Tối).
     static let appearance = "settings.appearance"
+    /// The name the user gave themselves (Cài đặt's card, the initial on the bar); empty until set.
+    static let profileName = "settings.profileName"
     /// The account the last transaction was added to, picked first next time.
     static let lastAccountID = "transactions.lastAccountID"
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Milu.

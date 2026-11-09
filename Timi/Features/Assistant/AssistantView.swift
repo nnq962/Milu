@@ -268,7 +268,7 @@ struct AssistantView: View {
     // MARK: - Hành động
 
     private func startNewConversation() {
-        chats.conversations.append(.new(name: "Quyet"))
+        chats.conversations.append(.new())
         chats.currentID = chats.conversations.last?.id
         draft = ""
     }

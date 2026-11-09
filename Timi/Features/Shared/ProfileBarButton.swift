@@ -6,22 +6,32 @@ import SwiftUI
 struct ProfileBarButton: View {
     let action: () -> Void
 
+    /// The initial of the name set in Cài đặt; a person glyph until there is one (review
+    /// 2026-11-09: every install showed the developer's "Q").
+    @AppStorage(StorageKey.profileName) private var name = ""
+
     var body: some View {
         Button(action: action) {
             // The initial drawn as an image: the bar sets an image in a circle like the bell, but
             // text (even an icon-only label) in a pill. A template, tinted when shown: a colour
             // drawn into it stayed the light one at night, black on the dark glass.
-            Image(size: CGSize(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)) { context in
-                // Regular, as the words of iOS's own glass buttons (user request 2026-11-05).
-                context.draw(Text("Q").font(Typography.font(.title3, size: TextRole.heading.size, weight: .regular)),
-                             at: CGPoint(x: RowMetrics.toolbarGlyphFrame / 2, y: RowMetrics.toolbarGlyphFrame / 2))
+            Group {
+                if let initial = ProfileName.initial(of: name) {
+                    Image(size: CGSize(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)) { context in
+                        // Regular, as the words of iOS's own glass buttons (user request 2026-11-05).
+                        context.draw(Text(initial).font(Typography.font(.title3, size: TextRole.heading.size, weight: .regular)),
+                                     at: CGPoint(x: RowMetrics.toolbarGlyphFrame / 2, y: RowMetrics.toolbarGlyphFrame / 2))
+                    }
+                    .renderingMode(.template)
+                } else {
+                    Image(systemName: "person")
+                }
             }
-            .renderingMode(.template)
             .foregroundStyle(Palette.deep)
         }
         .buttonBorderShape(.circle)
         .tint(Palette.deep)
-        .accessibilityLabel("Hồ sơ của Quyet")
+        .accessibilityLabel(name.isEmpty ? "Hồ sơ" : "Hồ sơ của \(name)")
         .accessibilityHint("Mở cài đặt")
     }
 }

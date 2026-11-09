@@ -24,8 +24,11 @@ struct AssistantReply {
 struct MockAssistant {
     let store: FinanceStore
 
+    /// With the name set in Cài đặt, or "bạn" before one is (review 2026-11-09: every install
+    /// was greeted as "Quyet").
     static func welcome(name: String) -> String {
-        "Chào \(name)! Mình là Milu. Bạn có thể hỏi mình về tài chính hoặc nhờ mình ghi, sửa, xoá giao dịch."
+        let who = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "Chào \(who.isEmpty ? "bạn" : who)! Mình là Milu. Bạn có thể hỏi mình về tài chính hoặc nhờ mình ghi, sửa, xoá giao dịch."
     }
 
     static let suggestions = ["Tháng này tôi tiêu gì nhiều nhất?", "Ghi một khoản chi", "Ai đang nợ tôi?"]

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessageRow: View {
     @Environment(FinanceStore.self) private var store
+    @AppStorage(StorageKey.profileName) private var profileName = ""
     let message: ChatMessage
     let onSuggestion: (String) -> Void
     let onAction: (CardAction, ChatMessage) -> Void
@@ -134,6 +135,9 @@ struct MessageRow: View {
 
     /// Hiển thị **in đậm** và _in nghiêng_ theo cú pháp Markdown, giữ nguyên xuống dòng.
     private var formattedText: AttributedString {
+        // The greeting as plain words: the user's name in it is not Markdown ("*Minh*" stays
+        // as typed, review 2026-11-09).
+        if message.isWelcome { return AttributedString(MockAssistant.welcome(name: profileName)) }
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         return (try? AttributedString(markdown: message.text, options: options)) ?? AttributedString(message.text)
     }

@@ -37,9 +37,13 @@ struct FormToggleRow: View {
     var icon: String? = nil
     @Binding var isOn: Bool
 
+    @Environment(\.isEnabled) private var isEnabled
+
     var body: some View {
         Toggle(isOn: $isOn) {
-            FormRowLabel(title: title, subtitle: subtitle, icon: icon)
+            // Dimmed with the switch when it cannot be used: the label sets its own colours,
+            // which `.disabled` alone leaves at full ink (review 2026-11-09).
+            FormRowLabel(title: title, subtitle: subtitle, icon: icon, isDimmed: !isEnabled)
         }
         .tint(Palette.switchOn)
         .formRowFrame()
@@ -138,18 +142,23 @@ struct NavigationRowContent: View {
     var spokenValue: String? = nil
     var iconSize: CGFloat = RowMetrics.iconColumn
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         // One line: the › on the words' baseline (see `FormValueRowContent`); with a subtitle,
-        // centred on the two lines.
-        let row = HStack(alignment: subtitle == nil ? .firstTextBaseline : .center, spacing: Spacing.s) {
-            FormRowLabel(title: title, subtitle: subtitle, icon: icon, iconSize: iconSize)
-            Spacer(minLength: Spacing.s)
-            if let value {
-                Text(value)
-                    .textRole(.body)
-                    .foregroundStyle(Palette.secondaryLabel)
-                    .monospacedDigit()
-                    .lineLimit(1)
+        // centred on the two lines. At the accessibility sizes the value goes under the title,
+        // as `FormValueRowContent` does: beside it "30.000.000đ" was cut short (review 2026-11-09).
+        let row = HStack(alignment: subtitle == nil && !stacksValue ? .firstTextBaseline : .center, spacing: Spacing.s) {
+            if stacksValue, let value {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    FormRowLabel(title: title, subtitle: subtitle, icon: icon, iconSize: iconSize)
+                    valueText(value)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                FormRowLabel(title: title, subtitle: subtitle, icon: icon, iconSize: iconSize)
+                Spacer(minLength: Spacing.s)
+                if let value { valueText(value) }
             }
             RowChevron()
         }
@@ -164,14 +173,29 @@ struct NavigationRowContent: View {
             row
         }
     }
+
+    private var stacksValue: Bool { dynamicTypeSize.isAccessibilitySize && value != nil }
+
+    private func valueText(_ value: String) -> some View {
+        Text(value)
+            .textRole(.body)
+            .foregroundStyle(Palette.secondaryLabel)
+            .monospacedDigit()
+            .lineLimit(1)
+    }
 }
 
 /// Opens something else: value and › on the right.
 struct FormNavigationRow: View {
+    /// What the row's end says it does: › pushes a page, ↗ leaves the app (Mail), nothing for a
+    /// sheet over this one, as iOS draws them (review 2026-11-09: › on all three).
+    enum Accessory { case chevron, external, none }
+
     let title: String
     var subtitle: String? = nil
     var icon: String? = nil
     var value: String? = nil
+    var accessory: Accessory = .chevron
     let action: () -> Void
 
     var body: some View {
@@ -185,7 +209,15 @@ struct FormNavigationRow: View {
                         .foregroundStyle(Palette.secondaryLabel)
                         .lineLimit(1)
                 }
-                RowChevron()
+                switch accessory {
+                case .chevron: RowChevron()
+                case .external:
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: IconSize.chevron, weight: .semibold))
+                        .foregroundStyle(Palette.tertiaryLabel)
+                        .accessibilityHidden(true)
+                case .none: EmptyView()
+                }
             }
             .formRowFrame()
         }
@@ -252,6 +284,9 @@ struct FormDestructiveRow: View {
     var canConfirm = true
     /// A bin before the title, in the same red, so the row reads as "delete" at a glance.
     var icon: String? = "hugeicons-delete-02"
+    /// False when this alert only leads to a second ask: the warning tick belongs to the step
+    /// that really deletes (review 2026-11-09).
+    var warns = true
     let action: () -> Void
 
     @State private var isConfirming = false
@@ -276,7 +311,7 @@ struct FormDestructiveRow: View {
                 EmptyView()
             } else if choices.isEmpty {
                 Button(title, role: .destructive) {
-                    Haptics.warning()
+                    if warns { Haptics.warning() }
                     action()
                 }
             } else {
