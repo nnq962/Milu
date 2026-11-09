@@ -153,7 +153,9 @@ struct TransactionsView: View {
     /// A new month or segment is another list: the old fades out over the new one in the same
     /// place, not stacked under it. A new filter just shows its rows.
     private func listContainer(@ViewBuilder _ list: () -> some View) -> some View {
-        ZStack(alignment: .top) {
+        // Top-aligned without a ZStack: lining the list up by its top made the ZStack lay the whole
+        // month out a second time on a tab's first frame (Instruments 2026-11-09).
+        TopAlignedStack {
             // At least the visible height, so a short filter does not pull the page back up. By
             // layout, not a measured height kept in state: a keyboard in a sheet over this page
             // changed that height, and redrawing here rebuilt the form in the sheet, which lost its
@@ -347,7 +349,9 @@ struct MonthFlowList: View, Equatable {
         } else {
             // Tapping a row opens it to read, change or delete, as in an account's history. One
             // view, so the days leave and come as one (`.emptySwap`), not each with its own fade.
-            VStack(alignment: .leading, spacing: Spacing.section) {
+            // Lazy: the days under the fold are built as they scroll in, not the whole month on
+            // the tab's first frame (Instruments 2026-11-09).
+            LazyVStack(alignment: .leading, spacing: Spacing.section) {
                 ActivityDayList(groups: groups, headingOutside: true) { editingItem = $0 }
             }
             .transition(.emptySwap)
@@ -411,4 +415,22 @@ struct MonthFlowList: View, Equatable {
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
         .textRole(.body)
+}
+
+/// Its pieces one over another, each at the top and the full width, as tall as the tallest. A
+/// `ZStack(alignment: .top)` asks each piece where its top is, which for a long list means laying it
+/// all out again; here each is measured once.
+private struct TopAlignedStack: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width
+        let sizes = subviews.map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)) }
+        return CGSize(width: width ?? sizes.map(\.width).max() ?? 0, height: sizes.map(\.height).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for subview in subviews {
+            subview.place(at: bounds.origin, anchor: .topLeading,
+                          proposal: ProposedViewSize(width: bounds.width, height: nil))
+        }
+    }
 }

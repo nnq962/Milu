@@ -120,44 +120,65 @@ struct SkyHeader: View {
 
     /// Sky, sun and clouds, and the dog, behind the words. Above, the sky runs on under the bars;
     /// below, a straight edge meets the page, as Milu draws it (user 2026-11-05: no blur; the soft
-    /// bands tried on 2026-11-04 and -05 read rough).
+    /// bands tried on 2026-11-04 and -05 read rough). Placed by `SkyArtLayout`, not a
+    /// `GeometryReader`: reading the reader's size laid the whole page out once more before the
+    /// first frame of a tab (Instruments 2026-11-09: about a fifth of opening Giao dịch).
     private var art: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let edge = proxy.size.height
-            let scale = width / Self.referenceWidth
-            let skyHeight = sky.height * scale
-            ZStack(alignment: .topLeading) {
-                sky.top
-                    .frame(width: width, height: Self.overscroll + edge)
-                    .offset(y: -Self.overscroll)
-                Image(sky.image)
-                    .resizable()
-                    .frame(width: width, height: skyHeight)
-                    .offset(y: edge - skyHeight)
-                // A new mood hops in from the dog's feet while the old one fades out quickly
-                // (user 2026-11-05: a plain cross-fade looked rough — halfway, both pictures were
-                // half see-through and the sky showed through the dog). The spring is set here, so
-                // the change looks the same whichever action changed the mood.
-                ZStack {
-                    if let mascot {
-                        Image(mascot)
-                            .resizable()
-                            .scaledToFit()
-                            .id(mascot)
-                            .transition(mascotSwap)
-                    }
+        SkyArtLayout(skyHeight: sky.height, placement: placement,
+                     referenceWidth: Self.referenceWidth, referenceEdge: Self.referenceEdge,
+                     overscroll: Self.overscroll) {
+            sky.top
+            Image(sky.image)
+                .resizable()
+            // A new mood hops in from the dog's feet while the old one fades out quickly
+            // (user 2026-11-05: a plain cross-fade looked rough — halfway, both pictures were
+            // half see-through and the sky showed through the dog). The spring is set here, so
+            // the change looks the same whichever action changed the mood.
+            ZStack {
+                if let mascot {
+                    Image(mascot)
+                        .resizable()
+                        .scaledToFit()
+                        .id(mascot)
+                        .transition(mascotSwap)
                 }
-                .frame(width: placement.width * scale)
-                .offset(x: placement.left * scale,
-                        y: edge - (Self.referenceEdge - placement.top) * scale)
-                .animation(reduceMotion ? .easeInOut(duration: 0.25) : .spring(duration: 0.5, bounce: 0.35),
-                           value: mascot)
             }
-            .frame(width: width, height: edge, alignment: .topLeading)
-            // Nothing past the edge: the dog's foot ends where the page begins.
-            .mask(alignment: .bottom) { Rectangle().frame(height: 4000) }
+            .animation(reduceMotion ? .easeInOut(duration: 0.25) : .spring(duration: 0.5, bounce: 0.35),
+                       value: mascot)
         }
+        // Nothing past the edge: the dog's foot ends where the page begins.
+        .mask(alignment: .bottom) { Rectangle().frame(height: 4000) }
         .accessibilityHidden(true)
+    }
+}
+
+/// The sky's three layers in the head's bounds, scaled from the 402-wide drawing: the sky's colour
+/// running on up under the bars, the sky picture standing on the lower edge, and the dog where
+/// Figma puts it. Sized by what it is given, so it never asks the page to lay itself out again.
+private struct SkyArtLayout: Layout {
+    let skyHeight: CGFloat
+    let placement: SkyHeader.MascotPlacement
+    let referenceWidth: CGFloat
+    let referenceEdge: CGFloat
+    let overscroll: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 3 else { return }
+        let width = bounds.width
+        let edge = bounds.height
+        let scale = width / referenceWidth
+        let sky = skyHeight * scale
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.minY - overscroll), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: width, height: overscroll + edge))
+        subviews[1].place(at: CGPoint(x: bounds.minX, y: bounds.minY + edge - sky), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: width, height: sky))
+        subviews[2].place(at: CGPoint(x: bounds.minX + placement.left * scale,
+                                      y: bounds.minY + edge - (referenceEdge - placement.top) * scale),
+                          anchor: .topLeading,
+                          proposal: ProposedViewSize(width: placement.width * scale, height: nil))
     }
 }
