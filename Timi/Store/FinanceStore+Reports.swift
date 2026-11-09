@@ -4,7 +4,8 @@ import Foundation
 /// (tuần, tháng, năm của Báo cáo).
 extension FinanceStore {
     func monthlyTransactions(for date: Date = .now) -> [FinanceTransaction] {
-        transactions.filter { Calendar.current.isDate($0.date, equalTo: date, toGranularity: .month) }
+        let month = DateInterval.month(of: date)
+        return transactions.filter { month.holds($0.date) }
     }
 
     /// What a month's totals, charts and the assistant count: its transactions that are reported,

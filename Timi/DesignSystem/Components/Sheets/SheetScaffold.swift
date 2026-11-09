@@ -71,6 +71,9 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
     var showsClose = true
     /// Reports its height for a sheet that fits its content (`SheetScaffold(fitsContent:)`).
     var measuresHeight = false
+    /// Builds only what scrolls into view: a detail screen whose history can run to years of
+    /// days (an account's), where every day at once froze the opening (review 2026-11-09).
+    var isLazy = false
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
     @ViewBuilder var trailing: Trailing
@@ -81,12 +84,12 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.xxl) {
-                if Header.self != EmptyView.self {
-                    VStack(spacing: Spacing.l) { header }
-                        .frame(maxWidth: .infinity)
+            Group {
+                if isLazy {
+                    LazyVStack(alignment: .leading, spacing: Spacing.xxl) { stack }
+                } else {
+                    VStack(alignment: .leading, spacing: Spacing.xxl) { stack }
                 }
-                content
             }
             .padding(.horizontal, Spacing.page)
             .padding(.top, Spacing.s)
@@ -112,6 +115,14 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
                 ToolbarItem(placement: .topBarTrailing) { trailing }
             }
         }
+    }
+
+    @ViewBuilder private var stack: some View {
+        if Header.self != EmptyView.self {
+            VStack(spacing: Spacing.l) { header }
+                .frame(maxWidth: .infinity)
+        }
+        content
     }
 
     /// iOS draws ✓ on a filled glass circle in the tint (the primary colour); it greys itself out when disabled.
@@ -148,7 +159,7 @@ extension SheetPage where Header == EmptyView, Trailing == EditToolbarButton? {
     /// A detail screen: ✕ on the first one, and the pencil when the item can be changed.
     init(title: String, showsClose: Bool, canEdit: Bool, onEdit: @escaping () -> Void,
          @ViewBuilder content: () -> Content) {
-        self.init(title: title, showsClose: showsClose, header: { EmptyView() }, content: content,
+        self.init(title: title, showsClose: showsClose, isLazy: true, header: { EmptyView() }, content: content,
                   trailing: { canEdit ? EditToolbarButton(action: onEdit) : nil })
     }
 }

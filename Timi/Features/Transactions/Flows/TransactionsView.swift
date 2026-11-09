@@ -62,7 +62,12 @@ struct TransactionsView: View {
                             switch segment {
                             case .flows:
                                 filterRow { TransactionFilterTabs(selection: $filter) }
-                                listContainer { flowList }
+                                listContainer {
+                                    // Its own view: the page's scroll flags and a row tapped no
+                                    // longer rebuild the month's list (review 2026-11-09).
+                                    MonthFlowList(month: displayedMonth, filter: filter, editingItem: $editingItem)
+                                        .equatable()
+                                }
                             case .loans:
                                 filterRow { SegmentPills(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
                                 listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
@@ -223,10 +228,6 @@ struct TransactionsView: View {
 
     // MARK: - Thu chi
 
-    private var monthTransactions: [FinanceTransaction] {
-        store.monthlyTransactions(for: displayedMonth)
-    }
-
     /// The list as a whole: a new month or segment is another list, faded over.
     private var pageIdentity: String {
         if segment == .loans { return "loans" }
@@ -256,25 +257,14 @@ struct TransactionsView: View {
                     Spacer(minLength: Spacing.s)
                     reportLink
                 }
-                flowFigures
+                MonthFlowFigures(month: displayedMonth)
+                    .equatable()
             }
             .card()
         case .loans:
             LoansFigures()
                 .card()
         }
-    }
-
-    /// What went out this month and what came in (Figma 317:6599).
-    private var flowFigures: some View {
-        let reported = store.reportableTransactions(inMonthOf: displayedMonth)
-        let spent = reported.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount }
-        let earned = reported.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount }
-        let month = monthName.lowercased()
-        return FigurePair(label: "Đã chi", amount: spent,
-                          secondaryLabel: "Đã thu", secondaryAmount: earned,
-                          secondaryTone: earned > 0 ? .income : .neutral,
-                          accessibilityLabel: "Đã chi \(month), \(MoneyText.spoken(spent)). Đã thu \(MoneyText.spoken(earned))")
     }
 
     /// "Báo cáo ›", in the link colour as the month beside it, to the month's report.
@@ -300,25 +290,50 @@ struct TransactionsView: View {
         .accessibilityLabel("Báo cáo \(monthName.lowercased())")
     }
 
-    /// The month's rows a filter lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
-    /// their transactions, "Chuyển khoản" the transfers between accounts and the money put into or
-    /// taken from goals (review 2026-10-31: it said "chưa có chuyển khoản" with eight deposits that
-    /// month), "Tất cả" all of them and the money of new loans (neither income nor spending). A
-    /// transfer's fee stays with the transfer (its sheet), not on "Chi".
-    private var filteredItems: [AccountDetailView.Activity] {
-        let inMonth = { (date: Date) in Calendar.current.isDate(date, equalTo: displayedMonth, toGranularity: .month) }
-        let transactions = filter == .transfer ? [] : monthTransactions.filter(filter.matches)
-        let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { inMonth($0.date) }
-        let goalTransfers = filter != .all && filter != .transfer ? [] : store.goalTransfers.filter { inMonth($0.date) }
-        let loans = filter != .all ? [] : store.loanMoves.filter { inMonth($0.date) }
-        let payments = filter != .all ? [] : store.listedLoanPayments.filter { inMonth($0.date) }
-        return AccountDetailView.activity(transactions: transactions, transfers: goalTransfers,
-                                          accountTransfers: transfers, loans: loans,
-                                          loanPayments: payments)
+    /// "Tháng 9" this year, "Tháng 9/2025" another: the month in the empty list's words.
+    private var monthName: String { MonthPickerButton.name(of: displayedMonth) }
+
+    /// Than read from what is recorded, as Nâu on Tài khoản, the same every time the tab opens
+    /// (user request 2026-11-07): curious before the first transaction or loan, at rest after.
+    /// The swap hops in from the feet (`SkyHeader`).
+    private var thanMascot: String {
+        MonthFlowList.hasNothingRecorded(in: store) && store.loans.isEmpty ? "cun-than-dau-trang-to-mo" : "cun-than-dau-trang"
     }
 
-    @ViewBuilder
-    private var flowList: some View {
+}
+
+/// What went out and came in in the month on "Thu chi" (Figma 317:6599). A view of its own, redrawn
+/// only for another month or a change in the records, not when the page scrolls (review 2026-11-09).
+struct MonthFlowFigures: View, Equatable {
+    let month: Date
+    @Environment(FinanceStore.self) private var store
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.month == rhs.month }
+
+    var body: some View {
+        let reported = store.reportableTransactions(inMonthOf: month)
+        let spent = store.total(.expense, of: reported)
+        let earned = store.total(.income, of: reported)
+        let name = MonthPickerButton.name(of: month).lowercased()
+        FigurePair(label: "Đã chi", amount: spent,
+                   secondaryLabel: "Đã thu", secondaryAmount: earned,
+                   secondaryTone: earned > 0 ? .income : .neutral,
+                   accessibilityLabel: "Đã chi \(name), \(MoneyText.spoken(spent)). Đã thu \(MoneyText.spoken(earned))")
+    }
+}
+
+/// The month's days on "Thu chi", each a card, or the empty card. A view of its own, compared by
+/// month and filter: the page's scroll flags (`isScrolled`, `isPastFilter`) and a row tapped
+/// rebuilt every row of the month before (review 2026-11-09). Records changed still redraw it.
+struct MonthFlowList: View, Equatable {
+    let month: Date
+    let filter: TransactionFilter
+    @Binding var editingItem: AccountDetailView.Activity?
+    @Environment(FinanceStore.self) private var store
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.month == rhs.month && lhs.filter == rhs.filter }
+
+    var body: some View {
         let groups = ActivityDayList.byDay(filteredItems)
         if groups.isEmpty {
             // The card alone: the + beside the tabs adds (user request 2026-11-07, no "Ghi khoản đầu
@@ -339,18 +354,29 @@ struct TransactionsView: View {
         }
     }
 
-    /// "Tháng 9" this year, "Tháng 9/2025" another: the month in the empty list's words.
-    private var monthName: String { MonthPickerButton.name(of: displayedMonth) }
-
-    /// Than read from what is recorded, as Nâu on Tài khoản, the same every time the tab opens
-    /// (user request 2026-11-07): curious before the first transaction or loan, at rest after.
-    /// The swap hops in from the feet (`SkyHeader`).
-    private var thanMascot: String {
-        hasNothingRecorded && store.loans.isEmpty ? "cun-than-dau-trang-to-mo" : "cun-than-dau-trang"
+    /// The month's rows a filter lists, each to its own (user choice 2026-10-29): "Chi" and "Thu"
+    /// their transactions, "Chuyển khoản" the transfers between accounts and the money put into or
+    /// taken from goals (review 2026-10-31: it said "chưa có chuyển khoản" with eight deposits that
+    /// month), "Tất cả" all of them and the money of new loans (neither income nor spending). A
+    /// transfer's fee stays with the transfer (its sheet), not on "Chi".
+    private var filteredItems: [AccountDetailView.Activity] {
+        let interval = DateInterval.month(of: month)
+        let inMonth = { (date: Date) in interval.holds(date) }
+        let transactions = filter == .transfer ? [] : store.transactions.filter { inMonth($0.date) && filter.matches($0) }
+        let transfers = filter != .all && filter != .transfer ? [] : store.accountTransfers.filter { inMonth($0.date) }
+        let goalTransfers = filter != .all && filter != .transfer ? [] : store.goalTransfers.filter { inMonth($0.date) }
+        let loans = filter != .all ? [] : store.loanMoves.filter { inMonth($0.date) }
+        let payments = filter != .all ? [] : store.listedLoanPayments.filter { inMonth($0.date) }
+        return AccountDetailView.activity(transactions: transactions, transfers: goalTransfers,
+                                          accountTransfers: transfers, loans: loans,
+                                          loanPayments: payments)
     }
 
+    /// "Tháng 9" this year, "Tháng 9/2025" another: the month in the empty list's words.
+    private var monthName: String { MonthPickerButton.name(of: month) }
+
     /// Nothing at all on "Thu chi" yet, loans' money included: the first-run invitation.
-    private var hasNothingRecorded: Bool {
+    static func hasNothingRecorded(in store: FinanceStore) -> Bool {
         store.transactions.isEmpty && store.accountTransfers.isEmpty && store.goalTransfers.isEmpty
             && store.loanMoves.isEmpty
             && store.listedLoanPayments.isEmpty
@@ -359,7 +385,7 @@ struct TransactionsView: View {
     /// The empty list in the words of its chip and month; the first-run invitation only when the
     /// app has nothing recorded yet.
     private var emptyTitle: String {
-        if hasNothingRecorded { return "Chưa có giao dịch" }
+        if Self.hasNothingRecorded(in: store) { return "Chưa có giao dịch" }
         return switch filter {
         case .all: "\(monthName) chưa có giao dịch"
         case .income: "\(monthName) chưa có khoản thu"
@@ -370,7 +396,7 @@ struct TransactionsView: View {
 
     /// One short line on what will show here, no button named (strict review 2026-10-31).
     private var emptyMessage: String {
-        if hasNothingRecorded { return "Khoản thu chi bạn ghi sẽ hiện ở đây." }
+        if Self.hasNothingRecorded(in: store) { return "Khoản thu chi bạn ghi sẽ hiện ở đây." }
         return switch filter {
         case .all: "Thu chi trong tháng sẽ hiện ở đây."
         case .income: "Khoản thu trong tháng sẽ hiện ở đây."

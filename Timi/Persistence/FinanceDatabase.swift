@@ -55,6 +55,8 @@ final class FinanceDatabase {
             sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]))
         let accounts = accountRows.filter { $0.type != goalType }.map(Account.init)
         let goalIDs = Set(accountRows.filter { $0.type == goalType }.map(\.id))
+        // Once, not once per record (review 2026-11-09: rebuilt for each of thousands of rows at launch).
+        let accountIDs = Set(accountRows.filter { $0.type != goalType }.map(\.id))
         let transactionRows = fetch(FetchDescriptor<TransactionRecord>(sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]))
         return Snapshot(
             accounts: accounts.filter { !$0.isArchived },
@@ -65,7 +67,7 @@ final class FinanceDatabase {
             transactions: transactionRows.compactMap(FinanceTransaction.init),
             accountTransfers: transactionRows.compactMap(AccountTransfer.init),
             goalTransfers: transactionRows.compactMap {
-                GoalTransfer($0, goalIDs: goalIDs, accountIDs: Set(accountRows.filter { $0.type != goalType }.map(\.id)))
+                GoalTransfer($0, goalIDs: goalIDs, accountIDs: accountIDs)
             },
             loans: fetch(FetchDescriptor<LoanRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Loan.init),
             loanPayments: fetch(FetchDescriptor<LoanPaymentRecord>(sortBy: [SortDescriptor(\.paidAt, order: .reverse)]))

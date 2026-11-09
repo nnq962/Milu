@@ -11,6 +11,8 @@ struct TransactionSearchView: View {
 
     @Environment(FinanceStore.self) private var store
     @State private var query = ""
+    /// Each text searched in, folded once ("Cà phê" → "ca phe") and kept for the next letters.
+    @State private var keys = SearchKeys()
     /// Whether the search field is active (keyboard up); a recent search tapped lowers it.
     @State private var isSearchActive = false
     @State private var filter = TransactionSearchFilter()
@@ -175,9 +177,10 @@ struct TransactionSearchView: View {
     /// No words: everything the filters let through.
     private func matches(_ matcher: TransactionSearchFilter.Matcher) -> [AccountDetailView.Activity] {
         let words = trimmedQuery.searchKey.split(separator: " ")
+        let keys = keys
         func found(in text: String) -> Bool {
             guard !words.isEmpty else { return true }
-            let key = text.searchKey
+            let key = keys.key(for: text)
             return words.allSatisfy { key.contains($0) }
         }
         // Looked up once per search, not once per transaction.
@@ -313,5 +316,19 @@ struct TransactionSearchView: View {
         withAnimation(Motion.gentle(.smooth(duration: 0.25))) {
             historyText = history.filter { $0 != text }.joined(separator: "\n")
         }
+    }
+}
+
+/// Texts folded for search, kept while the search screen is open: folding thousands of notes and
+/// names again on every letter made typing lag (review 2026-11-09). A class, so filling it while
+/// drawing changes nothing SwiftUI watches.
+final class SearchKeys {
+    private var cache: [String: String] = [:]
+
+    func key(for text: String) -> String {
+        if let key = cache[text] { return key }
+        let key = text.searchKey
+        cache[text] = key
+        return key
     }
 }

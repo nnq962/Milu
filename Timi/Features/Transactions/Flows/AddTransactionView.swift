@@ -237,6 +237,9 @@ struct AddTransactionView: View {
     }
 
     var body: some View {
+        // Worked out once a draw: each scans the month's spending, and it was asked twice (the
+        // note and its animation) on every keystroke of the amount (review 2026-11-09).
+        let budgetNotice = self.budgetNotice
         SheetScaffold(title: title(for: isEditing), validate: validate, onConfirm: confirmAction) {
             if !modes.isEmpty {
                 // Its words at the user's text size (strict review 2026-10-31).

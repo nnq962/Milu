@@ -84,15 +84,20 @@ struct MoneyText: View {
                 // columns of "-14.100.000đ" read better smaller than as "-14,1tr".
                 label(text(compact: false))
             } else {
-                // The full figure at its own size, else the short one, which shrinks if it must.
-                // Only the short one carries the shrinking: on both, each amount was a dozen
-                // texts to lay out, and a tab of them took a second to show (user report
-                // 2026-11-08: the tab bar lagged).
+                // The full figure at its own size, else the short one at its own size, else the
+                // short one shrunk. One `ViewThatFits` of three, none inside another (review
+                // 2026-11-09: the short one's `shrinksOnlyToFit` was a second one inside, up to
+                // four layouts an amount, on every row of a list).
                 ViewThatFits(in: .horizontal) {
                     styled(text(compact: false))
                         .lineLimit(1)
                         .fixedSize()
-                    label(text(compact: true))
+                    styled(text(compact: true))
+                        .lineLimit(1)
+                        .fixedSize()
+                    styled(text(compact: true))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
         }

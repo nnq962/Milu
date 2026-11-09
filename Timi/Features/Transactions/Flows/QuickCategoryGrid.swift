@@ -23,9 +23,13 @@ struct QuickCategoryGrid: View {
         // A titled card like the groups under it (user request 2026-10-31: the bare circles on the
         // page read loose, the grey names faint, and it sat tight on "Chi tiết"). The tiles are
         // `ChoiceTile`, shared with the goal's icon (2026-11-05).
-        FormGroup(title: "Chọn nhanh") {
+        // Worked out once a draw: it counts every transaction, and each tile asked again (review
+        // 2026-11-09: nine times on each opening and each tap).
+        let items = self.items
+        let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return FormGroup(title: "Chọn nhanh") {
             ChoiceTileGrid(items: items.map(\.id)) { id in
-                if let item = items.first(where: { $0.id == id }) {
+                if let item = byID[id] {
                     // No haptic here: the "Hạng mục" row below gives one for every change of it.
                     ChoiceTile(icon: item.icon, title: item.name, isChosen: item.id == selection) {
                         selection = item.id
