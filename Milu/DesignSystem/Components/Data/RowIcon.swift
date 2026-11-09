@@ -58,7 +58,7 @@ struct RowIcon: View {
             if name.hasPrefix("Institutions/") {
                 InstitutionLogo(image: name, size: size)
             } else if tiled && !IconCatalog.isEmoji(name) {
-                TimiIcon(name, size: size * 0.5)
+                MiluIcon(name, size: size * 0.5)
                     .foregroundStyle(tint)
                     .frame(width: size, height: size)
                     .background(Palette.surface)
@@ -71,9 +71,9 @@ struct RowIcon: View {
             } else if IconCatalog.isEmoji(name) {
                 // A Fluent Flat picture fills the column: a line glyph carries its own margin, it
                 // does not, and at 20 it read small beside the name (Simulator check 2026-11-05).
-                TimiIcon(name, size: size)
+                MiluIcon(name, size: size)
             } else {
-                TimiIcon(name, size: size * RowMetrics.iconGlyph / RowMetrics.iconColumn)
+                MiluIcon(name, size: size * RowMetrics.iconGlyph / RowMetrics.iconColumn)
                     .foregroundStyle(tint)
             }
         }

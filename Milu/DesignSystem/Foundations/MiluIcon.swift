@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// UI glyphs take the foreground colour; the selectable Milu artwork carries its own colours.
-struct TimiIcon: View {
+struct MiluIcon: View {
     let name: String
     var size: CGFloat = 24
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Home tab: under Milu's hill, sections each with its heading on the page (2026-11-08): the first
 /// steps while any is left (`OnboardingCard`, a row to swipe), Tài sản ròng (`OverviewHeader`),
-/// Chi tiêu (`SpendingTiles`), Tuần này (`WeekCard`), Hũ và khoản vay (`SavingTiles`), Timi Pro;
+/// Chi tiêu (`SpendingTiles`), Tuần này (`WeekCard`), Hũ và khoản vay (`SavingTiles`), Milu Pro;
 /// Q, "✨ Hỏi Milu" and the bell on the bar, no greeting (user request 2026-11-04). One file per card
 /// in `Cards/`, with the sheets they open.
 struct OverviewView: View {
@@ -111,7 +111,7 @@ struct OverviewView: View {
                         if Self.showsAttention { AttentionCard() }
                         // Last, at the foot of the page (user request 2026-10-31).
                         ProUpgradeCard {
-                            information = Information(title: TimiProNote.title, message: TimiProNote.message)
+                            information = Information(title: MiluProNote.title, message: MiluProNote.message)
                         }
                     }
                     // The first steps fade away and the page closes up smoothly once the last is

@@ -24,7 +24,7 @@ struct TagChip: View {
         HStack(spacing: 0) {
             Button(action: action) {
                 HStack(spacing: Spacing.xs) {
-                    if let icon { TimiIcon(icon, size: RowMetrics.chevron) }
+                    if let icon { MiluIcon(icon, size: RowMetrics.chevron) }
                     Text(title)
                         .textRole(.captionStrong)
                         .monospacedDigit()

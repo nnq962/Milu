@@ -1,9 +1,9 @@
 import SwiftUI
 
 extension View {
-    /// A standard iOS sheet: Apple's own corners, grabber and dimming; Timi only sets its colour,
+    /// A standard iOS sheet: Apple's own corners, grabber and dimming; Milu only sets its colour,
     /// Surface/Card (white by day, blue at night). A short sheet sized to its rows uses `SheetScaffold(fitsContent: true)` instead.
-    func timiSheetStyle(_ detents: Set<PresentationDetent> = [.large]) -> some View {
+    func miluSheetStyle(_ detents: Set<PresentationDetent> = [.large]) -> some View {
         self
             .presentationDetents(detents)
             .presentationBackground(Palette.surface)

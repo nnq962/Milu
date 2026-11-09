@@ -119,7 +119,7 @@ struct CategoryPickerSheet: View {
             }
             .navigationDestination(isPresented: $isManaging) { CategoriesView(kind: kind) }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     private func section(_ title: String?, items: [Category], showsGroup: Bool) -> some View {

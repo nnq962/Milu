@@ -1,6 +1,6 @@
 import Foundation
 
-// Translation between the database rows (TimiSchemaV1) and the value types the screens use.
+// Translation between the database rows (MiluSchemaV1) and the value types the screens use.
 // Screens still work in `Double`; money is rounded to whole đồng at this boundary.
 
 extension Int64 {

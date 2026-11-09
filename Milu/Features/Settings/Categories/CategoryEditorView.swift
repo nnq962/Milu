@@ -208,7 +208,7 @@ struct CategoryEditorView: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     /// "Hiện lại" for a hidden one ("Xoá" then follows in its own card once nothing uses it: a

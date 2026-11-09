@@ -12,11 +12,11 @@ struct SheetsPart: View {
         PartSection(part: .sheets) {
             SampleCard(label: "Mở thử") {
                 VStack(alignment: .leading, spacing: Spacing.m) {
-                    TimiButton("Sheet form · Thêm tài khoản", role: .secondary, fullWidth: true) { isShowingForm = true }
-                    TimiButton("Sheet form · Sửa tài khoản", role: .secondary, fullWidth: true) { isShowingEdit = true }
-                    TimiButton("Sheet ngắn · OptionSheet", role: .secondary, fullWidth: true) { isShowingOptions = true }
-                    TimiButton("Sheet ngắn có ✓ · SheetScaffold(fitsContent:)", role: .secondary, fullWidth: true) { isShowingConfirm = true }
-                    TimiButton("Ghi chú · NoteSheet", role: .secondary, fullWidth: true) { isShowingNote = true }
+                    MiluButton("Sheet form · Thêm tài khoản", role: .secondary, fullWidth: true) { isShowingForm = true }
+                    MiluButton("Sheet form · Sửa tài khoản", role: .secondary, fullWidth: true) { isShowingEdit = true }
+                    MiluButton("Sheet ngắn · OptionSheet", role: .secondary, fullWidth: true) { isShowingOptions = true }
+                    MiluButton("Sheet ngắn có ✓ · SheetScaffold(fitsContent:)", role: .secondary, fullWidth: true) { isShowingConfirm = true }
+                    MiluButton("Ghi chú · NoteSheet", role: .secondary, fullWidth: true) { isShowingNote = true }
                     if let picked {
                         Text("Đã chọn: \(picked)")
                             .textRole(.caption)
@@ -32,10 +32,10 @@ struct SheetsPart: View {
             }
         }
         .sheet(isPresented: $isShowingForm) {
-            SampleFormSheet().timiSheetStyle()
+            SampleFormSheet().miluSheetStyle()
         }
         .sheet(isPresented: $isShowingEdit) {
-            SampleFormSheet(isEditing: true).timiSheetStyle()
+            SampleFormSheet(isEditing: true).miluSheetStyle()
         }
         .sheet(isPresented: $isShowingOptions) {
             OptionSheet(title: "Thêm mới", options: [
@@ -106,7 +106,7 @@ struct SampleFormSheet: View {
         SheetScaffold(title: isEditing ? "Sửa tài khoản" : "Thêm tài khoản",
                       validate: validate, onConfirm: { dismiss() }) {
             SheetAmountHeader(title: "Số dư hiện tại", fieldSaysCaption: true) {
-                TimiAmountField(text: $balance, accessibilityLabel: "Số dư hiện tại")
+                MiluAmountField(text: $balance, accessibilityLabel: "Số dư hiện tại")
             }
         } content: {
             FormGroup(title: "Thông tin", error: nameError) {

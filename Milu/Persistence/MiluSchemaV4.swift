@@ -4,12 +4,12 @@ import SwiftData
 /// Version 4: relationships the user adds in "Danh bạ" ("Hàng xóm"), each with a name and an icon
 /// (user request 2026-10-29). `ContactRecord.relationship` holds either a built-in one ("friend")
 /// or the `id` of one of these. Every other table is unchanged from V3.
-enum TimiSchemaV4: VersionedSchema {
+enum MiluSchemaV4: VersionedSchema {
     static let versionIdentifier = Schema.Version(4, 0, 0)
 
     static var models: [any PersistentModel.Type] {
-        [TimiSchemaV1.AccountRecord.self, TimiSchemaV2.CategoryRecord.self, TimiSchemaV1.TransactionRecord.self,
-         TimiSchemaV3.LoanRecord.self, TimiSchemaV1.ReminderRecord.self, TimiSchemaV3.ContactRecord.self,
+        [MiluSchemaV1.AccountRecord.self, MiluSchemaV2.CategoryRecord.self, MiluSchemaV1.TransactionRecord.self,
+         MiluSchemaV3.LoanRecord.self, MiluSchemaV1.ReminderRecord.self, MiluSchemaV3.ContactRecord.self,
          RelationshipRecord.self]
     }
 

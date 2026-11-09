@@ -56,7 +56,7 @@ struct MonthPickerButton: View {
                 .monospacedDigit()
                 .lineLimit(1)
                 .fixedSize()
-            TimiIcon("hugeicons-arrow-down-01", size: chevron)
+            MiluIcon("hugeicons-arrow-down-01", size: chevron)
         }
         .foregroundStyle(Palette.label)
         // Inside the label, so the whole capsule takes the tap, not only the words.

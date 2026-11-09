@@ -77,7 +77,7 @@ struct OverviewHeader: View {
                         // The compact pill sits in a 44 tap area, 4 of air above and below it:
                         // taken out of the card's padding under it, so the pill keeps the
                         // card's 20 on every side.
-                        TimiButton("Thêm tài khoản", role: .primary, size: .compact, action: onAddAccount)
+                        MiluButton("Thêm tài khoản", role: .primary, size: .compact, action: onAddAccount)
                     }
                 } else {
                     // The figure alone (user request 2026-11-08: no "+11% từ cuối T6"; the

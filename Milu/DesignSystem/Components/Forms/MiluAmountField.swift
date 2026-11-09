@@ -11,7 +11,7 @@ struct AmountPreset: Hashable {
 /// The main amount of a form (web CurrencyInput hero): 40pt figure centred with its sign before and
 /// "đ" right after in the same colour and weight (user request 2026-10-28), shrinking as it grows;
 /// suggestion chips (3 → 3k … 30tr).
-struct TimiAmountField: View {
+struct MiluAmountField: View {
     @Binding var text: String
     var kind: TransactionKind? = nil
     var showsSuggestions = true
@@ -205,10 +205,10 @@ struct TimiAmountField: View {
 }
 
 /// The top of a money sheet: what the amount is (a small grey line: "Số dư hiện tại", the goal's
-/// name) above the big `TimiAmountField`. One layout for every sheet that starts with an amount.
+/// name) above the big `MiluAmountField`. One layout for every sheet that starts with an amount.
 struct SheetAmountHeader<Field: View>: View {
     let title: String
-    /// The field reads the title itself (`TimiAmountField(accessibilityLabel:)`), so VoiceOver skips
+    /// The field reads the title itself (`MiluAmountField(accessibilityLabel:)`), so VoiceOver skips
     /// the line above it rather than saying it twice.
     var fieldSaysCaption = false
     @ViewBuilder var field: Field

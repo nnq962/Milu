@@ -321,7 +321,7 @@ struct TransactionFilterSheet: View {
                 .transition(.opacity)
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
         .animation(Motion.gentle(.smooth(duration: 0.25)), value: draft.period)
         .animation(Motion.gentle(.smooth(duration: 0.25)), value: draft.kind)
         .animation(Motion.gentle(.smooth(duration: 0.25)), value: showsReset)

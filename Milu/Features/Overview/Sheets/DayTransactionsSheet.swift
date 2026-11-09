@@ -45,7 +45,7 @@ struct DayTransactionsSheet: View {
                 .listCard()
             }
         }
-        .timiSheetStyle([.medium, .large])
+        .miluSheetStyle([.medium, .large])
         .sheet(item: $viewing) { TransactionDetailSheet(transactionID: $0.id) }
     }
 }

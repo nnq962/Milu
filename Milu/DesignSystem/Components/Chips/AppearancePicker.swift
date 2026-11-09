@@ -73,7 +73,7 @@ private struct SelectionDot: View {
             Circle()
                 .strokeBorder(isSelected ? Palette.primary : Palette.tertiaryLabel, lineWidth: 1.5)
             if isSelected {
-                TimiIcon("hugeicons-tick-02", size: size * 0.6)
+                MiluIcon("hugeicons-tick-02", size: size * 0.6)
                     .foregroundStyle(Palette.onPrimary)
             }
         }

@@ -249,16 +249,16 @@ struct GoalDetailView: View {
     private func actions(_ goal: SavingsGoal) -> some View {
         if goal.isReached {
             VStack(spacing: Spacing.m) {
-                TimiButton("Mua ngay", icon: "hugeicons-shopping-bag-01", role: .primary, fullWidth: true) {
+                MiluButton("Mua ngay", icon: "hugeicons-shopping-bag-01", role: .primary, fullWidth: true) {
                     open(.spend, for: goal)
                 }
                 // Side by side while both fit whole, else one above the other (Simulator 2026-11-07:
                 // "Mục tiêu mới" read "Mục tiêu…" at the default size).
                 PairOrStack {
-                    TimiButton("Rút hết", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
+                    MiluButton("Rút hết", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
                         open(.withdrawAll, for: goal)
                     }
-                    TimiButton("Mục tiêu mới", icon: "hugeicons-target-02", role: .secondary, fullWidth: true) {
+                    MiluButton("Mục tiêu mới", icon: "hugeicons-target-02", role: .secondary, fullWidth: true) {
                         editsTarget = true
                         isEditing = true
                     }
@@ -268,11 +268,11 @@ struct GoalDetailView: View {
             // Money out on the left, in on the right (user choice 2026-10-28); one above the other
             // when side by side they would be cut, "Rút t…" (review 2026-11-07).
             PairOrStack {
-                TimiButton("Rút tiền", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
+                MiluButton("Rút tiền", icon: "hugeicons-arrow-up-02", role: .secondary, fullWidth: true) {
                     open(.withdraw, for: goal)
                 }
                 .disabled(goal.saved <= 0)
-                TimiButton("Nạp tiền", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {
+                MiluButton("Nạp tiền", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {
                     open(.deposit, for: goal)
                 }
             }
@@ -353,7 +353,7 @@ struct GoalDetailSheet: View {
         NavigationStack {
             GoalDetailView(goalID: goalID, showsClose: true)
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 }
 

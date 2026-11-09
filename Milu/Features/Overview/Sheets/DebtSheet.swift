@@ -52,7 +52,7 @@ struct DebtSheet: View {
                 }
             }
         }
-        .timiSheetStyle([.medium, .large])
+        .miluSheetStyle([.medium, .large])
         .sheet(item: $viewingLoan) { LoanDetailSheet(loanID: $0.id) }
         .sheet(item: $openAccount) { AccountDetailSheet(accountID: $0.id) }
     }

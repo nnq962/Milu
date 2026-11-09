@@ -81,7 +81,7 @@ enum RowMetrics {
     /// A choice in the full icon sheet (the form's quick row uses `featureIcon`).
     static let iconChoice: CGFloat = 52
     /// A Fluent Emoji Flat picture and its pale tile, one size on every card of Tổng quan: an
-    /// insight, the first step, Timi Pro (user request 2026-11-02: one size for all).
+    /// insight, the first step, Milu Pro (user request 2026-11-02: one size for all).
     static let picture: CGFloat = IconSize.cardArtwork
     /// A glyph in a toolbar's glass circle (+ on Tài khoản, the edit pencil), and the frame it sits in.
     static let toolbarGlyph: CGFloat = IconSize.bar

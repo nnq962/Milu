@@ -12,7 +12,7 @@ struct TransactionDetailSheet: View {
             TransactionDetailView(transactionID: transactionID, isRoot: true)
                 .navigationDestination(for: FinanceTransaction.ID.self) { TransactionDetailView(transactionID: $0) }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 }
 
@@ -187,7 +187,7 @@ struct TransferDetailSheet: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     private func details(_ transfer: AccountTransfer) -> some View {

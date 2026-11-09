@@ -35,7 +35,7 @@ struct CategoryOrderSheet: View {
                     ToolbarItem(placement: .confirmationAction) { confirmButton }
                 }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     /// iOS's ✓, as every sheet of the app (`SheetScaffold`), in the app's own tint: opened from
@@ -103,7 +103,7 @@ private struct ReorderTable: UIViewControllerRepresentable {
             tableView.register(RowCell.self, forCellReuseIdentifier: Self.cellID)
             tableView.isEditing = true
             tableView.allowsSelectionDuringEditing = false
-            // As every sheet of the app (`timiSheetStyle`): no scroll bar.
+            // As every sheet of the app (`miluSheetStyle`): no scroll bar.
             tableView.showsVerticalScrollIndicator = false
             tableView.backgroundColor = UIColor(Palette.surface)
             tableView.separatorColor = UIColor(Palette.separator)

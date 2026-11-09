@@ -141,7 +141,7 @@ struct BudgetView: View {
             EmptyStateCard(title: "Chưa đặt hạn mức",
                            message: "Đặt mức chi cho mỗi tháng, Milu sẽ cho biết còn tiêu được bao nhiêu và nhắc khi sắp chạm mức.",
                            picture: IconCatalog.emojiName("🎯"))
-            TimiButton("Đặt hạn mức tháng", role: .primary, fullWidth: true) { isEditingMonth = true }
+            MiluButton("Đặt hạn mức tháng", role: .primary, fullWidth: true) { isEditingMonth = true }
         }
     }
 
@@ -412,7 +412,7 @@ struct BudgetView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // Hugeicons' + as every button in a page's content (SF only on the bars).
                     HStack(spacing: IconSize.glyphGap) {
-                        TimiIcon("hugeicons-add-01", size: IconSize.inline)
+                        MiluIcon("hugeicons-add-01", size: IconSize.inline)
                         // The verb with what it sets (review 2026-11-08: a lone "Đặt" read cut
                         // short, as "Đủ" did).
                         Text("Đặt hạn mức").textRole(.accessory)

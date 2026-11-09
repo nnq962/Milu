@@ -53,7 +53,7 @@ struct LoanEditorView: View {
     private var person: Contact? { contactID.flatMap { store.contact(id: $0) } }
     private var principal: Double { principalText.vndInputAmount }
     private var outstanding: Double {
-        // Empty: nothing repaid before Timi, so the principal less what came back through it.
+        // Empty: nothing repaid before Milu, so the principal less what came back through it.
         if isExisting { return max(outstandingText.isEmpty ? principal - repaidInApp : outstandingText.vndInputAmount, 0) }
         return max(principal - repaid, 0)
     }
@@ -88,13 +88,13 @@ struct LoanEditorView: View {
     }
     /// A new loan already partly repaid: the principal cannot go under what came back, or it would
     /// quietly count as settled.
-    /// An existing loan: what came back through Timi; a new one: all that came back.
+    /// An existing loan: what came back through Milu; a new one: all that came back.
     private var principalError: String? {
         let floor = isExisting ? repaidInApp : repaid
         guard floor > 0, principal > 0, principal < floor else { return nil }
         return "Số tiền gốc không được nhỏ hơn số đã \(direction == .lent ? "thu" : "trả") (\(floor.vnd))."
     }
-    /// Its repayments moved money one way: whether it was there before Timi cannot change under
+    /// Its repayments moved money one way: whether it was there before Milu cannot change under
     /// them (as the side cannot), so what is left always agrees with them (user choice 2026-10-29).
     private var hasPayments: Bool { original.map { !store.payments(of: $0).isEmpty } ?? false }
     /// Its money is on an archived account: who, when and the rate may change, the amounts not.
@@ -138,7 +138,7 @@ struct LoanEditorView: View {
                 .disabled(hasPayments || isMoneyLocked)
 
             SheetAmountHeader(title: "Số tiền gốc", fieldSaysCaption: true) {
-                TimiAmountField(text: $principalText, showsSuggestions: !isMoneyLocked,
+                MiluAmountField(text: $principalText, showsSuggestions: !isMoneyLocked,
                                 focusesOnAppear: original == nil, accessibilityLabel: "Số tiền gốc")
                     .disabled(isMoneyLocked)
                 if let error = principalError ?? (showsErrors ? amountError : nil) {
@@ -215,8 +215,8 @@ struct LoanEditorView: View {
             }
         }
         .animation(Motion.gentle(.smooth(duration: 0.25)), value: direction)
-        .timiSheetStyle()
-        // A loan from before Timi repaid only through it: what is left was worked out, not typed,
+        .miluSheetStyle()
+        // A loan from before Milu repaid only through it: what is left was worked out, not typed,
         // so the field stays empty ("empty = the principal less what came back through Milu").
         .onAppear {
             if let original, original.isExisting, store.repaidPrincipal(of: original) > 0,
@@ -230,7 +230,7 @@ struct LoanEditorView: View {
     }
 
     /// Switches between a loan from before the app and a new one: what a new loan has had back is
-    /// what came back through Timi (or, on a new loan saved before that rule, what it already said);
+    /// what came back through Milu (or, on a new loan saved before that rule, what it already said);
     /// a figure typed in "Còn lại" does not carry over.
     private func setExisting(_ value: Bool) {
         withAnimation(Motion.gentle(.smooth(duration: 0.25))) {

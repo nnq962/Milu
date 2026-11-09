@@ -84,7 +84,7 @@ struct ReportPeriodBar: View {
             Haptics.selection()
             withAnimation(.snappy) { period = period.shifted(by: count) }
         } label: {
-            TimiIcon(icon, size: glyph)
+            MiluIcon(icon, size: glyph)
                 .foregroundStyle(Palette.primary)
         }
         .flatCircleButton(diameter: diameter)

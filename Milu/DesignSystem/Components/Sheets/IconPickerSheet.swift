@@ -26,7 +26,7 @@ struct IconPickerSheet: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     private func grid(_ icons: [CatalogIcon]) -> some View {

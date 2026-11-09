@@ -93,7 +93,7 @@ struct AddAccountView: View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
             SheetAmountHeader(title: "Số dư hiện tại") {
                 // An archived account's history is frozen, its balance too, until it is restored.
-                TimiAmountField(text: $balanceText, showsSuggestions: original?.isArchived != true,
+                MiluAmountField(text: $balanceText, showsSuggestions: original?.isArchived != true,
                                 focusesOnAppear: original == nil, isNegative: isNegative)
                     .disabled(original?.isArchived == true)
             }
@@ -131,7 +131,7 @@ struct AddAccountView: View {
                 leaveGroup(original)
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
         .sheet(isPresented: $isPickingInstitution) {
             InstitutionPickerSheet(type: type, selection: $institutionID)
         }

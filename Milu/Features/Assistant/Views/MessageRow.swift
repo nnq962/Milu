@@ -22,7 +22,7 @@ struct MessageRow: View {
                     .containerRelativeFrame(.horizontal, alignment: .trailing) { width, _ in width * Bubble.maxWidth }
             }
         case .assistant:
-            // Timi's name over a bubble that may run the page's width, no avatar column beside it
+            // Milu's name over a bubble that may run the page's width, no avatar column beside it
             // (user requests 2026-10-31: text close to both margins, yet still a chat).
             VStack(alignment: .leading, spacing: Spacing.s) {
                 AssistantSender()
@@ -99,7 +99,7 @@ struct MessageRow: View {
         Button(role: role, action: action) {
             HStack(spacing: Spacing.xs) {
                 if let icon {
-                    TimiIcon(icon, size: RowMetrics.inlineGlyph)
+                    MiluIcon(icon, size: RowMetrics.inlineGlyph)
                         .accessibilityHidden(true)
                 }
                 Text(title)
@@ -141,7 +141,7 @@ enum Bubble {
     /// margins), short enough that it still reads as the user's side.
     static let maxWidth: CGFloat = 0.85
 
-    /// Timi's bubble, in the card colour with the cards' edge, its tail corner under the name.
+    /// Milu's bubble, in the card colour with the cards' edge, its tail corner under the name.
     static var assistantShape: some View {
         UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
                                bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)

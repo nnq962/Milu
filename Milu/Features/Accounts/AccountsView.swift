@@ -316,7 +316,7 @@ struct ArchiveAndDoneSheet: View {
         }
         // Half height first, as short lists usually are; drag up for the rest (HIG: size a sheet
         // to its content; at full height two rows sat on an empty page, review 2026-11-05).
-        .timiSheetStyle([.medium, .large])
+        .miluSheetStyle([.medium, .large])
     }
 }
 

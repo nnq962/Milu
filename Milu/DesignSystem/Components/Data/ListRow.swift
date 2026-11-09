@@ -163,7 +163,7 @@ struct LockBadge: View {
     static let ring: CGFloat = 1.5
 
     var body: some View {
-        TimiIcon("hugeicons-square-lock-02", size: Self.glyph)
+        MiluIcon("hugeicons-square-lock-02", size: Self.glyph)
             .foregroundStyle(Palette.onPrimary)
             .frame(width: Self.size, height: Self.size)
             .background(Palette.primary, in: Circle())

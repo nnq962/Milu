@@ -5,14 +5,14 @@ import SwiftUI
 ///
 /// Xoá mọi dòng trong SwiftData và mọi tuỳ chọn trong UserDefaults (hạn mức, nhắc nhở, giao diện,
 /// lịch sử tìm kiếm…), **trừ lượt AI** (đã dùng, thưởng, các bước "Làm quen với Milu" đã nhận: khoá
-/// `ai.*`), để không xoá đi làm lại lấy lượt mới (người dùng chọn 2026-11-08). Sau đó `TimiApp` dựng
+/// `ai.*`), để không xoá đi làm lại lấy lượt mới (người dùng chọn 2026-11-08). Sau đó `MiluApp` dựng
 /// lại store, lượt AI (đọc lại từ khoá giữ nguyên), các cuộc trò chuyện và cả cây giao diện, nên app
 /// mở lại ở Tổng quan; các bước đã nhận vẫn tính là xong. Không thêm lại dữ liệu mẫu, kể cả ở các
 /// lần mở sau (`StorageKey.sampleDataOff`), và hạn mức về 0 thay vì hạn mức mẫu: trước đây dữ liệu
 /// mẫu quay lại y như cũ nên người dùng tưởng
 /// xoá không chạy (2026-11-02). Chỉ còn các hạng mục mặc định.
 ///
-/// App không lưu gì trong Keychain hay file riêng. Quyền mua Timi Pro (khi có) do StoreKit và
+/// App không lưu gì trong Keychain hay file riêng. Quyền mua Milu Pro (khi có) do StoreKit và
 /// Apple ID giữ, app không xoá được: cứ để nguyên, "Khôi phục giao dịch mua" sẽ lấy lại.
 @MainActor
 enum DataReset {
@@ -38,7 +38,7 @@ enum DataReset {
     }
 }
 
-/// Gọi từ một màn bất kỳ để xoá toàn bộ dữ liệu; `TimiApp` gắn việc thật vào đây.
+/// Gọi từ một màn bất kỳ để xoá toàn bộ dữ liệu; `MiluApp` gắn việc thật vào đây.
 struct EraseAllDataAction {
     let action: @MainActor () -> Void
 

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// What a button does on the screen; each role maps to one flat fill.
-enum TimiButtonRole: CaseIterable, Identifiable {
+enum MiluButtonRole: CaseIterable, Identifiable {
     /// The one main action of a screen or sheet (Lưu, Thêm).
     case primary
     /// Secondary actions inside content.
@@ -44,7 +44,7 @@ enum TimiButtonRole: CaseIterable, Identifiable {
     }
 }
 
-enum TimiButtonSize {
+enum MiluButtonSize {
     case regular
     /// A smaller visual footprint for actions within cards; the touch target stays 44pt.
     case compact
@@ -52,14 +52,14 @@ enum TimiButtonSize {
 
 /// A flat pill button with a minimum 44pt touch target.
 /// Not glass: these sit in content (user choice 2026-10-31, glass only on the bars).
-struct TimiButton<Label: View>: View {
-    let role: TimiButtonRole
+struct MiluButton<Label: View>: View {
+    let role: MiluButtonRole
     var fullWidth = false
-    var size: TimiButtonSize = .regular
+    var size: MiluButtonSize = .regular
     let action: () -> Void
     @ViewBuilder var label: Label
 
-    init(role: TimiButtonRole, fullWidth: Bool = false, size: TimiButtonSize = .regular,
+    init(role: MiluButtonRole, fullWidth: Bool = false, size: MiluButtonSize = .regular,
          action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
         self.role = role
         self.fullWidth = fullWidth
@@ -94,23 +94,23 @@ struct TimiButton<Label: View>: View {
     }
 }
 
-extension TimiButton where Label == TimiButtonTitle {
-    init(_ title: String, icon: String? = nil, role: TimiButtonRole,
-         fullWidth: Bool = false, size: TimiButtonSize = .regular, action: @escaping () -> Void) {
+extension MiluButton where Label == MiluButtonTitle {
+    init(_ title: String, icon: String? = nil, role: MiluButtonRole,
+         fullWidth: Bool = false, size: MiluButtonSize = .regular, action: @escaping () -> Void) {
         self.init(role: role, fullWidth: fullWidth, size: size, action: action) {
-            TimiButtonTitle(title: title, icon: icon)
+            MiluButtonTitle(title: title, icon: icon)
         }
     }
 }
 
 /// Optional icon before the title.
-struct TimiButtonTitle: View {
+struct MiluButtonTitle: View {
     let title: String
     let icon: String?
 
     var body: some View {
         HStack(spacing: Spacing.s) {
-            if let icon { TimiIcon(icon, size: IconSize.control) }
+            if let icon { MiluIcon(icon, size: IconSize.control) }
             Text(title)
         }
     }

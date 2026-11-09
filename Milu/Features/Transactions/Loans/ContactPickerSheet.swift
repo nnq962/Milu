@@ -73,7 +73,7 @@ struct ContactPickerSheet: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
         .sheet(isPresented: $isAdding) {
             // The person just added is the one picked.
             // The name searched, unless someone already has it (the form would open on "Danh bạ đã có").

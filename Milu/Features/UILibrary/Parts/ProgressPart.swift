@@ -54,7 +54,7 @@ struct ProgressPart: View {
         ProgressRing(progress: progress)
             .frame(width: RowMetrics.listLogo, height: RowMetrics.listLogo)
             .overlay {
-                TimiIcon("hugeicons-piggy-bank", size: RowMetrics.listLogo / 2)
+                MiluIcon("hugeicons-piggy-bank", size: RowMetrics.listLogo / 2)
                     .foregroundStyle(Palette.label)
             }
     }

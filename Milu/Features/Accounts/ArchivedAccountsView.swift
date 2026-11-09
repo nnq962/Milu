@@ -69,6 +69,6 @@ struct ArchivedAccountsSheet: View {
         NavigationStack { ArchivedAccountsView() }
             // Half height first, as "Lưu trữ & hoàn thành" opens: such lists are short (review
             // 2026-11-06).
-            .timiSheetStyle([.medium, .large])
+            .miluSheetStyle([.medium, .large])
     }
 }

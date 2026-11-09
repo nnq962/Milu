@@ -82,7 +82,7 @@ struct LoanDetailSheet: View {
         }
         // Half the screen first, as Mail's sheets: the sums show at once, pulled up for the history
         // (review 2026-11-07).
-        .timiSheetStyle([.medium, .large])
+        .miluSheetStyle([.medium, .large])
     }
 
     private func summary(_ loan: Loan) -> some View {
@@ -162,7 +162,7 @@ struct LoanDetailSheet: View {
     }
 
     /// Every repayment, newest first: tap one to change or delete it. A loan that was there before
-    /// Timi may have been partly repaid already: that part closes the list as a row of its own, so
+    /// Milu may have been partly repaid already: that part closes the list as a row of its own, so
     /// "Đã trả 40%" is not over "Chưa có lần thu nào" (review 2026-10-31). Nothing at all: the
     /// empty card every other history uses.
     @ViewBuilder
@@ -170,7 +170,7 @@ struct LoanDetailSheet: View {
         let payments = store.payments(of: loan)
         let lent = loan.direction == .lent
         let title = lent ? "Lịch sử thu nợ" : "Lịch sử trả nợ"
-        let earlier = Self.repaidBeforeTimi(loan, payments: payments)
+        let earlier = Self.repaidBeforeMilu(loan, payments: payments)
         if payments.isEmpty && earlier == 0 {
             // The history's title over its card, as on a goal and an account (review 2026-11-07).
             OutsideHeaderSection(title: title) {
@@ -214,7 +214,7 @@ struct LoanDetailSheet: View {
 
     /// What of an existing loan's principal was repaid before it was recorded: the principal less
     /// what is still owed and less the repayments recorded since.
-    static func repaidBeforeTimi(_ loan: Loan, payments: [LoanPayment]) -> Double {
+    static func repaidBeforeMilu(_ loan: Loan, payments: [LoanPayment]) -> Double {
         guard loan.isExisting else { return 0 }
         return max(loan.principal - loan.outstanding - payments.reduce(0) { $0 + $1.principal }, 0)
     }

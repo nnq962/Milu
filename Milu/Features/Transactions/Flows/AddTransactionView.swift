@@ -249,7 +249,7 @@ struct AddTransactionView: View {
             }
 
             VStack(spacing: Spacing.s) {
-                TimiAmountField(text: $amountText, kind: mode.kind, showsSuggestions: !isReadOnly,
+                MiluAmountField(text: $amountText, kind: mode.kind, showsSuggestions: !isReadOnly,
                                 focusesOnAppear: !isEditing)
                 if showsErrors, missesAmount {
                     FormErrorText(message: "Nhập số tiền.")
@@ -320,7 +320,7 @@ struct AddTransactionView: View {
                 FormGroup { deleteRow }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
         // An item of the other kind no longer fits: the one picked for the new kind comes back, or
         // none (the user picks). Editing too: Ăn trưa → Thu nhập is empty, back → Ăn trưa again.
         .onChange(of: mode) { oldMode, newMode in

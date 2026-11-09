@@ -91,7 +91,7 @@ struct RelationshipEditorView: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     private func save() {

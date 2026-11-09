@@ -92,7 +92,7 @@ final class AssistantChats {
 
     // MARK: - Lưu trên máy
 
-    private static let log = Logger(subsystem: "Timi", category: "assistant")
+    private static let log = Logger(subsystem: "com.quyetnguyen.Milu", category: "assistant")
 
     static var fileURL: URL {
         URL.applicationSupportDirectory.appending(path: "AssistantChats.json")

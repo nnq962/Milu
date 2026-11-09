@@ -79,7 +79,7 @@ struct LoanPaymentSheet: View {
     var body: some View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
             SheetAmountHeader(title: "Tiền gốc", fieldSaysCaption: true) {
-                TimiAmountField(text: $principalText, showsSuggestions: !interestOnly,
+                MiluAmountField(text: $principalText, showsSuggestions: !interestOnly,
                                 focusesOnAppear: original == nil && !interestOnly, presets: presets, accessibilityLabel: "Tiền gốc")
                     .disabled(interestOnly)
                 // Interest only: the greyed field and the title say so, no caption (sheet review).
@@ -120,7 +120,7 @@ struct LoanPaymentSheet: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
         .onAppear { if openedLeft == nil { openedLeft = liveLeft } }
     }
 

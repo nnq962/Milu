@@ -1,6 +1,6 @@
 //
-//  TimiApp.swift
-//  Timi
+//  MiluApp.swift
+//  Milu
 //
 //  Created by Nguyen Ngoc Quyet on 10/25/26.
 //
@@ -9,7 +9,7 @@ import SwiftData
 import SwiftUI
 
 @main
-struct TimiApp: App {
+struct MiluApp: App {
     private let container: ModelContainer
     @State private var store: FinanceStore
     @State private var quota = AIQuota()

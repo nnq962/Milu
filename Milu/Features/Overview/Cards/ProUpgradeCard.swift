@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// "Milu Pro", last on Tổng quan, the page's one coloured card (user request 2026-11-08: "màu mè
-/// hơn"): "Timi Pro" as the section's heading on the page; in the card Milu's sky running into
+/// hơn"): "Milu Pro" as the section's heading on the page; in the card Milu's sky running into
 /// honey with soft apricot suns, a "✦ PRO" tag, "Dùng Milu trọn vẹn" and one line under it, the
 /// Fluent Flat crown with sparkles, and "Tìm hiểu thêm" across the foot: Pro is not on sale yet,
 /// so the button says what a tap does. The whole card is one button.
@@ -38,9 +38,9 @@ struct ProUpgradeCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     if !typeSize.isAccessibilitySize { crown }
                 }
-                // Drawn as a `TimiButton(role: .primary)`; not a button of its own, the whole card
+                // Drawn as a `MiluButton(role: .primary)`; not a button of its own, the whole card
                 // is one.
-                TimiButtonTitle(title: "Tìm hiểu thêm", icon: nil)
+                MiluButtonTitle(title: "Tìm hiểu thêm", icon: nil)
                     .textRole(.button)
                     .foregroundStyle(Palette.onAccent)
                     .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)

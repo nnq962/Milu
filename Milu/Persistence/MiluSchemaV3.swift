@@ -3,12 +3,12 @@ import SwiftData
 
 /// Version 3: "Danh bạ" (user request 2026-10-29). A new table of people, and a loan keeps the id of
 /// the person it is with (`LoanRecord.contactID`). Every other table is unchanged from V2.
-enum TimiSchemaV3: VersionedSchema {
+enum MiluSchemaV3: VersionedSchema {
     static let versionIdentifier = Schema.Version(3, 0, 0)
 
     static var models: [any PersistentModel.Type] {
-        [TimiSchemaV1.AccountRecord.self, TimiSchemaV2.CategoryRecord.self, TimiSchemaV1.TransactionRecord.self,
-         LoanRecord.self, TimiSchemaV1.ReminderRecord.self, ContactRecord.self]
+        [MiluSchemaV1.AccountRecord.self, MiluSchemaV2.CategoryRecord.self, MiluSchemaV1.TransactionRecord.self,
+         LoanRecord.self, MiluSchemaV1.ReminderRecord.self, ContactRecord.self]
     }
 
     /// A person loans are with: a name and how the user knows them.

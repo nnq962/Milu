@@ -71,7 +71,7 @@ struct RelationshipPickerSheet: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
             if !relationship.isBuiltIn {
                 Button { editing = .edit(relationship) } label: {
-                    TimiIcon("hugeicons-pencil-edit-01", size: IconSize.control)
+                    MiluIcon("hugeicons-pencil-edit-01", size: IconSize.control)
                         .foregroundStyle(Palette.label)
                         .frame(width: ControlHeight.regular, height: ControlHeight.regular)
                         .contentShape(Rectangle())

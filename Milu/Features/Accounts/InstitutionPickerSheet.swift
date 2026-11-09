@@ -50,7 +50,7 @@ struct InstitutionPickerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     private func row(_ institution: Institution) -> some View {

@@ -91,7 +91,7 @@ struct GoalEditorView: View {
                       validate: validate, onConfirm: save) {
             SheetAmountHeader(title: "Mục tiêu") {
                 // A closed goal keeps the target it met; reopening it makes the target editable again.
-                TimiAmountField(text: $targetText, showsSuggestions: original?.isClosed != true,
+                MiluAmountField(text: $targetText, showsSuggestions: original?.isClosed != true,
                                 focusesOnAppear: original == nil || focusesTarget)
                     .disabled(original?.isClosed == true)
                 if let error = targetError ?? (showsNameError && targetText.vndInputAmount <= 0 ? "Nhập mục tiêu." : nil) {
@@ -151,7 +151,7 @@ struct GoalEditorView: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     /// A goal with money in it asks which account gets the money back, one button per account; an

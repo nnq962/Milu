@@ -206,7 +206,7 @@ struct OnboardingCard: View {
             } else {
                 // Read as the step's name (not "Thêm, Thêm tài khoản…"); Voice Control still
                 // answers to the word on it.
-                TimiButton(step.action, role: .primary, size: .compact) { onStep(step) }
+                MiluButton(step.action, role: .primary, size: .compact) { onStep(step) }
                     .fixedSize()
                     .accessibilityLabel(step.title)
                     .accessibilityInputLabels([step.action, step.title])

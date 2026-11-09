@@ -62,7 +62,7 @@ struct BudgetEditorSheet: View {
                     .foregroundStyle(Palette.secondaryLabel)
                 // Quick chips (user request 2026-10-30): ready amounts before typing, then the field's own
                 // suggestions from the digits (5 → 5tr, 50tr…).
-                TimiAmountField(text: $input, focusesOnAppear: true, presets: presets,
+                MiluAmountField(text: $input, focusesOnAppear: true, presets: presets,
                                 accessibilityLabel: "\(title), \(caption.lowercased())")
                 if !isValid {
                     FormErrorText(message: "Tối đa \(BudgetRules.cap.vnd).")
@@ -73,7 +73,7 @@ struct BudgetEditorSheet: View {
                         .multilineTextAlignment(.center)
                         .padding(.top, Spacing.s)
                     if let fix = fix(value) {
-                        TimiButton(fix.title, role: .secondary) {
+                        MiluButton(fix.title, role: .secondary) {
                             fix.apply()
                             dismiss()
                         }
@@ -87,7 +87,7 @@ struct BudgetEditorSheet: View {
                         .padding(.top, Spacing.s)
                 }
                 if amount > 0, onRemove != nil {
-                    TimiButton("Bỏ hạn mức", role: .destructive) { askToRemove() }
+                    MiluButton("Bỏ hạn mức", role: .destructive) { askToRemove() }
                         .padding(.top, Spacing.l)
                 }
                 if let link {
@@ -117,7 +117,7 @@ struct BudgetEditorSheet: View {
             Text(removeWarning)
         }
         // Large like every form sheet: the keyboard opens at once and the chips need room.
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     /// An emptied field on a limit already set is "Bỏ hạn mức": asked here, before ✓ counts as a

@@ -1,13 +1,13 @@
-# Cơ sở dữ liệu Timi
+# Cơ sở dữ liệu Milu
 
-Timi lưu dữ liệu trên máy bằng **SwiftData** (Apple, iOS 17+). Schema ở đây là **chuẩn gốc** cho mọi bản Timi: bản web sau này chuyển sang theo, rồi hai bên đồng bộ.
+Milu lưu dữ liệu trên máy bằng **SwiftData** (Apple, iOS 17+). Schema ở đây là **chuẩn gốc** cho mọi bản Milu: bản web sau này chuyển sang theo, rồi hai bên đồng bộ.
 
-Code nằm ở `Timi/Persistence/`:
+Code nằm ở `Milu/Persistence/`:
 
 | File | Vai trò |
 |---|---|
-| `TimiSchemaV1.swift` | Định nghĩa 5 bảng (phiên bản 1) |
-| `TimiSchemaV2.swift` … `TimiSchemaV7.swift` | Các bảng đổi ở V2 (hạng mục có nhóm), V3 (danh bạ, khoản vay nối với người), V4 (loại mối quan hệ tự thêm), V5 (đánh dấu người app tự tạo), V6 (khoản vay có sẵn hay mới, tài khoản, ngày, lãi suất), V7 (các lần thu/trả nợ) và kế hoạch chuyển phiên bản |
+| `MiluSchemaV1.swift` | Định nghĩa 5 bảng (phiên bản 1) |
+| `MiluSchemaV2.swift` … `MiluSchemaV7.swift` | Các bảng đổi ở V2 (hạng mục có nhóm), V3 (danh bạ, khoản vay nối với người), V4 (loại mối quan hệ tự thêm), V5 (đánh dấu người app tự tạo), V6 (khoản vay có sẵn hay mới, tài khoản, ngày, lãi suất), V7 (các lần thu/trả nợ) và kế hoạch chuyển phiên bản |
 | `RecordMapping.swift` | Đổi qua lại giữa dòng trong database và kiểu dữ liệu các màn dùng |
 | `FinanceDatabase.swift` | Đọc, ghi, nạp dữ liệu mẫu, đặt lại; mọi code SwiftData chỉ ở đây |
 
@@ -21,7 +21,7 @@ Code nằm ở `Timi/Persistence/`:
 4. **Kiểu liệt kê lưu dạng chuỗi** (`"expense"`, `"bank"`, `"lent"`…), không lưu enum của Swift. Web và backend đọc được ngay.
 5. **Mọi bảng có `createdAt` và `updatedAt`.** Đồng bộ sau này dựa vào `updatedAt` để biết dòng nào đã đổi.
 6. **Không xoá cứng tài khoản đang có lịch sử**: tài khoản đã có giao dịch hoặc nạp/rút hũ chỉ được "Lưu trữ" (`archivedAt` = ngày lưu trữ), giữ nguyên số dư và lịch sử; app đọc cả tài khoản đã lưu trữ và hiện chúng ở "Tài khoản đã lưu trữ", không tính vào tổng, không có trong ô chọn. Khôi phục thì xoá `archivedAt`. Chỉ tài khoản chưa có lịch sử mới bị xoá hẳn. Hũ thì vẫn xoá hẳn được (tiền còn lại rút về tài khoản trước), các dòng nạp/rút cũ của hũ được giữ.
-7. **Đổi schema = thêm phiên bản mới** (`TimiSchemaV2` + một bước trong `TimiMigrationPlan`), không sửa V1. Nếu sửa V1, máy đã cài app sẽ không mở được dữ liệu cũ. Cũng không sửa tại chỗ một lớp bản ghi đã phát hành: chép nó sang V(n+1) rồi mới đổi.
+7. **Đổi schema = thêm phiên bản mới** (`MiluSchemaV2` + một bước trong `MiluMigrationPlan`), không sửa V1. Nếu sửa V1, máy đã cài app sẽ không mở được dữ liệu cũ. Cũng không sửa tại chỗ một lớp bản ghi đã phát hành: chép nó sang V(n+1) rồi mới đổi.
 8. **Thêm bảng hay đổi cách lưu thì chạy `PersistenceTests`**: các test ghi qua một store, mở store thứ hai trên cùng database (như lần mở app sau) rồi so sánh, kể cả "Xoá toàn bộ dữ liệu". Bảng mới cần thêm vào `Snapshot`/`load()`, `deleteEverything()` và hai chỗ gán snapshot trong `FinanceStore`, rồi thêm vào test.
 
 ## Icon
@@ -65,7 +65,7 @@ Hũ tiết kiệm là một loại tài khoản, giống bản web. Như vậy s
 
 Hai cấp: nhóm và hạng mục con, cho cả chi và thu. Giao dịch sẽ luôn được ghi vào **hạng mục con**, không ghi vào nhóm (người dùng chọn 2026-10-29), nên mỗi nhóm luôn còn ít nhất một hạng mục con đang dùng; tạo nhóm mới là tạo luôn hạng mục con đầu tiên. Xoá: chưa có giao dịch thì xoá hẳn, đã có thì ẩn (`archivedAt`); xoá/ẩn nhóm kéo theo các hạng mục con.
 
-Chuyển V1 → V2 (lightweight, `TimiMigrationPlan`): 12 hạng mục cũ thành nhóm; lần mở app đầu tiên sau đó (khi chưa có dòng nào có `parentID`), `FinanceDatabase.addMissingDefaultCategories` thêm các hạng mục con và nhóm mặc định (`DefaultCategories`). Chỉ chạy **một lần** (cờ `categories.defaultsAdded` trong UserDefaults, đặt khi `seed()`/bổ sung xong; máy cũ đã có hạng mục con cũng tính là đã chạy): mục mặc định người dùng đã xoá không tự quay lại, kể cả khi xoá hết.
+Chuyển V1 → V2 (lightweight, `MiluMigrationPlan`): 12 hạng mục cũ thành nhóm; lần mở app đầu tiên sau đó (khi chưa có dòng nào có `parentID`), `FinanceDatabase.addMissingDefaultCategories` thêm các hạng mục con và nhóm mặc định (`DefaultCategories`). Chỉ chạy **một lần** (cờ `categories.defaultsAdded` trong UserDefaults, đặt khi `seed()`/bổ sung xong; máy cũ đã có hạng mục con cũng tính là đã chạy): mục mặc định người dùng đã xoá không tự quay lại, kể cả khi xoá hết.
 
 Ẩn nhóm (có giao dịch) thì ẩn luôn các hạng mục con cùng lúc (cùng `archivedAt`); hiện lại nhóm thì hiện lại đúng những hạng mục ẩn cùng lúc với nó, không hiện những hạng mục người dùng đã ẩn riêng trước đó. Hạng mục cuối cùng của nhóm không xoá/ẩn/chuyển nhóm riêng được. Mỗi loại (chi/thu) giữ ít nhất một nhóm đang dùng. Tên là duy nhất trong nhóm cùng loại / hạng mục cùng nhóm (kiểm ở form, không phân biệt hoa thường), tối đa 30 ký tự, không trùng "Điều chỉnh số dư" của hệ thống. Biểu tượng cũ không có trong bảng (`more-horizontal`, `add-01`, kể cả tên Solar cũ) được đổi mỗi lần mở app nếu còn (`replaceRetiredIcons`).
 

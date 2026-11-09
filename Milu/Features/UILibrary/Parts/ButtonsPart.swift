@@ -5,11 +5,11 @@ struct ButtonsPart: View {
 
     var body: some View {
         PartSection(part: .buttons) {
-            SampleCard(label: "Vai trò · TimiButton (phẳng)") {
+            SampleCard(label: "Vai trò · MiluButton (phẳng)") {
                 VStack(alignment: .leading, spacing: Spacing.m) {
-                    ForEach(TimiButtonRole.allCases) { role in
+                    ForEach(MiluButtonRole.allCases) { role in
                         VStack(alignment: .leading, spacing: Spacing.xs) {
-                            TimiButton(role.name, role: role, fullWidth: true) {}
+                            MiluButton(role.name, role: role, fullWidth: true) {}
                             Text(role.usage).textRole(.footnote).foregroundStyle(Palette.secondaryLabel)
                         }
                     }
@@ -17,13 +17,13 @@ struct ButtonsPart: View {
             }
 
             SampleCard(label: "Gọn trong thẻ · vùng chạm 44") {
-                TimiButton("Nâng cấp", role: .primary, size: .compact) {}
+                MiluButton("Nâng cấp", role: .primary, size: .compact) {}
             }
 
             SampleCard(label: "Có icon · tắt") {
                 VStack(spacing: Spacing.m) {
-                    TimiButton("Thêm giao dịch", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {}
-                    TimiButton("Chưa bấm được", role: .primary, fullWidth: true) {}
+                    MiluButton("Thêm giao dịch", icon: "hugeicons-add-01", role: .primary, fullWidth: true) {}
+                    MiluButton("Chưa bấm được", role: .primary, fullWidth: true) {}
                         .disabled(true)
                 }
             }
@@ -35,12 +35,12 @@ struct ButtonsPart: View {
                 VStack(alignment: .leading, spacing: Spacing.m) {
                     HStack(spacing: Spacing.s) {
                         Button {} label: {
-                            TimiIcon("hugeicons-arrow-left-01", size: RowMetrics.chevron)
+                            MiluIcon("hugeicons-arrow-left-01", size: RowMetrics.chevron)
                         }
                         .flatCircleButton()
                         .accessibilityLabel("Kỳ trước")
                         Button {} label: {
-                            TimiIcon("hugeicons-arrow-right-01", size: RowMetrics.chevron)
+                            MiluIcon("hugeicons-arrow-right-01", size: RowMetrics.chevron)
                         }
                         .flatCircleButton()
                         .accessibilityLabel("Kỳ sau")
@@ -67,13 +67,13 @@ struct ButtonsPart: View {
             SampleCard(label: "Nút trên thanh · Button trơn") {
                 HStack(spacing: Spacing.l) {
                     Button {} label: {
-                        TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
+                        MiluIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph)
                             .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                     }
                     .tint(Palette.primary)
                     .accessibilityLabel("Thêm")
                     Button {} label: {
-                        TimiIcon("hugeicons-search-01", size: RowMetrics.toolbarGlyph)
+                        MiluIcon("hugeicons-search-01", size: RowMetrics.toolbarGlyph)
                             .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                     }
                     .accessibilityLabel("Tìm")
@@ -85,7 +85,7 @@ struct ButtonsPart: View {
             // The one glass button outside a bar: the floating + (explicit exception).
             SampleCard(label: "Nút + nổi · nativeFloatingButton (kính)") {
                 Button {} label: {
-                    TimiIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph).foregroundStyle(Palette.onPrimary)
+                    MiluIcon("hugeicons-add-01", size: RowMetrics.toolbarGlyph).foregroundStyle(Palette.onPrimary)
                 }
                 .nativeFloatingButton(diameter: ControlHeight.large, tint: Palette.primary)
                 .accessibilityLabel("Thêm giao dịch")

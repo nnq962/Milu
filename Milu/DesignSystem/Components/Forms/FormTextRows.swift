@@ -46,7 +46,7 @@ struct FormTextRow: View {
 }
 
 /// A secondary amount in a form row ("Đã để dành", "Còn phải thu"): label left, digits grouped as
-/// they are typed on the right, "đ" after them. The form's main amount uses `TimiAmountField`.
+/// they are typed on the right, "đ" after them. The form's main amount uses `MiluAmountField`.
 struct FormAmountRow: View {
     let title: String
     @Binding var text: String

@@ -1,6 +1,6 @@
 //
 //  SampleData.swift
-//  Timi
+//  Milu
 //
 
 import SwiftUI

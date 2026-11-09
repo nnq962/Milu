@@ -45,7 +45,7 @@ struct FormErrorText: View {
         Label {
             Text(message)
         } icon: {
-            TimiIcon("hugeicons-alert-circle", size: glyph)
+            MiluIcon("hugeicons-alert-circle", size: glyph)
         }
         .textRole(.caption)
         .foregroundStyle(Palette.negative)

@@ -5,13 +5,13 @@ import SwiftData
 /// account its money left or came into and when (`accountID`, `loanDate`); and its interest, a
 /// percent of the principal each month (`monthlyInterestRate`, user request 2026-10-29). Every
 /// other table is unchanged from V5.
-enum TimiSchemaV6: VersionedSchema {
+enum MiluSchemaV6: VersionedSchema {
     static let versionIdentifier = Schema.Version(6, 0, 0)
 
     static var models: [any PersistentModel.Type] {
-        [TimiSchemaV1.AccountRecord.self, TimiSchemaV2.CategoryRecord.self, TimiSchemaV1.TransactionRecord.self,
-         LoanRecord.self, TimiSchemaV1.ReminderRecord.self, TimiSchemaV5.ContactRecord.self,
-         TimiSchemaV4.RelationshipRecord.self]
+        [MiluSchemaV1.AccountRecord.self, MiluSchemaV2.CategoryRecord.self, MiluSchemaV1.TransactionRecord.self,
+         LoanRecord.self, MiluSchemaV1.ReminderRecord.self, MiluSchemaV5.ContactRecord.self,
+         MiluSchemaV4.RelationshipRecord.self]
     }
 
     /// Money lent to or borrowed from a person. As V3, plus where the money went and the interest.

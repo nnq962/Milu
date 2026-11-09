@@ -17,7 +17,7 @@ struct AssistantAvatar: View {
     }
 }
 
-/// The avatar and the name over each of Timi's messages: who speaks, without an avatar column
+/// The avatar and the name over each of Milu's messages: who speaks, without an avatar column
 /// that would take the bubble's width.
 struct AssistantSender: View {
     var body: some View {
@@ -31,7 +31,7 @@ struct AssistantSender: View {
     }
 }
 
-/// Timi writing: three dots rising in turn inside the answer's own bubble, so nothing jumps when
+/// Milu writing: three dots rising in turn inside the answer's own bubble, so nothing jumps when
 /// the answer comes.
 struct TypingIndicator: View {
     var body: some View {

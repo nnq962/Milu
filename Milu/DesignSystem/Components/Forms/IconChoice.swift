@@ -9,7 +9,7 @@ struct IconChoiceLabel: View {
     var size: CGFloat = ControlHeight.regular
 
     var body: some View {
-        TimiIcon(name, size: size * (IconCatalog.isEmoji(name) ? 0.68 : 0.5))
+        MiluIcon(name, size: size * (IconCatalog.isEmoji(name) ? 0.68 : 0.5))
             .foregroundStyle(isSelected ? Palette.onAccent : Palette.label)
             .frame(width: size, height: size)
             .background(Circle().fill(isSelected ? Palette.accent : .clear))

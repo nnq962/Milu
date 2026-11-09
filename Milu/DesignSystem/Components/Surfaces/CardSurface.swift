@@ -19,7 +19,7 @@ extension EnvironmentValues {
     /// True inside a `HeaderCard`: the card is already drawn, so `card()` and `listCard()` add
     /// none of their own and a tile drawn with `cardSurface` goes flat and grey.
     @Entry var isInHeaderCard = false
-    /// True inside a sheet (`timiSheetStyle`, `SheetScaffold`): pages there stand on the card's
+    /// True inside a sheet (`miluSheetStyle`, `SheetScaffold`): pages there stand on the card's
     /// colour, white by day and blue at night (Milu: Surface/Card is "thẻ, ô nhập và toàn bộ sheet",
     /// user request 2026-11-05), not on the page's pale blue.
     @Entry var isInSheet = false

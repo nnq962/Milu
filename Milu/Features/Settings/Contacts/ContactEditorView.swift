@@ -108,7 +108,7 @@ struct ContactEditorView: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
         .sheet(item: $openLoan) { LoanDetailSheet(loanID: $0.id) }
         .sheet(isPresented: $isPickingRelationship) {
             RelationshipPickerSheet(selection: $relationshipID)

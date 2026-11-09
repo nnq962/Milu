@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// iOS 17 to 25 stand-ins for what Timi draws with iOS 26 (user request 2026-11-02: the app runs
+/// iOS 17 to 25 stand-ins for what Milu draws with iOS 26 (user request 2026-11-02: the app runs
 /// from iOS 17 again, for an iPhone on 17.6). On iOS 26 each one is the real thing; before it, the
 /// nearest plain look: no Liquid Glass, no scroll-edge effect, no subtitle under a bar title.
 extension View {

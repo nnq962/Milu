@@ -29,7 +29,7 @@ struct ChoiceTile: View {
         let tile = RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous)
         Button(action: action) {
             VStack(spacing: Spacing.s) {
-                TimiIcon(icon, size: glyph)
+                MiluIcon(icon, size: glyph)
                     .foregroundStyle(isChosen ? Palette.onAccent : Palette.label)
                     .frame(width: tileSize, height: tileSize)
                     .background(isChosen ? Palette.accent : Palette.surfaceMuted, in: tile)
@@ -135,7 +135,7 @@ struct IconTilePicker: View {
         HStack(spacing: Spacing.s) {
             FormRowLabel(title: "Đã chọn")
             Spacer(minLength: Spacing.s)
-            TimiIcon(selection, size: RowMetrics.iconColumn)
+            MiluIcon(selection, size: RowMetrics.iconColumn)
                 .contentTransition(.opacity)
                 .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: selection)
         }

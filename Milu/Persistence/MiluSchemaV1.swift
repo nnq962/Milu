@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// Version 1 of Timi's on-device database. This schema is the reference for every Timi client:
+/// Version 1 of Milu's on-device database. This schema is the reference for every Milu client:
 /// the web app will move to it later, so names and rules here are written to map 1:1 onto SQL.
 ///
 /// Rules every table follows:
@@ -11,8 +11,8 @@ import SwiftData
 /// - Text enums are stored as their raw string (`"expense"`, `"bank"`…), never as Swift enums.
 /// - `createdAt` / `updatedAt` on every row, for sync ("changed since…") and conflict resolution.
 ///
-/// Changing a model means adding `TimiSchemaV2` and a stage in `TimiMigrationPlan`; never edit V1.
-enum TimiSchemaV1: VersionedSchema {
+/// Changing a model means adding `MiluSchemaV2` and a stage in `MiluMigrationPlan`; never edit V1.
+enum MiluSchemaV1: VersionedSchema {
     static let versionIdentifier = Schema.Version(1, 0, 0)
 
     static var models: [any PersistentModel.Type] {

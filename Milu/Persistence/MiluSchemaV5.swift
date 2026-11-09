@@ -4,13 +4,13 @@ import SwiftData
 /// Version 5: a person in "Danh bạ" knows whether the app made them from a loan's name
 /// (`ContactRecord.isAutoCreated`), so they go once their last loan does (user request 2026-10-29).
 /// Every other table is unchanged from V4.
-enum TimiSchemaV5: VersionedSchema {
+enum MiluSchemaV5: VersionedSchema {
     static let versionIdentifier = Schema.Version(5, 0, 0)
 
     static var models: [any PersistentModel.Type] {
-        [TimiSchemaV1.AccountRecord.self, TimiSchemaV2.CategoryRecord.self, TimiSchemaV1.TransactionRecord.self,
-         TimiSchemaV3.LoanRecord.self, TimiSchemaV1.ReminderRecord.self, ContactRecord.self,
-         TimiSchemaV4.RelationshipRecord.self]
+        [MiluSchemaV1.AccountRecord.self, MiluSchemaV2.CategoryRecord.self, MiluSchemaV1.TransactionRecord.self,
+         MiluSchemaV3.LoanRecord.self, MiluSchemaV1.ReminderRecord.self, ContactRecord.self,
+         MiluSchemaV4.RelationshipRecord.self]
     }
 
     /// A person loans are with: a name and how the user knows them. As V3, plus `isAutoCreated`.

@@ -74,7 +74,7 @@ struct StatusBadge: View {
     var body: some View {
         HStack(spacing: Self.gap) {
             if let icon {
-                TimiIcon(icon, size: Self.icon)
+                MiluIcon(icon, size: Self.icon)
             } else if showsDot {
                 Circle().fill(tone.dot).frame(width: Self.dot, height: Self.dot)
             }

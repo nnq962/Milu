@@ -4,13 +4,13 @@ import SwiftData
 /// Version 7: a loan's repayments ("Thu nợ" / "Trả nợ", user request 2026-10-29), each with the
 /// principal it pays off, the interest, the account the money moved with and the day. Every other
 /// table is unchanged from V6.
-enum TimiSchemaV7: VersionedSchema {
+enum MiluSchemaV7: VersionedSchema {
     static let versionIdentifier = Schema.Version(7, 0, 0)
 
     static var models: [any PersistentModel.Type] {
-        [TimiSchemaV1.AccountRecord.self, TimiSchemaV2.CategoryRecord.self, TimiSchemaV1.TransactionRecord.self,
-         TimiSchemaV6.LoanRecord.self, TimiSchemaV1.ReminderRecord.self, TimiSchemaV5.ContactRecord.self,
-         TimiSchemaV4.RelationshipRecord.self, LoanPaymentRecord.self]
+        [MiluSchemaV1.AccountRecord.self, MiluSchemaV2.CategoryRecord.self, MiluSchemaV1.TransactionRecord.self,
+         MiluSchemaV6.LoanRecord.self, MiluSchemaV1.ReminderRecord.self, MiluSchemaV5.ContactRecord.self,
+         MiluSchemaV4.RelationshipRecord.self, LoanPaymentRecord.self]
     }
 
     /// **New in V7.** One repayment of a `LoanRecord`.
@@ -46,27 +46,27 @@ enum TimiSchemaV7: VersionedSchema {
 /// V3 → V4 adds the relationships the user makes; V4 → V5 marks the people the app made; V5 → V6
 /// adds a loan's account, date and interest (old loans count as from before the app); V6 → V7
 /// adds repayments.
-enum TimiMigrationPlan: SchemaMigrationPlan {
+enum MiluMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [TimiSchemaV1.self, TimiSchemaV2.self, TimiSchemaV3.self, TimiSchemaV4.self, TimiSchemaV5.self,
-         TimiSchemaV6.self, TimiSchemaV7.self]
+        [MiluSchemaV1.self, MiluSchemaV2.self, MiluSchemaV3.self, MiluSchemaV4.self, MiluSchemaV5.self,
+         MiluSchemaV6.self, MiluSchemaV7.self]
     }
     static var stages: [MigrationStage] {
-        [.lightweight(fromVersion: TimiSchemaV1.self, toVersion: TimiSchemaV2.self),
-         .lightweight(fromVersion: TimiSchemaV2.self, toVersion: TimiSchemaV3.self),
-         .lightweight(fromVersion: TimiSchemaV3.self, toVersion: TimiSchemaV4.self),
-         .lightweight(fromVersion: TimiSchemaV4.self, toVersion: TimiSchemaV5.self),
-         .lightweight(fromVersion: TimiSchemaV5.self, toVersion: TimiSchemaV6.self),
-         .lightweight(fromVersion: TimiSchemaV6.self, toVersion: TimiSchemaV7.self)]
+        [.lightweight(fromVersion: MiluSchemaV1.self, toVersion: MiluSchemaV2.self),
+         .lightweight(fromVersion: MiluSchemaV2.self, toVersion: MiluSchemaV3.self),
+         .lightweight(fromVersion: MiluSchemaV3.self, toVersion: MiluSchemaV4.self),
+         .lightweight(fromVersion: MiluSchemaV4.self, toVersion: MiluSchemaV5.self),
+         .lightweight(fromVersion: MiluSchemaV5.self, toVersion: MiluSchemaV6.self),
+         .lightweight(fromVersion: MiluSchemaV6.self, toVersion: MiluSchemaV7.self)]
     }
 }
 
 // The rest of the app names the current version's models without the namespace.
-typealias AccountRecord = TimiSchemaV1.AccountRecord
-typealias CategoryRecord = TimiSchemaV2.CategoryRecord
-typealias TransactionRecord = TimiSchemaV1.TransactionRecord
-typealias LoanRecord = TimiSchemaV6.LoanRecord
-typealias ReminderRecord = TimiSchemaV1.ReminderRecord
-typealias ContactRecord = TimiSchemaV5.ContactRecord
-typealias RelationshipRecord = TimiSchemaV4.RelationshipRecord
-typealias LoanPaymentRecord = TimiSchemaV7.LoanPaymentRecord
+typealias AccountRecord = MiluSchemaV1.AccountRecord
+typealias CategoryRecord = MiluSchemaV2.CategoryRecord
+typealias TransactionRecord = MiluSchemaV1.TransactionRecord
+typealias LoanRecord = MiluSchemaV6.LoanRecord
+typealias ReminderRecord = MiluSchemaV1.ReminderRecord
+typealias ContactRecord = MiluSchemaV5.ContactRecord
+typealias RelationshipRecord = MiluSchemaV4.RelationshipRecord
+typealias LoanPaymentRecord = MiluSchemaV7.LoanPaymentRecord

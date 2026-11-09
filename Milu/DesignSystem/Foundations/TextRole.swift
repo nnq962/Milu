@@ -24,7 +24,7 @@ enum TextRole: CaseIterable, Identifiable {
     case body
     /// A row's name ("Ví tiền mặt"). 16 ExtraBold
     case bodyStrong
-    /// The words on a button (`TimiButton`). Milu / Control label, 15 ExtraBold
+    /// The words on a button (`MiluButton`). Milu / Control label, 15 ExtraBold
     case button
     /// Amounts at the end of a row. Milu / Money row, 16 ExtraBold, tabular
     case amount
@@ -36,7 +36,7 @@ enum TextRole: CaseIterable, Identifiable {
     case caption
     /// Chips, badges, small figures. Milu / Money small, 13 Bold
     case captionStrong
-    /// The words on a compact button (`TimiButton(size: .compact)`). 13 ExtraBold
+    /// The words on a compact button (`MiluButton(size: .compact)`). 13 ExtraBold
     case buttonCompact
     /// Row subtitles, a column's label, chart axes. Milu / Caption, 12 SemiBold
     case footnote

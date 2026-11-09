@@ -21,7 +21,7 @@ struct BudgetStatusLine: View {
                 .monospacedDigit()
                 .contentTransition(reduceMotion ? .identity : .numericText())
         } icon: {
-            TimiIcon(level == .fine ? "hugeicons-chart-increase" : "hugeicons-alert-circle", size: glyph)
+            MiluIcon(level == .fine ? "hugeicons-chart-increase" : "hugeicons-alert-circle", size: glyph)
         }
         .textRole(.caption)
         .foregroundStyle(color)

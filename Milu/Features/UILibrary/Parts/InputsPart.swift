@@ -38,10 +38,10 @@ struct InputsPart: View {
                 FormDivider(hasIcon: false)
                 FormAmountInfoRow(title: "Phí chuyển", amount: 5_000, tone: .signedExpense)
             }
-            SampleCard(label: "Số tiền lớn · TimiAmountField") {
+            SampleCard(label: "Số tiền lớn · MiluAmountField") {
                 VStack(spacing: Spacing.xxl) {
-                    TimiAmountField(text: $amount)
-                    TimiAmountField(text: $expense, kind: .expense, showsSuggestions: false)
+                    MiluAmountField(text: $amount)
+                    MiluAmountField(text: $expense, kind: .expense, showsSuggestions: false)
                 }
             }
         }

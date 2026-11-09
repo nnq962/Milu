@@ -412,7 +412,7 @@ struct AssistantView: View {
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text("Đã dùng hết lượt AI")
                     .textRole(.bodyStrong)
-                // Only when it comes back; Timi Pro is told about on Tổng quan (strict review 2026-10-31).
+                // Only when it comes back; Milu Pro is told about on Tổng quan (strict review 2026-10-31).
                 // The one short date (`shortDay`).
                 Text("Lượt mới vào \(quota.renewsOn.shortDay)")
                     .textRole(.caption)

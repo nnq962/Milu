@@ -88,7 +88,7 @@ struct CompletedGoalsSheet: View {
     var body: some View {
         NavigationStack { CompletedGoalsView() }
             // Half height first, as "Lưu trữ & hoàn thành" opens (review 2026-11-06).
-            .timiSheetStyle([.medium, .large])
+            .miluSheetStyle([.medium, .large])
     }
 }
 

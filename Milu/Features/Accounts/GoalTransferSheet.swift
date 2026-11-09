@@ -84,7 +84,7 @@ struct GoalTransferSheet: View {
         SheetScaffold(title: title, validate: validate, onConfirm: save) {
             SheetAmountHeader(title: goal.name) {
                 // "Rút hết" takes everything: the amount is shown, not typed.
-                TimiAmountField(text: $amountText, showsSuggestions: !closesGoal,
+                MiluAmountField(text: $amountText, showsSuggestions: !closesGoal,
                                 focusesOnAppear: !closesGoal && editing == nil,
                                 presets: isDeposit && editing == nil ? presets : [])
                     .disabled(closesGoal)
@@ -132,7 +132,7 @@ struct GoalTransferSheet: View {
                 }
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     /// "Mỗi tháng 167.000đ" with a deadline, and "Còn thiếu 2.000.000đ" when it differs.

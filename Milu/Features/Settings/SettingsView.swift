@@ -233,7 +233,7 @@ struct SettingsView: View {
                 Text("Bạn có thể sao chép địa chỉ \(Self.supportEmail) và gửi thư từ ứng dụng thư bạn dùng.")
             }
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 
     /// The name the user set (tap to change), its initial, and the plan. No email until there is
@@ -335,8 +335,8 @@ struct SettingsView: View {
             }
             // Says what it opens: Pro is not on sale yet (review 2026-11-09: "Nâng cấp" led to
             // "Sắp ra mắt").
-            TimiButton("Tìm hiểu Milu Pro", role: .primary, fullWidth: true) {
-                note = Note(title: TimiProNote.title, message: TimiProNote.message)
+            MiluButton("Tìm hiểu Milu Pro", role: .primary, fullWidth: true) {
+                note = Note(title: MiluProNote.title, message: MiluProNote.message)
             }
             .accessibilityHint("Gói Milu Pro sắp ra mắt")
         }

@@ -143,7 +143,7 @@ struct AccountDetailSheet: View {
         NavigationStack {
             AccountDetailView(accountID: accountID, showsClose: true)
         }
-        .timiSheetStyle()
+        .miluSheetStyle()
     }
 }
 

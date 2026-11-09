@@ -2,13 +2,13 @@ import Foundation
 import OSLog
 import SwiftData
 
-/// Reads and writes Timi's records in SwiftData. `FinanceStore` keeps the screens' arrays in
+/// Reads and writes Milu's records in SwiftData. `FinanceStore` keeps the screens' arrays in
 /// memory and calls this after every change, so each edit is saved at once (write-through).
 /// All database code lives here; screens never touch SwiftData directly.
 @MainActor
 final class FinanceDatabase {
     private let context: ModelContext
-    private let log = Logger(subsystem: "Timi", category: "database")
+    private let log = Logger(subsystem: "com.quyetnguyen.Milu", category: "database")
     /// Above 0 inside `batch`: writes wait for one save at its end.
     private var batchDepth = 0
 
@@ -21,15 +21,15 @@ final class FinanceDatabase {
     /// `inMemory`: a database that lives only while the app runs, for tests (same schema and
     /// migration plan as the real one).
     static func makeContainer(inMemory: Bool = false) -> ModelContainer {
-        let schema = Schema(versionedSchema: TimiSchemaV7.self)
+        let schema = Schema(versionedSchema: MiluSchemaV7.self)
         do {
             let configuration = inMemory
                 ? ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                : ModelConfiguration("Timi", schema: schema)
-            return try ModelContainer(for: schema, migrationPlan: TimiMigrationPlan.self,
+                : ModelConfiguration("Milu", schema: schema)
+            return try ModelContainer(for: schema, migrationPlan: MiluMigrationPlan.self,
                                       configurations: configuration)
         } catch {
-            Logger(subsystem: "Timi", category: "database").fault("Cannot open the database: \(error)")
+            Logger(subsystem: "com.quyetnguyen.Milu", category: "database").fault("Cannot open the database: \(error)")
             return try! ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         }
     }
