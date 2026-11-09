@@ -38,13 +38,13 @@ struct AccountsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                // Milu's Sổ ví (Figma 79:1330, 54:789, 54:920): the sky with Nâu and "Sổ ví của
+                // Milu's Sổ ví (Figma 79:1330, 54:789, 54:920): the sky with Milu and "Sổ ví của
                 // bạn", then "Ví & ngân hàng" as rows in one card and "Hũ tiết kiệm" as glass jars,
                 // three to a row; each part an empty card until it has something. Parts 28
                 // apart, 24 under the sky.
                 VStack(alignment: .leading, spacing: 0) {
-                    SkyHeader(overline: "Nâu giữ ví", title: "Sổ ví của bạn", mascot: mascot,
-                              placement: mood == .atRest ? .nauAtRest : .nauGreeting)
+                    SkyHeader(overline: "Milu giữ ví", title: "Sổ ví của bạn", milu: miluLook,
+                              sky: .lake)
                     VStack(alignment: .leading, spacing: Spacing.section) {
                         paymentSection
                         goalsSection
@@ -121,7 +121,7 @@ struct AccountsView: View {
         }
     }
 
-    /// How far the page has come, read from what is on it, so Nâu looks the same every time the
+    /// How far the page has come, read from what is on it, so Milu looks the same every time the
     /// tab opens (user request 2026-11-05: happy only for a moment after the first wallet, then
     /// back at rest on the next visit): curious with no wallet, happy with wallets but no jar yet,
     /// at rest once there are both.
@@ -132,11 +132,11 @@ struct AccountsView: View {
         return store.activeGoals.isEmpty ? .happy : .atRest
     }
 
-    private var mascot: String {
+    private var miluLook: MiluHero.Look {
         switch mood {
-        case .curious: "cun-nau-to-mo"
-        case .happy: "cun-nau-vui-mung"
-        case .atRest: "cun-nau-mac-dinh"
+        case .curious: .toMo
+        case .happy: .vuiMung
+        case .atRest: .macDinh
         }
     }
 

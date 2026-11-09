@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The head of a tab's page: a dog's sky running on behind the navigation bar, its role small
-/// over the page's large title, the dog on the right resting on the edge. Tài khoản (Nâu, Figma
+/// The head of a tab's page: a sky running on behind the navigation bar, its role small over the
+/// page's large title, Milu on the right resting on the edge (`MiluHero`; one dog since the trial
+/// of 2026-11-09, before it Nâu on Tài khoản and Than on Giao dịch). Tài khoản (Nâu, Figma
 /// 79:1333), Giao dịch (Than, Figma 317:6594) and Tổng quan (the three dogs' hill, Figma 272:727)
 /// share it, so all are the same height with the words in the same place (user request
 /// 2026-11-07). The words set the height; the sky and the dog stay anchored to the lower edge,
@@ -11,10 +12,11 @@ struct SkyHeader: View {
     /// The large title; nil on Tổng quan, where the dogs stand in its place (Figma 272:727). Its
     /// room is kept, so the head stays as tall as the other tabs' at every text size.
     var title: String?
-    /// The dog's picture in `MiluArt` ("cun-nau-mac-dinh"); nil when the sky is a scene that
-    /// already has its dogs (`Sky.hill`).
-    var mascot: String?
-    var placement: MascotPlacement = .nauAtRest
+    /// Milu's face for how the page is going; nil when the sky is a scene with its dogs drawn in
+    /// (`Sky.hill`).
+    var milu: MiluHero.Look?
+    /// What Milu says once when the tab first opens.
+    var greeting: String?
     var sky: Sky = .nau
     /// The 🐾 before the role; Tổng quan's family line has none (Figma 272:727).
     var showsPaw = true
@@ -27,6 +29,8 @@ struct SkyHeader: View {
         let height: CGFloat
         let top: Color
         let ink: Color
+        /// Drawn by day only: at night the sky takes `Palette.nightShade`.
+        var isDayOnly = false
 
         /// Nâu's: sun or moon and a horizon of clouds (402 × 240).
         static let nau = Sky(image: "milu-hero-sky", height: 240, top: Palette.skyTop, ink: Palette.nauInk)
@@ -35,23 +39,26 @@ struct SkyHeader: View {
         /// Tổng quan's: the hill with Vàng, Than and Nâu peeking over it (402 × 352, the dogs
         /// drawn in, its top under the bar).
         static let hill = Sky(image: "overview-hero-scene", height: 352, top: Palette.hillSkyTop, ink: Palette.deep)
+        /// Milu's meadow of daisies on Tổng quan, and its lake of reeds on Tài khoản (Figma "Nền /
+        /// Đồi hoa", "Nền / Bờ hồ", 402 × 352, its top under the bar). Day only so far.
+        static let meadow = Sky(image: "milu-sky-doi-hoa", height: 352, top: Palette.meadowSkyTop,
+                                ink: Palette.deep, isDayOnly: true)
+        static let lake = Sky(image: "milu-sky-bo-ho", height: 352, top: Palette.lakeSkyTop,
+                              ink: Palette.deep, isDayOnly: true)
     }
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
-    /// Bounds of the exported dog artwork within the 402 × 240 reference composition.
+    /// Bounds of the dog's drawing within the 402 × 240 reference composition.
     struct MascotPlacement {
         let left: CGFloat
         let top: CGFloat
         let width: CGFloat
 
-        /// "Nâu giữ ví" on a Sổ ví with wallets (Figma 79:1361).
-        static let nauAtRest = MascotPlacement(left: 247, top: 158, width: 166.3)
-        /// The curious and happy Figma instances have an inset around the same SVG viewport.
-        static let nauGreeting = MascotPlacement(left: 250.2, top: 159.7, width: 162)
-        /// Than with its tongue out on Giao dịch (Figma 320:3768, "Than ghi chép · Hero đồng bộ"),
-        /// in "cun-than-dau-trang", whose mountain runs on past the edge.
-        static let thanAtRest = MascotPlacement(left: 231.6, top: 158, width: 196.7)
+        /// Milu's 350 × 220 faces (Figma "Milu · Xuất cho app"), on the right, its peak clear of
+        /// the title's 64%. The drawing ends at 208 of 220, cut square; 202 sits on the edge, so
+        /// the cut and the corner it leaves go under it.
+        static let milu = MascotPlacement(left: 214, top: 240 - 202 * 214 / 350, width: 214)
     }
 
     private static let referenceWidth: CGFloat = 402
@@ -109,46 +116,36 @@ struct SkyHeader: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// In: grows from the feet as it fades in. Out: gone in a blink, so the two dogs barely overlap.
-    /// With Reduce Motion, a fade only.
-    private var mascotSwap: AnyTransition {
-        guard !reduceMotion else { return .opacity }
-        return .asymmetric(
-            insertion: .opacity.combined(with: .scale(scale: 0.82, anchor: .bottom)),
-            removal: .opacity.animation(.easeOut(duration: 0.12)))
-    }
-
     /// Sky, sun and clouds, and the dog, behind the words. Above, the sky runs on under the bars;
     /// below, a straight edge meets the page, as Milu draws it (user 2026-11-05: no blur; the soft
     /// bands tried on 2026-11-04 and -05 read rough). Placed by `SkyArtLayout`, not a
     /// `GeometryReader`: reading the reader's size laid the whole page out once more before the
     /// first frame of a tab (Instruments 2026-11-09: about a fifth of opening Giao dịch).
     private var art: some View {
-        SkyArtLayout(skyHeight: sky.height, placement: placement,
+        SkyArtLayout(skyHeight: sky.height, placement: .milu,
                      referenceWidth: Self.referenceWidth, referenceEdge: Self.referenceEdge,
                      overscroll: Self.overscroll) {
             sky.top
+                .overlay { nightShade }
             Image(sky.image)
                 .resizable()
-            // A new mood hops in from the dog's feet while the old one fades out quickly
-            // (user 2026-11-05: a plain cross-fade looked rough — halfway, both pictures were
-            // half see-through and the sky showed through the dog). The spring is set here, so
-            // the change looks the same whichever action changed the mood.
+                .overlay { nightShade }
             ZStack {
-                if let mascot {
-                    Image(mascot)
-                        .resizable()
-                        .scaledToFit()
-                        .id(mascot)
-                        .transition(mascotSwap)
+                if let milu {
+                    MiluHero(look: milu, greeting: greeting, talks: title == nil)
                 }
             }
-            .animation(reduceMotion ? .easeInOut(duration: 0.25) : .spring(duration: 0.5, bounce: 0.35),
-                       value: mascot)
         }
         // Nothing past the edge: the dog's foot ends where the page begins.
         .mask(alignment: .bottom) { Rectangle().frame(height: 4000) }
         .accessibilityHidden(true)
+    }
+
+    /// A day-only sky dimmed at night, the same over its colour and its picture so they meet.
+    @ViewBuilder private var nightShade: some View {
+        if sky.isDayOnly && colorScheme == .dark {
+            Palette.nightShade.opacity(0.82)
+        }
     }
 }
 

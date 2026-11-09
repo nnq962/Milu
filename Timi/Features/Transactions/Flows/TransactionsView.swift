@@ -48,8 +48,8 @@ struct TransactionsView: View {
                     // filter and a card for each day. Spaced as Sổ ví (user report 2026-11-07): 24
                     // under the sky, 12 from a heading to its card, 28 between the parts.
                     VStack(alignment: .leading, spacing: 0) {
-                        SkyHeader(overline: "Than ghi chép", title: "Sổ giao dịch",
-                                  mascot: thanMascot, placement: .thanAtRest, sky: .than)
+                        SkyHeader(overline: "Milu ghi chép", title: "Sổ giao dịch",
+                                  milu: miluLook, sky: .than)
                         VStack(alignment: .leading, spacing: 0) {
                             sectionHead
                             figuresRow
@@ -295,11 +295,10 @@ struct TransactionsView: View {
     /// "Tháng 9" this year, "Tháng 9/2025" another: the month in the empty list's words.
     private var monthName: String { MonthPickerButton.name(of: displayedMonth) }
 
-    /// Than read from what is recorded, as Nâu on Tài khoản, the same every time the tab opens
-    /// (user request 2026-11-07): curious before the first transaction or loan, at rest after.
-    /// The swap hops in from the feet (`SkyHeader`).
-    private var thanMascot: String {
-        MonthFlowList.hasNothingRecorded(in: store) && store.loans.isEmpty ? "cun-than-dau-trang-to-mo" : "cun-than-dau-trang"
+    /// Milu read from what is recorded, the same every time the tab opens (user request
+    /// 2026-11-07): curious before the first transaction or loan, at rest after.
+    private var miluLook: MiluHero.Look {
+        MonthFlowList.hasNothingRecorded(in: store) && store.loans.isEmpty ? .toMo : .macDinh
     }
 
 }

@@ -25,6 +25,45 @@ struct OverviewView: View {
     @State private var isScrolled = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+
+    /// Milu's face for the month so far (trial 2026-11-09): sleepy late with nothing written
+    /// today, sad past the month's limit, worried near it, all smiles well under it.
+    private var miluLook: MiluHero.Look {
+        let now = Date.now
+        let calendar = Calendar.current
+        if calendar.component(.hour, from: now) >= 20,
+           !store.transactions.contains(where: { calendar.isDateInToday($0.date) }) {
+            return .buonNgu
+        }
+        guard let share = budgetShare(at: now) else { return .macDinh }
+        if share > 1 { return .buon }
+        if share >= 0.8 { return .loLang }
+        return share < 0.6 ? .cuoiTitMat : .macDinh
+    }
+
+    /// What was spent this month against the limit as it stands today (the month's limit spread
+    /// over its days); nil with no limit.
+    private func budgetShare(at now: Date) -> Double? {
+        guard monthlyBudget > 0 else { return nil }
+        let month = DateInterval.month(of: now)
+        let calendar = Calendar.current
+        let days = Double(calendar.range(of: .day, in: .month, for: now)?.count ?? 30)
+        let day = Double(calendar.component(.day, from: now))
+        let spent = store.total(.expense, in: month)
+        if spent > monthlyBudget { return spent / monthlyBudget }
+        return spent / (monthlyBudget * day / days)
+    }
+
+    private var miluGreeting: String {
+        switch miluLook {
+        case .buonNgu: "Hôm nay chưa ghi gì nè…"
+        case .buon: "Lố hạn mức rồi…"
+        case .loLang: "Sắp chạm hạn mức đó!"
+        case .cuoiTitMat: "Tháng này ổn áp ghê!"
+        default: "Chào bạn!"
+        }
+    }
 
     private struct Information: Identifiable {
         let id = UUID()
@@ -43,7 +82,8 @@ struct OverviewView: View {
                 // over Vàng, Than and Nâu, the same head as Tài khoản and Giao dịch; the blocks 24
                 // under it.
                 VStack(alignment: .leading, spacing: 0) {
-                    SkyHeader(overline: "Cả nhà Milu", sky: .hill, showsPaw: false)
+                    SkyHeader(overline: "Milu đồng hành", milu: miluLook, greeting: miluGreeting,
+                              sky: .meadow)
                     // Sections 28 apart, as on every tab, each with its heading on the page 8
                     // above its card (user request 2026-11-08: the headings out of the cards).
                     VStack(alignment: .leading, spacing: Spacing.section) {
