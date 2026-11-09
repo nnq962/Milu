@@ -126,7 +126,7 @@ struct TransactionSearchView: View {
     private var filterButton: some View {
         let count = activeCount
         return Button { isFiltering = true } label: {
-            BarSymbol(FilterGlyph.name(isActive: count > 0))
+            BarSymbol(FilterGlyph.name(isActive: count > 0), prominent: count > 0)
         }
         .filterBarButtonStyle(isActive: count > 0)
         .accessibilityLabel(count > 0 ? "Bộ lọc, đang bật \(count)" : "Bộ lọc")

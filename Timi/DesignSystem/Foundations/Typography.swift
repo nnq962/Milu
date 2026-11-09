@@ -133,9 +133,22 @@ enum Typography {
             bar.subtitleTextAttributes = subtitle
             bar.largeSubtitleTextAttributes = subtitle
         }
-        navigation.standardAppearance = bar
-        navigation.scrollEdgeAppearance = bar
-        navigation.compactAppearance = bar
+        if #available(iOS 26.0, *) {
+            navigation.standardAppearance = bar
+            navigation.scrollEdgeAppearance = bar
+            navigation.compactAppearance = bar
+        } else {
+            // iOS 17 to 25, as its own apps: clear at the top (the sky runs on under the bar),
+            // the system's blur and hairline once the page scrolls under it (user report
+            // 2026-11-09: on iOS 17 the sheets' bars showed the page through, sharp).
+            let scrolled = UINavigationBarAppearance()
+            scrolled.configureWithDefaultBackground()
+            scrolled.titleTextAttributes = bar.titleTextAttributes
+            scrolled.largeTitleTextAttributes = bar.largeTitleTextAttributes
+            navigation.standardAppearance = scrolled
+            navigation.compactAppearance = scrolled
+            navigation.scrollEdgeAppearance = bar
+        }
     }
 }
 

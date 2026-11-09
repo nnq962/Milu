@@ -38,8 +38,9 @@ extension View {
 /// no glass, the circled one, filled while a filter is on.
 enum FilterGlyph {
     static func name(isActive: Bool) -> String {
-        if #available(iOS 26.0, *) { return "line.3.horizontal.decrease" }
-        return isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+        // The plain lines everywhere: before iOS 26 the bar circle now holds them, and a filter
+        // that is on fills it (`BarSymbol(prominent:)`).
+        "line.3.horizontal.decrease"
     }
 }
 
@@ -137,12 +138,33 @@ extension View {
 /// (`IconSize.bar`, Regular), in the frame that makes each glass circle the same.
 struct BarSymbol: View {
     let name: String
+    /// Before iOS 26: drawn on the primary colour, as a filter that is on (iOS 26's
+    /// `.glassProminent` does it there).
+    var prominent = false
 
-    init(_ name: String) { self.name = name }
+    init(_ name: String, prominent: Bool = false) {
+        self.name = name
+        self.prominent = prominent
+    }
 
     var body: some View {
+        if legacyProminent {
+            glyph
+                .foregroundStyle(Palette.onPrimary)
+                .legacyBarCircle(prominent: true)
+        } else {
+            glyph.legacyBarCircle()
+        }
+    }
+
+    private var glyph: some View {
         Image(systemName: name)
             .font(.system(size: IconSize.bar, weight: .regular))
             .frame(width: IconSize.barFrame, height: IconSize.barFrame)
+    }
+
+    private var legacyProminent: Bool {
+        if #available(iOS 26.0, *) { return false }
+        return prominent
     }
 }

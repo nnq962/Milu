@@ -57,6 +57,7 @@ struct AssistantBarButton: View {
                     .font(Typography.font(.subheadline, size: 15, weight: .semibold))
             }
             .foregroundStyle(Palette.deep)
+            .legacyBarPill()
         }
         .tint(Palette.deep)
         .accessibilityLabel("Hỏi Milu")

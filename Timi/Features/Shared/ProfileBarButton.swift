@@ -28,6 +28,8 @@ struct ProfileBarButton: View {
                 }
             }
             .foregroundStyle(Palette.deep)
+            .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
+            .legacyBarCircle()
         }
         .buttonBorderShape(.circle)
         .tint(Palette.deep)

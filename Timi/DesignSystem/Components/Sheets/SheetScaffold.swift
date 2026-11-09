@@ -145,8 +145,17 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
             if #available(iOS 26.0, *) {
                 Button(role: .confirm, action: action)
             } else {
-                // Before iOS 26 there is no confirm role: the ✓ drawn by hand.
-                Button(action: action) { Image(systemName: "checkmark").fontWeight(.semibold) }
+                // Before iOS 26 there is no confirm role: a ✓ on the primary colour, the pair of
+                // the grey ✕ across the bar (user choice 2026-11-09).
+                Button(action: action) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Palette.onPrimary)
+                        .frame(width: LegacyBar.sheetControl, height: LegacyBar.sheetControl)
+                        .background(Palette.primary, in: Circle())
+                        .opacity(canConfirm ? 1 : 0.4)
+                        .contentShape(Circle())
+                }
             }
         }
         .tint(Palette.primary)

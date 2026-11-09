@@ -127,3 +127,48 @@ enum Motion {
         UIAccessibility.isReduceMotionEnabled ? nil : animation
     }
 }
+
+/// A bar button's body before iOS 26, where there is no glass: a thick material, nearly solid,
+/// as the floating buttons of Photos and Maps on iOS 17 (user choice 2026-11-09: bare glyphs on
+/// the sky read as no button at all). On iOS 26 the bar draws its glass and these do nothing.
+extension View {
+    /// A 36 circle: Q, ✎, +, the bell, search.
+    @ViewBuilder
+    func legacyBarCircle(prominent: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            frame(width: LegacyBar.size, height: LegacyBar.size)
+                .background {
+                    if prominent {
+                        Circle().fill(Palette.primary)
+                    } else {
+                        Circle().fill(.regularMaterial)
+                            .overlay(Circle().strokeBorder(Palette.separator, lineWidth: 0.5))
+                    }
+                }
+                .contentShape(Circle())
+        }
+    }
+
+    /// A 36 capsule with words in it: "Hỏi Milu".
+    @ViewBuilder
+    func legacyBarPill() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+        } else {
+            padding(.horizontal, Spacing.m)
+                .frame(height: LegacyBar.size)
+                .background(.regularMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(Palette.separator, lineWidth: 0.5))
+                .contentShape(Capsule())
+        }
+    }
+}
+
+enum LegacyBar {
+    /// Within iOS 17's 44 bar, with room around it.
+    static let size: CGFloat = 36
+    /// The sheet's ✕ and ✓, as iOS 17's own: smaller, a filled disc.
+    static let sheetControl: CGFloat = 30
+}

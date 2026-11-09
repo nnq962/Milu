@@ -163,17 +163,15 @@ private struct ReorderTable: UIViewControllerRepresentable {
             let cell = tableView.dequeueReusableCell(withIdentifier: Self.cellID, for: indexPath)
             let category = items[indexPath.row]
             (cell as? RowCell)?.categoryID = category.id
-            (cell as? RowCell)?.showsLine = indexPath.row < items.count - 1
+            (cell as? RowCell)?.place(first: indexPath.row == 0, last: indexPath.row == items.count - 1)
             cell.contentConfiguration = UIHostingConfiguration {
                 FormRowLabel(title: category.name, icon: category.icon)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .combine)
             }
             .margins(.vertical, RowMetrics.vertical)
-            var ground = UIBackgroundConfiguration.listGroupedCell()
-            ground.backgroundColor = UIColor(Palette.surface)
-            ground.cornerRadius = CardCorners.card
-            cell.backgroundConfiguration = ground
+            // The ground (white, 26 corners) is the cell's own, in every state (`RowCell`).
+            cell.setNeedsUpdateConfiguration()
             cell.showsReorderControl = true
             cell.selectionStyle = .none
             return cell
@@ -202,7 +200,7 @@ private struct ReorderTable: UIViewControllerRepresentable {
             var order = items.map(\.id)
             let moved = order.remove(at: source.row)
             order.insert(moved, at: min(proposed.row, order.count))
-            showLines(lastID: order.last)
+            place(firstID: order.first, lastID: order.last)
             return proposed
         }
 
@@ -212,13 +210,14 @@ private struct ReorderTable: UIViewControllerRepresentable {
             onMove(items)
             // The row now last loses its line, the one that was last gains one, at once as the
             // row is dropped (known by what each row shows, not where the table has it yet).
-            showLines(lastID: items.last?.id)
+            place(firstID: items.first?.id, lastID: items.last?.id)
         }
 
-        /// A line under every row but the one at the foot.
-        private func showLines(lastID: String?) {
+        /// The card's top corners on the first row, its foot's on the last, a line under every
+        /// row but the last: set as rows slide into those places, not on the drop.
+        private func place(firstID: String?, lastID: String?) {
             for case let cell as RowCell in tableView.visibleCells {
-                cell.showsLine = cell.categoryID != lastID
+                cell.place(first: cell.categoryID == firstID, last: cell.categoryID == lastID)
             }
         }
     }
@@ -228,9 +227,16 @@ private struct ReorderTable: UIViewControllerRepresentable {
     /// and dropped into a place that already had both, the lines showed twice as it landed (user
     /// report 2026-11-08). With one line each, a dropped row's line meets the one above exactly.
     final class RowCell: UITableViewCell {
-        var showsLine = true {
+        private(set) var showsLine = true {
             didSet { setNeedsLayout() }
         }
+        private var isFirst = false
+        private var isLast = false
+        /// The row's white ground, drawn by the app with the card's corners: UIKit's own fell to
+        /// iOS 17's 10 as a row lifted (user report 2026-11-09). On iOS 17 to 25 the lifted row
+        /// is still clipped to iOS's 10 by UIKit, where the app cannot reach; left as it is (user
+        /// choice 2026-11-09, after two tries).
+        private let ground = UIView()
         /// What the row shows, to tell the last one after a drop.
         var categoryID: String?
         private let line = UIView()
@@ -239,6 +245,14 @@ private struct ReorderTable: UIViewControllerRepresentable {
 
         override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
             super.init(style: style, reuseIdentifier: reuseIdentifier)
+            // The ground is set here for every state, not left to UIKit: lifting a row, iOS 17
+            // put its own ground back (corners of 10, not 26), kept it after the drop, and the
+            // first and last rows' corners then covered the card's edge at its four corners
+            // (user report 2026-11-09).
+            automaticallyUpdatesBackgroundConfiguration = false
+            ground.backgroundColor = UIColor(Palette.surface)
+            ground.layer.cornerRadius = CardCorners.card
+            ground.layer.cornerCurve = .continuous
             line.backgroundColor = UIColor(Palette.separator)
             line.isUserInteractionEnabled = false
             addSubview(line)
@@ -246,6 +260,31 @@ private struct ReorderTable: UIViewControllerRepresentable {
 
         @available(*, unavailable)
         required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+        func place(first: Bool, last: Bool) {
+            guard first != isFirst || last != isLast else { return }
+            isFirst = first
+            isLast = last
+            showsLine = !last
+            setNeedsUpdateConfiguration()
+        }
+
+        /// UIKit's own ground for the state (it carries the lift's shadow), with the app's white
+        /// drawn in it: the card's 26 at the row's place in the card, whatever the state and the
+        /// iOS (user report 2026-11-09: on iOS 17 a lifted first or last row's corners fell to
+        /// 10, and after the drop they covered the card's edge at its four corners).
+        override func updateConfiguration(using state: UICellConfigurationState) {
+            super.updateConfiguration(using: state)
+            var background = UIBackgroundConfiguration.listGroupedCell().updated(for: state)
+            background.backgroundColor = .clear
+            background.cornerRadius = CardCorners.card
+            background.customView = ground
+            backgroundConfiguration = background
+            var corners: CACornerMask = []
+            if isFirst { corners.formUnion([.layerMinXMinYCorner, .layerMaxXMinYCorner]) }
+            if isLast { corners.formUnion([.layerMinXMaxYCorner, .layerMaxXMaxYCorner]) }
+            ground.layer.maskedCorners = corners
+        }
 
         override func layoutSubviews() {
             super.layoutSubviews()

@@ -9,9 +9,17 @@ struct SheetCloseButton: View {
             if #available(iOS 26.0, *) {
                 Button(role: .close) { dismiss() }
             } else {
-                // Before iOS 26 there is no close role: the ✕ drawn by hand.
-                Button { dismiss() } label: { Image(systemName: "xmark") }
-                    .accessibilityLabel("Đóng")
+                // Before iOS 26 there is no close role: iOS 17's own sheet ✕, small and bold on a
+                // grey disc (user choice 2026-11-09), as in Music and Weather.
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(Palette.secondaryLabel)
+                        .frame(width: LegacyBar.sheetControl, height: LegacyBar.sheetControl)
+                        .background(Palette.fill, in: Circle())
+                        .contentShape(Circle())
+                }
+                .accessibilityLabel("Đóng")
             }
         }
         // Its own tint, not the one around it: the add sheet opened from the + at the app's root
