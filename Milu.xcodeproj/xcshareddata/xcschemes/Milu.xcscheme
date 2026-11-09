@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "568C7C78308E036200F4B02D"
-               BuildableName = "Timi.app"
-               BlueprintName = "Timi"
-               ReferencedContainer = "container:Timi.xcodeproj">
+               BuildableName = "Milu.app"
+               BlueprintName = "Milu"
+               ReferencedContainer = "container:Milu.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A1C0FFEE0000000000000003"
-               BuildableName = "TimiTests.xctest"
-               BlueprintName = "TimiTests"
-               ReferencedContainer = "container:Timi.xcodeproj">
+               BuildableName = "MiluTests.xctest"
+               BlueprintName = "MiluTests"
+               ReferencedContainer = "container:Milu.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "568C7C78308E036200F4B02D"
-            BuildableName = "Timi.app"
-            BlueprintName = "Timi"
-            ReferencedContainer = "container:Timi.xcodeproj">
+            BuildableName = "Milu.app"
+            BlueprintName = "Milu"
+            ReferencedContainer = "container:Milu.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "568C7C78308E036200F4B02D"
-            BuildableName = "Timi.app"
-            BlueprintName = "Timi"
-            ReferencedContainer = "container:Timi.xcodeproj">
+            BuildableName = "Milu.app"
+            BlueprintName = "Milu"
+            ReferencedContainer = "container:Milu.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

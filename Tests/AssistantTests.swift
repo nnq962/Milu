@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Timi
+@testable import Milu
 
 /// Trợ lý AI: the chats kept in the history, and the dictation keeping what was said before a pause.
 @MainActor

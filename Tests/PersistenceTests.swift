@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 import Testing
-@testable import Timi
+@testable import Milu
 
 /// What is written to the database comes back the same after a relaunch: each test writes through
 /// one store, then opens a second store on the same (in-memory) database, as the app does on its

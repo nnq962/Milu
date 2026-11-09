@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Timi
+@testable import Milu
 
 /// Hũ tiết kiệm's money: deposits and withdrawals move money between an account and the goal and
 /// nothing else; spending from it, taking everything out or deleting it never makes money appear

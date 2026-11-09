@@ -1,6 +1,6 @@
 import Testing
 import UIKit
-@testable import Timi
+@testable import Milu
 
 @MainActor
 struct EmojiCatalogTests {

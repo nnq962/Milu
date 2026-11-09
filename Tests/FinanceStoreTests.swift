@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Timi
+@testable import Milu
 
 /// The money rules: balances, transfers and their fees, loans and repayments, locked and archived
 /// accounts. Each test builds an in-memory store (no database) with only the accounts it needs.

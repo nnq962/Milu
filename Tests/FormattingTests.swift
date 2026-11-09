@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Timi
+@testable import Milu
 
 /// How money is written: in full ("1.250.000đ"), short where room is tight ("1,3tr"), and as it is
 /// typed into an amount field.
