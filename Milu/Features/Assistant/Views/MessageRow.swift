@@ -1,8 +1,19 @@
 import SwiftUI
 
-struct MessageRow: View {
+/// Redrawn only when its own message or landing changes (`.equatable()` in the chat): every
+/// change of the chat page, a question sent or landed, redrew every row and re-read every
+/// answer's Markdown, and the flight lost frames to it (measured 2026-11-10).
+struct MessageRow: View, Equatable {
+    nonisolated static func == (lhs: MessageRow, rhs: MessageRow) -> Bool {
+        MainActor.assumeIsolated { lhs.message == rhs.message && lhs.isLanding == rhs.isLanding }
+    }
+
     @Environment(FinanceStore.self) private var store
     let message: ChatMessage
+    /// The question is still flying up from the field (`FlightLayer`): the bubble keeps its
+    /// place unseen and tells where its words sit, for the flight to land on them.
+    var isLanding = false
+    var onTextPlace: (TextPlace) -> Void = { _ in }
     let onAction: (CardAction, ChatMessage) -> Void
 
     var body: some View {
@@ -14,11 +25,17 @@ struct MessageRow: View {
                     // The body role's own line box; no extra `lineSpacing` (re-review 2026-10-31).
                     .textRole(.body)
                     .foregroundStyle(Palette.onPrimary)
-                    .padding(.horizontal, Spacing.l)
-                    .padding(.vertical, Spacing.m)
-                    .background(Palette.primary, in: UnevenRoundedRectangle(
-                        topLeadingRadius: Bubble.radius, bottomLeadingRadius: Bubble.radius,
-                        bottomTrailingRadius: Bubble.radius, topTrailingRadius: Bubble.tail, style: .continuous))
+                    .background {
+                        if isLanding {
+                            Color.clear.onGeometryChange(for: TextPlace.self) {
+                                TextPlace(onScreen: $0.frame(in: .global), inChat: $0.frame(in: .scrollView))
+                            } action: { onTextPlace($0) }
+                        }
+                    }
+                    .padding(.horizontal, Bubble.userInset.leading)
+                    .padding(.vertical, Bubble.userInset.top)
+                    .background(Palette.primary, in: Bubble.userShape)
+                    .opacity(isLanding ? 0 : 1)
                     .containerRelativeFrame(.horizontal, alignment: .trailing) { width, _ in width * Bubble.maxWidth }
             }
         case .assistant:
@@ -112,11 +129,18 @@ struct MessageRow: View {
         .flatCapsuleButton(fill: fill)
     }
 
-    /// Hiển thị **in đậm** và _in nghiêng_ theo cú pháp Markdown, giữ nguyên xuống dòng.
+    /// Hiển thị **in đậm** và _in nghiêng_ theo cú pháp Markdown, giữ nguyên xuống dòng. Read
+    /// once per answer and kept: an answer's text never changes.
     private var formattedText: AttributedString {
+        if let cached = Self.formatted[message.text] { return cached }
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: message.text, options: options)) ?? AttributedString(message.text)
+        let text = (try? AttributedString(markdown: message.text, options: options)) ?? AttributedString(message.text)
+        if Self.formatted.count > 200 { Self.formatted.removeAll() }
+        Self.formatted[message.text] = text
+        return text
     }
+
+    private static var formatted: [String: AttributedString] = [:]
 }
 
 /// Transaction summary inside an assistant bubble: the same row as every list of transactions
@@ -132,6 +156,12 @@ private struct TransactionCard: View {
     }
 }
 
+/// Where a bubble's words sit: on screen (window coordinates), and in the chat's scroll view.
+nonisolated struct TextPlace: Equatable, Sendable {
+    var onScreen: CGRect
+    var inChat: CGRect
+}
+
 enum Bubble {
     /// A bubble rounds like a list card, with a small tail corner (re-review 2026-10-31:
     /// written as 24 and 8; a `CardCorners.bubbleTail` token would be the clean home for the 8).
@@ -140,6 +170,13 @@ enum Bubble {
     /// Wide enough that a question fills most of the row (user request 2026-10-31: close to the
     /// margins), short enough that it still reads as the user's side.
     static let maxWidth: CGFloat = 0.85
+
+    /// The user's bubble around its words, and its shape: one for the bubble in the chat and the
+    /// one flying up to it, so the hand-over at landing shows no seam.
+    static let userInset = EdgeInsets(top: Spacing.m, leading: Spacing.l, bottom: Spacing.m, trailing: Spacing.l)
+    static let userShape = UnevenRoundedRectangle(
+        topLeadingRadius: radius, bottomLeadingRadius: radius,
+        bottomTrailingRadius: radius, topTrailingRadius: tail, style: .continuous)
 
     /// Milu's bubble, in the card colour with the cards' edge, its tail corner under the name.
     static var assistantShape: some View {

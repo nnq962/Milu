@@ -19,8 +19,20 @@ final class AIQuota {
     /// Onboarding steps already paid out, so each pays once.
     private var claimed: Set<String>
 
-    init(defaults: UserDefaults = .standard) {
+    /// No limit at all: every question goes and none is counted. On in Debug builds, for testing
+    /// (user request 2026-11-10); a Release build always counts.
+    let isUnlimited: Bool
+    static let unlimitedInDebug: Bool = {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
+    }()
+
+    init(defaults: UserDefaults = .standard, unlimited: Bool = false) {
         self.defaults = defaults
+        isUnlimited = unlimited
         month = defaults.string(forKey: Keys.month) ?? Self.monthKey(.now)
         used = defaults.integer(forKey: Keys.used)
         bonus = defaults.integer(forKey: Keys.bonus)
@@ -31,7 +43,7 @@ final class AIQuota {
     var usedThisMonth: Int { month == Self.monthKey(.now) ? used : 0 }
     var monthlyLeft: Int { max(Self.monthlyFree - usedThisMonth, 0) }
     var remaining: Int { monthlyLeft + bonus }
-    var isEmpty: Bool { remaining == 0 }
+    var isEmpty: Bool { !isUnlimited && remaining == 0 }
 
     /// When the month fills up again: the 1st of next month.
     var renewsOn: Date {
@@ -43,6 +55,7 @@ final class AIQuota {
     /// Takes one question; false when none are left.
     @discardableResult
     func spend() -> Bool {
+        if isUnlimited { return true }
         let now = Self.monthKey(.now)
         if month != now { month = now; used = 0 }
         if used < Self.monthlyFree {

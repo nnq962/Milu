@@ -4,6 +4,17 @@ import SwiftUI
 /// from iOS 17 again, for an iPhone on 17.6). On iOS 26 each one is the real thing; before it, the
 /// nearest plain look: no Liquid Glass, no scroll-edge effect, no subtitle under a bar title.
 extension View {
+    /// No Writing Tools (Apple Intelligence's rewrite and proofread) over the keyboard, where iOS
+    /// has them (18); nothing to turn off before.
+    @ViewBuilder
+    func writingToolsDisabledIfAvailable() -> some View {
+        if #available(iOS 18.0, *) {
+            writingToolsBehavior(.disabled)
+        } else {
+            self
+        }
+    }
+
     /// `scrollEdgeEffectHidden` where iOS has the scroll-edge effect (26); nothing to hide before.
     @ViewBuilder
     func scrollEdgeEffectHiddenIfAvailable(_ hidden: Bool = true) -> some View {

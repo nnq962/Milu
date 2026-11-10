@@ -98,15 +98,35 @@ final class AssistantChats {
         URL.applicationSupportDirectory.appending(path: "AssistantChats.json")
     }
 
+    /// The save waiting for the chat to settle; a newer change replaces it.
+    @ObservationIgnored private var pendingSave: Task<Void, Never>?
+
+    /// A moment after the last change, the file written off the main thread: written at once,
+    /// on it, sending a question held the screen for over 100ms as its bubble set off (measured
+    /// frame by frame, 2026-11-10). A send and its answer come a second apart; each is saved.
     private func save() {
         guard isSaving else { return }
+        pendingSave?.cancel()
+        pendingSave = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(0.4))
+            guard !Task.isCancelled, let self else { return }
+            self.writeNow()
+        }
+    }
+
+    private func writeNow() {
         let kept = Array(history.prefix(Self.limit))
-        do {
-            try FileManager.default.createDirectory(at: URL.applicationSupportDirectory,
-                                                    withIntermediateDirectories: true)
-            try JSONEncoder().encode(kept).write(to: Self.fileURL, options: [.atomic, .completeFileProtection])
-        } catch {
-            Self.log.error("Cannot save the chats: \(error)")
+        guard let data = try? JSONEncoder().encode(kept) else { return }
+        let url = Self.fileURL
+        Task.detached(priority: .utility) {
+            do {
+                try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
+                                                        withIntermediateDirectories: true)
+                try data.write(to: url, options: [.atomic, .completeFileProtection])
+            } catch {
+                Logger(subsystem: "com.quyetnguyen.Milu", category: "assistant")
+                    .error("Cannot save the chats: \(error)")
+            }
         }
     }
 

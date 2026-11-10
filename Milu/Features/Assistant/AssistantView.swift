@@ -9,6 +9,23 @@ struct AssistantView: View {
     @Environment(AIQuota.self) private var quota
     @Environment(AssistantChats.self) private var chats
     @State private var draft = ""
+    /// The glass's height behind the field, which follows the field's on a spring (0 until first measured).
+    @State private var glassHeight: CGFloat = 0
+    /// Words just heard, held unseen while the glass grows to take them, then faded in, as
+    /// ChatGPT does (user's recording of it, 2026-11-10).
+    @State private var wordsHidden = false
+    /// ✕ keeps its place, unseen, until the words just heard are about to fade in.
+    @State private var keepsCross = false
+    /// A question flying from the field up to its bubble as it is sent, as ChatGPT's do (user
+    /// request 2026-11-10, after their recording of it); nil the rest of the time.
+    @State private var flight: QuestionFlight?
+    /// Where the flight is heading and whether it has set off, read by the flying copy and the
+    /// chat's slide alone: written into this view's state it rebuilt the whole chat as the
+    /// flight began, and its first frames were dropped (measured 2026-11-10).
+    @State private var track = FlightTrack()
+    /// Where the words start in the field and in each suggestion, kept out of the view's state:
+    /// they move with every frame of the glass, and nothing redraws for them.
+    @State private var origins = FlightOrigins()
     @State private var isThinking = false
     /// Set on the first question; `OnboardingRewards` pays "Hỏi Milu một câu" in Làm quen với Milu.
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
@@ -17,10 +34,6 @@ struct AssistantView: View {
     /// first, in chat too (strict review 2026-10-31: it deleted at once).
     @State private var pendingRemoval: ChatMessage?
     @State private var dictation = SpeechDictation()
-    /// What the field held when the mic started: heard words go after it, ✕ brings it back.
-    @State private var draftBeforeDictation = ""
-    /// The field's pieces that move into each other between typing and listening.
-    @Namespace private var inputSpace
     @FocusState private var isInputFocused: Bool
     /// The chat is scrolled up from its end, far enough to show the ↓ that brings it back.
     @State private var isAwayFromEnd = false
@@ -35,16 +48,64 @@ struct AssistantView: View {
     }
 
     private var messages: [ChatMessage] { chats.conversations[currentIndex].messages }
+
+    /// Where the newest question starts: it and what follows make the last turn, which is held
+    /// at the top of the chat as Claude and ChatGPT hold it (user's recordings, 2026-11-10).
+    private var lastTurnStart: Int? { messages.lastIndex { $0.role == .user } }
+
+    /// The question whose turn keeps a screen's room under it: one sent here, until that room
+    /// is out of sight. An old chat opened, or the room scrolled past, shows no blank under the
+    /// last answer, as ChatGPT and Claude (user report 2026-11-10).
+    @State private var roomFor: ChatMessage.ID?
+    /// The chat scrolled to its very end (the room under the last turn included): it keeps its
+    /// end in place as the keyboard comes or goes, frame for frame with it, as ChatGPT (user
+    /// report 2026-11-10: a scroll after the keyboard had moved lagged and missed; the
+    /// keyboard's notice comes after the chat has already been resized, too late to start one).
+    @State private var isAtEnd = true
+    /// From a question sent until its answer is in: the chat stays as the question left it, not
+    /// pulled to the end of an answer longer than the screen.
+    @State private var keepsTurn = false
+    /// The chat's scroll view, for a question to scroll to the top as it sets off.
+    @State private var chatProxy: ScrollViewProxy?
+    /// The tallest the chat has shown, between the bars: its height with the keyboard down. The
+    /// room under a question sent, for it to be held at the top, is this tall whatever the
+    /// keyboard is doing. Sized to the keyboard still up, the chat was too short once it had
+    /// gone and iOS slid it down 124pt as the question set off upward (user report 2026-11-10:
+    /// jerky; offsets logged frame by frame). Shrunk as the keyboard came back, in the frame the
+    /// chat itself is resized, iOS moved the chat twice over (offsets 640, 339, then 38, logged
+    /// 2026-11-10) and the answer just read ended up behind the keyboard.
+    @State private var fullHeight: CGFloat = 0
+
+    /// The last turn keeps a screen's room under it. Never the first of a chat: it is at the
+    /// top already.
+    private var hasRoom: Bool {
+        guard let start = lastTurnStart, start > 0 else { return false }
+        return roomFor == messages[start].id
+    }
+
+    private static let turnID = "turn"
+    /// The end of the last words and the gap under them, for an answer the keyboard would hide.
+    private static let wordsGapID = "wordsGap"
     private var hasQuestions: Bool { chats.conversations[currentIndex].hasQuestions }
 
     /// The very end of the chat, under the last message and the typing dots.
     private static let endID = "end"
+    /// Under the last message, to the end of the chat.
+    private static let endGap = Spacing.xl + Spacing.s
+    /// Where a question held at the top starts, in the scroll view's coordinates: a little over
+    /// its top margin. With a full room under it, that is the chat scrolled to its very end.
+    private static let turnRest = -Spacing.s
 
     var body: some View {
-        Group {
+        // One container for both pages, not a `Group`: a group hands the bar below to each
+        // page, so the first question, swapping the pages, built a new field and iOS took the
+        // keyboard away in a single frame, with no animation (logged 2026-11-10).
+        ZStack {
             // A new chat greets in the middle of the page with what to ask, as the AI apps do
             // (user request 2026-11-09: a greeting bubble and a title bar read like a form).
-            if hasQuestions { chat } else { greeting }
+            // ✎ cross-fades to the greeting (it swapped in at once, seen 2026-11-10); the first
+            // question swaps the other way under its flight, with no animation.
+            if hasQuestions { chat.transition(.opacity) } else { greeting.transition(.opacity) }
         }
         // Under the keyboard too: its rounded glass showed the window's white at its corners
         // (user report 2026-10-31).
@@ -54,6 +115,8 @@ struct AssistantView: View {
         .bottomBar {
             if quota.isEmpty { outOfQuestions } else { inputBar }
         }
+        // Over the chat and the field both, so the question can fly from one to the other.
+        .overlay { flightLayer }
         // No title or subtitle in the middle (user request 2026-11-09: AI apps show none); the
         // name stays for VoiceOver and the back button.
         .navigationTitle("Milu")
@@ -81,12 +144,6 @@ struct AssistantView: View {
                 if let message = pendingRemoval { remove(message) }
             }
         }
-        .onChange(of: dictation.transcript) { _, text in
-            // After what was typed before the mic, not over it.
-            if dictation.isRecording {
-                draft = [draftBeforeDictation, text].filter { !$0.isEmpty }.joined(separator: " ")
-            }
-        }
         .systemAlert("Không dùng được micro", isPresented: Binding(
             get: { dictation.failure != nil },
             set: { if !$0 { dictation.failure = nil } }
@@ -103,37 +160,114 @@ struct AssistantView: View {
     private var chat: some View {
         ScrollViewReader { proxy in
             ScrollView {
+                let start = lastTurnStart ?? messages.count
+                // No gap of the stack's own before the end: the room under a question is counted
+                // to the point (`turnRest`).
+                VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     dateChip
-                    ForEach(messages) { message in
-                        MessageRow(message: message, onAction: handle)
-                            .id(message.id)
+                    ForEach(messages[..<start]) { message in row(message) }
+                    // The newest question and its answer, a screen tall at least, so a question
+                    // sent goes to the top of the chat and stays there as its answer comes in
+                    // under it: the one place, every time, as Claude and ChatGPT (user request
+                    // 2026-11-10). The first question needs no room: it is at the top already.
+                    VStack(alignment: .leading, spacing: Spacing.xl) {
+                        ForEach(messages[start...]) { message in row(message) }
+                        // Only once the question has landed, as ChatGPT: shown at once, the
+                        // question flew up over "Milu •••" (seen frame by frame, 2026-11-10).
+                        if isThinking && flight == nil {
+                            TypingIndicator().id("typing")
+                                .transition(.opacity.animation(Motion.gentle(.easeOut(duration: 0.2))))
+                        }
                     }
-                    if isThinking {
-                        TypingIndicator().id("typing")
+                    // Where the last words end (the room left for the answer comes under them),
+                    // in the scroll view's coordinates: how far ↓ is from them.
+                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).maxY } action: {
+                        origins.wordsEnd = $0
+                        updateAway()
+                    }
+                    // What an answer the keyboard would hide is scrolled to: the gap under it.
+                    .overlay(alignment: .bottom) {
+                        Color.clear.frame(height: 1)
+                            .id(Self.wordsGapID)
+                            .alignmentGuide(.bottom) { _ in 1 - Self.endGap }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: hasRoom ? max(fullHeight - Spacing.xl, 0) : nil, alignment: .top)
+                    // What a question sent is scrolled to: a mark a little under the turn's top,
+                    // so the turn comes to rest at `turnRest` whatever the room under it. The
+                    // mark stays out of the chat's slide: a scroll goes to where its mark is
+                    // drawn, and to a mark drawn 279pt lower it went 279pt too far (logged
+                    // 2026-11-10).
+                    .overlay(alignment: .top) {
+                        Color.clear.frame(height: 1)
+                            .id(Self.turnID)
+                            .modifier(ChatSlideHost(track: track, undoes: true))
+                            .alignmentGuide(.top) { _ in Self.turnRest }
                     }
                 }
                 // Close to the screen's edges, as the field below (user request 2026-10-31).
                 .padding(.horizontal, Spacing.l)
-                .padding(.top, Spacing.l)
-                .padding(.bottom, Spacing.xl)
+                .padding(.bottom, Self.endGap)
                 // A tap on a message closes the keyboard too; a card's buttons still take theirs.
                 .contentShape(Rectangle())
                 .onTapGesture { dismissKeyboard() }
+                .modifier(ChatSlideHost(track: track))
                 Color.clear.frame(height: 0).id(Self.endID)
+                }
             }
             .scrollDismissesKeyboard(.interactively)
+            // The gap over the first message, and over a question held at the top: a margin of
+            // the scroll view's, so scrolling a question to the top leaves it under the bar.
+            .contentMargins(.top, Spacing.l, for: .scrollContent)
+            // The shown height now, the keyboard's room taken off.
+            .modifier(ShownHeight { height in
+                let was = origins.shown
+                origins.shown = height
+                takeHeight()
+                keepAnswerInSight(from: was, to: height)
+                updateAway()
+            })
+            .modifier(ScrollMoves { scrolled(by: $0) })
+            // Opened at its end, an old chat or one picked in the history, and kept there when
+            // the keyboard comes up or the field grows: it opened at the top, and the keyboard
+            // hid the last answer until ↓ (user report 2026-11-10).
+            // Not under a turn that keeps its room: that one stays where it is, and is scrolled
+            // only when the keyboard would hide its answer (`keepAnswerInSight`).
+            .modifier(StaysAtEnd(holdsEnd: isAtEnd && !keepsTurn && flight == nil && !hasRoom) { atEnd in
+                if atEnd != isAtEnd { isAtEnd = atEnd }
+            })
+            .onAppear {
+                // iOS 17, which has no initial anchor for a scroll view: scrolled there at once.
+                if #unavailable(iOS 18.0) {
+                    Task { proxy.scrollTo(Self.endID, anchor: .bottom) }
+                }
+            }
+            .onChange(of: isInputFocused) { _, focused in
+                // iOS 17, which cannot tell the keyboard took the room: after it has.
+                if #unavailable(iOS 18.0), focused, !isAwayFromEnd {
+                    Task {
+                        try? await Task.sleep(for: .seconds(0.3))
+                        withAnimation { proxy.scrollTo(Self.endID, anchor: .bottom) }
+                    }
+                }
+            }
             // A tap on the empty page under the chat closes the keyboard (user report 2026-11-09).
             .keyboardDismissArea()
-            .onAwayFromEnd(by: Self.awayDistance) { away in
-                withAnimation(.spring(duration: 0.3)) { isAwayFromEnd = away }
-            }
+            // Away from the last words, not from the room kept under them for the answer: from
+            // the end of that room, ↓ showed over the answer once the keyboard was up (seen
+            // 2026-11-10).
             // ↓ in glass over the chat, centred just above the field, as in Claude and ChatGPT
             // (user request 2026-10-31): only while scrolled up, and gone once back at the end.
             .overlay(alignment: .bottom) {
                 if isAwayFromEnd {
                     Button {
-                        withAnimation { proxy.scrollTo(Self.endID, anchor: .bottom) }
+                        // To the very end, under the chat's bottom margin: to the last message's
+                        // own edge it stopped 28pt short, the answer touching the field, and a
+                        // swipe had to finish it (user reports 2026-11-10, measured).
+                        withAnimation(Motion.gentle(Self.scrollAnimation)) {
+                            proxy.scrollTo(Self.endID, anchor: .bottom)
+                        }
                     } label: {
                         // SF's arrow, as iOS draws it (user request 2026-11-09).
                         Image(systemName: "arrow.down")
@@ -150,14 +284,43 @@ struct AssistantView: View {
                     .accessibilityLabel("Cuộn xuống tin mới nhất")
                 }
             }
-            .onChange(of: messages) { _, newMessages in
-                guard let lastID = newMessages.last?.id else { return }
-                withAnimation { proxy.scrollTo(lastID, anchor: .bottom) }
+            // A question sent with no flight (Reduce Motion) goes to the top by a scroll of its
+            // own. Its answer then comes in under it with no scroll.
+            .onChange(of: messages) { old, new in
+                guard new.count > old.count, new.last?.role == .user, new.count > 1, flight == nil else { return }
+                withAnimation(Self.flightAnimation) {
+                    proxy.scrollTo(Self.turnID, anchor: .top)
+                }
             }
-            .onChange(of: isThinking) { _, thinking in
-                if thinking { withAnimation { proxy.scrollTo("typing", anchor: .bottom) } }
-            }
+            .onAppear { chatProxy = proxy }
         }
+        // A scroll view of its own for each chat, so one picked in the history opens at its end
+        // rather than where the last one was.
+        .id(chats.currentID)
+    }
+
+    /// ↓ shows while the last words are more than `awayDistance` under the shown part.
+    private func updateAway() {
+        // Mid-flight the chat is drawn under where it is scrolled to: nothing to tell from that.
+        // Nor while an answer is being scrolled back into sight (`keepAnswerInSight`).
+        guard flight == nil, !origins.isSettling,
+              let end = origins.wordsEnd, let shown = origins.shown else { return }
+        // The last words gone under the shown part: the room under them is out of sight, and
+        // goes with nothing on screen moving, so the chat ends at its last words again.
+        if roomFor != nil, end > shown + 1, !keepsTurn {
+            roomFor = nil
+        }
+        let away = end > shown + Self.awayDistance
+        if away != isAwayFromEnd {
+            withAnimation(.spring(duration: 0.3)) { isAwayFromEnd = away }
+        }
+    }
+
+    private func row(_ message: ChatMessage) -> some View {
+        MessageRow(message: message, isLanding: flight?.id == message.id,
+                   onTextPlace: { land(message.id, at: $0) }, onAction: handle)
+            .equatable()
+            .id(message.id)
     }
 
     // MARK: - Đầu trang
@@ -221,12 +384,15 @@ struct AssistantView: View {
                 .padding(.horizontal, Spacing.l)
                 VStack(spacing: 0) {
                     ForEach(Array(Self.suggestions.enumerated()), id: \.offset) { index, suggestion in
-                        Button { send(suggestion.text) } label: {
+                        Button { send(suggestion.text, from: origins.suggestions[index]) } label: {
                             HStack(spacing: RowMetrics.gap) {
                                 RowIcon(name: IconCatalog.emojiName(suggestion.emoji))
                                 Text(suggestion.text)
                                     .textRole(.body)
                                     .multilineTextAlignment(.leading)
+                                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                                        origins.suggestions[index] = $0
+                                    }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: IconSize.inline, weight: .semibold))
@@ -282,112 +448,199 @@ struct AssistantView: View {
     /// Every button in the field: 36, one size, so they sit on one line (user report 2026-11-09:
     /// the mic and the send arrow sat out of line).
     private static let buttonSize = ControlHeight.small
+    /// The mic turning into ↑ and back: a fade and a grow, nothing that moves.
+    private static var morph: Animation? { Motion.gentle(.spring(response: 0.3, dampingFraction: 0.9)) }
+    /// The glass growing a line or folding back once sent (user report 2026-11-10: it snapped).
+    /// Fast at first, then settling: a spring starts from rest, and for its first frames the new
+    /// line sat under the buttons before the glass had moved (seen frame by frame, 2026-11-10).
+    private static var resize: Animation? { Motion.gentle(.easeOut(duration: 0.24)) }
+
     /// The field's inset around its buttons; its corner is the buttons' plus this, so both curves
     /// share one centre, a capsule while one line.
     private static let inset = Spacing.s
     private static let inputRadius = buttonSize / 2 + inset
+    private var glassShape: RoundedRectangle { RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous) }
 
-    /// One Liquid Glass field over the chat, as Claude's (user request 2026-11-09). Typing: the
-    /// words, then the mic, or the send arrow once there are words. Listening: what was heard
-    /// above, and under it ✕ (drop it), the sound running right to left, ■ (stop and keep the
-    /// words to edit) and the send arrow.
+    /// One Liquid Glass field over the chat, as Claude's (user request 2026-11-09), one line
+    /// whatever it does (user request 2026-11-10: it should not grow into two). Typing: the words,
+    /// then the mic, or the send arrow once there are words. Listening: ✕ (drop it), the sound
+    /// running right to left where the words were, ■ (done) and ↑ (done, and send). Then
+    /// "Milu đang hiểu ý bạn…" in the sound's place, and the words come into the field there.
+    /// Nothing shows while listening, as ChatGPT (user request 2026-11-10).
+    ///
+    /// The text field stays put under the sound, only hidden, so the keyboard stays up if it was
+    /// (user report 2026-11-10: the mic closed it). The glass clips what it holds, so a button on
+    /// its way out never shows outside it.
     private var inputBar: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            if dictation.isRecording {
-                if !draft.isEmpty {
-                    // The newest words stay in view: a long one loses its start, not its end.
-                    Text(draft)
-                        .textRole(.body)
-                        .lineLimit(4)
-                        .truncationMode(.head)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Spacing.s)
-                        .padding(.top, Spacing.xs)
-                        .matchedGeometryEffect(id: "words", in: inputSpace)
-                        .transition(.blurReplace)
-                }
-                HStack(spacing: Spacing.s) {
-                    roundButton("xmark", label: "Huỷ nhập giọng nói") { cancelDictation() }
-                        .transition(.blurReplace.combined(with: .scale(0.6)))
-                    VoiceWaveform(levels: dictation.levels, lastTick: dictation.lastTick)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: Self.buttonSize)
-                        .transition(.opacity)
-                    // The mic becomes ■ where it stood, as Claude's does.
-                    roundButton("stop.fill", label: "Dừng nghe, giữ chữ để sửa") { dictation.stop() }
-                        .matchedGeometryEffect(id: "mic", in: inputSpace)
-                    sendButton
-                        .matchedGeometryEffect(id: "send", in: inputSpace)
+        let isDictating = dictation.isRecording || dictation.isTranscribing
+        // Past one line the words take the whole width and the buttons keep a row of their own at
+        // the foot, as ChatGPT (user request 2026-11-10: they hopped with every new line). Decided
+        // in the layout itself, in the same pass as the words, so nothing shows a frame late.
+        return InputBarLayout(spacing: Spacing.s, rowGap: Spacing.xs, minHeight: Self.buttonSize,
+                              wordsInset: EdgeInsets(top: Spacing.xs, leading: Spacing.s, bottom: Spacing.xs, trailing: 0),
+                              isOneLine: isDictating,
+                              revealed: glassHeight == 0 ? nil : glassHeight - Self.inset * 2) {
+            HStack(alignment: .top, spacing: Spacing.s) {
+                // Kept in place, fading and shrinking, while the glass grows for the words just
+                // heard, and gone once they show: dropped at once, it went in a frame and
+                // "Milu đang hiểu ý bạn…" jumped left with it (user report 2026-11-10).
+                if isDictating || keepsCross {
+                    roundButton("xmark", label: "Huỷ nhập giọng nói") { dictation.stop() }
+                        .animation(Motion.gentle(.easeOut(duration: 0.2))) {
+                            $0.opacity(isDictating ? 1 : 0).scaleEffect(isDictating ? 1 : 0.6)
+                        }
+                        .allowsHitTesting(isDictating)
                         .transition(.blurReplace.combined(with: .scale(0.6)))
                 }
-            } else {
-                HStack(alignment: .bottom, spacing: Spacing.s) {
+                // Top, so the sound and "Milu đang hiểu ý bạn…" keep to the first line: centred,
+                // the words grew tall first and dropped them to the glass's lower edge for a
+                // frame (seen frame by frame, 2026-11-10).
+                ZStack(alignment: .topLeading) {
                     TextField("Hỏi Milu", text: $draft, axis: .vertical)
                         .textRole(.body)
+                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                            origins.field = $0
+                        }
+                        // One limit always: changing it, or turning off its taps, made iOS put
+                        // another field in its place and the keyboard went down (user report
+                        // 2026-11-10). While listening it is only hidden, and held to one line.
                         .lineLimit(1...5)
                         .focused($isInputFocused)
                         .submitLabel(.send)
-                        .onSubmit { send(draft) }
+                        .onSubmit { submit() }
+                        // A question to Milu is sent as typed: no rewriting by Apple Intelligence
+                        // over the keyboard, no autocorrect swapping words (user request 2026-11-10).
+                        .writingToolsDisabledIfAvailable()
+                        .autocorrectionDisabled()
                         .padding(.vertical, Spacing.xs)
-                        .padding(.leading, Spacing.s)
+                        .padding(.leading, isDictating || keepsCross ? 0 : Spacing.s)
                         // As tall as a button while one line, its words on the button's centre.
                         .frame(minHeight: Self.buttonSize)
-                        .matchedGeometryEffect(id: "words", in: inputSpace)
-                    if canSend {
-                        sendButton
-                            .matchedGeometryEffect(id: "send", in: inputSpace)
-                            .transition(.blurReplace.combined(with: .scale(0.6)))
-                    } else {
-                        Button {
-                            startDictation()
-                        } label: {
-                            Image(systemName: "mic")
-                                .font(.system(size: IconSize.control, weight: .regular))
-                                .foregroundStyle(Palette.secondaryLabel)
-                                .frame(width: Self.buttonSize, height: Self.buttonSize)
-                                .contentShape(Circle())
+                        .frame(maxHeight: isDictating ? Self.buttonSize : nil, alignment: .top)
+                        // Hidden and shown at once: "Hỏi Milu" never lies over the sound, and
+                        // no fade here can carry the buttons along as the field changes height.
+                        // Gone at once as listening starts, back only once the sound has faded
+                        // out. Under the field's spring it faded both ways, over the sound
+                        // (seen frame by frame, 2026-11-10).
+                        .animation(isDictating || wordsHidden
+                                   ? nil : Motion.gentle(.easeOut(duration: 0.2).delay(0.14))) {
+                            $0.opacity(isDictating || wordsHidden ? 0 : 1)
                         }
-                        .buttonStyle(.plain)
-                        .disabled(isThinking)
-                        .accessibilityLabel("Nhập bằng giọng nói")
-                        .matchedGeometryEffect(id: "mic", in: inputSpace)
-                        .transition(.blurReplace.combined(with: .scale(0.6)))
+                        // "Hỏi Milu" comes back once the question has flown off, not under it
+                        // as it leaves (seen frame by frame, 2026-11-10).
+                        // Gone at once as it leaves, faded back in.
+                        .animation(flight == nil ? Motion.gentle(.easeOut(duration: 0.2)) : nil) {
+                            $0.opacity(flight == nil ? 1 : 0)
+                        }
+                    if dictation.isRecording {
+                        VoiceWaveform(dictation: dictation)
+                            .frame(height: Self.buttonSize)
+                            // Quick to go, so "Hỏi Milu" never comes back over it.
+                            .transition(.asymmetric(
+                                insertion: .opacity,
+                                removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.14)))))
+                    } else if dictation.isTranscribing || wordsHidden {
+                        // Fades out on its own as the words come, while the glass grows.
+                        ShimmerText("Milu đang hiểu ý bạn…")
+                            .frame(height: Self.buttonSize)
+                            .animation(Motion.gentle(.easeOut(duration: 0.15))) {
+                                $0.opacity(dictation.isTranscribing ? 1 : 0)
+                            }
+                            .transition(.opacity.combined(with: .offset(x: 8)))
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            // Takes the height the layout gives it, measured from the words.
+            .frame(maxHeight: .infinity, alignment: .top)
+            trailingButtons(isDictating: isDictating)
+            // Unseen: the words as the field shows them, for the layout to measure. The text
+            // field itself told the height for the width it had before, so it came out a line
+            // too tall after the switch (seen in testing 2026-11-10).
+            Text(draft.isEmpty ? " " : draft)
+                .textRole(.body)
+                .lineLimit(5)
+                .hidden()
+                .accessibilityHidden(true)
         }
-        // One spring for every change of the field, as iOS moves its glass: the buttons trade
-        // places, the field grows with the words, nothing jumps (user report 2026-11-09).
-        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: dictation.isRecording)
-        .animation(.spring(response: 0.3, dampingFraction: 0.9), value: canSend)
-        .animation(.smooth(duration: 0.25), value: draft)
+        // One spring for every change of the field, as iOS moves its glass: buttons trade places,
+        // the field grows a line at a time, nothing jumps.
+        .animation(.spring(response: 0.36, dampingFraction: 0.9), value: dictation.isRecording)
+        // No animation as the words grow a line: the field grows upward at once and the buttons
+        // stay put. Animated, the buttons kept their place from the old top edge and slid down
+        // 40pt (seen frame by frame in a recording, 2026-11-10).
         .sensoryFeedback(.impact(weight: .light), trigger: dictation.isRecording)
         .padding(Self.inset)
+        // The words and buttons take their new place at once; only the glass behind them grows
+        // or folds, on a spring, from the foot up (user report 2026-11-10: it snapped). Anything
+        // animated inside moved with the field's top edge, so the buttons slid; the glass alone
+        // moving keeps them still. Growing, the new top line shows as the glass reaches it.
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            if glassHeight == 0 {
+                glassHeight = height
+            } else {
+                withAnimation(Self.resize) { glassHeight = height }
+            }
+        }
+        .mask(alignment: .bottom) { glassShape.frame(height: glassHeight == 0 ? nil : glassHeight) }
         // The field itself is the hit area: a tap anywhere on the glass starts typing.
-        .contentShape(RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
-        .onTapGesture { if !dictation.isRecording { isInputFocused = true } }
-        .interactiveGlass(in: RoundedRectangle(cornerRadius: Self.inputRadius, style: .continuous))
+        .contentShape(glassShape)
+        .onTapGesture { if !isDictating { isInputFocused = true } }
+        .background(alignment: .bottom) {
+            Color.clear
+                .frame(height: glassHeight == 0 ? nil : glassHeight)
+                .interactiveGlass(in: glassShape)
+        }
         .padding(.horizontal, Spacing.l)
         .padding(.bottom, Spacing.s)
     }
 
-    /// ↑ in a filled circle; while listening it stops and sends what was heard.
-    private var sendButton: some View {
-        Button {
-            dictation.stop()
-            send(draft)
+    /// The buttons at the end of the field: ■ while listening, then the one action button.
+    private func trailingButtons(isDictating: Bool) -> some View {
+        HStack(spacing: Spacing.s) {
+            if dictation.isRecording {
+                roundButton("stop.fill", label: "Xong, chuyển thành chữ") { finishDictation(thenSend: false) }
+                    .transition(.blurReplace.combined(with: .scale(0.6)))
+            }
+            actionButton(isDictating: isDictating)
+        }
+    }
+
+    /// One button for the mic and ↑: only its glyph and its disc change, inside it. Two views
+    /// swapped in and out carried an animation of their place, and iOS counts a place from the
+    /// field's top edge: as the field grew upward the new one slid down 48pt into place (user
+    /// report 2026-11-10, measured frame by frame). Nothing here ever animates where it stands.
+    private func actionButton(isDictating: Bool) -> some View {
+        let sends = isDictating || canSend
+        let enabled = sends ? (dictation.isRecording || (!isDictating && canSend)) : !isThinking
+        return Button {
+            if sends { submit() } else { startDictation() }
         } label: {
-            Image(systemName: "arrow.up")
-                .font(.system(size: IconSize.bar, weight: .semibold))
-                .foregroundStyle(Palette.onPrimary)
-                .frame(width: Self.buttonSize, height: Self.buttonSize)
-                .background(Palette.primary, in: Circle())
-                .contentShape(Circle())
+            // Both glyphs and the disc are always there; only their fade and size change, and
+            // the spring reaches those alone (`animation(_:body:)`). A plain `.animation(value:)`
+            // here also carried the button's place: on a paste the field grew upward in the same
+            // change, and the button rose with the old top edge, then slid down (user report
+            // 2026-11-10, seen frame by frame).
+            ZStack {
+                Circle()
+                    .fill(Palette.primary)
+                    .animation(Self.morph) { $0.scaleEffect(sends ? 1 : 0.6).opacity(sends ? 1 : 0) }
+                Image(systemName: "mic")
+                    .font(.system(size: IconSize.control))
+                    .foregroundStyle(Palette.secondaryLabel)
+                    .animation(Self.morph) { $0.scaleEffect(sends ? 0.5 : 1).opacity(sends ? 0 : 1) }
+                Image(systemName: "arrow.up")
+                    .font(.system(size: IconSize.bar, weight: .semibold))
+                    .foregroundStyle(Palette.onPrimary)
+                    .animation(Self.morph) { $0.scaleEffect(sends ? 1 : 0.5).opacity(sends ? 1 : 0) }
+            }
+            .frame(width: Self.buttonSize, height: Self.buttonSize)
+            .animation(Self.morph) { $0.opacity(sends && !enabled ? 0.4 : 1) }
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .disabled(!canSend)
-        .opacity(canSend ? 1 : 0.4)
-        .accessibilityLabel("Gửi tin nhắn")
+        .disabled(!enabled)
+        .accessibilityLabel(sends ? "Gửi tin nhắn" : "Nhập bằng giọng nói")
     }
 
     /// ✕ and ■ while listening: a glyph on a grey disc.
@@ -436,6 +689,163 @@ struct AssistantView: View {
         }
     }
 
+    // MARK: - Câu hỏi bay lên
+
+    /// The question on its way up, drawn over everything in the window's own coordinates.
+    @ViewBuilder
+    private var flightLayer: some View {
+        if let flight {
+            FlightLayer(flight: flight, track: track)
+        }
+    }
+
+    /// The bubble waiting for `id` is laid out, its words at `place`: the flight is made ready.
+    /// Nothing moves yet, and the keyboard stays up: the keyboard, the words and the chat set
+    /// off together (`setOff`). The keyboard closed at the tap fell alone for the frames the new
+    /// bubble takes to lay out, the words hanging over the field, then lurching after it (user
+    /// report 2026-11-10: jerky; seen frame by frame, 4 frames late, 9 on a first question).
+    private func land(_ id: ChatMessage.ID, at place: TextPlace) {
+        guard let flight, flight.id == id, !track.hasSetOff else { return }
+        if flight.buildsChat {
+            // The first question is at the top already: the bubble is where it will stay.
+            track.target = place.onScreen
+            guard !track.isReady else { return }
+            track.isReady = true
+            // Off at once, after this update: closing the keyboard lays the window out again.
+            Task { setOff(id) }
+            return
+        }
+        guard !track.isReady else { return }
+        track.isReady = true
+        // How far the scroll brings the turn up: from where it is to where it rests.
+        let turnTop = place.inChat.minY - Bubble.userInset.top
+        let rise = turnTop - Self.turnRest
+        // How far the chat has come up already: iOS keeps a chat at its end there as it grows,
+        // so the question's own bubble lifted it before this (68pt, logged 2026-11-10; it showed
+        // as a hop at the tap). The turn would be a row's gap under the words that were last.
+        let lifted = origins.wordsEndAtSend.map { max($0 + Spacing.xl - turnTop, 0) } ?? 0
+        // Scrolled there at once, and drawn where it was. Scrolled with an animation, iOS ran its
+        // own curve, a third of the way in the first frame (user report 2026-11-10, offsets
+        // logged frame by frame).
+        var still = Transaction()
+        still.disablesAnimations = true
+        withTransaction(still) {
+            chatProxy?.scrollTo(Self.turnID, anchor: .top)
+            track.slide = rise + lifted
+            track.target = place.onScreen.offsetBy(dx: 0, dy: -rise)
+        }
+        track.awaited = FlightTrack.Awaited(id: id, onScreen: place.onScreen, rise: rise)
+        // Off once the scroll has told how far it went (`scrolled`); a frame or two on where it
+        // cannot tell (iOS 17).
+        Task {
+            try? await Task.sleep(for: .milliseconds(50))
+            setOff(id)
+        }
+    }
+
+    /// The chat's scroll moved by `distance`. If that is the scroll a question waits on, the
+    /// question lands where its bubble really went, measured, not reckoned: reckoned 8pt short,
+    /// the chat hopped 8pt as the flight began and the bubble another 8pt as it landed (seen
+    /// frame by frame, 2026-11-10).
+    private func scrolled(by distance: CGFloat) {
+        guard let awaited = track.awaited, flight?.id == awaited.id, !track.hasSetOff,
+              abs(distance - awaited.rise) < 40 else { return }
+        track.awaited = nil
+        track.target = awaited.onScreen.offsetBy(dx: 0, dy: -distance)
+        // After the scroll view's own update: closing the keyboard lays the window out again.
+        Task { setOff(awaited.id) }
+    }
+
+    /// The words rise to their bubble, the chat slides up under them and the keyboard goes down:
+    /// one move, begun in one turn. Closing the keyboard keeps this page busy for a frame or two,
+    /// and SwiftUI counts the flight from the first frame after that, so none of it is lost; the
+    /// keyboard, which iOS moves by itself, leads by those frames, easing in. Closed a frame
+    /// after the flight had begun, the flight stood still meanwhile, then leapt (a frame dropped,
+    /// 60pt in the next; measured frame by frame, 2026-11-10). The words and the chat move by
+    /// SwiftUI's own offset on the one curve, so they go as one, with nothing of this page's
+    /// worked out frame by frame.
+    private func setOff(_ id: ChatMessage.ID) {
+        guard let flight, flight.id == id, !track.hasSetOff else { return }
+        track.hasSetOff = true
+        track.awaited = nil
+        withAnimation(Self.flightAnimation, completionCriteria: .logicallyComplete) {
+            track.isUp = true
+        } completion: {
+            guard self.flight?.id == id else { return }
+            // The bubble shows where its copy is, with no animation, so nothing changes on
+            // screen; then "Milu •••" fades in under it.
+            var still = Transaction()
+            still.disablesAnimations = true
+            withTransaction(still) {
+                self.flight = nil
+                track.reset()
+            }
+            // What was put off for the flight, once it is over for this page too.
+            Task {
+                takeHeight()
+                updateAway()
+            }
+        }
+        // Sent: the keyboard goes down so the answer has the room (user request 2026-11-10).
+        dismissKeyboard()
+    }
+
+    /// The chat's shown height, into this page's state when it is the tallest yet. Not while a
+    /// question flies: this page rebuilt as the keyboard closes cost the flight a frame; the
+    /// landing takes it.
+    private func takeHeight() {
+        guard flight == nil, let height = origins.shown else { return }
+        if height > fullHeight { fullHeight = height }
+    }
+
+    /// The chat's shown height shrank (the keyboard came, the field grew a line) under a turn
+    /// that keeps its room. Nothing moves while its words still fit: the question stays at the
+    /// top with its answer under it. Once they no longer fit, the chat comes up just enough to
+    /// keep the answer's end over the field, and the turn, no longer at the top, gives up its
+    /// room: from there the chat ends at its last words and iOS keeps that end in place as the
+    /// keyboard comes and goes (`StaysAtEnd`). Only for someone reading that end: scrolled
+    /// elsewhere, the chat stays where it was put.
+    private func keepAnswerInSight(from old: CGFloat?, to new: CGFloat) {
+        guard hasRoom, flight == nil, !keepsTurn, let old, new < old,
+              let end = origins.wordsEnd, let turn = roomFor,
+              end + Self.endGap <= old + 1, end + Self.endGap > new + 0.5 else { return }
+        origins.settling += 1
+        Task {
+            // A moment on, once iOS has the chat's new size in full: begun in the very update
+            // that resizes it, the scroll dipped 14pt the other way first (offsets logged
+            // 2026-11-10).
+            try? await Task.sleep(for: .milliseconds(20))
+            if roomFor == turn, flight == nil, let chatProxy {
+                withAnimation(Motion.gentle(Self.keyboardAnimation)) {
+                    chatProxy.scrollTo(Self.wordsGapID, anchor: .bottom)
+                }
+                // Until the scroll is over, by the clock: a scroll is no animation of this
+                // page's, and its completion came at once (logged 2026-11-10).
+                try? await Task.sleep(for: .milliseconds(450))
+                // The room goes with nothing on screen moving: the chat is at its last words.
+                if roomFor == turn, flight == nil, !keepsTurn {
+                    roomFor = nil
+                }
+            }
+            origins.settling -= 1
+            updateAway()
+        }
+    }
+
+    /// The flight's curve: a short ease in, the most speed a fifth of the way through, then a
+    /// long ease out, as the chat moves in Claude and ChatGPT when a question is sent (measured
+    /// frame by frame from the user's recordings of both, 2026-11-10: three or four frames to
+    /// reach full speed, about 0.35s in all). A curve with an end, not a spring: the bubble
+    /// takes over from its copy the moment it is over, with nothing left to travel. The curve
+    /// before went off at full speed, 46pt in its first frame, to be quick (user requests
+    /// 2026-11-10: faster, then faster again), and read as a jerk (user report 2026-11-10).
+    static let flightAnimation = Animation.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.36)
+    /// ↓ back to the end of the chat.
+    static let scrollAnimation = Animation.spring(duration: 0.45, bounce: 0)
+    /// The chat coming up with the keyboard: about its pace, as measured (half way in three
+    /// frames, 2026-11-10).
+    static let keyboardAnimation = Animation.spring(duration: 0.26, bounce: 0)
+
     // MARK: - Hành động
 
     /// Closes the keyboard: the field's focus and iOS's first responder, as the forms do (a
@@ -445,31 +855,84 @@ struct AssistantView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
+    /// The keyboard stays as it was (user report 2026-11-10: the mic closed it).
     private func startDictation() {
-        draftBeforeDictation = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        dismissKeyboard()
+        wordsHidden = false
+        keepsCross = false
         Task { await dictation.start() }
     }
 
-    /// ✕: stops listening and forgets what was heard.
-    private func cancelDictation() {
-        dictation.stop()
-        draft = draftBeforeDictation
+    /// ■ or ↑ while listening: the words go after what was typed, and ↑ sends them too.
+    private func finishDictation(thenSend: Bool) {
+        Task {
+            guard let heard = await dictation.finish() else { return }
+            let text = [draft.trimmingCharacters(in: .whitespacesAndNewlines), heard]
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            if thenSend {
+                draft = text
+                dictation.endTranscribing()
+                send(text, from: origins.field)
+                return
+            }
+            // As ChatGPT (user's recording of it, 2026-11-10): "Milu đang hiểu ý bạn…" fades,
+            // the glass grows to the words' height with nothing in it yet, then the words fade in
+            // where they will stay. The buttons never move.
+            wordsHidden = true
+            keepsCross = true
+            draft = text
+            dictation.endTranscribing()
+            try? await Task.sleep(for: .seconds(0.26))
+            guard wordsHidden else { return }
+            // ✕'s room goes back first, with the words still unseen, so they do not slide as
+            // they fade in.
+            keepsCross = false
+            try? await Task.sleep(for: .seconds(0.02))
+            guard wordsHidden else { return }
+            withAnimation(Motion.gentle(.easeOut(duration: 0.2))) { wordsHidden = false }
+        }
+    }
+
+    /// ↑ or the keyboard's Gửi.
+    private func submit() {
+        if dictation.isRecording {
+            finishDictation(thenSend: true)
+        } else if !dictation.isTranscribing {
+            send(draft, from: origins.field)
+        }
     }
 
     private func startNewConversation() {
-        chats.startNew()
+        withAnimation(Motion.gentle(.easeInOut(duration: 0.25))) {
+            chats.startNew()
+        }
         draft = ""
     }
 
-    private func send(_ text: String) {
+    /// `from`: where the words start on screen (the field, or the suggestion tapped), for them to
+    /// fly up from there.
+    private func send(_ text: String, from origin: CGRect?) {
         let question = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isThinking, quota.spend() else { return }
         dictation.stop()
+        wordsHidden = false
+        keepsCross = false
         let index = currentIndex
-        chats.conversations[index].messages.append(ChatMessage(role: .user, text: question))
-        draft = ""
+        let message = ChatMessage(role: .user, text: question)
+        roomFor = message.id
+        track.reset()
+        origins.wordsEndAtSend = hasQuestions ? origins.wordsEnd : nil
+        if let origin, !UIAccessibility.isReduceMotionEnabled {
+            flight = QuestionFlight(id: message.id, text: question, from: origin, buildsChat: !hasQuestions)
+        } else {
+            // Sent: the keyboard goes down so the answer has the room (user request 2026-11-10).
+            // With a flight it goes as the flight sets off (`setOff`).
+            dismissKeyboard()
+        }
         isThinking = true
+        keepsTurn = true
+        chats.conversations[index].messages.append(message)
+        draft = ""
         hasAskedAI = true
 
         Task {
@@ -483,6 +946,9 @@ struct AssistantView: View {
             }
             chats.conversations[index].messages.append(ChatMessage(role: .assistant, text: reply.text, card: card))
             isThinking = false
+            // Once the answer is laid out under the question.
+            try? await Task.sleep(for: .seconds(0.3))
+            keepsTurn = false
         }
     }
 
@@ -524,4 +990,300 @@ struct AssistantView: View {
         .environment(AIQuota())
         .environment(\.locale, .vietnam)
         .textRole(.body)
+}
+
+/// Words with a soft light running over them, left to right, as the AI apps show they are
+/// working; still with Reduce Motion.
+private struct ShimmerText: View {
+    let text: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var sweep = false
+
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text)
+            .textRole(.body)
+            .foregroundStyle(Palette.secondaryLabel)
+            .lineLimit(1)
+            .overlay {
+                if !reduceMotion {
+                    Text(text)
+                        .textRole(.body)
+                        .foregroundStyle(Palette.label)
+                        .lineLimit(1)
+                        .mask {
+                            GeometryReader { proxy in
+                                LinearGradient(colors: [.clear, .black, .clear], startPoint: .leading, endPoint: .trailing)
+                                    .frame(width: proxy.size.width * 0.45)
+                                    .offset(x: sweep ? proxy.size.width : -proxy.size.width * 0.45)
+                            }
+                        }
+                }
+            }
+            .onAppear {
+                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) { sweep = true }
+            }
+    }
+}
+
+/// The chat field's two parts: the words (with ✕ while listening) and the buttons. While the words
+/// fit one line beside the buttons, side by side, their feet level; past it, the words take the
+/// whole width and the buttons go on a row under them, at the right. The buttons sit at the lower
+/// right either way, so they never move (user report 2026-11-10). How tall the words are comes
+/// from the third, unseen subview: the same words in a `Text`.
+private struct InputBarLayout: Layout {
+    let spacing: CGFloat
+    let rowGap: CGFloat
+    /// The words' least height: a button's, so one line sits on the buttons' centre.
+    let minHeight: CGFloat
+    /// The text field's padding around its words.
+    let wordsInset: EdgeInsets
+    /// While listening: one line, beside the buttons, whatever the words.
+    let isOneLine: Bool
+    /// How much of the field the glass shows, from the foot up, while it grows or folds on its
+    /// spring (nil: all of it). The words ride its top edge, so as the glass grows a line they
+    /// move up with it and never hide behind its edge (seen 2026-11-10: they vanished a moment
+    /// on each new line); the buttons stay at the foot. Animated frame by frame, the field's own
+    /// size never changes on the way, so the text inside it never scrolls.
+    var revealed: CGFloat?
+
+    var animatableData: CGFloat {
+        get { revealed ?? 0 }
+        set { if revealed != nil { revealed = newValue } }
+    }
+
+    private struct Plan {
+        var isTall: Bool
+        var words: CGSize
+        var buttons: CGSize
+        var size: CGSize
+    }
+
+    private func wordsHeight(width: CGFloat, measure: LayoutSubview) -> CGFloat {
+        // A hair narrower than the field, so the field never wraps where the measure does not.
+        let textWidth = max(width - wordsInset.leading - wordsInset.trailing - 2, 1)
+        let text = measure.sizeThatFits(ProposedViewSize(width: textWidth, height: nil)).height
+        return max(text + wordsInset.top + wordsInset.bottom, minHeight)
+    }
+
+    private func plan(width: CGFloat, subviews: Subviews) -> Plan {
+        let buttons = subviews[1].sizeThatFits(.unspecified)
+        let beside = max(width - buttons.width - spacing, 0)
+        let short = isOneLine ? minHeight : wordsHeight(width: beside, measure: subviews[2])
+        if short <= minHeight {
+            return Plan(isTall: false, words: CGSize(width: beside, height: minHeight), buttons: buttons,
+                        size: CGSize(width: width, height: max(minHeight, buttons.height)))
+        }
+        let tall = wordsHeight(width: width, measure: subviews[2])
+        return Plan(isTall: true, words: CGSize(width: width, height: tall), buttons: buttons,
+                    size: CGSize(width: width, height: tall + rowGap + buttons.height))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        plan(width: proposal.width ?? 320, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let plan = plan(width: bounds.width, subviews: subviews)
+        // At rest the glass shows it all, and this is the top (tall) or the words beside the
+        // buttons (one line). On the way the words ride the glass's top edge, always in sight,
+        // as ChatGPT's do (user's recording of it, 2026-11-10). Holding them back above and
+        // uncovering them left the field empty a moment on each new line.
+        let wordsTop = bounds.maxY - (revealed ?? plan.size.height)
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: wordsTop), proposal: ProposedViewSize(plan.words))
+        subviews[1].place(at: CGPoint(x: bounds.maxX, y: bounds.maxY), anchor: .bottomTrailing,
+                          proposal: ProposedViewSize(plan.buttons))
+        subviews[2].place(at: bounds.origin, proposal: .zero)
+    }
+}
+
+/// A question sent: its words, where they started on screen, and where its bubble's words are
+/// (nil until the bubble is laid out). Window coordinates.
+private struct QuestionFlight {
+    let id: ChatMessage.ID
+    let text: String
+    let from: CGRect
+    /// The first question of a chat, whose page is built as it is sent.
+    let buildsChat: Bool
+}
+
+/// The flight's moving parts, observed by `FlightLayer` and the chat's slide alone.
+@Observable
+private final class FlightTrack {
+    /// Where the bubble's words will rest, in window coordinates; nil until it is laid out.
+    var target: CGRect?
+    /// The words are up at their bubble, and the chat in its place: set on the flight's
+    /// animation, which is what moves them.
+    var isUp = false
+    /// How far under where it is scrolled to the chat is drawn until the words are up: it is
+    /// scrolled to the question at once and slides up from where it was.
+    var slide: CGFloat = 0
+    /// The bubble is laid out and the chat scrolled: the flight waits only to set off.
+    @ObservationIgnored var isReady = false
+    @ObservationIgnored var hasSetOff = false
+    /// The scroll the flight waits on, to hear how far it really went.
+    @ObservationIgnored var awaited: Awaited?
+
+    struct Awaited {
+        let id: ChatMessage.ID
+        /// The bubble's words before the scroll, in window coordinates.
+        let onScreen: CGRect
+        /// How far the scroll is reckoned to bring them up.
+        let rise: CGFloat
+    }
+
+    func reset() {
+        target = nil
+        isUp = false
+        slide = 0
+        isReady = false
+        hasSetOff = false
+        awaited = nil
+    }
+}
+
+/// The question flying up over everything, in the window's own coordinates, as ChatGPT's (user's
+/// recording, 2026-11-10): the words leave the field already wrapped as in their bubble, the
+/// bubble filling in around them as they rise to it, so at landing they are the bubble itself.
+/// Only offsets and fades, which SwiftUI moves by itself between the two ends: nothing here is
+/// worked out frame by frame.
+private struct FlightLayer: View {
+    let flight: QuestionFlight
+    let track: FlightTrack
+
+    /// The bubble and the words' white come in fast, as the words set off: see-through for
+    /// longer, the chat moving under the bubble read as a blurred shadow trailing the words
+    /// (user report 2026-11-10).
+    private static var fill: Animation? { Motion.gentle(.easeOut(duration: 0.12)) }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let origin = proxy.frame(in: .global).origin
+            let isUp = track.isUp
+            // Until the bubble is laid out (a frame), the words stay as wide as they were, so
+            // they are drawn from the very first frame.
+            let target = track.target ?? CGRect(origin: flight.from.origin,
+                                                 size: CGSize(width: flight.from.width, height: 0))
+            let place = isUp ? target.origin : flight.from.origin
+            let inset = Bubble.userInset
+            // The white words fade in over the dark ones, which stay: one colour turning into
+            // the other, never two half-seen copies.
+            ZStack(alignment: .topLeading) {
+                words(width: target.width)
+                    .foregroundStyle(Palette.label)
+                words(width: target.width)
+                    .foregroundStyle(Palette.onPrimary)
+                    .animation(Self.fill) { $0.opacity(isUp ? 1 : 0) }
+            }
+            .padding(inset)
+            .background {
+                Bubble.userShape.fill(Palette.primary)
+                    .animation(Self.fill) { $0.opacity(isUp ? 1 : 0) }
+            }
+            .offset(x: place.x - origin.x - inset.leading, y: place.y - origin.y - inset.top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func words(width: CGFloat) -> some View {
+        Text(flight.text)
+            .textRole(.body)
+            .frame(width: width, alignment: .topLeading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Where words start on screen, written as the views move and read only when sending.
+private final class FlightOrigins {
+    var field: CGRect?
+    var suggestions: [Int: CGRect] = [:]
+    /// The bottom of the chat's last words, in the scroll view's own coordinates (from under its
+    /// top inset), and the height shown in them now.
+    var wordsEnd: CGFloat?
+    var shown: CGFloat?
+    /// `wordsEnd` as the last question was sent, before its bubble was in the chat.
+    var wordsEndAtSend: CGFloat?
+    /// An answer is being scrolled back into sight as the keyboard comes (how many such scrolls
+    /// are under way).
+    var settling = 0
+    var isSettling: Bool { settling > 0 }
+}
+
+/// The chat drawn `slide` under where it is scrolled to until the flight is up, and in its place
+/// after: SwiftUI's own offset, moved by the flight's animation with the words, so the two go as
+/// one. Read here, not in the chat page's body, which would be rebuilt as the flight sets off.
+private struct ChatSlideHost: ViewModifier {
+    let track: FlightTrack
+    /// Inside the slide, takes it off again: for what must stay where it is laid out.
+    var undoes = false
+
+    func body(content: Content) -> some View {
+        content.offset(y: track.isUp ? 0 : (undoes ? -track.slide : track.slide))
+    }
+}
+
+/// Tells how far the chat has just scrolled (iOS 18): a scroll made in code is known to have
+/// happened, and how far it really went.
+private struct ScrollMoves: ViewModifier {
+    let moved: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y } action: { old, new in
+                moved(new - old)
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// Keeps the chat at its end: opened there, and, while `holdsEnd`, held there as its room
+/// changes (the keyboard coming up or going down, the field growing a line), moving with it frame
+/// for frame. iOS 18 and later; iOS 17 is handled where it is used.
+private struct StaysAtEnd: ViewModifier {
+    let holdsEnd: Bool
+    let atEnd: (Bool) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content
+                // The opening place: a short chat still starts at the top.
+                .defaultScrollAnchor(.bottom, for: .initialOffset)
+                .defaultScrollAnchor(holdsEnd ? .bottom : nil, for: .sizeChanges)
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < 24
+                } action: { _, new in
+                    atEnd(new)
+                }
+        } else {
+            content
+        }
+    }
+}
+
+/// The height the chat shows between its bars and the keyboard, its top margin left out: the
+/// room a question held at the top has under it.
+private struct ShownHeight: ViewModifier {
+    let changed: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            // The visible rect runs under the bars; the insets are what they (and the keyboard,
+            // and the top margin) cover. `containerSize` has the bars taken off already.
+            content.onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.visibleRect.height - geometry.contentInsets.top - geometry.contentInsets.bottom
+            } action: { _, height in
+                changed(height)
+            }
+        } else {
+            content.onGeometryChange(for: CGFloat.self) { geometry in
+                geometry.size.height - geometry.safeAreaInsets.top - geometry.safeAreaInsets.bottom - Spacing.l
+            } action: { changed($0) }
+        }
+    }
 }
