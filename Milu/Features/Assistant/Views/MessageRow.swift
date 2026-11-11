@@ -1,19 +1,11 @@
 import SwiftUI
 
-/// Redrawn only when its own message or landing changes (`.equatable()` in the chat): every
-/// change of the chat page, a question sent or landed, redrew every row and re-read every
-/// answer's Markdown, and the flight lost frames to it (measured 2026-11-10).
-struct MessageRow: View, Equatable {
-    nonisolated static func == (lhs: MessageRow, rhs: MessageRow) -> Bool {
-        MainActor.assumeIsolated { lhs.message == rhs.message && lhs.isLanding == rhs.isLanding }
-    }
-
+/// One message of the chat: the user's in a bubble at the right, Milu's under its name, with the
+/// card of a transaction it recorded or is asked to delete.
+struct MessageRow: View {
     @Environment(FinanceStore.self) private var store
+    @Environment(\.onBubbleFrame) private var onBubbleFrame
     let message: ChatMessage
-    /// The question is still flying up from the field (`FlightLayer`): the bubble keeps its
-    /// place unseen and tells where its words sit, for the flight to land on them.
-    var isLanding = false
-    var onTextPlace: (TextPlace) -> Void = { _ in }
     let onAction: (CardAction, ChatMessage) -> Void
 
     var body: some View {
@@ -21,22 +13,9 @@ struct MessageRow: View, Equatable {
         case .user:
             HStack {
                 Spacer(minLength: 0)
-                Text(message.text)
-                    // The body role's own line box; no extra `lineSpacing` (re-review 2026-10-31).
-                    .textRole(.body)
-                    .foregroundStyle(Palette.onPrimary)
-                    .background {
-                        if isLanding {
-                            Color.clear.onGeometryChange(for: TextPlace.self) {
-                                TextPlace(onScreen: $0.frame(in: .global), inChat: $0.frame(in: .scrollView))
-                            } action: { onTextPlace($0) }
-                        }
-                    }
-                    .padding(.horizontal, Bubble.userInset.leading)
-                    .padding(.vertical, Bubble.userInset.top)
-                    .background(Palette.primary, in: Bubble.userShape)
-                    .opacity(isLanding ? 0 : 1)
-                    .containerRelativeFrame(.horizontal, alignment: .trailing) { width, _ in width * Bubble.maxWidth }
+                // As wide as its words, which are never wider than the field's (`QuestionWords`).
+                UserBubble(text: message.text)
+                    .modifier(ReportsBubbleFrame(report: onBubbleFrame))
             }
         case .assistant:
             // Milu's name over a bubble that may run the page's width, no avatar column beside it
@@ -67,6 +46,7 @@ struct MessageRow: View, Equatable {
         .padding(.horizontal, Spacing.l)
         .padding(.vertical, Spacing.m)
         .background { Bubble.assistantShape }
+        .modifier(ReportsBubbleFrame(report: onBubbleFrame))
     }
 
     /// Shows the live transaction (after edits) while it exists, else the snapshot.
@@ -131,13 +111,24 @@ struct MessageRow: View, Equatable {
 
     /// Hiển thị **in đậm** và _in nghiêng_ theo cú pháp Markdown, giữ nguyên xuống dòng. Read
     /// once per answer and kept: an answer's text never changes.
-    private var formattedText: AttributedString {
-        if let cached = Self.formatted[message.text] { return cached }
+    private var formattedText: AttributedString { Self.formatted(message.text) }
+
+    static func formatted(_ markdown: String) -> AttributedString {
+        if let cached = formatted[markdown] { return cached }
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        let text = (try? AttributedString(markdown: message.text, options: options)) ?? AttributedString(message.text)
-        if Self.formatted.count > 200 { Self.formatted.removeAll() }
-        Self.formatted[message.text] = text
+        let text = (try? AttributedString(markdown: markdown, options: options)) ?? AttributedString(markdown)
+        if formatted.count > 200 { formatted.removeAll() }
+        formatted[markdown] = text
         return text
+    }
+
+    /// The words "Sao chép" puts on the clipboard: the question as typed, the answer without the
+    /// markdown's stars.
+    static func copiedText(of message: ChatMessage) -> String {
+        switch message.role {
+        case .user: message.text
+        case .assistant: String(formatted(message.text).characters)
+        }
     }
 
     private static var formatted: [String: AttributedString] = [:]
@@ -156,10 +147,42 @@ private struct TransactionCard: View {
     }
 }
 
-/// Where a bubble's words sit: on screen (window coordinates), and in the chat's scroll view.
-nonisolated struct TextPlace: Equatable, Sendable {
-    var onScreen: CGRect
-    var inChat: CGRect
+/// The user's words in their blue bubble: the chat's row, and the bubble that flies up from the
+/// field as a question is sent (`ChatViewController.fly`), so the two are one drawing.
+struct UserBubble: View {
+    let text: String
+
+    var body: some View {
+        // Set as the field sets its words, so its lines break where they did as it was typed.
+        QuestionWords(text: text)
+            .accessibilityLabel(text)
+            .padding(.horizontal, Bubble.userInset.leading)
+            .padding(.vertical, Bubble.userInset.top)
+            .background(Palette.primary, in: Bubble.userShape)
+    }
+}
+
+/// Tells the chat where a message's bubble is in its row, so holding it lifts just the bubble
+/// (`ChatViewController`'s hold menu). The menu is the list's, not SwiftUI's `.contextMenu`: inside
+/// a UIKit list's row that one warns "_UIReparentingView … not supported" (user report 2026-11-11).
+private struct ReportsBubbleFrame: ViewModifier {
+    let report: ((CGRect) -> Void)?
+
+    func body(content: Content) -> some View {
+        content.onGeometryChange(for: CGRect.self) { $0.frame(in: .named(ChatRow.space)) } action: {
+            report?($0)
+        }
+    }
+}
+
+enum ChatRow {
+    /// The coordinate space of a chat row's content, inside the row's margins.
+    static let space = "chatRow"
+}
+
+extension EnvironmentValues {
+    /// Where the row's bubble is, in `ChatRow.space`.
+    @Entry var onBubbleFrame: ((CGRect) -> Void)? = nil
 }
 
 enum Bubble {
@@ -167,21 +190,20 @@ enum Bubble {
     /// written as 24 and 8; a `CardCorners.bubbleTail` token would be the clean home for the 8).
     static let radius = CardCorners.card
     static let tail = CardCorners.small
-    /// Wide enough that a question fills most of the row (user request 2026-10-31: close to the
-    /// margins), short enough that it still reads as the user's side.
-    static let maxWidth: CGFloat = 0.85
-
-    /// The user's bubble around its words, and its shape: one for the bubble in the chat and the
-    /// one flying up to it, so the hand-over at landing shows no seam.
+    /// The user's bubble around its words, and its shape.
     static let userInset = EdgeInsets(top: Spacing.m, leading: Spacing.l, bottom: Spacing.m, trailing: Spacing.l)
     static let userShape = UnevenRoundedRectangle(
         topLeadingRadius: radius, bottomLeadingRadius: radius,
         bottomTrailingRadius: radius, topTrailingRadius: tail, style: .continuous)
 
+    /// Milu's bubble's outline: its tail corner under the name.
+    static let assistantOutline = UnevenRoundedRectangle(
+        topLeadingRadius: tail, bottomLeadingRadius: radius,
+        bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
+
     /// Milu's bubble, in the card colour with the cards' edge, its tail corner under the name.
     static var assistantShape: some View {
-        UnevenRoundedRectangle(topLeadingRadius: tail, bottomLeadingRadius: radius,
-                               bottomTrailingRadius: radius, topTrailingRadius: radius, style: .continuous)
+        assistantOutline
             .fill(Palette.surface)
             .cardShadow()
     }
