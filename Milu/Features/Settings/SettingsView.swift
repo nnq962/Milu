@@ -132,24 +132,21 @@ struct SettingsView: View {
                     }
 
                     FormGroup(title: "Về Milu") {
-                        // The version only: what changed in it was developers' words (review 2026-11-09).
-                        FormValueRowContent(title: "Phiên bản", icon: "hugeicons-history", value: version, showsChevron: false)
-                            .accessibilityElement(children: .combine)
-                        FormDivider()
-                        FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check", accessory: .none) {
-                            // What is true now: kept on the phone, gone only when erased (review
-                            // 2026-11-09: it said the data was wiped on reopening, which it is not).
-                            // What the app does today (reviews 2026-11-09: it said the AI sent
-                            // questions away, which the on-phone one does not, and that nothing
-                            // left the phone, while dictation went through Apple).
-                            note = Note(title: "Chính sách quyền riêng tư",
-                                        message: "Số liệu bạn ghi (tài khoản, giao dịch, hạn mức…) chỉ lưu trên máy này, không có bản sao trên máy chủ nào.\n\nKhi bạn hỏi Milu AI: câu hỏi, tên danh mục, tài khoản và đúng những con số cần cho câu trả lời được gửi tới máy chủ riêng của Milu, nơi AI chạy (không qua dịch vụ AI bên ngoài), và không được lưu lại.\n\nKhi nhập bằng giọng nói: đoạn ghi âm được gửi tới máy chủ của Milu để chuyển thành chữ rồi bỏ đi; khi không kết nối được, iPhone tự nhận giọng (ngay trên máy nếu hỗ trợ, nếu không qua dịch vụ của Apple).\n\nDữ liệu chỉ mất khi bạn xoá app hoặc chọn \"Xoá toàn bộ dữ liệu\". Chính sách đầy đủ sẽ có khi Milu phát hành.")
+                        // Full pages, pushed (user request 2026-11-12: two short notes). The
+                        // version moved to the foot of the page.
+                        NavigationLink {
+                            LegalDocumentView(document: .privacy)
+                        } label: {
+                            NavigationRowContent(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check")
                         }
+                        .buttonStyle(.row)
                         FormDivider()
-                        FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02", accessory: .none) {
-                            note = Note(title: "Điều khoản sử dụng",
-                                        message: "Đây là bản thử nghiệm của Milu. Số liệu trong app do bạn tự nhập và chỉ để tham khảo, không phải lời khuyên tài chính. Điều khoản đầy đủ sẽ có khi Milu phát hành.")
+                        NavigationLink {
+                            LegalDocumentView(document: .terms)
+                        } label: {
+                            NavigationRowContent(title: "Điều khoản sử dụng", icon: "hugeicons-file-02")
                         }
+                        .buttonStyle(.row)
                         FormDivider()
                         NavigationLink {
                             LicensesView()
@@ -202,6 +199,15 @@ struct SettingsView: View {
                     } message: {
                         Text("Milu chưa tự sao lưu nên không thể lấy lại dữ liệu đã xoá.")
                     }
+
+                    // The version at the very foot, as apps sign off their settings
+                    // (user request 2026-11-12).
+                    Text("Milu \(version)")
+                        .textRole(.footnote)
+                        .foregroundStyle(Palette.secondaryLabel)
+                        .frame(maxWidth: .infinity)
+                        .textSelection(.enabled)
+                        .accessibilityLabel("Milu phiên bản \(version)")
 
                 }
                 .padding(.horizontal, Spacing.page)
@@ -287,26 +293,28 @@ struct SettingsView: View {
     /// across the card. What Pro gives is not listed here: the plans sheet will show it (user
     /// choice 2026-10-31).
     private var aiQuotaCard: some View {
-        // One scale for the figure and the bar: what is left of this month's free lượt plus the
+        // One scale for the figure and the bar: what is left of this week's free lượt plus the
         // bonus (review 2026-11-09: the bar filled with the free ones alone, full and orange
         // while 15 bonus lượt were still there).
-        let total = AIQuota.monthlyFree + quota.bonus
-        // The month's free ones used, and the bonus still there (a bonus lượt used is taken off
-        // the bonus, so "đã dùng" stops at 20, review 2026-11-09).
-        let details = ["Đã dùng \(quota.usedThisMonth)/\(AIQuota.monthlyFree) lượt miễn phí",
-                       quota.bonus > 0 ? "còn \(quota.bonus) lượt thưởng" : nil].compactMap { $0 }
-        // "3 trên 20", not a slash read aloud (review 2026-11-09).
-        let spokenDetails = ["Đã dùng \(quota.usedThisMonth) trên \(AIQuota.monthlyFree) lượt miễn phí",
-                             quota.bonus > 0 ? "còn \(quota.bonus) lượt thưởng" : nil].compactMap { $0 }
+        let total = AIQuota.weeklyFree + quota.bonus
+        // The bonus and when it runs out (it lasts 7 days, user choice 2026-11-12).
+        let bonusLine = quota.bonus > 0
+            ? "còn \(quota.bonus) lượt thưởng" + (quota.bonusExpires.map { " (hết hạn \($0.shortDay))" } ?? "")
+            : nil
+        // The week's free ones used, and the bonus still there (a bonus lượt used is taken off
+        // the bonus, so "đã dùng" stops at 10, review 2026-11-09).
+        let details = ["Đã dùng \(quota.usedThisWeek)/\(AIQuota.weeklyFree) lượt miễn phí", bonusLine].compactMap { $0 }
+        // "3 trên 10", not a slash read aloud (review 2026-11-09).
+        let spokenDetails = ["Đã dùng \(quota.usedThisWeek) trên \(AIQuota.weeklyFree) lượt miễn phí", bonusLine].compactMap { $0 }
         return VStack(alignment: .leading, spacing: Spacing.l) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                     // "Lượt", not "Hạn mức": right above "Hạn mức chi tiêu" the same word meant
                     // two things (review 2026-11-09).
-                    Text("Lượt AI tháng này")
+                    Text("Lượt AI tuần này")
                         .textRole(.bodyStrong)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Làm mới ngày \(quota.renewsOn.shortDay)")
+                    Text("Làm mới thứ Hai \(quota.renewsOn.shortDay)")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                 }
