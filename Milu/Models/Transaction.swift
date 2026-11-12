@@ -129,6 +129,8 @@ struct FinanceTransaction: Identifiable, Hashable, Codable {
     /// "Không tính vào báo cáo", chosen by the user: still moves the balance, but stays out of
     /// totals, charts and the assistant, as a balance adjustment does.
     var isExcluded = false
+    /// The "Giao dịch định kỳ" that recorded it; nil for one recorded by hand.
+    var recurringRuleID: RecurringRule.ID?
 
     init(id: UUID = UUID(), title: String = "", amount: Double, categoryID: String, kind: TransactionKind,
          accountID: Account.ID, date: Date, note: String = "", isExcluded: Bool = false) {

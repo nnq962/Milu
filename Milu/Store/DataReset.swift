@@ -27,7 +27,8 @@ enum DataReset {
         // không ảnh hưởng tới chúng.
         // Lượt AI (đã dùng, thưởng, các bước đã nhận) giữ nguyên: xoá dữ liệu không được đổi lấy
         // lượt mới, rồi làm lại các bước để nhận thêm (người dùng chọn 2026-11-08).
-        for key in defaults.dictionaryRepresentation().keys where !AIQuota.isOwnKey(key) {
+        // The welcome stays seen too: erasing is not starting the app anew.
+        for key in defaults.dictionaryRepresentation().keys where !AIQuota.isOwnKey(key) && key != StorageKey.welcomeSeen {
             defaults.removeObject(forKey: key)
         }
         // Trống thật: không dữ liệu mẫu, không hạn mức mẫu (các `@AppStorage` lấy hạn mức mẫu làm

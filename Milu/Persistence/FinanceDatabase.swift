@@ -27,7 +27,7 @@ final class FinanceDatabase {
     /// `inMemory`: a database that lives only while the app runs, for tests (same schema and
     /// migration plan as the real one, never synced).
     static func makeContainer(inMemory: Bool = false, syncsWithICloud: Bool = true) -> ModelContainer {
-        let schema = Schema(versionedSchema: MiluSchemaV8.self)
+        let schema = Schema(versionedSchema: MiluSchemaV9.self)
         let log = Logger(subsystem: "com.quyetnguyen.Milu", category: "database")
         var configurations: [(ModelConfiguration, String)] = []
         if inMemory {
@@ -64,6 +64,7 @@ final class FinanceDatabase {
         var contacts: [Contact]
         /// Only the ones the user added; the built-in ones are `ContactRelationship`.
         var relationships: [Relationship]
+        var recurringRules: [RecurringRule]
     }
 
     /// Every row, with balances worked out from the history (`BalanceLedger`); a balance that
@@ -152,7 +153,9 @@ final class FinanceDatabase {
                 .map(Category.init),
             contacts: fetch(FetchDescriptor<ContactRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Contact.init),
             relationships: fetch(FetchDescriptor<RelationshipRecord>(sortBy: [SortDescriptor(\.createdAt)]))
-                .map(Relationship.init)
+                .map(Relationship.init),
+            recurringRules: fetch(FetchDescriptor<RecurringRuleRecord>(sortBy: [SortDescriptor(\.createdAt)]))
+                .map(RecurringRule.init)
         )
         return (snapshot, accountRows)
     }
@@ -170,6 +173,7 @@ final class FinanceDatabase {
         removed += removeDuplicates(of: ReminderRecord.self, id: \.id)
         removed += removeDuplicates(of: ContactRecord.self, id: \.id)
         removed += removeDuplicates(of: RelationshipRecord.self, id: \.id)
+        removed += removeDuplicates(of: RecurringRuleRecord.self, id: \.id)
         if removed > 0 {
             log.info("Removed \(removed) duplicate rows")
             commit()
@@ -365,6 +369,17 @@ final class FinanceDatabase {
         delete(LoanPaymentRecord.self, id: id)
     }
 
+    // MARK: - Giao dịch định kỳ
+
+    func save(_ rule: RecurringRule) {
+        record(RecurringRuleRecord.self, id: rule.id) { RecurringRuleRecord(id: $0) }.apply(rule)
+        commit()
+    }
+
+    func deleteRecurringRule(id: UUID) {
+        delete(RecurringRuleRecord.self, id: id)
+    }
+
     // MARK: - Danh bạ
 
     func save(_ contact: Contact) {
@@ -469,6 +484,7 @@ final class FinanceDatabase {
             deleteAll(ReminderRecord.self)
             deleteAll(ContactRecord.self)
             deleteAll(RelationshipRecord.self)
+            deleteAll(RecurringRuleRecord.self)
             // Saved before seeding, so the default categories are added to an empty table rather
             // than skipped as "already there".
             try context.save()
@@ -561,3 +577,8 @@ extension LoanPaymentRecord: Dated {}
 extension ReminderRecord: Dated {}
 extension ContactRecord: Dated {}
 extension RelationshipRecord: Dated {}
+extension RecurringRuleRecord: Dated {}
+
+extension RecurringRuleRecord: IdentifiedRecord {
+    static func matching(_ id: UUID) -> Predicate<RecurringRuleRecord> { #Predicate { $0.id == id } }
+}

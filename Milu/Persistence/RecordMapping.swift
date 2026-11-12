@@ -136,6 +136,7 @@ extension FinanceTransaction {
         // A balance adjustment is always excluded; for anything else it is the user's choice.
         isExcluded = record.excluded && !isAdjustment
         createdAt = record.createdAt
+        recurringRuleID = record.recurringRuleID
     }
 }
 
@@ -151,6 +152,7 @@ extension TransactionRecord {
         title = transaction.title
         note = transaction.note
         occurredAt = transaction.date
+        recurringRuleID = transaction.recurringRuleID
         // The transaction's own, so "recently used" keeps its order after a relaunch (a test
         // found the row's creation time a few milliseconds off, review 2026-11-09).
         createdAt = transaction.createdAt
@@ -352,6 +354,46 @@ extension TransactionRecord {
         note = transfer.note
         occurredAt = transfer.date
         excluded = true
+        updatedAt = .now
+    }
+}
+
+// MARK: - Giao dịch định kỳ
+
+extension RecurringRule {
+    init(_ record: RecurringRuleRecord) {
+        self.init(id: record.id,
+                  kind: TransactionKind(rawValue: record.kind) ?? .expense,
+                  amount: Double(dong: record.amount),
+                  categoryID: record.categoryID,
+                  accountID: record.accountID ?? UUID(),
+                  note: record.note,
+                  frequency: Frequency(rawValue: record.frequency) ?? .monthly,
+                  interval: max(record.interval, 1),
+                  startDate: record.startDate,
+                  endDate: record.endDate,
+                  autoRecords: record.autoRecords,
+                  lastHandled: record.lastHandled,
+                  pausedAt: record.pausedAt,
+                  createdAt: record.createdAt)
+    }
+}
+
+extension RecurringRuleRecord {
+    func apply(_ rule: RecurringRule) {
+        kind = rule.kind.rawValue
+        amount = Int64(dong: rule.amount)
+        categoryID = rule.categoryID
+        accountID = rule.accountID
+        note = rule.note
+        frequency = rule.frequency.rawValue
+        interval = rule.interval
+        startDate = rule.startDate
+        endDate = rule.endDate
+        autoRecords = rule.autoRecords
+        lastHandled = rule.lastHandled
+        pausedAt = rule.pausedAt
+        createdAt = rule.createdAt
         updatedAt = .now
     }
 }

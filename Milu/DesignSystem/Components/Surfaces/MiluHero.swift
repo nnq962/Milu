@@ -25,6 +25,12 @@ struct MiluHero: View {
     /// Whether it has room to talk: only where no title sits left of it (Tổng quan); elsewhere a
     /// tap brings the face and the sparkles only.
     var talks = true
+    /// Where its words go: left of its peak where it stands on the right of a head (the tabs), or
+    /// above it on the right where it stands in the middle (the welcome, 2026-11-12: on the left
+    /// a longer word ran off the screen).
+    var bubbleSide: BubbleSide = .leftOfPeak
+
+    enum BubbleSide { case leftOfPeak, aboveRight }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -87,16 +93,32 @@ struct MiluHero: View {
 
     @ViewBuilder private var bubbleLayer: some View {
         if talks, let bubble {
-            SpeechBubble(text: bubble)
-                .fixedSize()
-                // Left of the peak, above the slope, its tail toward Milu's face: its lower right
-                // corner 40 in and 74 down from the drawing's corner.
-                .frame(width: 0, height: 0, alignment: .bottomTrailing)
-                .offset(x: 40, y: 74)
+            switch bubbleSide {
+            case .leftOfPeak:
+                SpeechBubble(text: bubble)
+                    .fixedSize()
+                    // Left of the peak, above the slope, its tail toward Milu's face: its lower right
+                    // corner 40 in and 74 down from the drawing's corner.
+                    .frame(width: 0, height: 0, alignment: .bottomTrailing)
+                    .offset(x: 40, y: 74)
+                    .transition(reduceMotion ? .opacity
+                                : .scale(scale: 0.6, anchor: .topLeading).combined(with: .opacity))
+                    .id(bubble)
+                    .allowsHitTesting(false)
+            case .aboveRight:
+                // Its lower left corner just right of the peak, a little above the ears, the tail
+                // down toward the head; placed by share of the drawing, whatever its size.
+                GeometryReader { proxy in
+                    SpeechBubble(text: bubble, tailLeading: true)
+                        .fixedSize()
+                        .frame(width: 0, height: 0, alignment: .bottomLeading)
+                        .position(x: proxy.size.width * 0.66, y: proxy.size.height * 0.08)
+                }
                 .transition(reduceMotion ? .opacity
-                            : .scale(scale: 0.6, anchor: .topLeading).combined(with: .opacity))
+                            : .scale(scale: 0.6, anchor: .bottomLeading).combined(with: .opacity))
                 .id(bubble)
                 .allowsHitTesting(false)
+            }
         }
     }
 
@@ -222,9 +244,10 @@ private struct Lean: GeometryEffect {
     }
 }
 
-/// Milu's words: a white card with a tail toward its head, below it on the right.
+/// Milu's words: a white card with a tail toward its head, below it on the right (or the left).
 private struct SpeechBubble: View {
     let text: String
+    var tailLeading = false
 
     var body: some View {
         Text(text)
@@ -233,7 +256,7 @@ private struct SpeechBubble: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background {
-                BubbleShape()
+                BubbleShape(tailLeading: tailLeading)
                     .fill(Palette.surface)
                     .shadow(color: Palette.label.opacity(0.12), radius: 6, y: 2)
             }
@@ -241,14 +264,21 @@ private struct SpeechBubble: View {
 }
 
 private struct BubbleShape: Shape {
+    var tailLeading = false
+
     func path(in rect: CGRect) -> Path {
         var path = Path(roundedRect: rect, cornerRadius: min(rect.height / 2, 14), style: .continuous)
-        // The tail at the lower right, pointing down toward the peak.
+        // The tail at the lower right (or left, mirrored), pointing down toward the peak.
+        var tail = Path()
         let x = rect.maxX - 22
-        path.move(to: CGPoint(x: x - 7, y: rect.maxY - 1))
-        path.addQuadCurve(to: CGPoint(x: x + 6, y: rect.maxY + 8), control: CGPoint(x: x + 1, y: rect.maxY + 4))
-        path.addQuadCurve(to: CGPoint(x: x + 5, y: rect.maxY - 1), control: CGPoint(x: x + 4, y: rect.maxY + 2))
-        path.closeSubpath()
+        tail.move(to: CGPoint(x: x - 7, y: rect.maxY - 1))
+        tail.addQuadCurve(to: CGPoint(x: x + 6, y: rect.maxY + 8), control: CGPoint(x: x + 1, y: rect.maxY + 4))
+        tail.addQuadCurve(to: CGPoint(x: x + 5, y: rect.maxY - 1), control: CGPoint(x: x + 4, y: rect.maxY + 2))
+        tail.closeSubpath()
+        if tailLeading {
+            tail = tail.applying(CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: rect.minX + rect.maxX, ty: 0))
+        }
+        path.addPath(tail)
         return path
     }
 }

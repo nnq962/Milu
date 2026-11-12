@@ -24,6 +24,8 @@ struct TransactionDetailView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var editing: FinanceTransaction?
+    /// The recurring rule that recorded it, opened from "Lặp lại".
+    @State private var viewingRule: RecurringRule?
 
     /// How many others of the same category are listed.
     static let similarLimit = 5
@@ -48,6 +50,7 @@ struct TransactionDetailView: View {
         // By item, the transaction as it was when the pencil was tapped.
         // Deleting from the form closes this sheet with it, before the transaction goes.
         .sheet(item: $editing) { TransactionEditSheet(transaction: $0).environment(\.recordSheetDismiss, dismiss) }
+        .sheet(item: $viewingRule) { RecurringDetailSheet(ruleID: $0.id) }
         // Gone some other way while open: close. (Its form closes this sheet itself before
         // deleting, `recordSheetDismiss`.)
         .onChange(of: store.transaction(id: transactionID) == nil) { _, gone in if gone { dismiss() } }
@@ -87,6 +90,15 @@ struct TransactionDetailView: View {
                         value: accountName(transaction.accountID), valueIcon: accountIcon(transaction.accountID))
             FormDivider(hasIcon: false)
             FormInfoRow(title: "Thời gian", value: Self.when(transaction.date))
+            // Recorded by a recurring rule (user request 2026-11-12): how often, opening the rule.
+            if let rule = transaction.recurringRuleID.flatMap(store.recurringRule(id:)) {
+                FormDivider(hasIcon: false)
+                Button { viewingRule = rule } label: {
+                    FormValueRowContent(title: "Lặp lại", value: rule.isPaused ? "\(rule.scheduleText) · Tạm dừng" : rule.scheduleDetail())
+                }
+                .buttonStyle(.row)
+                .accessibilityHint("Xem khoản định kỳ")
+            }
         }
     }
 

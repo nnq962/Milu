@@ -10,6 +10,7 @@ struct NotificationScheduling: ViewModifier {
     @AppStorage(StorageKey.dailyReminder) private var dailyReminder = false
     @AppStorage(StorageKey.dailyReminderMinutes) private var reminderMinutes = DailyReminderPlan.defaultMinutes
     @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = false
+    @AppStorage(StorageKey.recurringAlerts) private var recurringAlerts = false
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
     @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
 
@@ -20,6 +21,10 @@ struct NotificationScheduling: ViewModifier {
             .task { await refresh(checkingQuietly: false) }
             .onChange(of: store.transactions) { Task { await checkLimits(quietly: false) } }
             .onChange(of: dailyReminder) { Task { await planReminder() } }
+            .onChange(of: recurringAlerts) { Task { await planRecurring() } }
+            .onChange(of: store.recurringRules) { Task { await planRecurring() } }
+            // An account archived or brought back changes what the reminders say.
+            .onChange(of: store.accounts.map(\.id)) { Task { await planRecurring() } }
             .onChange(of: reminderMinutes) { Task { await planReminder() } }
             // Turned on, or a limit changed: note where things stand without announcing it.
             .onChange(of: budgetAlerts) { _, on in if on { Task { await checkLimits(quietly: true) } } }
@@ -27,13 +32,26 @@ struct NotificationScheduling: ViewModifier {
             .onChange(of: categoryBudgets) { Task { await checkLimits(quietly: true) } }
             .onChange(of: scenePhase) { _, phase in
                 // A new day since: plan from it.
-                if phase == .active { Task { await planReminder() } }
+                if phase == .active {
+                    Task {
+                        await planReminder()
+                        await planRecurring()
+                    }
+                }
             }
     }
 
     private func refresh(checkingQuietly quietly: Bool) async {
         await planReminder()
+        await planRecurring()
         await checkLimits(quietly: quietly)
+    }
+
+    private func planRecurring() async {
+        let due = store.dueRecurring(days: RecurringReminderPlan.days)
+        let titles = Dictionary(store.recurringRules.map { ($0.id, store.title(of: $0)) }, uniquingKeysWith: { a, _ in a })
+        let needsAccount = Set(store.recurringRules.filter { !store.canRecord(onto: $0.accountID) }.map(\.id))
+        await reminders.scheduleRecurring(due, titles: titles, needsAccount: needsAccount, enabled: recurringAlerts)
     }
 
     private func planReminder() async {

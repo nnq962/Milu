@@ -67,6 +67,12 @@ struct AddTransactionView: View {
     @State private var pickedByKind: [TransactionKind: String] = [:]
     /// The account of Chi tiêu / Thu nhập, kept while Chuyển khoản is shown.
     @State private var accountBeforeTransfer: Account.ID?
+    /// "Lặp lại": a new spending or income that comes back (`RecurringRule`), and whether Milu
+    /// records it by itself each time or asks first (the default).
+    @State private var repeatChoice = RepeatChoice.none
+    @State private var autoRecords = false
+    /// The rule opened from "Lặp lại" on a transaction it recorded.
+    @State private var viewingRule: RecurringRule?
 
     init(editing: FinanceTransaction? = nil, preferredAccount: Account.ID? = nil) {
         self.editing = editing
@@ -162,6 +168,21 @@ struct AddTransactionView: View {
 
     /// A balance adjustment keeps its own category, never offered in the picker.
     private var keepsSystemCategory: Bool { editing?.isAdjustment == true }
+
+    /// A spending or income on an account repeats, new or already recorded (user choice
+    /// 2026-11-12); a transfer, "Mua ngay", a balance adjustment and one frozen do not. One that a
+    /// rule already recorded shows its rule instead (`repeatingRule`).
+    private var canRepeat: Bool {
+        buyingGoal == nil && mode != .transfer && !keepsSystemCategory && !isReadOnly
+            && editingTransfer == nil && repeatingRule == nil
+            && (editing.map { store.goal(id: $0.accountID) == nil } ?? true)
+    }
+
+    /// The rule that recorded the transaction being changed: changing it here changes this time
+    /// only, the row opens the rule for the times to come.
+    private var repeatingRule: RecurringRule? {
+        editing?.recurringRuleID.flatMap(store.recurringRule(id:))
+    }
 
     /// A rule broken, shown at once: nothing to record on, two times the same account, more than a
     /// goal holds.
@@ -263,6 +284,13 @@ struct AddTransactionView: View {
                 QuickCategoryGrid(kind: kind, selection: $categoryID)
                     .id(kind)
             }
+            // Recorded by a recurring rule: said first, before anything is changed, with the way to
+            // the times to come (user choice 2026-11-12, in place of a row and a note under it).
+            if let repeatingRule {
+                RecurringNoticeCard(schedule: repeatingRule.scheduleDetail()) {
+                    viewingRule = repeatingRule
+                }
+            }
             // Titled groups, as on every other form (user report 2026-10-31).
             FormGroup(title: "Chi tiết", footer: readOnlyReason ?? footer, error: detailsError) {
                 if mode == .transfer {
@@ -306,9 +334,20 @@ struct AddTransactionView: View {
             // the switch is for spending and income.
             if mode != .transfer && !keepsSystemCategory {
                 // No explanatory footer (strict review 2026-10-31).
-                FormGroup(title: "Tuỳ chọn") {
+                FormGroup(title: "Tuỳ chọn", footer: repeatFooter) {
+                    if canRepeat {
+                        FormPickerRow(title: "Lặp lại", selection: $repeatChoice, options: RepeatChoice.allCases) { $0.title }
+                        if repeatChoice != .none {
+                            FormDivider(hasIcon: false)
+                            FormToggleRow(title: "Tự ghi khi tới hạn",
+                                          subtitle: autoRecords ? "Milu tự ghi mỗi lần tới hạn" : "Milu hỏi bạn trước khi ghi",
+                                          isOn: $autoRecords)
+                        }
+                        FormDivider(hasIcon: false)
+                    }
                     FormToggleRow(title: "Không tính vào báo cáo", isOn: $isExcluded)
                 }
+                .animation(Motion.gentle(.smooth(duration: 0.25)), value: repeatChoice == .none)
                 .disabled(isReadOnly)
             }
             FormGroup(title: "Ghi chú") {
@@ -321,6 +360,7 @@ struct AddTransactionView: View {
             }
         }
         .miluSheetStyle()
+        .sheet(item: $viewingRule) { RecurringDetailSheet(ruleID: $0.id) }
         // An item of the other kind no longer fits: the one picked for the new kind comes back, or
         // none (the user picks). Editing too: Ăn trưa → Thu nhập is empty, back → Ăn trưa again.
         .onChange(of: mode) { oldMode, newMode in
@@ -369,6 +409,18 @@ struct AddTransactionView: View {
 
     /// Under the details of a transfer with a fee: the computed figure only, what leaves the source
     /// account in all (strict review 2026-10-31: the sentence explaining the fee went).
+    /// Under "Tuỳ chọn": an old transaction made to repeat says when it first comes back (nothing
+    /// is recorded for the past).
+    private var repeatFooter: String? {
+        guard isEditing, canRepeat, let schedule = repeatChoice.schedule else { return nil }
+        let calendar = Calendar.current
+        var preview = RecurringRule(kind: .expense, amount: 0, categoryID: "", accountID: UUID(),
+                                    frequency: schedule.frequency, interval: schedule.interval, startDate: date)
+        preview.lastHandled = max(calendar.startOfDay(for: date), calendar.startOfDay(for: .now))
+        guard let next = preview.nextOccurrence(after: preview.lastHandled ?? .now) else { return nil }
+        return "Lần tới: \(next.shortDay). Milu không ghi bù các lần đã qua."
+    }
+
     private var footer: String? {
         guard mode == .transfer, fee > 0 else { return nil }
         return "Tổng trừ \((amount + fee).vnd)"
@@ -509,8 +561,21 @@ struct AddTransactionView: View {
             transaction.date = date
             transaction.note = note
             let isNew = editing == nil
+            let schedule = canRepeat ? repeatChoice.schedule : nil
+            let auto = autoRecords
             // The sheet slides away first, then the row comes in, animated (`AfterDismiss`).
-            AfterDismiss.run { if isNew { store.add(transaction) } else { store.update(transaction) } }
+            if schedule != nil { Task { await RecurringReminderPlan.turnOnIfNeverSet() } }
+            AfterDismiss.run {
+                if let schedule, !isNew {
+                    store.update(transaction, startRepeating: schedule, autoRecords: auto)
+                } else if let schedule {
+                    store.add(transaction, repeating: schedule, autoRecords: auto)
+                } else if isNew {
+                    store.add(transaction)
+                } else {
+                    store.update(transaction)
+                }
+            }
         }
         if store.account(id: accountID) != nil { lastAccountID = accountID.uuidString }
         dismiss()
@@ -550,6 +615,24 @@ private struct BudgetNoticeRow: View {
             .padding(.horizontal, RowMetrics.horizontal)
             .frame(maxWidth: .infinity, alignment: .leading)
             .animation(Motion.gentle(.snappy), value: notice)
+    }
+}
+
+/// At the top of the form for a transaction a recurring rule recorded: one row saying so, opening
+/// the rule for the times to come (user report 2026-11-12: two lines of words and an emoji beside
+/// a line icon were too much).
+private struct RecurringNoticeCard: View {
+    let schedule: String
+    let onOpen: () -> Void
+
+    var body: some View {
+        FormGroup {
+            Button(action: onOpen) {
+                NavigationRowContent(title: "Giao dịch định kỳ · \(schedule)", subtitle: "Chạm để sửa các lần sau",
+                                     icon: "hugeicons-calendar-03")
+            }
+            .buttonStyle(.row)
+        }
     }
 }
 

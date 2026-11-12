@@ -50,6 +50,8 @@ final class FinanceStore {
     var contacts: [Contact]
     /// Relationships the user added in Danh bạ, in the order added; screens list `relationships`.
     var customRelationships: [Relationship]
+    /// "Giao dịch định kỳ", in the order added.
+    var recurringRules: [RecurringRule] = []
 
     init(accounts: [Account] = SampleData.accounts, transactions: [FinanceTransaction] = SampleData.transactions, loans: [Loan] = SampleData.loans, paymentReminders: [PaymentReminder] = SampleData.paymentReminders, savingsGoals: [SavingsGoal] = SampleData.savingsGoals,
          goalTransfers: [GoalTransfer] = SampleData.goalTransfers, contacts: [Contact] = SampleData.contacts) {
@@ -132,5 +134,6 @@ final class FinanceStore {
         paymentReminders = snapshot.paymentReminders
         contacts = snapshot.contacts
         customRelationships = snapshot.relationships
+        recurringRules = snapshot.recurringRules
     }
 }

@@ -252,7 +252,7 @@ enum MiluSchemaV8: VersionedSchema {
 enum MiluMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
         [MiluSchemaV1.self, MiluSchemaV2.self, MiluSchemaV3.self, MiluSchemaV4.self, MiluSchemaV5.self,
-         MiluSchemaV6.self, MiluSchemaV7.self, MiluSchemaV8.self]
+         MiluSchemaV6.self, MiluSchemaV7.self, MiluSchemaV8.self, MiluSchemaV9.self]
     }
     static var stages: [MigrationStage] {
         [.lightweight(fromVersion: MiluSchemaV1.self, toVersion: MiluSchemaV2.self),
@@ -264,7 +264,9 @@ enum MiluMigrationPlan: SchemaMigrationPlan {
          .custom(fromVersion: MiluSchemaV7.self, toVersion: MiluSchemaV8.self, willMigrate: nil, didMigrate: { _ in
              // Done once the store is open, after the launch fix-ups (`FinanceStore.init`).
              UserDefaults.standard.set(true, forKey: needsRebaseKey)
-         })]
+         }),
+         // V8 → V9 adds the recurring rules and a transaction's link to its rule.
+         .lightweight(fromVersion: MiluSchemaV8.self, toVersion: MiluSchemaV9.self)]
     }
 
     /// Set by the move to V8: the opening balances still have to be set from today's balances.
@@ -274,7 +276,6 @@ enum MiluMigrationPlan: SchemaMigrationPlan {
 // The rest of the app names the current version's models without the namespace.
 typealias AccountRecord = MiluSchemaV8.AccountRecord
 typealias CategoryRecord = MiluSchemaV8.CategoryRecord
-typealias TransactionRecord = MiluSchemaV8.TransactionRecord
 typealias LoanRecord = MiluSchemaV8.LoanRecord
 typealias ReminderRecord = MiluSchemaV8.ReminderRecord
 typealias ContactRecord = MiluSchemaV8.ContactRecord

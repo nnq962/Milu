@@ -70,6 +70,40 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // MARK: Recurring
+
+    private static let recurringPrefix = "recurring."
+
+    /// One notification at `RecurringReminderPlan.hour` on each day a rule falls due in the next
+    /// `RecurringReminderPlan.days` (user request 2026-11-12), planned again whenever the rules
+    /// change and on every return to the app.
+    func scheduleRecurring(_ occurrences: [RecurringOccurrence], titles: [RecurringRule.ID: String],
+                           needsAccount: Set<RecurringRule.ID> = [], enabled: Bool, now: Date = .now) async {
+        let pending = await center.pendingNotificationRequests().map(\.identifier)
+            .filter { $0.hasPrefix(Self.recurringPrefix) }
+        center.removePendingNotificationRequests(withIdentifiers: pending)
+        guard enabled, await permission() == .allowed else { return }
+        let calendar = Calendar.current
+        for occurrence in occurrences {
+            guard let date = calendar.date(bySettingHour: RecurringReminderPlan.hour, minute: 0, second: 0, of: occurrence.day),
+                  date > now else { continue }
+            let rule = occurrence.rule
+            let name = titles[rule.id] ?? "Khoản định kỳ"
+            let content = UNMutableNotificationContent()
+            content.title = rule.kind == .income ? "Hôm nay có khoản thu 💰" : "Hôm nay tới hạn 📅"
+            content.body = needsAccount.contains(rule.id)
+                ? "\(name) · \(rule.amount.vnd). Tài khoản đã lưu trữ, mở Milu để chọn tài khoản khác."
+                : rule.autoRecords
+                ? "\(name) · \(rule.amount.vnd). Milu sẽ tự ghi khi bạn mở app."
+                : "\(name) · \(rule.amount.vnd). Mở Milu để ghi hoặc bỏ qua lần này."
+            content.sound = .default
+            let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+            let id = Self.recurringPrefix + rule.id.uuidString + "." + DailyReminderPlan.dayKey(date)
+            try? await center.add(UNNotificationRequest(identifier: id, content: content,
+                                                        trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)))
+        }
+    }
+
     // MARK: Budget alerts
 
     /// Sends what crossed a level since the last check. `quietly`: only notes where things stand,
@@ -224,5 +258,21 @@ struct BudgetAlertPlan {
             }
             return nil
         }
+    }
+}
+
+/// When "Nhắc khoản định kỳ" comes: at 8:00 on the day, for the next two weeks.
+enum RecurringReminderPlan {
+    static let hour = 8
+    static let days = 14
+
+    /// With the first recurring rule, "Nhắc khoản định kỳ" comes on by itself (review 2026-11-12:
+    /// off and deep in Cài đặt, a rule that asks first was easy to miss). Only while the user has
+    /// never set it: asks for notifications once; refused, it stays off and is not asked again.
+    @MainActor
+    static func turnOnIfNeverSet(defaults: UserDefaults = .standard) async {
+        guard defaults.object(forKey: StorageKey.recurringAlerts) == nil else { return }
+        let allowed = await Reminders.shared.requestPermission()
+        defaults.set(allowed, forKey: StorageKey.recurringAlerts)
     }
 }

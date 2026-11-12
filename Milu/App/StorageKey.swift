@@ -12,12 +12,17 @@ enum StorageKey {
     /// Local wall-clock time, stored as minutes after midnight (default 21:00).
     static let dailyReminderMinutes = "settings.dailyReminderMinutes"
     static let budgetAlerts = "settings.budgetAlerts"
+    /// "Nhắc khoản định kỳ": a notification at 8:00 on the day a recurring rule falls due.
+    static let recurringAlerts = "settings.recurringAlerts"
     /// "Giao diện": `AppAppearance` (Hệ thống, Sáng, Tối).
     static let appearance = "settings.appearance"
     /// The name the user gave themselves (Cài đặt's card, the initial on the bar); empty until set.
     static let profileName = "settings.profileName"
     /// The account the last transaction was added to, picked first next time.
     static let lastAccountID = "transactions.lastAccountID"
+    /// The welcome pages were seen (`WelcomeView`): never shown again, here or after a reinstall
+    /// (synced through iCloud), and kept by "Xoá toàn bộ dữ liệu".
+    static let welcomeSeen = "onboarding.welcomeSeen"
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Milu.
     static let askedAI = "onboarding.askedAI"
     /// True after "Xoá toàn bộ dữ liệu": an empty database stays empty, the sample data is not

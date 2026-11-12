@@ -166,7 +166,7 @@ struct CloudSyncTests {
         UserDefaults.standard.removeObject(forKey: MiluMigrationPlan.needsRebaseKey)
         defer { UserDefaults.standard.removeObject(forKey: MiluMigrationPlan.needsRebaseKey) }
 
-        let schema = Schema(versionedSchema: MiluSchemaV8.self)
+        let schema = Schema(versionedSchema: MiluSchemaV9.self)
         let container = try ModelContainer(for: schema, migrationPlan: MiluMigrationPlan.self,
                                            configurations: ModelConfiguration(schema: schema, url: url, cloudKitDatabase: .none))
         #expect(UserDefaults.standard.bool(forKey: MiluMigrationPlan.needsRebaseKey))

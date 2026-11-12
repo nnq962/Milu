@@ -21,6 +21,8 @@ struct OverviewView: View {
     @State private var isAddingAccount = false
     @State private var isAddingLoan = false
     @State private var isAddingGoal = false
+    /// A recurring payment that fell due, being recorded ("Sắp tới" → "Ghi").
+    @State private var confirmingRecurring: RecurringOccurrence?
     /// Off the top: the bar shows its soft edge; at the top the hill runs on under it.
     @State private var isScrolled = false
     @Environment(FinanceStore.self) private var store
@@ -102,6 +104,9 @@ struct OverviewView: View {
                         SpendingTiles(onOpenReport: { path.append(ReportRoute(month: .now)) },
                                       onOpenToday: { selectedDay = CalendarDay(date: .now) },
                                       onOpenBudget: { path.append(BudgetRoute()) })
+                        // Rent, salary, subscriptions that fell due or come this week (user
+                        // request 2026-11-12); nothing shows while there are none.
+                        UpcomingRecurringCard { confirmingRecurring = $0 }
                         WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
                                  onSelectDay: { selectedDay = CalendarDay(date: $0) })
                         SavingTiles(onAddGoal: { isAddingGoal = true },
@@ -157,6 +162,7 @@ struct OverviewView: View {
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
             .navigationDestination(for: CalendarRoute.self) { _ in MoneyCalendarPage() }
             .navigationDestination(for: BudgetRoute.self) { _ in BudgetView() }
+            .sheet(item: $confirmingRecurring) { RecurringConfirmSheet(occurrence: $0) }
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(item: $adding) { AddTransactionView(mode: $0) }

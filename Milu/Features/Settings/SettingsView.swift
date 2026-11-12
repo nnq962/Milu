@@ -18,7 +18,9 @@ struct SettingsView: View {
     @AppStorage(StorageKey.dailyReminder) private var dailyReminder = false
     @AppStorage(StorageKey.dailyReminderMinutes) private var reminderMinutes = DailyReminderPlan.defaultMinutes
     @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = false
+    @AppStorage(StorageKey.recurringAlerts) private var recurringAlerts = false
     @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) private var dismiss
     /// Notifications are off for Milu in the iPhone's Settings.
     @State private var notificationsDenied = false
     @State private var isAskingForNotifications = false
@@ -156,6 +158,16 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.row)
                         FormDivider()
+                        // Rent, salary, subscriptions (user request 2026-11-12).
+                        NavigationLink {
+                            RecurringListView()
+                        } label: {
+                            NavigationRowContent(title: "Giao dịch định kỳ", icon: "hugeicons-calendar-03",
+                                               value: "\(store.recurringRules.count)",
+                                               spokenValue: "\(store.recurringRules.count) khoản")
+                        }
+                        .buttonStyle(.row)
+                        FormDivider()
                         NavigationLink {
                             ContactsView()
                         } label: {
@@ -205,6 +217,11 @@ struct SettingsView: View {
                         FormDivider()
                         FormToggleRow(title: "Cảnh báo hạn mức", subtitle: budgetAlertSubtitle,
                                       icon: "hugeicons-alert-circle", isOn: needsPermission($budgetAlerts))
+                        FormDivider()
+                        FormToggleRow(title: "Nhắc khoản định kỳ",
+                                      subtitle: recurringAlerts && notificationsDenied
+                                          ? "Thông báo đang tắt trong Cài đặt iPhone" : "8:00 sáng ngày tới hạn",
+                                      icon: "hugeicons-calendar-03", isOn: needsPermission($recurringAlerts))
                     }
                     .animation(.easeOut(duration: 0.2), value: dailyReminder)
                     .task { await checkNotificationPermission() }
@@ -271,6 +288,11 @@ struct SettingsView: View {
                                                icon: "hugeicons-dashboard-square-01")
                         }
                         .buttonStyle(.row)
+                        FormDivider()
+                        FormNavigationRow(title: "Xem lại màn chào mừng", icon: "hugeicons-star", accessory: .none) {
+                            dismiss()
+                            UserDefaults.standard.set(false, forKey: StorageKey.welcomeSeen)
+                        }
                         FormDivider()
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
                                            message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ và hạn mức bạn đã thêm hoặc sửa sẽ bị xoá.") {

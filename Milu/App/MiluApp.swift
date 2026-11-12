@@ -6,6 +6,7 @@
 //
 
 import SwiftData
+import Combine
 import SwiftUI
 
 @main
@@ -21,6 +22,7 @@ struct MiluApp: App {
     /// Tổng quan, đóng mọi sheet đang mở).
     @State private var generation = 0
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
 
     init() {
         Typography.configureNativeAppearance()
@@ -42,15 +44,36 @@ struct MiluApp: App {
         // and sample data made then synced up beside it, doubling every account (iPhone test
         // 2026-11-12; checking for an iCloud sign-in first missed it). Sample data stays one tap
         // away in Debug (Cài đặt → Nhà phát triển → Đặt lại dữ liệu mẫu).
-        _store = State(initialValue: FinanceStore(database: FinanceDatabase(context: container.mainContext),
-                                                  seedsSampleData: false))
+        let store = FinanceStore(database: FinanceDatabase(context: container.mainContext), seedsSampleData: false)
+        _store = State(initialValue: store)
+        // An install that already holds data (this one before the welcome existed) is not new.
+        if !store.accounts.isEmpty || !store.transactions.isEmpty || !store.savingsGoals.isEmpty {
+            UserDefaults.standard.set(true, forKey: StorageKey.welcomeSeen)
+        }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-showWelcome") {
+            UserDefaults.standard.set(false, forKey: StorageKey.welcomeSeen)
+        }
+        // Recurring rules overdue, on an archived account, coming soon (`RecurringDemo`).
+        if ProcessInfo.processInfo.arguments.contains("-demoRecurring") { store.seedRecurringDemo() }
+        #endif
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .id(generation)
-                .syncStatusPill()
+            Group {
+                if welcomeSeen {
+                    ContentView()
+                        .id(generation)
+                        .syncStatusPill()
+                        .transition(.opacity)
+                } else {
+                    WelcomeView {
+                        withAnimation(.easeInOut(duration: 0.45)) { welcomeSeen = true }
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 1.04)))
+                }
+            }
                 // The body role (16 SemiBold), so a Text with no role still matches the scale
                 // (strict review 2026-10-31: 17 Regular sat outside it).
                 .font(TextRole.body.font)
@@ -65,13 +88,23 @@ struct MiluApp: App {
                 // What came down from iCloud: read once, when the sync has gone quiet (see
                 // `CloudSyncMonitor.takeNewData`).
                 .onChange(of: sync.isReceiving) { _, receiving in
-                    if !receiving, sync.takeNewData() { store.reload() }
+                    if !receiving, sync.takeNewData() {
+                        store.reload()
+                        store.recordDueRecurring()
+                    }
+                }
+                // What recurring rules that record by themselves owe since the app was last open.
+                .task(id: generation) { store.recordDueRecurring() }
+                // Past midnight with the app open: today's are due now.
+                .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
+                    store.recordDueRecurring()
                 }
         }
         .onChange(of: scenePhase) { _, phase in
             // Back from the background: anything that came in meanwhile.
             if phase == .active {
                 store.reload()
+                store.recordDueRecurring()
                 sync.checkAccount()
             }
         }
