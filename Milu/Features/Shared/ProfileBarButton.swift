@@ -9,6 +9,18 @@ struct ProfileBarButton: View {
     /// The initial of the name set in Cài đặt; a person glyph until there is one (review
     /// 2026-11-09: every install showed the developer's "Q").
     @AppStorage(StorageKey.profileName) private var name = ""
+    @AppStorage(StorageKey.profileAvatar) private var avatarRaw = ""
+    @Environment(\.displayScale) private var displayScale
+
+    /// A Milu face drawn as an image (the bar sets an image in a circle, a view in a pill), in its
+    /// own colours; nil for the initial.
+    private var picture: UIImage? {
+        let avatar = ProfileAvatar(raw: avatarRaw)
+        guard avatar != .initial else { return nil }
+        let renderer = ImageRenderer(content: ProfileAvatarView(avatar: avatar, name: name, size: RowMetrics.toolbarGlyphFrame))
+        renderer.scale = displayScale
+        return renderer.uiImage
+    }
 
     var body: some View {
         Button(action: action) {
@@ -16,7 +28,10 @@ struct ProfileBarButton: View {
             // text (even an icon-only label) in a pill. A template, tinted when shown: a colour
             // drawn into it stayed the light one at night, black on the dark glass.
             Group {
-                if let initial = ProfileName.initial(of: name) {
+                if let picture {
+                    Image(uiImage: picture)
+                        .renderingMode(.original)
+                } else if let initial = ProfileName.initial(of: name) {
                     Image(size: CGSize(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)) { context in
                         // Regular, as the words of iOS's own glass buttons (user request 2026-11-05).
                         context.draw(Text(initial).font(Typography.font(.title3, size: TextRole.heading.size, weight: .regular)),

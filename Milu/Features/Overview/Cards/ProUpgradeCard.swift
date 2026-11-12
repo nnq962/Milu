@@ -3,8 +3,8 @@ import SwiftUI
 /// "Milu Pro", last on Tổng quan, the page's one coloured card (user request 2026-11-08: "màu mè
 /// hơn"): "Milu Pro" as the section's heading on the page; in the card Milu's sky running into
 /// honey with soft apricot suns, a "✦ PRO" tag, "Dùng Milu trọn vẹn" and one line under it, the
-/// Fluent Flat crown with sparkles, and "Tìm hiểu thêm" across the foot: Pro is not on sale yet,
-/// so the button says what a tap does. The whole card is one button.
+/// Fluent Flat crown with sparkles, and "Xem các gói" across the foot: it opens the plans
+/// (`PaywallView`). The whole card is one button.
 struct ProUpgradeCard: View {
     let onUpgrade: () -> Void
 
@@ -40,7 +40,7 @@ struct ProUpgradeCard: View {
                 }
                 // Drawn as a `MiluButton(role: .primary)`; not a button of its own, the whole card
                 // is one.
-                MiluButtonTitle(title: "Tìm hiểu thêm", icon: nil)
+                MiluButtonTitle(title: "Xem các gói", icon: nil)
                     .textRole(.button)
                     .foregroundStyle(Palette.onAccent)
                     .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)
@@ -57,9 +57,9 @@ struct ProUpgradeCard: View {
         .accessibilityElement(children: .ignore)
         // The heading above already says "Milu Pro"; Voice Control answers to the button's words.
         .accessibilityLabel("Dùng Milu trọn vẹn, không lo hết lượt AI")
-        .accessibilityInputLabels(["Tìm hiểu thêm", "Milu Pro"])
+        .accessibilityInputLabels(["Xem các gói", "Milu Pro"])
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint("Tìm hiểu về Milu Pro, sắp ra mắt")
+        .accessibilityHint("Xem các gói Milu Pro")
     }
 
     /// The colours of Milu's sky (user request 2026-11-08: "màu mè hơn"): sky into honey across the

@@ -103,6 +103,7 @@ struct AssistantView: View {
         } message: {
             Text(dictationMessage)
         }
+        .onAppear { dictation.prepare() }
         .onDisappear { dictation.stop() }
     }
 
@@ -274,7 +275,12 @@ struct AssistantView: View {
         // Stopped before any answer: the lượt is given back.
         if answerPaid { quota.refund() }
         answerPaid = false
-        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) { isThinking = false }
+        // Said in the chat where the answer would have been (user request 2026-11-12: the dots
+        // only went, as if nothing had been asked).
+        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
+            chats.conversations[currentIndex].messages.append(ChatMessage(role: .notice, text: "Bạn đã dừng câu trả lời"))
+            isThinking = false
+        }
     }
 
     /// ✕ and ■ while listening: a glyph on a grey disc.
@@ -351,6 +357,10 @@ struct AssistantView: View {
         chats.startNew()
     }
 
+    /// The least time from the question to its answer: the question's flight (0.41 s) and a beat
+    /// of the three dots after it.
+    private static let shortestWait: TimeInterval = 0.9
+
     /// Sends what is in the field and asks the assistant (`AssistantServices`) for the answer.
     private func send() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -371,6 +381,7 @@ struct AssistantView: View {
         hasAskedAI = true
         let service = AssistantServices.make(store: store)
 
+        let askedAt = Date.now
         answering = Task {
             var reply: AssistantReply
             do {
@@ -382,9 +393,7 @@ struct AssistantView: View {
                 return
             } catch {
                 if Task.isCancelled { return }
-                // No answer came (no connection, the server): felt as well as read, and the
-                // lượt given back.
-                Haptics.error()
+                // No answer came (no connection, the server): the lượt given back.
                 reply = AssistantReply(text: (error as? LocalizedError)?.errorDescription
                     ?? "Milu chưa trả lời được. Bạn thử lại sau nhé.", counts: false)
             }
@@ -395,6 +404,14 @@ struct AssistantView: View {
             } else if !paid {
                 reply = AssistantReply(text: outOfQuestionsReply)
             }
+            // Never before the question has landed: with no connection the error came back at
+            // once and showed while the question was still rising (user report 2026-11-12).
+            let wait = Self.shortestWait - Date.now.timeIntervalSince(askedAt)
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+            if Task.isCancelled { return }
+            // One soft knock as Milu's words show, an answer or an error alike (user report
+            // 2026-11-12: an answer came silent and an error buzzed twice).
+            Haptics.impact(.soft)
             let card: ChatMessage.Card? = switch reply.action {
             case .recorded(let transaction): .recorded(transaction, removed: false)
             case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)

@@ -11,7 +11,7 @@ import Foundation
 /// Per-device choices (appearance, the last account picked, sample data) are not synced.
 @MainActor
 final class CloudSettings {
-    static let keys: Set<String> = [StorageKey.monthlyBudget, StorageKey.categoryBudgets, StorageKey.profileName,
+    static let keys: Set<String> = [StorageKey.monthlyBudget, StorageKey.categoryBudgets, StorageKey.profileName, StorageKey.profileAvatar,
                                     StorageKey.dailyReminder, StorageKey.dailyReminderMinutes,
                                     StorageKey.budgetAlerts, StorageKey.recurringAlerts, StorageKey.askedAI, BudgetAlertPlan.sentKey,
                                     StorageKey.welcomeSeen]

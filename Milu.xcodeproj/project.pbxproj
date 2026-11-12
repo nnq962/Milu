@@ -335,6 +335,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Milu.Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Milu;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Milu dùng Face ID để chỉ bạn mới mở được app.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Milu dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Milu chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -379,6 +380,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Milu.Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Milu;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Milu dùng Face ID để chỉ bạn mới mở được app.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Milu dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Milu chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

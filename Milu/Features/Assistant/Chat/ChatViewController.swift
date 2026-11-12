@@ -1002,6 +1002,41 @@ final class ChatViewController: UIViewController {
         }
     }
 
+    /// The animated scroll stopped at the offset on screen: left running, the reader's drag
+    /// started from where it was headed, and the chat jumped there under the finger.
+    private func stopScrollAnimation() {
+        guard isAnimatingScroll else { return }
+        let shown = collectionView.layer.presentation()?.bounds.origin ?? collectionView.contentOffset
+        collectionView.layer.removeAllAnimations()
+        collectionView.contentOffset = shown
+        isAnimatingScroll = false
+    }
+
+    /// The question's flyer, frozen where it is, fades as its row fades in under it.
+    private func landFlightSoftly() {
+        guard let host = flyer else {
+            endFlight()
+            return
+        }
+        // Taken off first, so the stopped animation's completion does not end it again.
+        flyer = nil
+        let presented = host.view.layer.presentation()
+        host.view.layer.removeAllAnimations()
+        host.view.transform = presented?.affineTransform() ?? host.view.transform
+        host.view.alpha = CGFloat(presented?.opacity ?? 1)
+        let row = flyingID.flatMap { dataSource.indexPath(for: .message($0)) }.flatMap(collectionView.cellForItem(at:))
+        flyingID = nil
+        UIView.animate(withDuration: 0.15, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+            host.view.alpha = 0
+            row?.contentView.alpha = 1
+        } completion: { _ in
+            host.willMove(toParent: nil)
+            host.view.removeFromSuperview()
+            host.removeFromParent()
+        }
+        updateDownButton()
+    }
+
     /// The flyer away and the question's own row shown.
     private func endFlight() {
         if let id = flyingID, let indexPath = dataSource.indexPath(for: .message(id)) {
@@ -1090,9 +1125,12 @@ extension ChatViewController: UICollectionViewDelegate {
     }
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        // The reader took the chat: the question lands where it is, the words are no longer
-        // followed.
-        endFlight()
+        // The reader took the chat mid-rise (user report 2026-11-12: a swipe as the question
+        // rose jumped): the rising scroll stops where it is on screen, not at where it was
+        // going, and the question's flyer hands over to its row with a short fade instead of
+        // vanishing.
+        stopScrollAnimation()
+        landFlightSoftly()
         stopFollowing()
         holdsToEnd = false
         pinRests = false

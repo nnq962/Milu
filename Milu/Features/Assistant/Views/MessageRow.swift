@@ -31,6 +31,13 @@ struct MessageRow: View {
                 cardButtons
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        case .notice:
+            // A quiet line where the answer would have been, as ChatGPT and Claude say it.
+            Label(message.text, systemImage: "stop.circle")
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
         }
     }
 
@@ -134,7 +141,7 @@ struct MessageRow: View {
     /// markdown's stars.
     static func copiedText(of message: ChatMessage) -> String {
         switch message.role {
-        case .user: message.text
+        case .user, .notice: message.text
         case .assistant: String(formatted(message.text).characters)
         }
     }

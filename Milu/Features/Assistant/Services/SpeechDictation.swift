@@ -84,6 +84,13 @@ final class SpeechDictation {
         }
     }
 
+    /// The audio session set up ahead, as the page opens, so the first tap only switches the
+    /// microphone on (user report 2026-11-12: the screen flickered as the microphone started; iOS
+    /// 26 does it in other apps too, so this only takes the session's setup out of that moment).
+    func prepare() {
+        microphone.prepare()
+    }
+
     func start() async {
         guard !isRecording else { return }
         // Already allowed: no hop off the main thread, so the wave shows the moment the mic is
@@ -362,15 +369,26 @@ private nonisolated final class Microphone: @unchecked Sendable {
     /// What is heard, kept for the server (`SpeechDictation.finish`).
     private let recording = Recording()
 
+    /// The category set once, not at every start: changing it is what reconfigures the audio
+    /// route, and it was done in the very moment the microphone came on.
+    func prepare() {
+        queue.async { try? Self.configure(AVAudioSession.sharedInstance()) }
+    }
+
+    private static func configure(_ session: AVAudioSession) throws {
+        guard session.category != .record || session.mode != .measurement else { return }
+        try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+        // ✕, ■ and ↑ knock while listening as they do otherwise: iOS keeps haptics quiet while
+        // it records, unless told (user report 2026-11-11: uneven knocks).
+        try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
+    }
+
     func start(feed: RequestFeed, onLevel: @escaping @Sendable (Float) -> Void,
                completion: @escaping @Sendable (Bool) -> Void) {
         queue.async { [self] in
             do {
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.record, mode: .measurement, options: .duckOthers)
-                // ✕, ■ and ↑ knock while listening as they do otherwise: iOS keeps haptics
-                // quiet while it records, unless told (user report 2026-11-11: uneven knocks).
-                try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
+                try Self.configure(session)
                 try session.setActive(true, options: .notifyOthersOnDeactivation)
                 let input = engine.inputNode
                 let format = input.outputFormat(forBus: 0)

@@ -22,6 +22,8 @@ struct MiluApp: App {
     /// Tổng quan, đóng mọi sheet đang mở).
     @State private var generation = 0
     @Environment(\.scenePhase) private var scenePhase
+    /// "Khoá bằng Face ID" (Milu Pro): locked from launch when on.
+    @State private var appLock = AppLock()
     @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
 
     init() {
@@ -30,6 +32,8 @@ struct MiluApp: App {
         _ = Reminders.shared
         // Before anything reads them: a reinstall gets its settings and AI allowance back.
         cloudSettings.start()
+        // What the App Store says is owned, and every renewal or refund from now on.
+        ProStore.shared.start()
         let quota = AIQuota(unlimited: AIQuota.unlimitedInDebug)
         _quota = State(initialValue: quota)
         cloudSettings.onChangeFromCloud = { [weak quota] in quota?.reload() }
@@ -85,6 +89,20 @@ struct MiluApp: App {
                 .modelContainer(container)
                 .environment(\.locale, .vietnam)
                 .environment(\.eraseAllData, EraseAllDataAction(action: eraseAllData))
+                .environment(appLock)
+                // Locked: the lock over everything. Not in front with the lock on: a cover, so
+                // the app switcher's picture shows no balance.
+                .overlay {
+                    if appLock.isLocked {
+                        LockScreen(lock: appLock)
+                            .transition(.opacity)
+                    } else if appLock.isOn, scenePhase == .background
+                                || (scenePhase == .inactive && appLock.coversWhileInactive()) {
+                        PrivacyCover()
+                    }
+                }
+                // Quick: the face is already known, the app should be there at once.
+                .animation(.easeOut(duration: 0.15), value: appLock.isLocked)
                 // What came down from iCloud: read once, when the sync has gone quiet (see
                 // `CloudSyncMonitor.takeNewData`).
                 .onChange(of: sync.isReceiving) { _, receiving in
@@ -99,10 +117,17 @@ struct MiluApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
                     store.recordDueRecurring()
                 }
+                // Pro bought or lapsed: the lock follows the plan, the AI allowance with it.
+                .onChange(of: ProStore.shared.isPro) {
+                    appLock.refresh()
+                    quota.reload()
+                }
         }
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background { appLock.didLeave() }
             // Back from the background: anything that came in meanwhile.
             if phase == .active {
+                appLock.didReturn()
                 store.reload()
                 store.recordDueRecurring()
                 sync.checkAccount()

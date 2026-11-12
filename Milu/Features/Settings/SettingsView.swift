@@ -19,6 +19,9 @@ struct SettingsView: View {
     @AppStorage(StorageKey.dailyReminderMinutes) private var reminderMinutes = DailyReminderPlan.defaultMinutes
     @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = false
     @AppStorage(StorageKey.recurringAlerts) private var recurringAlerts = false
+    /// Debug: act as Milu Pro (`MiluPlan`).
+    @AppStorage(StorageKey.debugPro) private var debugPro = false
+    @Environment(AppLock.self) private var appLock
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
     /// Notifications are off for Milu in the iPhone's Settings.
@@ -26,6 +29,7 @@ struct SettingsView: View {
     @State private var isAskingForNotifications = false
 
     @State private var note: Note?
+    @State private var isShowingPaywall = false
     @State private var isEditingName = false
     /// The mail form in the app, when the phone can send mail.
     @State private var isComposing = false
@@ -195,6 +199,9 @@ struct SettingsView: View {
                         }
                     }
 
+                    // Face ID lock, Milu Pro (user request 2026-11-12).
+                    SecuritySettings { isShowingPaywall = true }
+
                     // Changes at once, the whole screen fading across (user request 2026-10-31).
                     VStack(alignment: .leading, spacing: Spacing.headerGap) {
                         SectionHeader(title: "Giao diện", style: .group)
@@ -289,6 +296,10 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.row)
                         FormDivider()
+                        FormToggleRow(title: "Giả lập Milu Pro", subtitle: "Thử các tính năng Pro khi chưa mở bán",
+                                      icon: "hugeicons-star", isOn: $debugPro)
+                            .onChange(of: debugPro) { appLock.refresh() }
+                        FormDivider()
                         FormNavigationRow(title: "Xem lại màn chào mừng", icon: "hugeicons-star", accessory: .none) {
                             dismiss()
                             UserDefaults.standard.set(false, forKey: StorageKey.welcomeSeen)
@@ -352,7 +363,10 @@ struct SettingsView: View {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
             }
             .sheet(item: $note) { NoteSheet(title: $0.title, message: $0.message) }
+            .sheet(isPresented: $isShowingPaywall) { PaywallView() }
             .sheet(isPresented: $isEditingName) { ProfileNameSheet() }
+            // Mail runs apart from the app too: no Face ID cover over it.
+            .onChange(of: isComposing) { _, open in appLock.isShowingSystemSheet = open }
             .sheet(isPresented: $isComposing) {
                 MailComposer(recipient: Self.supportEmail, subject: "Góp ý cho Milu iOS")
                     .ignoresSafeArea()
@@ -379,32 +393,22 @@ struct SettingsView: View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         return Button { isEditingName = true } label: {
             HStack(spacing: RowMetrics.gap) {
-                Group {
-                    if let initial = ProfileName.initial(of: profileName) {
-                        Text(initial).textRole(.heading)
-                    } else {
-                        Image(systemName: "person.fill").font(.title2)
-                    }
-                }
-                .foregroundStyle(Palette.primary)
-                .frame(width: avatarSize, height: avatarSize)
-                .background(Palette.primaryTint, in: Circle())
-                .accessibilityHidden(true)
+                ProfileAvatarView(size: avatarSize)
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     Text(profileName.isEmpty ? "Thêm tên" : profileName)
                         .textRole(.heading)
                         .foregroundStyle(profileName.isEmpty ? Palette.secondaryLabel : Palette.label)
-                    Text(profileName.isEmpty ? "Chạm để đặt tên" : "Chạm để đổi tên")
+                    Text(profileName.isEmpty ? "Chạm để đặt tên và ảnh" : "Chạm để sửa hồ sơ")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                     if stacked {
-                        StatusBadge(title: "Miễn phí", tone: .neutral, showsDot: false)
+                        planBadge
                             .padding(.top, Spacing.xs)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if !stacked {
-                    StatusBadge(title: "Miễn phí", tone: .neutral, showsDot: false)
+                    planBadge
                         .fixedSize()
                 }
             }
@@ -413,8 +417,16 @@ struct SettingsView: View {
         }
         .buttonStyle(.card)
         // The name and the plan; what a tap does is the hint, not "Chạm để…" read aloud.
-        .accessibilityLabel(profileName.isEmpty ? "Chưa đặt tên, gói Miễn phí" : "\(profileName), gói Miễn phí")
+        .accessibilityLabel(profileName.isEmpty ? "Chưa đặt tên, gói \(planName)" : "\(profileName), gói \(planName)")
         .accessibilityHint(profileName.isEmpty ? "Đặt tên của bạn" : "Đổi tên của bạn")
+    }
+
+    private var isPro: Bool { ProStore.shared.isPro || debugPro }
+    private var planName: String { isPro ? "Milu Pro" : "Miễn phí" }
+
+    /// The plan by the name: "Pro" in the brand's colour, or a quiet "Miễn phí".
+    private var planBadge: some View {
+        StatusBadge(title: isPro ? "Pro" : "Miễn phí", tone: isPro ? .pro : .neutral, showsDot: false)
     }
 
     /// "Lượt AI tháng này": what is left, large (the free lượt left plus the bonus), over a bar of
@@ -425,16 +437,18 @@ struct SettingsView: View {
         // One scale for the figure and the bar: what is left of this week's free lượt plus the
         // bonus (review 2026-11-09: the bar filled with the free ones alone, full and orange
         // while 15 bonus lượt were still there).
-        let total = AIQuota.weeklyFree + quota.bonus
+        let allowance = isPro ? AIQuota.weeklyPro : AIQuota.weeklyFree
+        let kind = isPro ? "lượt Pro" : "lượt miễn phí"
+        let total = allowance + quota.bonus
         // The bonus and when it runs out (it lasts 7 days, user choice 2026-11-12).
         let bonusLine = quota.bonus > 0
             ? "còn \(quota.bonus) lượt thưởng" + (quota.bonusExpires.map { " (hết hạn \($0.shortDay))" } ?? "")
             : nil
         // The week's free ones used, and the bonus still there (a bonus lượt used is taken off
         // the bonus, so "đã dùng" stops at 10, review 2026-11-09).
-        let details = ["Đã dùng \(quota.usedThisWeek)/\(AIQuota.weeklyFree) lượt miễn phí", bonusLine].compactMap { $0 }
+        let details = ["Đã dùng \(quota.usedThisWeek)/\(allowance) \(kind)", bonusLine].compactMap { $0 }
         // "3 trên 10", not a slash read aloud (review 2026-11-09).
-        let spokenDetails = ["Đã dùng \(quota.usedThisWeek) trên \(AIQuota.weeklyFree) lượt miễn phí", bonusLine].compactMap { $0 }
+        let spokenDetails = ["Đã dùng \(quota.usedThisWeek) trên \(allowance) \(kind)", bonusLine].compactMap { $0 }
         return VStack(alignment: .leading, spacing: Spacing.l) {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
@@ -470,12 +484,11 @@ struct SettingsView: View {
                         .accessibilityLabel(spokenDetails.joined(separator: ", "))
                 }
             }
-            // Says what it opens: Pro is not on sale yet (review 2026-11-09: "Nâng cấp" led to
-            // "Sắp ra mắt").
-            MiluButton("Tìm hiểu Milu Pro", role: .primary, fullWidth: true) {
-                note = Note(title: MiluProNote.title, message: MiluProNote.message)
+            // The plans; once Pro is owned, the same page shows the plan and "Quản lý gói".
+            MiluButton(isPro ? "Gói Milu Pro của bạn" : "Nâng cấp Milu Pro",
+                       role: isPro ? .secondary : .primary, fullWidth: true) {
+                isShowingPaywall = true
             }
-            .accessibilityHint("Gói Milu Pro sắp ra mắt")
         }
         .padding(.horizontal, RowMetrics.horizontal)
         .padding(.vertical, Spacing.card)
@@ -512,4 +525,5 @@ extension View {
         .environment(FinanceStore())
         .environment(AIQuota())
         .environment(CloudSyncMonitor())
+        .environment(AppLock())
 }

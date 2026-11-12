@@ -3,7 +3,8 @@ import OSLog
 import SwiftUI
 
 struct ChatMessage: Identifiable, Equatable, Codable {
-    enum Role: String, Codable { case user, assistant }
+    /// `notice`: a line of the app's own in the chat ("Bạn đã dừng câu trả lời"), never sent to Milu.
+    enum Role: String, Codable { case user, assistant, notice }
 
     /// Action card state; the transaction is a snapshot so the card still reads after a delete.
     enum Card: Equatable, Codable {

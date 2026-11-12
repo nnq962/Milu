@@ -14,10 +14,22 @@ enum StorageKey {
     static let budgetAlerts = "settings.budgetAlerts"
     /// "Nhắc khoản định kỳ": a notification at 8:00 on the day a recurring rule falls due.
     static let recurringAlerts = "settings.recurringAlerts"
+    /// "Khoá bằng Face ID" (Milu Pro) and after how long away it locks again (`AppLock.Delay`).
+    /// Per device, never synced.
+    static let appLock = "security.appLock"
+    static let appLockDelay = "security.appLockDelay"
+    /// The App Store's last answer on Milu Pro (`ProStore`), for before it answers again.
+    static let proActive = "pro.active"
+    /// Debug only: act as Milu Pro, to try its features before it is on sale.
+    static let debugPro = "debug.proPlan"
+    /// Debug: the plan "bought" with the made-up prices (`ProStore.isMocking`).
+    static let debugMockPlan = "debug.mockProPlan"
     /// "Giao diện": `AppAppearance` (Hệ thống, Sáng, Tối).
     static let appearance = "settings.appearance"
     /// The name the user gave themselves (Cài đặt's card, the initial on the bar); empty until set.
     static let profileName = "settings.profileName"
+    /// The picture by the name (`ProfileAvatar.raw`): the initial or a Milu face.
+    static let profileAvatar = "settings.profileAvatar"
     /// The account the last transaction was added to, picked first next time.
     static let lastAccountID = "transactions.lastAccountID"
     /// The welcome pages were seen (`WelcomeView`): never shown again, here or after a reinstall

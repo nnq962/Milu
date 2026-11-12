@@ -74,7 +74,9 @@ final class AIQuota {
 
     /// Questions asked this week (0 once a new week starts).
     var usedThisWeek: Int { week == Self.weekKey(now()) ? used : 0 }
-    var weeklyLeft: Int { max(Self.weeklyFree - usedThisWeek, 0) }
+    /// The week's lượt on the plan in use: 10 free, 150 on Milu Pro.
+    var weeklyAllowance: Int { MiluPlan.isPro ? Self.weeklyPro : Self.weeklyFree }
+    var weeklyLeft: Int { max(weeklyAllowance - usedThisWeek, 0) }
     /// Bonus lượt not yet used nor run out.
     var bonus: Int { liveGrants.reduce(0) { $0 + $1.left } }
     /// When the soonest bonus runs out, if there is any.
@@ -105,7 +107,7 @@ final class AIQuota {
             .min(by: { grants[$0].expires < grants[$1].expires }) {
             grants[index].left -= 1
             lastSpend = .grant(expires: grants[index].expires)
-        } else if used < Self.weeklyFree {
+        } else if used < weeklyAllowance {
             used += 1
             lastSpend = .week(week)
         } else {

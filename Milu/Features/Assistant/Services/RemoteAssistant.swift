@@ -19,7 +19,7 @@ struct RemoteAssistant: AssistantService {
     func reply(to question: String, history: [ChatMessage]) async throws -> AssistantReply {
         var messages: [MiluAPI.ChatMessage] = history.suffix(Self.historyLength).compactMap { message in
             let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return nil }
+            guard !text.isEmpty, message.role != .notice else { return nil }
             return message.role == .user ? .user(text) : .assistant(text)
         }
         messages.append(.user(question))

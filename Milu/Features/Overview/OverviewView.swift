@@ -10,6 +10,8 @@ struct OverviewView: View {
     private static let showsAttention = false
 
     @State private var information: Information?
+    @State private var isShowingPaywall = false
+    @AppStorage(StorageKey.debugPro) private var debugPro = false
     @State private var isShowingSettings = false
     /// Trợ lý AI, over everything from the ✦ on the bar.
     @State private var isShowingAssistant = false
@@ -115,8 +117,9 @@ struct OverviewView: View {
                         // `showsAttention` back to true to bring it back.
                         if Self.showsAttention { AttentionCard() }
                         // Last, at the foot of the page (user request 2026-10-31).
-                        ProUpgradeCard {
-                            information = Information(title: MiluProNote.title, message: MiluProNote.message)
+                        // Gone once Pro is owned: nothing left to sell.
+                        if !(ProStore.shared.isPro || debugPro) {
+                            ProUpgradeCard { isShowingPaywall = true }
                         }
                     }
                     // The first steps fade away and the page closes up smoothly once the last is
@@ -163,6 +166,7 @@ struct OverviewView: View {
             .navigationDestination(for: CalendarRoute.self) { _ in MoneyCalendarPage() }
             .navigationDestination(for: BudgetRoute.self) { _ in BudgetView() }
             .sheet(item: $confirmingRecurring) { RecurringConfirmSheet(occurrence: $0) }
+            .sheet(isPresented: $isShowingPaywall) { PaywallView() }
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(item: $adding) { AddTransactionView(mode: $0) }

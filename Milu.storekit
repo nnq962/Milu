@@ -1,0 +1,105 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "6B1F2C4E",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "vi",
+    "_storefront" : "VNM",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21500001",
+      "localizations" : [
+        {
+          "description" : "Milu Pro",
+          "displayName" : "Milu Pro",
+          "locale" : "vi"
+        }
+      ],
+      "name" : "Milu Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "399000",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6500000001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "150 lượt hỏi Milu mỗi tuần, khoá app bằng Face ID.",
+              "displayName" : "Milu Pro · Gói năm",
+              "locale" : "vi"
+            }
+          ],
+          "productID" : "com.quyetnguyen.milu.app.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Milu Pro Yearly",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "49000",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6500000002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "150 lượt hỏi Milu mỗi tuần, khoá app bằng Face ID.",
+              "displayName" : "Milu Pro · Gói tháng",
+              "locale" : "vi"
+            }
+          ],
+          "productID" : "com.quyetnguyen.milu.app.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Milu Pro Monthly",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
