@@ -28,3 +28,6 @@ docs/design/
 
 # Per-screen build folders used while reviewing on the Simulator
 build*/
+
+# The app server's address and key (MiluAPI.swift); MiluAPI.example.plist shows the shape
+Milu/MiluAPI.plist

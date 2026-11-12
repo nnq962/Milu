@@ -314,6 +314,9 @@ struct AssistantView: View {
     private func startDictation() {
         guard Date.now.timeIntervalSince(answeredAt) > 0.5 else { return }
         Haptics.impact()
+        // The names the server's recognizer favours: the user's accounts, then every bank and wallet.
+        var seen = Set<String>()
+        dictation.hotwords = (store.accounts.map(\.name) + Institution.all.map(\.shortName)).filter { seen.insert($0).inserted }
         Task { await dictation.start() }
     }
 

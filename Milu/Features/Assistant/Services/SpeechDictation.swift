@@ -7,7 +7,11 @@ import AVFoundation
 import Observation
 import Speech
 
-/// Vietnamese speech-to-text for the chat field, using Apple's on-device/server recognizer.
+/// Vietnamese speech-to-text for the chat field: the app's server first (its Zipformer model,
+/// which knows the banks' names), the iPhone's recognizer when the server cannot be had (user
+/// choice 2026-11-12). Both hear the same words: the iPhone's recognizer runs as it listens, and
+/// the sound is kept in a file the server reads once the user is done, so falling back waits for
+/// nothing.
 ///
 /// Listens until the user stops it (■, ✕ or ↑), pauses included: the recognizer ends a stretch
 /// after a silence, or starts the words over, so each finished stretch is kept and a new one is
@@ -67,6 +71,10 @@ final class SpeechDictation {
     /// `finish()` waiting for the recognizer's last word, and whether ✕ ended that wait.
     @ObservationIgnored private var finishing: CheckedContinuation<Void, Never>?
     @ObservationIgnored private var finishCancelled = false
+    /// Names the server's recognizer should favour: the user's accounts, the banks and wallets.
+    @ObservationIgnored var hotwords: [String] = []
+    /// How long the server has for the words before the iPhone's are taken.
+    static let serverTimeout: TimeInterval = 5
 
     func toggle() async {
         if isRecording {
@@ -128,7 +136,7 @@ final class SpeechDictation {
         isRecording = false
         isTranscribing = false
         session += 1
-        microphone.stop()
+        microphone.stop { url in url.map { try? FileManager.default.removeItem(at: $0) } }
     }
 
     /// Stops listening and turns what was said into words: nil when ✕ came first.
@@ -139,8 +147,15 @@ final class SpeechDictation {
         isRecording = false
         isTranscribing = true
         session += 1
-        microphone.stop()
         let began = Date.now
+        // The server reads the recording while the iPhone's recognizer gives its last word.
+        let names = hotwords
+        let server = Task { () -> String? in
+            let recording = await withCheckedContinuation { continuation in
+                microphone.stop { continuation.resume(returning: $0) }
+            }
+            return await Self.serverTranscript(of: recording, names: names)
+        }
         // No more sound: the recognizer gives its last word, or is given up on after a moment.
         feed.request?.endAudio()
         feed.request = nil
@@ -161,6 +176,7 @@ final class SpeechDictation {
         if !finishCancelled, shown < Self.minimumTranscribing {
             try? await Task.sleep(for: .seconds(Self.minimumTranscribing - shown))
         }
+        let heardOnServer = await server.value
         if finishCancelled {
             finishCancelled = false
             return nil
@@ -169,8 +185,20 @@ final class SpeechDictation {
         task = nil
         generation += 1
         commitPartial()
+        // The server's words when it gave any; the iPhone's otherwise.
+        if let heardOnServer, !heardOnServer.isEmpty { transcript = heardOnServer }
         // Still "transcribing" until the caller has put the words in: both change in one go.
         return transcript
+    }
+
+    /// The recording's words from the app's server, nil without it (no server set, no network,
+    /// too slow, an error); the file is removed either way.
+    private nonisolated static func serverTranscript(of recording: URL?, names: [String]) async -> String? {
+        guard let recording else { return nil }
+        defer { try? FileManager.default.removeItem(at: recording) }
+        guard let api = MiluAPI.shared, let audio = try? Data(contentsOf: recording), audio.count > 1_000 else { return nil }
+        let text = try? await api.transcribe(audio, names: names, timeout: serverTimeout)
+        return text?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Ends "Milu đang hiểu ý bạn…", called with the heard words going into the field, in the
@@ -331,6 +359,8 @@ extension SpeechDictation: @unchecked Sendable {}
 private nonisolated final class Microphone: @unchecked Sendable {
     private let engine = AVAudioEngine()
     private let queue = DispatchQueue(label: "com.quyetnguyen.Milu.microphone", qos: .userInitiated)
+    /// What is heard, kept for the server (`SpeechDictation.finish`).
+    private let recording = Recording()
 
     func start(feed: RequestFeed, onLevel: @escaping @Sendable (Float) -> Void,
                completion: @escaping @Sendable (Bool) -> Void) {
@@ -343,8 +373,11 @@ private nonisolated final class Microphone: @unchecked Sendable {
                 try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
                 try session.setActive(true, options: .notifyOthersOnDeactivation)
                 let input = engine.inputNode
-                input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { buffer, _ in
+                let format = input.outputFormat(forBus: 0)
+                recording.begin(format: format)
+                input.installTap(onBus: 0, bufferSize: 1024, format: format) { [recording] buffer, _ in
                     feed.append(buffer)
+                    recording.write(buffer)
                     onLevel(Self.level(of: buffer))
                 }
                 engine.prepare()
@@ -357,8 +390,12 @@ private nonisolated final class Microphone: @unchecked Sendable {
         }
     }
 
-    func stop() {
-        queue.async { [self] in teardown() }
+    /// Stops, and hands back the recording of what was heard, closed (nil when nothing was).
+    func stop(_ completion: @escaping @Sendable (URL?) -> Void = { _ in }) {
+        queue.async { [self] in
+            teardown()
+            completion(recording.end())
+        }
     }
 
     private func teardown() {
@@ -376,6 +413,43 @@ private nonisolated final class Microphone: @unchecked Sendable {
         let rms = (sum / Float(count)).squareRoot()
         let decibels = 20 * log10(max(rms, 0.000_01))
         return min(max((decibels + 50) / 40, 0), 1)
+    }
+}
+
+/// The microphone's sound written to an M4A (AAC) file as it comes, for the server: small (a
+/// sentence is a few tens of kB), and read by its recognizer as it reads what browsers record.
+/// Written on the audio thread, begun and ended on the microphone's queue, behind a lock.
+private nonisolated final class Recording: @unchecked Sendable {
+    private let lock = NSLock()
+    private var file: AVAudioFile?
+    private var url: URL?
+
+    func begin(format: AVAudioFormat) {
+        lock.withLock {
+            let url = FileManager.default.temporaryDirectory.appending(path: "dictation-\(UUID().uuidString).m4a")
+            let settings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: format.sampleRate,
+                AVNumberOfChannelsKey: format.channelCount,
+                AVEncoderBitRateKey: 48_000,
+            ]
+            file = try? AVAudioFile(forWriting: url, settings: settings,
+                                    commonFormat: format.commonFormat, interleaved: format.isInterleaved)
+            self.url = file == nil ? nil : url
+        }
+    }
+
+    func write(_ buffer: AVAudioPCMBuffer) {
+        lock.withLock { try? file?.write(from: buffer) }
+    }
+
+    /// Closed (released) and handed over; the next `begin` starts a new one.
+    func end() -> URL? {
+        lock.withLock {
+            file = nil
+            defer { url = nil }
+            return url
+        }
     }
 }
 

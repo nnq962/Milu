@@ -12,10 +12,12 @@ protocol AssistantService {
 }
 
 enum AssistantServices {
-    /// The service the chat uses. For now the mock, which answers from the data on this phone.
+    /// The service the chat uses: the local LLM on the app's server when `MiluAPI.plist` says
+    /// where it is (user choice 2026-11-12), the keyword assistant on the phone otherwise.
     @MainActor
     static func make(store: FinanceStore) -> any AssistantService {
-        MockAssistant(store: store)
+        if let api = MiluAPI.shared { return RemoteAssistant(api: api, store: store) }
+        return MockAssistant(store: store)
     }
 }
 

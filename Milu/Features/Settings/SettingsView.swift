@@ -143,7 +143,7 @@ struct SettingsView: View {
                             // questions away, which the on-phone one does not, and that nothing
                             // left the phone, while dictation went through Apple).
                             note = Note(title: "Chính sách quyền riêng tư",
-                                        message: "Số liệu bạn ghi (tài khoản, giao dịch, hạn mức…) chỉ lưu trên máy này, không gửi lên máy chủ nào. Milu AI cũng trả lời ngay trên máy.\n\nRiêng khi nhập bằng giọng nói: iPhone nhận giọng ngay trên máy nếu hỗ trợ; nếu không, đoạn ghi âm được gửi tới dịch vụ nhận giọng nói của Apple.\n\nDữ liệu chỉ mất khi bạn xoá app hoặc chọn \"Xoá toàn bộ dữ liệu\". Chính sách đầy đủ sẽ có khi Milu phát hành.")
+                                        message: "Số liệu bạn ghi (tài khoản, giao dịch, hạn mức…) chỉ lưu trên máy này, không có bản sao trên máy chủ nào.\n\nKhi bạn hỏi Milu AI: câu hỏi, tên danh mục, tài khoản và đúng những con số cần cho câu trả lời được gửi tới máy chủ riêng của Milu, nơi AI chạy (không qua dịch vụ AI bên ngoài), và không được lưu lại.\n\nKhi nhập bằng giọng nói: đoạn ghi âm được gửi tới máy chủ của Milu để chuyển thành chữ rồi bỏ đi; khi không kết nối được, iPhone tự nhận giọng (ngay trên máy nếu hỗ trợ, nếu không qua dịch vụ của Apple).\n\nDữ liệu chỉ mất khi bạn xoá app hoặc chọn \"Xoá toàn bộ dữ liệu\". Chính sách đầy đủ sẽ có khi Milu phát hành.")
                         }
                         FormDivider()
                         FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-file-02", accessory: .none) {
