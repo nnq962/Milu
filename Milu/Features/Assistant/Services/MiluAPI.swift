@@ -20,7 +20,9 @@ nonisolated struct MiluAPI: Sendable {
     }()
 
     enum Failure: Error, Equatable {
-        /// No answer: no network, the server down or too slow. The app carries on without it.
+        /// The phone has no internet (Wi-Fi and mobile data off, or no signal).
+        case offline
+        /// The phone is online but the server did not answer: down, or too slow.
         case unreachable
         /// The key was refused.
         case unauthorized
@@ -99,6 +101,11 @@ nonisolated struct MiluAPI: Sendable {
 
     // MARK: Requests
 
+    /// What URLSession says when the phone itself has no internet.
+    private static let offlineCodes: Set<URLError.Code> = [
+        .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff,
+    ]
+
     private func request(_ path: String, timeout: TimeInterval) -> URLRequest {
         var request = URLRequest(url: baseURL.appending(path: path), timeoutInterval: timeout)
         request.httpMethod = "POST"
@@ -115,6 +122,8 @@ nonisolated struct MiluAPI: Sendable {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
+        } catch let error as URLError where Self.offlineCodes.contains(error.code) {
+            throw Failure.offline
         } catch {
             throw Failure.unreachable
         }

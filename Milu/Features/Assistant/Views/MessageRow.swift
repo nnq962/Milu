@@ -121,7 +121,10 @@ struct MessageRow: View {
     static func formatted(_ markdown: String) -> AttributedString {
         if let cached = formatted[markdown] { return cached }
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        let text = (try? AttributedString(markdown: markdown, options: options)) ?? AttributedString(markdown)
+        // Lists and headings put in the chat's one way first: only bold and italic are read below,
+        // and a model's "* item" showed its star, beside a "•" (user report 2026-11-12).
+        let clean = AnswerMarkdown.normalized(markdown)
+        let text = (try? AttributedString(markdown: clean, options: options)) ?? AttributedString(clean)
         if formatted.count > 200 { formatted.removeAll() }
         formatted[markdown] = text
         return text
@@ -213,5 +216,61 @@ enum Bubble {
         assistantOutline
             .fill(Palette.surface)
             .cardShadow()
+    }
+}
+
+/// An answer's text in the chat's one layout, whatever markdown the model wrote: a list item is a
+/// line starting "• " ("◦ " under another), a heading a bold line, rules and quote marks gone;
+/// no blank line between items, at most one elsewhere. Bold and italic are left for the
+/// markdown reader.
+enum AnswerMarkdown {
+    static let bullet = "• "
+    static let subBullet = "    ◦ "
+
+    static func normalized(_ text: String) -> String {
+        var lines: [String] = []
+        for raw in text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n") {
+            var line = raw.replacingOccurrences(of: "\t", with: "    ")
+            while line.last == " " { line.removeLast() }
+            let body = String(line.drop(while: { $0 == " " }))
+            let indent = line.count - body.count
+            if let item = firstMatch(of: listItem, in: body), !item.isEmpty {
+                lines.append((indent >= 2 ? subBullet : bullet) + item)
+            } else if let title = firstMatch(of: heading, in: body), !title.isEmpty {
+                lines.append("**\(title)**")
+            } else if body.wholeMatch(of: rule) != nil {
+                continue
+            } else if body.hasPrefix(">") {
+                lines.append(String(body.dropFirst()).trimmingCharacters(in: .whitespaces))
+            } else {
+                lines.append(body)
+            }
+        }
+        var out: [String] = []
+        for (index, line) in lines.enumerated() {
+            if line.isEmpty {
+                // Never two in a row, never first, never between two items.
+                guard let last = out.last, !last.isEmpty else { continue }
+                let next = lines[(index + 1)...].first { !$0.isEmpty }
+                if isItem(last), next.map(isItem) == true { continue }
+            }
+            out.append(line)
+        }
+        while out.last?.isEmpty == true { out.removeLast() }
+        return out.joined(separator: "\n")
+    }
+
+    static func isItem(_ line: String) -> Bool {
+        line.hasPrefix(bullet) || line.hasPrefix(subBullet)
+    }
+
+    /// "* x", "- x", "+ x", "• x", "• * x": one or more markers, each followed by a space. "**bold**"
+    /// and "*italic*" at a line's start have no space after the star and stay as they are.
+    private static let listItem = /^(?:[*\-+•·●▪◦]\s+)+(.*)$/
+    private static let heading = /^#{1,6}\s+(.*)$/
+    private static let rule = /([-*_])\s*(?:\1\s*){2,}/
+
+    private static func firstMatch(of regex: Regex<(Substring, Substring)>, in text: String) -> String? {
+        text.wholeMatch(of: regex).map { String($0.1).trimmingCharacters(in: .whitespaces) }
     }
 }

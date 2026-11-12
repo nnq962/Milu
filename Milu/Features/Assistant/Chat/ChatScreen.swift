@@ -210,6 +210,21 @@ struct AnswerWords: UIViewRepresentable {
                 .baselineOffset: (line - runFont.lineHeight) / 4,
             ]))
         }
+        hangItems(in: result, font: regular, base: paragraph)
         return result
+    }
+
+    /// A list item's lines after its first start under its words, not under its "•", as lists
+    /// are set everywhere (user report 2026-11-12: wrapped lines ran back to the margin).
+    private static func hangItems(in text: NSMutableAttributedString, font: UIFont, base: NSParagraphStyle) {
+        let string = text.string as NSString
+        string.enumerateSubstrings(in: NSRange(location: 0, length: string.length), options: .byParagraphs) { paragraph, range, _, _ in
+            guard let paragraph,
+                  let marker = [AnswerMarkdown.subBullet, AnswerMarkdown.bullet].first(where: paragraph.hasPrefix)
+                    ?? paragraph.firstMatch(of: #/^\d{1,2}[.)] /#).map({ String($0.0) }) else { return }
+            let style = base.mutableCopy() as! NSMutableParagraphStyle
+            style.headIndent = ceil((marker as NSString).size(withAttributes: [.font: font]).width)
+            text.addAttribute(.paragraphStyle, value: style, range: range)
+        }
     }
 }

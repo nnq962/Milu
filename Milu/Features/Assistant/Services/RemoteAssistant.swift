@@ -1,11 +1,12 @@
+import CoreText
 import Foundation
 
 /// Milu's answers from the local LLM on the app's server (`MiluAPI`), worked from the phone's
 /// own data: the model asks for tools (`AssistantTools`), they run here, only their results go
 /// back, and it answers from them (user choice 2026-11-12).
 ///
-/// Without the server (no network, the server down) before any tool ran, the keyword assistant
-/// on the phone answers instead, so the chat still works offline.
+/// Without internet it says so (user choice 2026-11-12: no stand-in answers offline); the
+/// keyword assistant answers only when no server is set at all (`AssistantServices`).
 struct RemoteAssistant: AssistantService {
     let api: MiluAPI
     let store: FinanceStore
@@ -24,28 +25,23 @@ struct RemoteAssistant: AssistantService {
         messages.append(.user(question))
         let context = makeContext()
         var action: AssistantReply.Action?
-        var ranTools = false
 
         do {
             for _ in 0..<Self.maxRounds {
                 let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
                 guard !reply.toolCalls.isEmpty else {
-                    let text = reply.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
                     return AssistantReply(text: text.isEmpty ? Self.emptyAnswer(action) : text, action: action)
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
                 for call in reply.toolCalls {
                     let output = AssistantTools.named(call.name)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
-                    ranTools = true
                     if let next = output.action { action = next }
                     messages.append(.tool(call.name, result: output.result))
                 }
             }
             return AssistantReply(text: Self.emptyAnswer(action), action: action)
-        } catch MiluAPI.Failure.unreachable where !ranTools {
-            // Offline: the phone's own assistant, which knows the common questions.
-            return MockAssistant(store: store).reply(to: question)
         } catch MiluAPI.Failure.busy {
             throw AssistantServiceError.server("bạn đã hỏi nhiều quá trong giờ này")
         } catch where action != nil {
@@ -53,8 +49,10 @@ struct RemoteAssistant: AssistantService {
             return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action)
         } catch is CancellationError {
             throw CancellationError()
-        } catch MiluAPI.Failure.unreachable {
+        } catch MiluAPI.Failure.offline {
             throw AssistantServiceError.noConnection
+        } catch MiluAPI.Failure.unreachable {
+            throw AssistantServiceError.unavailable
         } catch MiluAPI.Failure.unauthorized {
             throw AssistantServiceError.server("khoá kết nối không hợp lệ")
         } catch {
@@ -80,5 +78,26 @@ struct RemoteAssistant: AssistantService {
             incomeCategories: names(.income),
             accounts: store.accounts.map(\.name)
         )
+    }
+}
+
+/// Emoji in an answer (user choice 2026-11-12: Milu answers with them), less any this iPhone has
+/// no picture for: a newer one than its emoji font showed as a "?" box (Simulator, 2026-11-12).
+enum Emoji {
+    private static let font = CTFontCreateWithName("AppleColorEmoji" as CFString, 17, nil)
+
+    static func drawable(_ text: String) -> String {
+        String(text.filter(isDrawable))
+    }
+
+    private static func isDrawable(_ character: Character) -> Bool {
+        // Only pictographs are checked: digits, © and the like are drawn by the text's own font.
+        let pictographs = character.unicodeScalars.filter { $0.properties.isEmojiPresentation || $0.value >= 0x1F000 }
+        guard !pictographs.isEmpty else { return true }
+        return pictographs.allSatisfy { scalar in
+            let units = Array(String(scalar).utf16)
+            var glyphs = [CGGlyph](repeating: 0, count: units.count)
+            return CTFontGetGlyphsForCharacters(font, units, &glyphs, units.count)
+        }
     }
 }
