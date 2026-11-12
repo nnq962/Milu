@@ -131,3 +131,85 @@ struct QuestionWords: UIViewRepresentable {
         return CGSize(width: min(ceil(fits.width), width), height: ceil(fits.height))
     }
 }
+
+/// Milu's answer's words: selectable, as in ChatGPT and Claude (user request 2026-11-11), held to
+/// select a word and dragged for more, with iOS's own Copy. Set as the body text is (Nunito
+/// Medium, its 24 line), **bold** and _italic_ kept.
+struct AnswerWords: UIViewRepresentable {
+    let text: AttributedString
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator {
+        var shown: AttributedString?
+    }
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        ChatWords.set(view)
+        // Set again whole when the text size changes: iOS scaled the letters but kept the old line
+        // height, and the lines ran into each other (Simulator, 2026-11-12).
+        view.adjustsFontForContentSizeCategory = false
+        let coordinator = context.coordinator
+        view.registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (view: UITextView, _) in
+            if let text = coordinator.shown { view.attributedText = Self.attributed(text) }
+        }
+        view.textContainerInset = .zero
+        view.isEditable = false
+        view.isSelectable = true
+        view.isScrollEnabled = false
+        view.dataDetectorTypes = []
+        view.tintColor = UIColor(Palette.primary)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return view
+    }
+
+    func updateUIView(_ view: UITextView, context: Context) {
+        // Set only when the words change: set again, the reader's selection went.
+        guard context.coordinator.shown != text else { return }
+        context.coordinator.shown = text
+        view.attributedText = Self.attributed(text)
+    }
+
+    /// As wide as its longest line, up to the width it is offered; as tall as its lines.
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView view: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? .greatestFiniteMagnitude
+        let fits = view.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: min(ceil(fits.width), width), height: ceil(fits.height))
+    }
+
+    /// The markdown's runs in Nunito at the body size, each line 24 tall (scaled), as
+    /// `textRole(.body)` sets SwiftUI's text.
+    static func attributed(_ text: AttributedString) -> NSAttributedString {
+        let metrics = UIFontMetrics(forTextStyle: .body)
+        let size = TextRole.body.size
+        func font(_ name: String) -> UIFont {
+            metrics.scaledFont(for: UIFont(name: name, size: size) ?? .systemFont(ofSize: size))
+        }
+        let regular = ChatWords.font()
+        let bold = font(Typography.instance(for: .bold))
+        let line = metrics.scaledValue(for: TextRole.body.lineHeight ?? 24)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.minimumLineHeight = line
+        paragraph.maximumLineHeight = line
+        let color = UIColor(Palette.label)
+
+        let result = NSMutableAttributedString()
+        for run in text.runs {
+            let intent = run.inlinePresentationIntent ?? []
+            var runFont = intent.contains(.stronglyEmphasized) ? bold : regular
+            if intent.contains(.emphasized),
+               let italic = runFont.fontDescriptor.withSymbolicTraits(runFont.fontDescriptor.symbolicTraits.union(.traitItalic)) {
+                runFont = UIFont(descriptor: italic, size: runFont.pointSize)
+            }
+            result.append(NSAttributedString(string: String(text[run.range].characters), attributes: [
+                .font: runFont,
+                .foregroundColor: color,
+                .paragraphStyle: paragraph,
+                // The words in the middle of their line, not at its foot.
+                .baselineOffset: (line - runFont.lineHeight) / 4,
+            ]))
+        }
+        return result
+    }
+}

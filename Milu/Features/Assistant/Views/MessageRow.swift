@@ -5,6 +5,7 @@ import SwiftUI
 struct MessageRow: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.onBubbleFrame) private var onBubbleFrame
+    @Environment(\.chatRowWidth) private var rowWidth
     let message: ChatMessage
     let onAction: (CardAction, ChatMessage) -> Void
 
@@ -17,6 +18,10 @@ struct MessageRow: View {
                 UserBubble(text: message.text)
                     .modifier(ReportsBubbleFrame(report: onBubbleFrame))
             }
+            // Never narrower than the row, asked its size with no width (as iOS does when it lifts
+            // the bubble for its menu): sized to the bubble alone, the row came back with it
+            // mid-row for a moment (frames, 2026-11-12).
+            .frame(minWidth: rowWidth, maxWidth: .infinity, alignment: .trailing)
         case .assistant:
             // Milu's name over a bubble that may run the page's width, no avatar column beside it
             // (user requests 2026-10-31: text close to both margins, yet still a chat).
@@ -31,9 +36,10 @@ struct MessageRow: View {
 
     private var answer: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            Text(formattedText)
-                .textRole(.body)
-                .fixedSize(horizontal: false, vertical: true)
+            // Words to select and copy, as in ChatGPT and Claude: no hold menu on an answer
+            // (user request 2026-11-11).
+            AnswerWords(text: formattedText)
+                .accessibilityLabel(String(formattedText.characters))
             if let transaction = cardTransaction {
                 TransactionCard(transaction: transaction)
             }
@@ -46,7 +52,6 @@ struct MessageRow: View {
         .padding(.horizontal, Spacing.l)
         .padding(.vertical, Spacing.m)
         .background { Bubble.assistantShape }
-        .modifier(ReportsBubbleFrame(report: onBubbleFrame))
     }
 
     /// Shows the live transaction (after edits) while it exists, else the snapshot.
@@ -183,6 +188,8 @@ enum ChatRow {
 extension EnvironmentValues {
     /// Where the row's bubble is, in `ChatRow.space`.
     @Entry var onBubbleFrame: ((CGRect) -> Void)? = nil
+    /// The chat's rows' width, inside their margins (`ChatViewController`).
+    @Entry var chatRowWidth: CGFloat? = nil
 }
 
 enum Bubble {

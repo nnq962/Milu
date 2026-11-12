@@ -42,6 +42,11 @@ final class ChatViewController: UIViewController {
     /// Each message's bubble in its row (`ChatRow.space`), as the row reports it: what holding a
     /// message lifts.
     private var bubbleFrames: [UUID: CGRect] = [:]
+    /// A message's hold menu is up. iOS puts the keyboard down for it and up again after; the
+    /// chat followed it down and jumped back (user report 2026-11-11), so it is held still.
+    private var menuHoldsChat = false
+    /// The question held for its menu: the picture over its bubble and its hidden row.
+    fileprivate var heldBubble: (id: UUID, picture: UIImageView, row: UIView, ending: Bool)?
     private var messagesByID: [UUID: ChatMessage] = [:]
     private var shownConversation: Conversation?
     private var shownThinking = false
@@ -158,6 +163,7 @@ final class ChatViewController: UIViewController {
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.allowsSelection = false
         collectionView.delegate = self
+        collectionView.addInteraction(UIContextMenuInteraction(delegate: self))
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         contentSizeWatch = collectionView.observe(\.contentSize, options: [.old, .new]) { [weak self] _, change in
@@ -206,6 +212,7 @@ final class ChatViewController: UIViewController {
         }
         .modifier(MiluEnvironment(store: store))
         .environment(\.questionWordsWidth, questionWordsWidth)
+        .environment(\.chatRowWidth, max(0, collectionView.bounds.width - 2 * Spacing.l))
         .coordinateSpace(.named(ChatRow.space))
     }
 
@@ -771,6 +778,8 @@ final class ChatViewController: UIViewController {
     /// question is pinned and what is under it is shorter than the page.
     /// `keepingEnd`: a chat at its end stays there as the room changes (the keyboard).
     private func updateInsets(keepingEnd: Bool = true) {
+        // A message's hold menu is up: the chat stays as it is under it (`menuHoldsChat`).
+        guard !menuHoldsChat else { return }
         let barRoom = max(0, view.bounds.maxY - bar.frame.minY)
         self.barRoom = barRoom
         var bottom = barRoom
@@ -794,7 +803,7 @@ final class ChatViewController: UIViewController {
 
     /// Back to the pinned question's spot, if something moved the chat off it.
     private func holdPin() {
-        guard pinRests, !collectionView.isTracking, !isAnimatingScroll, let offset = pinnedOffset else { return }
+        guard pinRests, !menuHoldsChat, !collectionView.isTracking, !isAnimatingScroll, let offset = pinnedOffset else { return }
         let point = CGPoint(x: 0, y: max(-collectionView.contentInset.top, offset))
         if abs(collectionView.contentOffset.y - point.y) > 0.5 { collectionView.contentOffset = point }
     }
@@ -804,6 +813,7 @@ final class ChatViewController: UIViewController {
     /// A row found its height: the room under a pinned question is measured again, and a chat
     /// settling at its end goes back there.
     private func contentSizeChanged() {
+        guard !menuHoldsChat else { return }
         updateInsets()
         holdPin()
         updateDownButton()
@@ -1095,20 +1105,24 @@ extension ChatViewController: UICollectionViewDelegate {
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         holdsToEnd = isAtEnd
     }
+}
 
-    // MARK: Hold to copy
+// MARK: Hold to copy
 
-    /// Holding a message's bubble: "Sao chép" (user request 2026-11-11), as in Messages. The
-    /// list's own menu rather than SwiftUI's `.contextMenu` in the row, which warns
-    /// "_UIReparentingView … not supported" inside a UIKit list.
-    func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
-                        point: CGPoint) -> UIContextMenuConfiguration? {
-        guard indexPaths.count == 1, let indexPath = indexPaths.first,
+/// Holding a question's bubble: "Sao chép" (user request 2026-11-11), as in Messages. Milu's
+/// answers have no menu: their words are selected, as in ChatGPT and Claude (`AnswerWords`). A menu of
+/// the page's own on the list, not SwiftUI's `.contextMenu` in the row (it warns
+/// "_UIReparentingView … not supported" inside a UIKit list) nor the list's cell menu (on
+/// closing, it drew a copy of the row sliding in from the side, user report 2026-11-11).
+extension ChatViewController: UIContextMenuInteractionDelegate {
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
+        guard let indexPath = collectionView.indexPathForItem(at: location),
               case .message(let id)? = dataSource.itemIdentifier(for: indexPath),
-              let message = messagesByID[id],
+              let message = messagesByID[id], message.role == .user,
               let cell = collectionView.cellForItem(at: indexPath),
               let bubble = bubbleRect(id, in: cell),
-              bubble.contains(collectionView.convert(point, to: cell.contentView)) else { return nil }
+              bubble.contains(collectionView.convert(location, to: cell.contentView)) else { return nil }
         let text = MessageRow.copiedText(of: message)
         return UIContextMenuConfiguration(identifier: id as NSUUID, previewProvider: nil) { _ in
             UIMenu(children: [
@@ -1120,30 +1134,115 @@ extension ChatViewController: UICollectionViewDelegate {
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, contextMenuConfiguration configuration: UIContextMenuConfiguration,
-                        highlightPreviewForItemAt indexPath: IndexPath) -> UITargetedPreview? {
-        bubblePreview(at: indexPath)
+    /// A still picture of the bubble, laid over it in its row the moment the hold begins (the
+    /// row hidden under it, the two alike): iOS lifts the picture, hides it while it is up and
+    /// puts it back where it was, as Messages does. Lifted, the row's own SwiftUI came back laid
+    /// out mid-row for a moment; a picture lifted from nowhere and the row hidden by hand left a
+    /// second bubble under the one moved, or none once the menu was gone (user reports
+    /// 2026-11-11 and 2026-11-12).
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                configuration: UIContextMenuConfiguration,
+                                highlightPreviewForItemWithIdentifier identifier: any NSCopying) -> UITargetedPreview? {
+        guard let id = (identifier as? NSUUID).map({ $0 as UUID }) else { return nil }
+        // A picture of its own for each hold; within one hold, the same. A hold soon after the
+        // last took that one's picture, which the last then took away: the bubble did not lift
+        // (user report 2026-11-12).
+        if heldBubble?.id != id || heldBubble?.ending == true { coverBubble(id) }
+        return heldPreview()
     }
 
-    func collectionView(_ collectionView: UICollectionView, contextMenuConfiguration configuration: UIContextMenuConfiguration,
-                        dismissalPreviewForItemAt indexPath: IndexPath) -> UITargetedPreview? {
-        bubblePreview(at: indexPath)
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                configuration: UIContextMenuConfiguration,
+                                dismissalPreviewForItemWithIdentifier identifier: any NSCopying) -> UITargetedPreview? {
+        heldPreview()
     }
 
-    /// The bubble lifting out of its row in its own shape, the rest of the row left behind.
-    private func bubblePreview(at indexPath: IndexPath) -> UITargetedPreview? {
-        guard case .message(let id)? = dataSource.itemIdentifier(for: indexPath),
-              let message = messagesByID[id],
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willDisplayMenuFor configuration: UIContextMenuConfiguration,
+                                animator: (any UIContextMenuInteractionAnimating)?) {
+        menuHoldsChat = true
+    }
+
+    /// The menu gone: the chat takes the room the bar has by then, softly if it changed (the
+    /// keyboard stayed down).
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction, willEndFor configuration: UIContextMenuConfiguration,
+                                animator: (any UIContextMenuInteractionAnimating)?) {
+        heldBubble?.ending = true
+        let held = heldBubble?.picture
+        // In case iOS never says it is done: the picture is the bubble's twin, so taking it away
+        // a moment later shows nothing. Each takes away its own hold's picture only.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            if let self, self.heldBubble?.picture === held { self.uncoverBubble() }
+        }
+        let release = { [weak self] in
+            guard let self else { return }
+            if self.heldBubble?.picture === held { self.uncoverBubble() }
+            guard self.menuHoldsChat else { return }
+            self.menuHoldsChat = false
+            self.view.layoutIfNeeded()
+            if UIAccessibility.isReduceMotionEnabled {
+                self.updateInsets()
+            } else {
+                UIView.animate(springDuration: 0.36, bounce: 0) { self.updateInsets() }
+            }
+            self.updateDownButton()
+        }
+        if let animator {
+            animator.addCompletion(release)
+        } else {
+            release()
+        }
+    }
+
+    /// The picture laid over the held question's bubble, its row hidden under it.
+    private func coverBubble(_ id: UUID) {
+        // The same bubble held again while the last hold's picture is still up (the row under it
+        // hidden, drawn as nothing): its picture is drawn again from that one.
+        let lastImage = heldBubble?.id == id ? heldBubble?.picture.image : nil
+        uncoverBubble()
+        guard let indexPath = dataSource.indexPath(for: .message(id)),
+              let cell = collectionView.cellForItem(at: indexPath),
+              let bubble = bubbleRect(id, in: cell) else { return }
+        let row = cell.contentView
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.opaque = false
+        let image = lastImage ?? UIGraphicsImageRenderer(size: bubble.size, format: format).image { _ in
+            row.drawHierarchy(in: CGRect(origin: CGPoint(x: -bubble.minX, y: -bubble.minY), size: row.bounds.size),
+                              afterScreenUpdates: false)
+        }
+        let picture = UIImageView(image: image)
+        picture.frame = row.convert(bubble, to: cell)
+        cell.addSubview(picture)
+        row.alpha = 0
+        heldBubble = (id, picture, row, false)
+        // A hold let go before its menu came: no menu ends it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            if let self, !self.menuHoldsChat, self.heldBubble?.picture === picture { self.uncoverBubble() }
+        }
+    }
+
+    /// The picture taken away and the row shown again.
+    private func uncoverBubble() {
+        guard let held = heldBubble else { return }
+        heldBubble = nil
+        held.row.alpha = 1
+        held.picture.removeFromSuperview()
+    }
+
+    /// The picture, in the bubble's shape, where it lies.
+    private func heldPreview() -> UITargetedPreview? {
+        guard let picture = heldBubble?.picture, picture.window != nil else { return nil }
+        let parameters = UIPreviewParameters()
+        parameters.visiblePath = UIBezierPath(cgPath: Bubble.userShape.path(in: picture.bounds).cgPath)
+        parameters.backgroundColor = .clear
+        return UITargetedPreview(view: picture, parameters: parameters)
+    }
+
+    /// A message's bubble's centre in the list.
+    private func bubbleCenter(_ id: UUID) -> CGPoint? {
+        guard let indexPath = dataSource.indexPath(for: .message(id)),
               let cell = collectionView.cellForItem(at: indexPath),
               let bubble = bubbleRect(id, in: cell) else { return nil }
-        let path = switch message.role {
-        case .user: Bubble.userShape.path(in: bubble)
-        case .assistant: Bubble.assistantOutline.path(in: bubble)
-        }
-        let parameters = UIPreviewParameters()
-        parameters.visiblePath = UIBezierPath(cgPath: path.cgPath)
-        parameters.backgroundColor = .clear
-        return UITargetedPreview(view: cell.contentView, parameters: parameters)
+        return collectionView.convert(CGPoint(x: bubble.midX, y: bubble.midY), from: cell.contentView)
     }
 
     /// A message's bubble in its cell's content view: the row's content starts inside the row's
@@ -1191,3 +1290,4 @@ private struct MiluEnvironment: ViewModifier {
 private final class ChatList: UICollectionView {
     override var safeAreaInsets: UIEdgeInsets { .zero }
 }
+
