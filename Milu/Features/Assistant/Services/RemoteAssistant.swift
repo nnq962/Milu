@@ -23,30 +23,35 @@ struct RemoteAssistant: AssistantService {
             return message.role == .user ? .user(text) : .assistant(text)
         }
         messages.append(.user(question))
-        let context = makeContext()
+        let context = Self.context(for: store)
         var action: AssistantReply.Action?
+        /// The tools run: a question that only recorded or deleted takes no lượt.
+        var toolsRun = Set<String>()
 
         do {
             for _ in 0..<Self.maxRounds {
                 let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
-                    return AssistantReply(text: text.isEmpty ? Self.emptyAnswer(action) : text, action: action)
+                    return AssistantReply(text: text.isEmpty ? Self.emptyAnswer(action) : text, action: action,
+                                          counts: Self.counts(toolsRun))
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
                 for call in reply.toolCalls {
                     let output = AssistantTools.named(call.name)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
                     if let next = output.action { action = next }
+                    toolsRun.insert(call.name)
                     messages.append(.tool(call.name, result: output.result))
                 }
             }
-            return AssistantReply(text: Self.emptyAnswer(action), action: action)
+            return AssistantReply(text: Self.emptyAnswer(action), action: action, counts: Self.counts(toolsRun))
         } catch MiluAPI.Failure.busy {
             throw AssistantServiceError.server("bạn đã hỏi nhiều quá trong giờ này")
         } catch where action != nil {
             // A transaction was recorded or picked before the answer failed: its card shows.
-            return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action)
+            return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action,
+                                  counts: Self.counts(toolsRun))
         } catch is CancellationError {
             throw CancellationError()
         } catch MiluAPI.Failure.offline {
@@ -60,19 +65,25 @@ struct RemoteAssistant: AssistantService {
         }
     }
 
+    /// Whether the question takes a lượt: not when every tool it ran only recorded or deleted.
+    private static func counts(_ tools: Set<String>) -> Bool {
+        tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, DeleteTransaction().name])
+    }
+
     private static func emptyAnswer(_ action: AssistantReply.Action?) -> String {
         action == nil ? "Mình chưa trả lời được câu này. Bạn hỏi lại theo cách khác nhé." : "Xong rồi, bạn xem bên dưới nhé:"
     }
 
     /// The day and the names the model may use: categories (groups and their items) and accounts.
-    private func makeContext() -> MiluAPI.Context {
+    /// Also what the server's evaluation reads (`AssistantToolsTests`).
+    static func context(for store: FinanceStore, on day: Date = .now) -> MiluAPI.Context {
         func names(_ kind: TransactionKind) -> [String] {
             store.groups(kind).flatMap { group in [group.name] + store.items(of: group).map(\.name) }
         }
         let profileName = UserDefaults.standard.string(forKey: StorageKey.profileName)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return MiluAPI.Context(
-            today: ToolDates.text(.now),
+            today: ToolDates.text(day),
             userName: profileName?.isEmpty == false ? profileName : nil,
             expenseCategories: names(.expense),
             incomeCategories: names(.income),

@@ -4,5 +4,5 @@ import Foundation
 /// on Tổng quan and the invite in Cài đặt.
 enum MiluProNote {
     static let title = "Milu Pro · Sắp ra mắt"
-    static let message = "Milu Pro có \(AIQuota.monthlyPro) lượt AI mỗi tháng, xuất báo cáo PDF, Excel và đồng bộ trên mọi thiết bị. Gói đang được chuẩn bị, chưa mở đăng ký hoặc thanh toán."
+    static let message = "Milu Pro có \(AIQuota.weeklyPro) lượt AI mỗi tuần, xuất báo cáo PDF, Excel và đồng bộ trên mọi thiết bị. Gói đang được chuẩn bị, chưa mở đăng ký hoặc thanh toán."
 }

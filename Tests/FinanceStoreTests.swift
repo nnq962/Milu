@@ -179,29 +179,65 @@ struct FinanceStoreTests {
     }
 }
 
-/// Trợ lý AI's allowance: 20 a month, then the bonus, each onboarding step paying 5 once.
+/// Trợ lý AI's allowance (user choice 2026-11-12): 10 a week from Monday, each onboarding step
+/// paying 5 once to use within 7 days, the bonus used first, and lượt given back.
 @MainActor
 struct AIQuotaTests {
-    private func makeQuota() -> AIQuota {
-        AIQuota(defaults: UserDefaults(suiteName: "AIQuotaTests.\(UUID().uuidString)")!)
+    /// A Thursday, mid-week.
+    private static let thursday = ISO8601DateFormatter().date(from: "2026-11-12T10:00:00+07:00")!
+
+    private final class Clock { var now = AIQuotaTests.thursday }
+
+    private func makeQuota(_ clock: Clock = Clock(), defaults: UserDefaults? = nil) -> AIQuota {
+        AIQuota(defaults: defaults ?? UserDefaults(suiteName: "AIQuotaTests.\(UUID().uuidString)")!, now: { clock.now })
     }
 
-    @Test func aNewMonthStartsWithTheFreeAllowance() {
+    @Test func aNewWeekStartsWithTheFreeAllowance() {
         let quota = makeQuota()
-        #expect(quota.remaining == AIQuota.monthlyFree)
+        #expect(quota.remaining == AIQuota.weeklyFree)
         #expect(!quota.isEmpty)
     }
 
-    @Test func questionsUseTheMonthFirstThenTheBonusThenStop() {
+    @Test func itRenewsOnMondayMorning() {
+        let renews = makeQuota().renewsOn
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = .current
+        #expect(calendar.component(.weekday, from: renews) == 2)
+        #expect(calendar.component(.hour, from: renews) == 0)
+        #expect(renews > Self.thursday && renews.timeIntervalSince(Self.thursday) < 5 * 86_400)
+    }
+
+    @Test func questionsUseTheBonusFirstThenTheWeekThenStop() {
         let quota = makeQuota()
         quota.claim("account")
-        #expect(quota.remaining == AIQuota.monthlyFree + AIQuota.stepBonus)
-        for _ in 0..<AIQuota.monthlyFree { #expect(quota.spend()) }
-        #expect(quota.monthlyLeft == 0)
-        #expect(quota.bonus == AIQuota.stepBonus)
+        #expect(quota.remaining == AIQuota.weeklyFree + AIQuota.stepBonus)
         for _ in 0..<AIQuota.stepBonus { #expect(quota.spend()) }
+        #expect(quota.bonus == 0)
+        #expect(quota.usedThisWeek == 0)
+        for _ in 0..<AIQuota.weeklyFree { #expect(quota.spend()) }
         #expect(quota.isEmpty)
         #expect(!quota.spend())
+    }
+
+    @Test func aNewWeekFillsUpAgain() {
+        let clock = Clock()
+        let quota = makeQuota(clock)
+        for _ in 0..<AIQuota.weeklyFree { quota.spend() }
+        #expect(quota.isEmpty)
+        clock.now = quota.renewsOn.addingTimeInterval(60)
+        #expect(quota.remaining == AIQuota.weeklyFree)
+        #expect(quota.spend())
+    }
+
+    @Test func theBonusRunsOutAfterSevenDays() {
+        let clock = Clock()
+        let quota = makeQuota(clock)
+        quota.claim("loan")
+        clock.now = Self.thursday.addingTimeInterval(Double(AIQuota.bonusDays) * 86_400 - 60)
+        #expect(quota.bonus == AIQuota.stepBonus)
+        clock.now = Self.thursday.addingTimeInterval(Double(AIQuota.bonusDays) * 86_400 + 60)
+        #expect(quota.bonus == 0)
+        #expect(quota.bonusExpires == nil)
     }
 
     @Test func eachStepPaysOnce() {
@@ -211,14 +247,48 @@ struct AIQuotaTests {
         #expect(quota.bonus == AIQuota.stepBonus)
     }
 
+    @Test func aRefundGivesBackTheLastLuot() {
+        let quota = makeQuota()
+        quota.spend()
+        #expect(quota.usedThisWeek == 1)
+        quota.refund()
+        #expect(quota.usedThisWeek == 0)
+        // Once only.
+        quota.refund()
+        #expect(quota.usedThisWeek == 0)
+        quota.claim("askAI")
+        quota.spend()
+        #expect(quota.bonus == AIQuota.stepBonus - 1)
+        quota.refund()
+        #expect(quota.bonus == AIQuota.stepBonus)
+    }
+
     @Test func theAllowanceIsSaved() {
         let defaults = UserDefaults(suiteName: "AIQuotaTests.\(UUID().uuidString)")!
-        let quota = AIQuota(defaults: defaults)
+        let clock = Clock()
+        let quota = makeQuota(clock, defaults: defaults)
         quota.spend()
         quota.claim("askAI")
-        let reopened = AIQuota(defaults: defaults)
-        #expect(reopened.usedThisMonth == 1)
+        let reopened = makeQuota(clock, defaults: defaults)
+        #expect(reopened.usedThisWeek == 1)
         #expect(reopened.bonus == AIQuota.stepBonus)
+        #expect(reopened.hasClaimed("askAI"))
+    }
+
+    @Test func theMonthlyAllowanceMovesOver() {
+        let defaults = UserDefaults(suiteName: "AIQuotaTests.\(UUID().uuidString)")!
+        defaults.set("2026-11", forKey: "ai.month")
+        defaults.set(17, forKey: "ai.used")
+        defaults.set(12, forKey: "ai.bonus")
+        defaults.set(["account"], forKey: "ai.claimedSteps")
+        let clock = Clock()
+        let quota = makeQuota(clock, defaults: defaults)
+        #expect(quota.usedThisWeek == 0)
+        #expect(quota.bonus == 12)
+        #expect(quota.hasClaimed("account"))
+        #expect(defaults.object(forKey: "ai.month") == nil)
+        clock.now = Self.thursday.addingTimeInterval(8 * 86_400)
+        #expect(quota.bonus == 0)
     }
 }
 

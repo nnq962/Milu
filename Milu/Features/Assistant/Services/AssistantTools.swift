@@ -231,8 +231,8 @@ struct RecordTransaction: AssistantTool {
 struct DeleteTransaction: AssistantTool {
     let name = "delete_transaction"
     let description = """
-        Đề nghị xoá một giao dịch theo ref (lấy từ list_transactions). Không xoá ngay: app hiện thẻ để \
-        người dùng bấm xác nhận.
+        Đề nghị xoá một giao dịch theo ref (lấy từ list_transactions). Có ref rồi thì gọi ngay, không hỏi \
+        lại người dùng: app không xoá liền mà hiện thẻ để họ bấm xác nhận.
         """
     let parameters: JSONValue = [
         "type": "object",

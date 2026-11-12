@@ -16,6 +16,9 @@ struct AssistantReply {
 
     var text: String
     var action: Action? = nil
+    /// Takes a lượt (`AIQuota`): false when it only recorded or deleted a transaction, which is
+    /// data entry and free (user choice 2026-11-12).
+    var counts = true
 }
 
 /// Trợ lý AI "giả lập": nhận diện vài câu hỏi và lệnh phổ biến bằng từ khoá rồi trả lời
@@ -56,7 +59,7 @@ struct MockAssistant {
                                              note: title == category.title ? "" : title)
         store.add(transaction)
         let kind = category.kind == .income ? "khoản thu" : "khoản chi"
-        return .init(text: "Mình đã ghi \(kind) này vào \(account.name):", action: .recorded(transaction))
+        return .init(text: "Mình đã ghi \(kind) này vào \(account.name):", action: .recorded(transaction), counts: false)
     }
 
     // MARK: - Xoá giao dịch
@@ -75,7 +78,8 @@ struct MockAssistant {
             return .init(text: "Mình chưa tìm thấy khoản nào khớp. Bạn thử nói rõ tên và ngày, ví dụ: **xoá khoản tiền điện hôm qua**.")
         }
         let note = candidates.count > 1 ? " (có \(candidates.count) khoản khớp, mình chọn khoản gần nhất)" : ""
-        return .init(text: "Bạn muốn xoá khoản này\(note)? Sau khi xoá, số dư sẽ được cập nhật lại.", action: .confirmDelete(match))
+        return .init(text: "Bạn muốn xoá khoản này\(note)? Sau khi xoá, số dư sẽ được cập nhật lại.",
+                     action: .confirmDelete(match), counts: false)
     }
 
     // MARK: - Hiểu câu lệnh

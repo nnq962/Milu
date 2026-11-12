@@ -1,23 +1,40 @@
 import Foundation
 import Observation
 
-/// Trợ lý AI's question allowance (user choice 2026-10-29): the free plan gets 20 a month, full
-/// again on the 1st; each "Làm quen với Milu" step done adds 5 once, kept until used. A question
-/// takes from the month first, then from the bonus. With none left, Trợ lý AI stops sending and
-/// invites to Pro. Saved in UserDefaults; Pro (300 a month) is not on sale yet.
+/// Trợ lý AI's question allowance, by the week (user choice 2026-11-12): the free plan gets 10
+/// lượt a week, full again at 0:00 on Monday; Pro gets 150. Each "Làm quen với Milu" step done
+/// pays 5 lượt once, to use within 7 days. A question takes from the bonus first (it runs out),
+/// then from the week; recording or deleting a transaction takes none, and a question Milu could
+/// not answer is given back (`refund`). With none left, Trợ lý AI stops sending and invites to
+/// Pro. Saved in UserDefaults; Pro is not on sale yet.
 @Observable
 final class AIQuota {
-    static let monthlyFree = 20
-    static let monthlyPro = 300
+    static let weeklyFree = 10
+    static let weeklyPro = 150
     static let stepBonus = 5
+    /// How long a step's bonus lasts.
+    static let bonusDays = 7
+
+    /// A step's bonus: what is left of it, and when it runs out.
+    struct Grant: Codable, Equatable {
+        var left: Int
+        var expires: Date
+    }
 
     private let defaults: UserDefaults
-    private var month: String
+    private let now: () -> Date
+    private var week: String
     private var used: Int
-    /// Bonus questions still unused.
-    private(set) var bonus: Int
+    private var grants: [Grant]
     /// Onboarding steps already paid out, so each pays once.
     private var claimed: Set<String>
+    /// Where the last question's lượt came from, for `refund`.
+    @ObservationIgnored private var lastSpend: Spend?
+
+    private enum Spend {
+        case week(String)
+        case grant(expires: Date)
+    }
 
     /// No limit at all: every question goes and none is counted. On in Debug builds, for testing
     /// (user request 2026-11-10); a Release build always counts.
@@ -30,38 +47,57 @@ final class AIQuota {
         #endif
     }()
 
-    init(defaults: UserDefaults = .standard, unlimited: Bool = false) {
+    init(defaults: UserDefaults = .standard, unlimited: Bool = false, now: @escaping () -> Date = Date.init) {
         self.defaults = defaults
+        self.now = now
         isUnlimited = unlimited
-        month = defaults.string(forKey: Keys.month) ?? Self.monthKey(.now)
+        let today = now()
+        week = defaults.string(forKey: Keys.week) ?? Self.weekKey(today)
         used = defaults.integer(forKey: Keys.used)
-        bonus = defaults.integer(forKey: Keys.bonus)
+        grants = defaults.data(forKey: Keys.grants)
+            .flatMap { try? JSONDecoder().decode([Grant].self, from: $0) } ?? []
         claimed = Set(defaults.stringArray(forKey: Keys.claimed) ?? [])
+        migrateFromMonths(today: today)
     }
 
-    /// Questions asked this month (0 once a new month starts).
-    var usedThisMonth: Int { month == Self.monthKey(.now) ? used : 0 }
-    var monthlyLeft: Int { max(Self.monthlyFree - usedThisMonth, 0) }
-    var remaining: Int { monthlyLeft + bonus }
+    // MARK: What is left
+
+    /// Questions asked this week (0 once a new week starts).
+    var usedThisWeek: Int { week == Self.weekKey(now()) ? used : 0 }
+    var weeklyLeft: Int { max(Self.weeklyFree - usedThisWeek, 0) }
+    /// Bonus lượt not yet used nor run out.
+    var bonus: Int { liveGrants.reduce(0) { $0 + $1.left } }
+    /// When the soonest bonus runs out, if there is any.
+    var bonusExpires: Date? { liveGrants.map(\.expires).min() }
+    var remaining: Int { weeklyLeft + bonus }
     var isEmpty: Bool { !isUnlimited && remaining == 0 }
 
-    /// When the month fills up again: the 1st of next month.
+    /// When the week fills up again: 0:00 next Monday.
     var renewsOn: Date {
-        let calendar = Calendar.current
-        let start = calendar.date(from: calendar.dateComponents([.year, .month], from: .now)) ?? .now
-        return calendar.date(byAdding: .month, value: 1, to: start) ?? .now
+        Self.calendar.dateInterval(of: .weekOfYear, for: now())?.end ?? now()
     }
 
-    /// Takes one question; false when none are left.
+    private var liveGrants: [Grant] {
+        let moment = now()
+        return grants.filter { $0.left > 0 && $0.expires > moment }
+    }
+
+    // MARK: Spending
+
+    /// Takes one question, from the bonus that runs out soonest, else from the week; false when
+    /// none are left.
     @discardableResult
     func spend() -> Bool {
         if isUnlimited { return true }
-        let now = Self.monthKey(.now)
-        if month != now { month = now; used = 0 }
-        if used < Self.monthlyFree {
+        rollWeek()
+        let moment = now()
+        if let index = grants.indices.filter({ grants[$0].left > 0 && grants[$0].expires > moment })
+            .min(by: { grants[$0].expires < grants[$1].expires }) {
+            grants[index].left -= 1
+            lastSpend = .grant(expires: grants[index].expires)
+        } else if used < Self.weeklyFree {
             used += 1
-        } else if bonus > 0 {
-            bonus -= 1
+            lastSpend = .week(week)
         } else {
             return false
         }
@@ -69,28 +105,79 @@ final class AIQuota {
         return true
     }
 
+    /// Gives back the last question's lượt: Milu did not answer (no internet, the server down,
+    /// stopped with ■), or the question only recorded or deleted a transaction.
+    func refund() {
+        guard !isUnlimited, let spend = lastSpend else { return }
+        lastSpend = nil
+        switch spend {
+        case .week(let key):
+            // Last week's lượt is not given back into this one.
+            if key == week, used > 0 { used -= 1 }
+        case .grant(let expires):
+            if let index = grants.firstIndex(where: { $0.expires == expires }) { grants[index].left += 1 }
+        }
+        save()
+    }
+
+    // MARK: Onboarding
+
     /// Whether a step's +5 was already paid: the step stays done after its data is gone, so it
     /// never offers again a reward it would not pay (review 2026-11-08).
     func hasClaimed(_ step: String) -> Bool { claimed.contains(step) }
 
-    /// Pays a finished onboarding step's +5, once per step.
+    /// Pays a finished onboarding step's +5, once per step, to use within `bonusDays`.
     func claim(_ step: String) {
         guard !claimed.contains(step) else { return }
         claimed.insert(step)
-        bonus += Self.stepBonus
+        grants.append(Grant(left: Self.stepBonus, expires: now().addingTimeInterval(Double(Self.bonusDays) * 86_400)))
         save()
     }
 
+    // MARK: Saving
+
+    private func rollWeek() {
+        let current = Self.weekKey(now())
+        if week != current {
+            week = current
+            used = 0
+        }
+    }
+
     private func save() {
-        defaults.set(month, forKey: Keys.month)
+        // Run-out bonuses go, so the list stays short.
+        let moment = now()
+        grants.removeAll { $0.left <= 0 || $0.expires <= moment }
+        defaults.set(week, forKey: Keys.week)
         defaults.set(used, forKey: Keys.used)
-        defaults.set(bonus, forKey: Keys.bonus)
+        defaults.set(try? JSONEncoder().encode(grants), forKey: Keys.grants)
         defaults.set(Array(claimed), forKey: Keys.claimed)
     }
 
-    private static func monthKey(_ date: Date) -> String {
-        let parts = Calendar.current.dateComponents([.year, .month], from: date)
-        return "\(parts.year ?? 0)-\(parts.month ?? 0)"
+    /// The monthly allowance (2026-10-29 to 2026-11-12) gives way to the week: its count is
+    /// dropped (a new week starts full) and a bonus still there lasts 7 days from now.
+    private func migrateFromMonths(today: Date) {
+        guard defaults.object(forKey: Keys.oldMonth) != nil || defaults.object(forKey: Keys.oldBonus) != nil else { return }
+        let oldBonus = defaults.integer(forKey: Keys.oldBonus)
+        if oldBonus > 0 {
+            grants.append(Grant(left: oldBonus, expires: today.addingTimeInterval(Double(Self.bonusDays) * 86_400)))
+        }
+        week = Self.weekKey(today)
+        used = 0
+        [Keys.oldMonth, Keys.oldUsed, Keys.oldBonus].forEach(defaults.removeObject(forKey:))
+        save()
+    }
+
+    /// Weeks from Monday, as in Vietnam.
+    private static let calendar: Calendar = {
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = .current
+        return calendar
+    }()
+
+    private static func weekKey(_ date: Date) -> String {
+        let parts = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
+        return "\(parts.yearForWeekOfYear ?? 0)-W\(parts.weekOfYear ?? 0)"
     }
 
     /// Whether a saved key is the allowance's own, which "Xoá toàn bộ dữ liệu" keeps.
@@ -98,9 +185,13 @@ final class AIQuota {
 
     private enum Keys {
         static let prefix = "ai."
-        static let month = "ai.month"
-        static let used = "ai.used"
-        static let bonus = "ai.bonus"
+        static let week = "ai.week"
+        static let used = "ai.weekUsed"
+        static let grants = "ai.bonusGrants"
         static let claimed = "ai.claimedSteps"
+        // The monthly allowance's, read once to move over.
+        static let oldMonth = "ai.month"
+        static let oldUsed = "ai.used"
+        static let oldBonus = "ai.bonus"
     }
 }

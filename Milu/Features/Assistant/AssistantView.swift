@@ -16,6 +16,8 @@ struct AssistantView: View {
     @State private var isThinking = false
     /// Asking for Milu's answer, until it is in; ■ cancels it.
     @State private var answering: Task<Void, Never>?
+    /// Whether the question being answered took a lượt (`AIQuota.spend`), to give it back.
+    @State private var answerPaid = false
     /// When Milu's answer last came in: a tap meant for ■ that lands just after, on the mic,
     /// does not start listening (Simulator, 2026-11-11).
     @State private var answeredAt: Date = .distantPast
@@ -44,7 +46,9 @@ struct AssistantView: View {
             draft: $draft,
             isDictating: isDictating,
             showsLeading: dictation.isRecording,
-            isOutOfQuestions: quota.isEmpty,
+            // The field stays with no lượt left: recording and deleting are free (user choice
+            // 2026-11-12); a question that needs a lượt is told so in the chat.
+            isOutOfQuestions: false,
             leading: AnyView(roundButton("xmark", label: "Huỷ nhập giọng nói") {
                 Haptics.impact()
                 dictation.stop()
@@ -55,7 +59,7 @@ struct AssistantView: View {
             }),
             action: AnyView(actionButton(isDictating: isDictating)),
             fieldOverlay: AnyView(dictationStatus),
-            outOfQuestions: AnyView(outOfQuestions),
+            outOfQuestions: AnyView(EmptyView()),
             greeting: AnyView(greeting),
             onAction: handle
         )
@@ -150,6 +154,15 @@ struct AssistantView: View {
                     .foregroundStyle(Palette.secondaryLabel)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                if !quota.isUnlimited {
+                    // What is left this week, and that recording costs none (user choice 2026-11-12).
+                    Text("Còn \(quota.remaining) lượt hỏi tuần này · ghi, xoá giao dịch không tốn lượt")
+                        .textRole(.caption)
+                        .foregroundStyle(Palette.secondaryLabel)
+                        .multilineTextAlignment(.center)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(.horizontal, Spacing.xl)
             .padding(.vertical, Spacing.xl)
@@ -258,6 +271,9 @@ struct AssistantView: View {
         Haptics.impact()
         answering?.cancel()
         answering = nil
+        // Stopped before any answer: the lượt is given back.
+        if answerPaid { quota.refund() }
+        answerPaid = false
         withAnimation(Motion.gentle(.easeOut(duration: 0.2))) { isThinking = false }
     }
 
@@ -275,24 +291,10 @@ struct AssistantView: View {
         .accessibilityLabel(label)
     }
 
-    /// In place of the input once this month's questions and the bonus are used up.
-    private var outOfQuestions: some View {
-        HStack(alignment: .top, spacing: Spacing.m) {
-            AssistantAvatar()
-            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                Text("Đã dùng hết lượt AI")
-                    .textRole(.bodyStrong)
-                Text("Lượt mới vào \(quota.renewsOn.shortDay)")
-                    .textRole(.caption)
-                    .foregroundStyle(Palette.secondaryLabel)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(RowMetrics.horizontal)
-        .cardSurface(radius: CardCorners.card)
-        .padding(.horizontal, Spacing.l)
-        .padding(.bottom, Spacing.s)
+    /// Milu's answer to a question asked with no lượt left, in its voice.
+    private var outOfQuestionsReply: String {
+        "Tuần này bạn hỏi Milu hết lượt rồi 😏 Lượt mới có từ **thứ Hai \(quota.renewsOn.shortDay)** nha.\n\n"
+            + "• Ghi hay xoá giao dịch thì vẫn thoải mái, không tốn lượt.\n• Muốn hỏi thả ga thì đợi Milu Pro nhé."
     }
 
     private var dictationMessage: String {
@@ -352,7 +354,10 @@ struct AssistantView: View {
     /// Sends what is in the field and asks the assistant (`AssistantServices`) for the answer.
     private func send() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty, !isThinking, quota.spend() else { return }
+        guard !question.isEmpty, !isThinking else { return }
+        // With none left it is asked all the same: it may only record or delete, which is free.
+        let paid = quota.spend()
+        answerPaid = paid
         // A soft knock as the question leaves, as the AI apps give.
         Haptics.impact(.soft)
         dictation.stop()
@@ -367,7 +372,7 @@ struct AssistantView: View {
         let service = AssistantServices.make(store: store)
 
         answering = Task {
-            let reply: AssistantReply
+            var reply: AssistantReply
             do {
                 let answer = try await service.reply(to: question, history: history)
                 // Stopped (■) while the answer was on its way: it is dropped.
@@ -377,10 +382,18 @@ struct AssistantView: View {
                 return
             } catch {
                 if Task.isCancelled { return }
-                // No answer came (no connection, the server): felt as well as read.
+                // No answer came (no connection, the server): felt as well as read, and the
+                // lượt given back.
                 Haptics.error()
                 reply = AssistantReply(text: (error as? LocalizedError)?.errorDescription
-                    ?? "Milu chưa trả lời được. Bạn thử lại sau nhé.")
+                    ?? "Milu chưa trả lời được. Bạn thử lại sau nhé.", counts: false)
+            }
+            // Only recording or deleting, or no answer: free (user choice 2026-11-12). A question
+            // asked with no lượt left is answered with when they come back.
+            if !reply.counts {
+                if paid { quota.refund() }
+            } else if !paid {
+                reply = AssistantReply(text: outOfQuestionsReply)
             }
             let card: ChatMessage.Card? = switch reply.action {
             case .recorded(let transaction): .recorded(transaction, removed: false)
