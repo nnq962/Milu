@@ -13,7 +13,7 @@ import Foundation
 final class CloudSettings {
     static let keys: Set<String> = [StorageKey.monthlyBudget, StorageKey.categoryBudgets, StorageKey.profileName,
                                     StorageKey.dailyReminder, StorageKey.dailyReminderMinutes,
-                                    StorageKey.budgetAlerts, StorageKey.askedAI]
+                                    StorageKey.budgetAlerts, StorageKey.askedAI, BudgetAlertPlan.sentKey]
 
     static func isSynced(_ key: String) -> Bool { keys.contains(key) || AIQuota.isOwnKey(key) }
 

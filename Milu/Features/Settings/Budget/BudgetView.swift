@@ -18,8 +18,8 @@ import SwiftUI
 struct BudgetView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.dynamicTypeSize) private var typeSize
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
-    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
+    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
 
     @State private var month: Date
     @State private var isEditingMonth = false

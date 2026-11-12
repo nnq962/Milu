@@ -9,7 +9,7 @@ struct CategoryReportView: View {
     let groupID: String
 
     @Environment(FinanceStore.self) private var store
-    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
+    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
     @State private var period: ReportPeriod
     @State private var isEditingLimit = false
     /// The item opened, pushed from the page rather than by a link in its row, so the row leaving

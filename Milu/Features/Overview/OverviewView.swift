@@ -25,7 +25,7 @@ struct OverviewView: View {
     @State private var isScrolled = false
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
 
     /// Milu's face for the month so far (trial 2026-11-09): sleepy late with nothing written
     /// today, sad past the month's limit, worried near it, all smiles well under it.

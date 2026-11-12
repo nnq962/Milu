@@ -43,6 +43,13 @@ struct ContentView: View {
             .environment(addContext)
             // The first steps pay as the user does them, on whichever tab (user choice 2026-11-08).
             .modifier(OnboardingRewards())
+            .notificationScheduling()
+            // A tapped "Nhắc ghi chi tiêu" opens the add form (`Reminders`).
+            .onChange(of: Reminders.shared.router.pending, initial: true) { _, action in
+                guard action == .addTransaction else { return }
+                Reminders.shared.router.pending = nil
+                if adding == nil { add() }
+            }
             .sheet(item: $adding) { kind in
                 switch kind {
                 case .transaction: AddTransactionView(preferredAccount: addContext.accountID)

@@ -36,8 +36,8 @@ struct AddTransactionView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.recordSheetDismiss) private var recordSheetDismiss
     @AppStorage(StorageKey.lastAccountID) private var lastAccountID = ""
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
-    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
+    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
 
     /// Giao dịch đang sửa; nil khi thêm mới.
     private let editing: FinanceTransaction?

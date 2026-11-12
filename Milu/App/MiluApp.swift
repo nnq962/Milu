@@ -24,6 +24,8 @@ struct MiluApp: App {
 
     init() {
         Typography.configureNativeAppearance()
+        // Set before launch ends, so a tapped notification that opened the app is heard.
+        _ = Reminders.shared
         // Before anything reads them: a reinstall gets its settings and AI allowance back.
         cloudSettings.start()
         let quota = AIQuota(unlimited: AIQuota.unlimitedInDebug)
@@ -78,6 +80,7 @@ struct MiluApp: App {
     /// Xoá dữ liệu rồi dựng lại mọi thứ, giữ lượt AI (`DataReset`).
     private func eraseAllData() {
         DataReset.eraseEverything(database: store.database)
+        Reminders.shared.removeAll()
         // Store mới trên database trống: chỉ thêm hạng mục mặc định, không dữ liệu mẫu
         // (`sampleDataOff`). Lượt AI đọc lại từ các khoá `ai.*` vẫn còn.
         store = FinanceStore(database: FinanceDatabase(context: container.mainContext), seedsSampleData: false)

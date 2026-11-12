@@ -148,7 +148,7 @@ private struct BudgetTile: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
     /// The ring runs up to what is used as the block shows.
     @State private var shown: Double = 0
 

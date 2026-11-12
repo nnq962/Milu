@@ -155,8 +155,8 @@ struct BudgetEditorSheet: View {
 /// hạn mức các hạng mục trước" and sent the user through every group).
 struct MonthBudgetEditor: View {
     @Environment(FinanceStore.self) private var store
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
-    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
+    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
 
     var body: some View {
         let groups = categoryBudgets.keeping(store.budgetGroupIDs)
@@ -200,8 +200,8 @@ struct GroupBudgetEditor: View {
     var onViewSpending: (() -> Void)? = nil
 
     @Environment(FinanceStore.self) private var store
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
-    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = SampleData.categoryBudgets
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
+    @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
 
     var body: some View {
         let groups = categoryBudgets.keeping(store.budgetGroupIDs)

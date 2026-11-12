@@ -12,9 +12,16 @@ struct SettingsView: View {
     @Environment(\.eraseAllData) private var eraseAllData
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
     @AppStorage(StorageKey.appearance) private var appearance = AppAppearance.system
     @AppStorage(StorageKey.profileName) private var profileName = ""
+    @AppStorage(StorageKey.dailyReminder) private var dailyReminder = false
+    @AppStorage(StorageKey.dailyReminderMinutes) private var reminderMinutes = DailyReminderPlan.defaultMinutes
+    @AppStorage(StorageKey.budgetAlerts) private var budgetAlerts = false
+    @Environment(\.openURL) private var openURL
+    /// Notifications are off for Milu in the iPhone's Settings.
+    @State private var notificationsDenied = false
+    @State private var isAskingForNotifications = false
 
     @State private var note: Note?
     @State private var isEditingName = false
@@ -35,6 +42,52 @@ struct SettingsView: View {
         let title: String
         let message: String
         var id: String { title }
+    }
+
+    /// Turning a notification on asks for permission first; refused, the switch stays off.
+    private func needsPermission(_ setting: Binding<Bool>) -> Binding<Bool> {
+        Binding {
+            setting.wrappedValue
+        } set: { on in
+            guard on else {
+                setting.wrappedValue = false
+                return
+            }
+            Task {
+                if await Reminders.shared.requestPermission() {
+                    notificationsDenied = false
+                    setting.wrappedValue = true
+                } else {
+                    notificationsDenied = true
+                    isAskingForNotifications = true
+                }
+            }
+        }
+    }
+
+    private func checkNotificationPermission() async {
+        notificationsDenied = await Reminders.shared.permission() == .denied
+    }
+
+    /// Minutes after midnight as a time of day, for the wheels.
+    private var reminderTime: Binding<Date> {
+        Binding {
+            Calendar.current.date(byAdding: .minute, value: reminderMinutes, to: Calendar.current.startOfDay(for: .now)) ?? .now
+        } set: { date in
+            let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+            reminderMinutes = (parts.hour ?? 21) * 60 + (parts.minute ?? 0)
+        }
+    }
+
+    private var reminderSubtitle: String {
+        if dailyReminder, notificationsDenied { return "Thông báo đang tắt trong Cài đặt iPhone" }
+        return "Mỗi ngày vào giờ bạn chọn"
+    }
+
+    private var budgetAlertSubtitle: String {
+        if budgetAlerts, notificationsDenied { return "Thông báo đang tắt trong Cài đặt iPhone" }
+        if monthlyBudget <= 0 { return "Đặt hạn mức chi tiêu để nhận cảnh báo" }
+        return "Khi chi tới 80% và khi hết hạn mức"
     }
 
     /// The row's second line: what the sync is doing now, else when it last went through.
@@ -139,18 +192,29 @@ struct SettingsView: View {
                     .onChange(of: appearance) { _, new in new.apply(animated: true) }
 
                     // No footers here: a footer only carries a computed figure or an error
-                    // (strict review 2026-10-31).
-                    // Off and greyed with "Sắp có" until the app sends notifications: on, they
-                    // promised a reminder at 21:00 that never came (review 2026-11-09). Their
-                    // stored choices come back with the feature.
+                    // (strict review 2026-10-31). Working since 2026-11-12 (`Reminders`): turning one
+                    // on asks for notifications then, not at launch; refused, it stays off and offers
+                    // the iPhone's Settings.
                     FormGroup(title: "Thông báo") {
-                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: "Sắp có",
-                                      icon: "hugeicons-notification-01", isOn: .constant(false))
-                            .disabled(true)
+                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: reminderSubtitle,
+                                      icon: "hugeicons-notification-01", isOn: needsPermission($dailyReminder))
+                        if dailyReminder {
+                            FormDivider()
+                            FormTimeRow(title: "Giờ nhắc", icon: "hugeicons-clock-01", date: reminderTime)
+                        }
                         FormDivider()
-                        FormToggleRow(title: "Cảnh báo hạn mức", subtitle: "Sắp có",
-                                      icon: "hugeicons-alert-circle", isOn: .constant(false))
-                            .disabled(true)
+                        FormToggleRow(title: "Cảnh báo hạn mức", subtitle: budgetAlertSubtitle,
+                                      icon: "hugeicons-alert-circle", isOn: needsPermission($budgetAlerts))
+                    }
+                    .animation(.easeOut(duration: 0.2), value: dailyReminder)
+                    .task { await checkNotificationPermission() }
+                    .systemAlert("Milu chưa được gửi thông báo", isPresented: $isAskingForNotifications) {
+                        Button("Để sau", role: .cancel) {}
+                        Button("Mở Cài đặt") {
+                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                        }
+                    } message: {
+                        Text("Bật thông báo cho Milu trong Cài đặt của iPhone để nhận nhắc nhở và cảnh báo hạn mức.")
                     }
 
                     // Rows that open a note over the sheet have no ›; the mail row leaves the app,
@@ -211,9 +275,10 @@ struct SettingsView: View {
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
                                            message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ và hạn mức bạn đã thêm hoặc sửa sẽ bị xoá.") {
                             store.resetToSampleData()
-                            // The limits too: they live in UserDefaults, not the database.
-                            UserDefaults.standard.removeObject(forKey: StorageKey.monthlyBudget)
-                            UserDefaults.standard.removeObject(forKey: StorageKey.categoryBudgets)
+                            // The sample limits too: they live in UserDefaults, not the database, and
+                            // with nothing saved there is no limit at all (2026-11-12).
+                            UserDefaults.standard.set(SampleData.monthlyBudget, forKey: StorageKey.monthlyBudget)
+                            UserDefaults.standard.set(SampleData.categoryBudgets.rawValue, forKey: StorageKey.categoryBudgets)
                         }
                     }
                     #endif

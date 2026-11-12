@@ -9,7 +9,7 @@ import SwiftUI
 /// (review 2026-11-08: parts came and went by different rules). Counts as every report does.
 struct ReportView: View {
     @Environment(FinanceStore.self) private var store
-    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = SampleData.monthlyBudget
+    @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
     @State private var period: ReportPeriod
     /// The group opened from the list: pushed by value from the page, not by a link in its row,
     /// so a row that leaves the list (the group page moved to a period with none of it) does not
