@@ -69,31 +69,38 @@ final class FinanceStore {
         self.database = nil
     }
 
-    /// The app's store: opens the saved data, seeding the sample data on the very first launch.
-    /// After "Xoá toàn bộ dữ liệu" (`StorageKey.sampleDataOff`) an empty database gets only the
-    /// default categories, once, and stays empty.
-    init(database: FinanceDatabase) {
+    /// The app's store: opens the saved data, seeding the sample data on the very first launch
+    /// (`seedsSampleData`; the app leaves it out when the data syncs with iCloud, or it would land
+    /// in the user's iCloud and on their other devices). After "Xoá toàn bộ dữ liệu"
+    /// (`StorageKey.sampleDataOff`) an empty database gets only the default categories, once, and
+    /// stays empty.
+    init(database: FinanceDatabase, seedsSampleData: Bool = true) {
         self.database = database
-        if database.isEmpty && !UserDefaults.standard.bool(forKey: StorageKey.sampleDataOff) {
+        if database.isEmpty && seedsSampleData && !UserDefaults.standard.bool(forKey: StorageKey.sampleDataOff) {
             database.seed()
         } else if !database.defaultCategoriesAdded {
             // A database from V1: its 12 categories became groups; add their items once.
             database.addMissingDefaultCategories()
         }
         database.replaceRetiredIcons()
-        let snapshot = database.load()
-        accounts = snapshot.accounts
-        archivedAccounts = snapshot.archivedAccounts
-        savingsGoals = snapshot.savingsGoals
-        transactions = snapshot.transactions
-        goalTransfers = snapshot.goalTransfers
-        accountTransfers = snapshot.accountTransfers
-        categories = snapshot.categories
-        loans = snapshot.loans
-        loanPayments = snapshot.loanPayments
-        paymentReminders = snapshot.paymentReminders
-        contacts = snapshot.contacts
-        customRelationships = snapshot.relationships
+        if UserDefaults.standard.bool(forKey: MiluMigrationPlan.needsRebaseKey) {
+            // Just moved to V8: balances are worked out from now on, starting from today's.
+            database.rebaseOpeningBalances()
+            UserDefaults.standard.removeObject(forKey: MiluMigrationPlan.needsRebaseKey)
+        }
+        accounts = []
+        archivedAccounts = []
+        savingsGoals = []
+        transactions = []
+        goalTransfers = []
+        accountTransfers = []
+        categories = []
+        loans = []
+        loanPayments = []
+        paymentReminders = []
+        contacts = []
+        customRelationships = []
+        apply(database.load())
         linkLoansToContacts()
         foldFeeRows()
         moveTitlesToNotes()
@@ -103,7 +110,16 @@ final class FinanceStore {
     func resetToSampleData() {
         guard let database else { return }
         database.resetToSampleData()
-        let snapshot = database.load()
+        apply(database.load())
+    }
+
+    /// Reads everything again: what another device sent through iCloud shows up.
+    func reload() {
+        guard let database else { return }
+        apply(database.load())
+    }
+
+    private func apply(_ snapshot: FinanceDatabase.Snapshot) {
         accounts = snapshot.accounts
         archivedAccounts = snapshot.archivedAccounts
         savingsGoals = snapshot.savingsGoals

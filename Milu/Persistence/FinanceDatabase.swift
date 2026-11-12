@@ -16,22 +16,36 @@ final class FinanceDatabase {
         self.context = context
     }
 
-    /// The on-device database; falls back to memory only if the file cannot be opened, so the app
-    /// still starts (that session's changes are then not kept).
+    /// The iCloud container the database syncs through (made on the developer account, 2026-11-12).
+    static let cloudContainerID = "iCloud.com.quyetnguyen.Milu"
+
+    /// The on-device database, kept in sync with the user's private iCloud database when
+    /// `syncsWithICloud` (the app with its iCloud entitlement; signed out of iCloud it simply stays
+    /// on the phone). If it cannot be opened with iCloud it opens without; if it cannot be opened
+    /// at all, a database in memory, so the app still starts (that session's changes are then not
+    /// kept).
     /// `inMemory`: a database that lives only while the app runs, for tests (same schema and
-    /// migration plan as the real one).
-    static func makeContainer(inMemory: Bool = false) -> ModelContainer {
-        let schema = Schema(versionedSchema: MiluSchemaV7.self)
-        do {
-            let configuration = inMemory
-                ? ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                : ModelConfiguration("Milu", schema: schema)
-            return try ModelContainer(for: schema, migrationPlan: MiluMigrationPlan.self,
-                                      configurations: configuration)
-        } catch {
-            Logger(subsystem: "com.quyetnguyen.Milu", category: "database").fault("Cannot open the database: \(error)")
-            return try! ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    /// migration plan as the real one, never synced).
+    static func makeContainer(inMemory: Bool = false, syncsWithICloud: Bool = true) -> ModelContainer {
+        let schema = Schema(versionedSchema: MiluSchemaV8.self)
+        let log = Logger(subsystem: "com.quyetnguyen.Milu", category: "database")
+        var configurations: [(ModelConfiguration, String)] = []
+        if inMemory {
+            configurations.append((ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none), "in memory"))
+        } else {
+            if syncsWithICloud {
+                configurations.append((ModelConfiguration("Milu", schema: schema, cloudKitDatabase: .private(cloudContainerID)), "iCloud"))
+            }
+            configurations.append((ModelConfiguration("Milu", schema: schema, cloudKitDatabase: .none), "on device"))
         }
+        for (configuration, label) in configurations {
+            do {
+                return try ModelContainer(for: schema, migrationPlan: MiluMigrationPlan.self, configurations: configuration)
+            } catch {
+                log.fault("Cannot open the database (\(label, privacy: .public)): \(error)")
+            }
+        }
+        return try! ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none))
     }
 
     // MARK: - Đọc
@@ -52,7 +66,62 @@ final class FinanceDatabase {
         var relationships: [Relationship]
     }
 
+    /// Every row, with balances worked out from the history (`BalanceLedger`); a balance that
+    /// moved is written back. Duplicate rows from two devices go first (`removeDuplicates`).
     func load() -> Snapshot {
+        removeDuplicates()
+        let (snapshot, rows) = readAll()
+        return settled(snapshot, rows: rows)
+    }
+
+    /// Sets each opening balance so that, with the history, it makes the balance stored today: once,
+    /// after the move to V8 (`MiluMigrationPlan.needsRebaseKey`) and after seeding sample data, whose
+    /// balances were never the sum of its history. Balances on screen do not change.
+    func rebaseOpeningBalances() {
+        let (snapshot, rows) = readAll()
+        let moved = movements(in: snapshot)
+        for row in rows {
+            row.openingBalance = row.balance - Int64(dong: moved[row.id] ?? 0)
+        }
+        commit()
+    }
+
+    private func movements(in snapshot: Snapshot) -> [UUID: Double] {
+        BalanceLedger.movements(transactions: snapshot.transactions, accountTransfers: snapshot.accountTransfers,
+                                goalTransfers: snapshot.goalTransfers, loans: snapshot.loans,
+                                loanPayments: snapshot.loanPayments)
+    }
+
+    /// The snapshot with every balance = opening + what the history moved.
+    private func settled(_ snapshot: Snapshot, rows: [AccountRecord]) -> Snapshot {
+        let moved = movements(in: snapshot)
+        var balances: [UUID: Double] = [:]
+        var changed = false
+        for row in rows {
+            let balance = row.openingBalance + Int64(dong: moved[row.id] ?? 0)
+            balances[row.id] = Double(dong: balance)
+            if row.balance != balance {
+                row.balance = balance
+                changed = true
+            }
+        }
+        if changed { commit() }
+        var snapshot = snapshot
+        for index in snapshot.accounts.indices {
+            snapshot.accounts[index].balance = balances[snapshot.accounts[index].id] ?? snapshot.accounts[index].balance
+        }
+        for index in snapshot.archivedAccounts.indices {
+            snapshot.archivedAccounts[index].balance = balances[snapshot.archivedAccounts[index].id]
+                ?? snapshot.archivedAccounts[index].balance
+        }
+        for index in snapshot.savingsGoals.indices {
+            snapshot.savingsGoals[index].saved = balances[snapshot.savingsGoals[index].id] ?? snapshot.savingsGoals[index].saved
+        }
+        return snapshot
+    }
+
+    /// Every row as stored, and the account rows (goals too) the balances live on.
+    private func readAll() -> (Snapshot, [AccountRecord]) {
         // Every row is loaded: closed goals are listed on "Hũ đã hoàn thành", archived accounts on
         // "Đã lưu trữ"; both keep their history.
         let goalType = SavingsGoal.accountType
@@ -63,7 +132,7 @@ final class FinanceDatabase {
         // Once, not once per record (review 2026-11-09: rebuilt for each of thousands of rows at launch).
         let accountIDs = Set(accountRows.filter { $0.type != goalType }.map(\.id))
         let transactionRows = fetch(FetchDescriptor<TransactionRecord>(sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]))
-        return Snapshot(
+        let snapshot = Snapshot(
             accounts: accounts.filter { !$0.isArchived },
             // The most recently archived first, as the screen lists them.
             archivedAccounts: accounts.filter(\.isArchived)
@@ -85,6 +154,46 @@ final class FinanceDatabase {
             relationships: fetch(FetchDescriptor<RelationshipRecord>(sortBy: [SortDescriptor(\.createdAt)]))
                 .map(Relationship.init)
         )
+        return (snapshot, accountRows)
+    }
+
+    /// Two devices can each make a row with the same `id` before they sync (the built-in
+    /// categories, which every install adds): the oldest stays, being the one the user may have
+    /// changed since, and the others go.
+    func removeDuplicates() {
+        var removed = 0
+        removed += removeDuplicates(of: AccountRecord.self, id: \.id)
+        removed += removeDuplicates(of: CategoryRecord.self, id: \.id)
+        removed += removeDuplicates(of: TransactionRecord.self, id: \.id)
+        removed += removeDuplicates(of: LoanRecord.self, id: \.id)
+        removed += removeDuplicates(of: LoanPaymentRecord.self, id: \.id)
+        removed += removeDuplicates(of: ReminderRecord.self, id: \.id)
+        removed += removeDuplicates(of: ContactRecord.self, id: \.id)
+        removed += removeDuplicates(of: RelationshipRecord.self, id: \.id)
+        if removed > 0 {
+            log.info("Removed \(removed) duplicate rows")
+            commit()
+        }
+    }
+
+    private func removeDuplicates<T: PersistentModel & Dated, ID: Hashable>(of type: T.Type, id: KeyPath<T, ID>) -> Int {
+        var seen: [ID: T] = [:]
+        var removed = 0
+        for row in fetch(FetchDescriptor<T>()) {
+            let key = row[keyPath: id]
+            guard let kept = seen[key] else {
+                seen[key] = row
+                continue
+            }
+            if row.createdAt < kept.createdAt {
+                seen[key] = row
+                context.delete(kept)
+            } else {
+                context.delete(row)
+            }
+            removed += 1
+        }
+        return removed
     }
 
     var isEmpty: Bool {
@@ -335,6 +444,8 @@ final class FinanceDatabase {
             context.insert(row)
         }
         commit()
+        // The sample balances are not the sum of the sample history: open them where they show.
+        rebaseOpeningBalances()
     }
 
     /// Deletes every row, then seeds again: Cài đặt → Nhà phát triển → Đặt lại dữ liệu mẫu.
@@ -348,14 +459,16 @@ final class FinanceDatabase {
     /// (`DataReset`) và cho đặt lại dữ liệu mẫu.
     func deleteEverything() {
         do {
-            try context.delete(model: TransactionRecord.self)
-            try context.delete(model: AccountRecord.self)
-            try context.delete(model: CategoryRecord.self)
-            try context.delete(model: LoanRecord.self)
-            try context.delete(model: LoanPaymentRecord.self)
-            try context.delete(model: ReminderRecord.self)
-            try context.delete(model: ContactRecord.self)
-            try context.delete(model: RelationshipRecord.self)
+            // Row by row, not `delete(model:)`: a batch delete skips the iCloud mirror, so the rows
+            // would come back from iCloud (and stay on the other devices).
+            deleteAll(TransactionRecord.self)
+            deleteAll(AccountRecord.self)
+            deleteAll(CategoryRecord.self)
+            deleteAll(LoanRecord.self)
+            deleteAll(LoanPaymentRecord.self)
+            deleteAll(ReminderRecord.self)
+            deleteAll(ContactRecord.self)
+            deleteAll(RelationshipRecord.self)
             // Saved before seeding, so the default categories are added to an empty table rather
             // than skipped as "already there".
             try context.save()
@@ -365,6 +478,10 @@ final class FinanceDatabase {
     }
 
     // MARK: - Nội bộ
+
+    private func deleteAll<T: PersistentModel>(_ type: T.Type) {
+        for row in fetch(FetchDescriptor<T>()) { context.delete(row) }
+    }
 
     private func fetch<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) -> [T] {
         do {
@@ -430,3 +547,17 @@ extension ContactRecord: IdentifiedRecord {
 extension ReminderRecord: IdentifiedRecord {
     static func matching(_ id: UUID) -> Predicate<ReminderRecord> { #Predicate { $0.id == id } }
 }
+
+/// A row with the date it was made, to tell which of two duplicates came first.
+protocol Dated {
+    var createdAt: Date { get }
+}
+
+extension AccountRecord: Dated {}
+extension CategoryRecord: Dated {}
+extension TransactionRecord: Dated {}
+extension LoanRecord: Dated {}
+extension LoanPaymentRecord: Dated {}
+extension ReminderRecord: Dated {}
+extension ContactRecord: Dated {}
+extension RelationshipRecord: Dated {}

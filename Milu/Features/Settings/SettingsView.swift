@@ -197,7 +197,7 @@ struct SettingsView: View {
                             eraseAllData()
                         }
                     } message: {
-                        Text("Milu chưa tự sao lưu nên không thể lấy lại dữ liệu đã xoá.")
+                        Text("Dữ liệu cũng bị xoá khỏi iCloud và các thiết bị khác dùng chung Apple ID, không thể lấy lại.")
                     }
 
                     // The version at the very foot, as apps sign off their settings

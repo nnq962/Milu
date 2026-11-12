@@ -39,34 +39,3 @@ enum MiluSchemaV7: VersionedSchema {
         }
     }
 }
-
-/// How to move an old database to the current schema. Each step only adds columns with a default
-/// or a table, so SwiftData migrates it on its own: V1 → V2 makes every category a group; V2 → V3
-/// adds "Danh bạ", and `FinanceStore` then gives each loan's name a person (`linkLoansToContacts`);
-/// V3 → V4 adds the relationships the user makes; V4 → V5 marks the people the app made; V5 → V6
-/// adds a loan's account, date and interest (old loans count as from before the app); V6 → V7
-/// adds repayments.
-enum MiluMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] {
-        [MiluSchemaV1.self, MiluSchemaV2.self, MiluSchemaV3.self, MiluSchemaV4.self, MiluSchemaV5.self,
-         MiluSchemaV6.self, MiluSchemaV7.self]
-    }
-    static var stages: [MigrationStage] {
-        [.lightweight(fromVersion: MiluSchemaV1.self, toVersion: MiluSchemaV2.self),
-         .lightweight(fromVersion: MiluSchemaV2.self, toVersion: MiluSchemaV3.self),
-         .lightweight(fromVersion: MiluSchemaV3.self, toVersion: MiluSchemaV4.self),
-         .lightweight(fromVersion: MiluSchemaV4.self, toVersion: MiluSchemaV5.self),
-         .lightweight(fromVersion: MiluSchemaV5.self, toVersion: MiluSchemaV6.self),
-         .lightweight(fromVersion: MiluSchemaV6.self, toVersion: MiluSchemaV7.self)]
-    }
-}
-
-// The rest of the app names the current version's models without the namespace.
-typealias AccountRecord = MiluSchemaV1.AccountRecord
-typealias CategoryRecord = MiluSchemaV2.CategoryRecord
-typealias TransactionRecord = MiluSchemaV1.TransactionRecord
-typealias LoanRecord = MiluSchemaV6.LoanRecord
-typealias ReminderRecord = MiluSchemaV1.ReminderRecord
-typealias ContactRecord = MiluSchemaV5.ContactRecord
-typealias RelationshipRecord = MiluSchemaV4.RelationshipRecord
-typealias LoanPaymentRecord = MiluSchemaV7.LoanPaymentRecord

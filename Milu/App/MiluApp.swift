@@ -5,6 +5,8 @@
 //  Created by Nguyen Ngoc Quyet on 10/25/26.
 //
 
+import Combine
+import CoreData
 import SwiftData
 import SwiftUI
 
@@ -17,12 +19,19 @@ struct MiluApp: App {
     /// Tăng mỗi lần xoá toàn bộ dữ liệu: `ContentView` mang id mới nên được dựng lại từ đầu (về tab
     /// Tổng quan, đóng mọi sheet đang mở).
     @State private var generation = 0
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         Typography.configureNativeAppearance()
         let container = FinanceDatabase.makeContainer()
         self.container = container
-        _store = State(initialValue: FinanceStore(database: FinanceDatabase(context: container.mainContext)))
+        // A new install starts empty (the default categories only), never with sample data: with
+        // iCloud the database is still empty at first launch while the user's data comes down,
+        // and sample data made then synced up beside it, doubling every account (iPhone test
+        // 2026-11-12; checking for an iCloud sign-in first missed it). Sample data stays one tap
+        // away in Debug (Cài đặt → Nhà phát triển → Đặt lại dữ liệu mẫu).
+        _store = State(initialValue: FinanceStore(database: FinanceDatabase(context: container.mainContext),
+                                                  seedsSampleData: false))
     }
 
     var body: some Scene {
@@ -39,6 +48,15 @@ struct MiluApp: App {
                 .modelContainer(container)
                 .environment(\.locale, .vietnam)
                 .environment(\.eraseAllData, EraseAllDataAction(action: eraseAllData))
+                // What another device sent through iCloud: read once the burst of changes settles.
+                .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
+                    .debounce(for: .seconds(1), scheduler: RunLoop.main)) { _ in
+                    store.reload()
+                }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Back from the background: anything that came in meanwhile.
+            if phase == .active { store.reload() }
         }
     }
 
@@ -47,7 +65,7 @@ struct MiluApp: App {
         DataReset.eraseEverything(database: store.database)
         // Store mới trên database trống: chỉ thêm hạng mục mặc định, không dữ liệu mẫu
         // (`sampleDataOff`). Lượt AI đọc lại từ các khoá `ai.*` vẫn còn.
-        store = FinanceStore(database: FinanceDatabase(context: container.mainContext))
+        store = FinanceStore(database: FinanceDatabase(context: container.mainContext), seedsSampleData: false)
         quota = AIQuota(unlimited: AIQuota.unlimitedInDebug)
         chats = AssistantChats()
         // Giao diện về "Hệ thống" ngay, không đợi mở lại app.

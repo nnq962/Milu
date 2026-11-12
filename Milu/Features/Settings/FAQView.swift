@@ -7,7 +7,7 @@ import SwiftUI
 struct FAQView: View {
     private let entries = [
         ReadingEntry("Dữ liệu của tôi lưu ở đâu?",
-                     "Chỉ trên máy này. Milu chưa tự sao lưu hay đồng bộ lên máy chủ nào."),
+                     "Trên máy này, và trong iCloud của bạn khi iPhone đăng nhập iCloud: xoá app rồi cài lại, hay đổi máy cùng Apple ID, dữ liệu tự về. Milu không có máy chủ lưu dữ liệu và không xem được iCloud của bạn."),
         ReadingEntry("Hạn mức chi tiêu tính thế nào?",
                      "Cộng mọi khoản chi trong tháng, cả phí chuyển khoản và lãi vay; không tính các khoản bạn đánh dấu không tính vào báo cáo và các tài khoản đang khoá. Đặt ở Cài đặt → Hạn mức chi tiêu."),
         ReadingEntry("Lượt AI là gì?",
