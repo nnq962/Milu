@@ -333,6 +333,7 @@
 				DEVELOPMENT_TEAM = JJ26XK7R5T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Milu.Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Milu;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Milu dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Milu chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";
@@ -376,6 +377,7 @@
 				DEVELOPMENT_TEAM = JJ26XK7R5T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Milu.Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Milu;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Milu dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Milu chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";

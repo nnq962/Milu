@@ -60,6 +60,16 @@ final class AIQuota {
         migrateFromMonths(today: today)
     }
 
+    /// Reads the saved allowance again: another device used some, or a reinstall's came back from
+    /// iCloud (`CloudSettings`).
+    func reload() {
+        week = defaults.string(forKey: Keys.week) ?? Self.weekKey(now())
+        used = defaults.integer(forKey: Keys.used)
+        grants = defaults.data(forKey: Keys.grants)
+            .flatMap { try? JSONDecoder().decode([Grant].self, from: $0) } ?? []
+        claimed = Set(defaults.stringArray(forKey: Keys.claimed) ?? [])
+    }
+
     // MARK: What is left
 
     /// Questions asked this week (0 once a new week starts).
