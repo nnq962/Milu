@@ -40,10 +40,10 @@ struct OverviewView: View {
            !store.transactions.contains(where: { calendar.isDateInToday($0.date) }) {
             return .buonNgu
         }
-        guard let share = budgetShare(at: now) else { return .macDinh }
-        if share > 1 { return .buon }
-        if share >= 0.8 { return .loLang }
-        return share < 0.6 ? .cuoiTitMat : .macDinh
+        guard let share = budgetShare(at: now) else { return .nguyenBan }
+        if share > 1 { return .buonThiu }
+        if share >= 0.8 { return .boiRoi }
+        return share < 0.6 ? .cuoiBanhNoc : .nguyenBan
     }
 
     /// What was spent this month against the limit as it stands today (the month's limit spread
@@ -62,9 +62,9 @@ struct OverviewView: View {
     private var miluGreeting: String {
         switch miluLook {
         case .buonNgu: "Hôm nay chưa ghi gì nè…"
-        case .buon: "Lố hạn mức rồi…"
-        case .loLang: "Sắp chạm hạn mức đó!"
-        case .cuoiTitMat: "Tháng này ổn áp ghê!"
+        case .buonThiu: "Lố hạn mức rồi…"
+        case .boiRoi: "Sắp chạm hạn mức đó!"
+        case .cuoiBanhNoc: "Tháng này ổn áp ghê!"
         default: "Chào bạn!"
         }
     }
@@ -87,7 +87,7 @@ struct OverviewView: View {
                 // under it.
                 VStack(alignment: .leading, spacing: 0) {
                     SkyHeader(overline: "Milu đồng hành", milu: miluLook, greeting: miluGreeting,
-                              sky: .meadow)
+                              sky: .garden)
                     // Sections 28 apart, as on every tab, each with its heading on the page 8
                     // above its card (user request 2026-11-08: the headings out of the cards).
                     VStack(alignment: .leading, spacing: Spacing.section) {

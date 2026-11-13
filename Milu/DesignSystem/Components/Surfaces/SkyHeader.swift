@@ -1,23 +1,20 @@
 import SwiftUI
 
 /// The head of a tab's page: a sky running on behind the navigation bar, its role small over the
-/// page's large title, Milu on the right resting on the edge (`MiluHero`; one dog since the trial
-/// of 2026-11-09, before it Nâu on Tài khoản and Than on Giao dịch). Tài khoản (Nâu, Figma
-/// 79:1333), Giao dịch (Than, Figma 317:6594) and Tổng quan (the three dogs' hill, Figma 272:727)
-/// share it, so all are the same height with the words in the same place (user request
-/// 2026-11-07). The words set the height; the sky and the dog stay anchored to the lower edge,
+/// page's large title, Milu on the right resting on the edge (`MiluHero`). Tổng quan, Tài khoản
+/// and Giao dịch share it, so all are the same height with the words in the same place (user
+/// request 2026-11-07); each has its own sky (2026-11-13). The words set the height; the sky and the dog stay anchored to the lower edge,
 /// the 240 of the 402-wide drawing.
 struct SkyHeader: View {
     let overline: String
     /// The large title; nil on Tổng quan, where the dogs stand in its place (Figma 272:727). Its
     /// room is kept, so the head stays as tall as the other tabs' at every text size.
     var title: String?
-    /// Milu's face for how the page is going; nil when the sky is a scene with its dogs drawn in
-    /// (`Sky.hill`).
+    /// Milu's face for how the page is going; nil for none.
     var milu: MiluHero.Look?
     /// What Milu says once when the tab first opens.
     var greeting: String?
-    var sky: Sky = .nau
+    var sky: Sky = .garden
     /// The 🐾 before the role; Tổng quan's family line has none (Figma 272:727).
     var showsPaw = true
 
@@ -29,25 +26,13 @@ struct SkyHeader: View {
         let height: CGFloat
         let top: Color
         let ink: Color
-        /// Drawn by day only: at night the sky takes `Palette.nightShade`.
-        var isDayOnly = false
-
-        /// Nâu's: sun or moon and a horizon of clouds (402 × 240).
-        static let nau = Sky(image: "milu-hero-sky", height: 240, top: Palette.skyTop, ink: Palette.nauInk)
-        /// Than's: clouds and a paper plane (402 × 256, its top under the bar).
-        static let than = Sky(image: "than-hero-sky", height: 256, top: Palette.thanSkyTop, ink: Palette.deep)
-        /// Tổng quan's: the hill with Vàng, Than and Nâu peeking over it (402 × 352, the dogs
-        /// drawn in, its top under the bar).
-        static let hill = Sky(image: "overview-hero-scene", height: 352, top: Palette.hillSkyTop, ink: Palette.deep)
-        /// Milu's meadow of daisies on Tổng quan, and its lake of reeds on Tài khoản (Figma "Nền /
-        /// Đồi hoa", "Nền / Bờ hồ", 402 × 352, its top under the bar). Day only so far.
-        static let meadow = Sky(image: "milu-sky-doi-hoa", height: 352, top: Palette.meadowSkyTop,
-                                ink: Palette.deep, isDayOnly: true)
-        static let lake = Sky(image: "milu-sky-bo-ho", height: 352, top: Palette.lakeSkyTop,
-                              ink: Palette.deep, isDayOnly: true)
+        /// The three tab skies of 2026-11-13 (output/01-backgrounds, 402 × 352, its top under the
+        /// bar), each with its own night picture: Tổng quan's garden with the pink tree, Tài
+        /// khoản's lake, Thu chi's paper plane.
+        static let garden = Sky(image: "milu-sky-tong-quan", height: 352, top: Palette.gardenSkyTop, ink: Palette.deep)
+        static let pond = Sky(image: "milu-sky-tai-khoan", height: 352, top: Palette.pondSkyTop, ink: Palette.deep)
+        static let plane = Sky(image: "milu-sky-thu-chi", height: 352, top: Palette.planeSkyTop, ink: Palette.deep)
     }
-
-    @Environment(\.colorScheme) private var colorScheme
 
     /// Bounds of the dog's drawing within the 402 × 240 reference composition.
     struct MascotPlacement {
@@ -55,10 +40,10 @@ struct SkyHeader: View {
         let top: CGFloat
         let width: CGFloat
 
-        /// Milu's 350 × 220 faces (Figma "Milu · Xuất cho app"), on the right, its peak clear of
-        /// the title's 64%. The drawing ends at 208 of 220, cut square; 202 sits on the edge, so
-        /// the cut and the corner it leaves go under it.
-        static let milu = MascotPlacement(left: 214, top: 240 - 202 * 214 / 350, width: 214)
+        /// Milu's 320 × 140 faces (2026-11-13), on the right, its peak clear of the title's 64%,
+        /// the head as large and where the 350 × 220 faces had it. Row 135 of 140 sits on the
+        /// edge, so the drawing's cut foot goes under it.
+        static let milu = MascotPlacement(left: 200, top: 240 - 135 * 245 / 320, width: 245)
     }
 
     private static let referenceWidth: CGFloat = 402
@@ -126,10 +111,8 @@ struct SkyHeader: View {
                      referenceWidth: Self.referenceWidth, referenceEdge: Self.referenceEdge,
                      overscroll: Self.overscroll) {
             sky.top
-                .overlay { nightShade }
             Image(sky.image)
                 .resizable()
-                .overlay { nightShade }
             ZStack {
                 if let milu {
                     MiluHero(look: milu, greeting: greeting, talks: title == nil)
@@ -139,13 +122,6 @@ struct SkyHeader: View {
         // Nothing past the edge: the dog's foot ends where the page begins.
         .mask(alignment: .bottom) { Rectangle().frame(height: 4000) }
         .accessibilityHidden(true)
-    }
-
-    /// A day-only sky dimmed at night, the same over its colour and its picture so they meet.
-    @ViewBuilder private var nightShade: some View {
-        if sky.isDayOnly && colorScheme == .dark {
-            Palette.nightShade.opacity(0.82)
-        }
     }
 }
 

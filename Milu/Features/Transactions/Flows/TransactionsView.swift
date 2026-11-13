@@ -49,7 +49,7 @@ struct TransactionsView: View {
                     // under the sky, 12 from a heading to its card, 28 between the parts.
                     VStack(alignment: .leading, spacing: 0) {
                         SkyHeader(overline: "Milu ghi chép", title: "Sổ giao dịch",
-                                  milu: miluLook, sky: .than)
+                                  milu: miluLook, sky: .plane)
                         VStack(alignment: .leading, spacing: 0) {
                             sectionHead
                             figuresRow
@@ -298,7 +298,7 @@ struct TransactionsView: View {
     /// Milu read from what is recorded, the same every time the tab opens (user request
     /// 2026-11-07): curious before the first transaction or loan, at rest after.
     private var miluLook: MiluHero.Look {
-        MonthFlowList.hasNothingRecorded(in: store) && store.loans.isEmpty ? .toMo : .macDinh
+        MonthFlowList.hasNothingRecorded(in: store) && store.loans.isEmpty ? .toMo : .nguyenBan
     }
 
 }

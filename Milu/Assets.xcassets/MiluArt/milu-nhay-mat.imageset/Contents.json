@@ -1,14 +1,8 @@
 {
   "images" : [
-    {
-      "filename" : "milu-nhay-mat.svg",
-      "idiom" : "universal"
-    }
+    { "filename" : "milu-nhay-mat.svg", "idiom" : "universal" }
   ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
-  },
+  "info" : { "author" : "xcode", "version" : 1 },
   "properties" : {
     "preserves-vector-representation" : true,
     "template-rendering-intent" : "original"

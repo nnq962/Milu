@@ -44,7 +44,7 @@ struct AccountsView: View {
                 // apart, 24 under the sky.
                 VStack(alignment: .leading, spacing: 0) {
                     SkyHeader(overline: "Milu giữ ví", title: "Sổ ví của bạn", milu: miluLook,
-                              sky: .lake)
+                              sky: .pond)
                     VStack(alignment: .leading, spacing: Spacing.section) {
                         paymentSection
                         goalsSection
@@ -135,8 +135,8 @@ struct AccountsView: View {
     private var miluLook: MiluHero.Look {
         switch mood {
         case .curious: .toMo
-        case .happy: .vuiMung
-        case .atRest: .macDinh
+        case .happy: .vui
+        case .atRest: .nguyenBan
         }
     }
 

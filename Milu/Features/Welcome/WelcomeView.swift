@@ -3,10 +3,9 @@ import SwiftUI
 /// "Chào mừng", on the very first launch (user request 2026-11-12): who Milu is and what it does,
 /// in four pages swiped or stepped through, the last asking what Milu should call the user.
 ///
-/// Each page has its own sky from Milu's set (the meadow, the lake, the open sky) and its own face:
-/// as the page turns, the sky fades into the next and Milu ducks behind the edge and rises again
-/// with the new face and a word, as it rises on Tổng quan (`MiluHero`, so a tap still makes it
-/// react). Only the words slide, in a paged `TabView`.
+/// Each page has its own sky (the garden, the lake, the paper plane) and its own face: as the page
+/// turns, the sky fades into the next and Milu takes the new face and a word (`MiluHero`, so a tap
+/// still makes it react). Only the words slide, in a paged `TabView`.
 ///
 /// Shown once: the app marks it seen when the user finishes or when the phone already holds data
 /// (`AppRoot`), and the mark follows the user through iCloud (`CloudSettings`), so a reinstall
@@ -17,7 +16,6 @@ struct WelcomeView: View {
     @AppStorage(StorageKey.profileName) private var savedName = ""
     @State private var page = 0
     @State private var name = ""
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     struct Page {
@@ -31,16 +29,16 @@ struct WelcomeView: View {
 
     /// Every line says what the app does today.
     static let pages: [Page] = [
-        Page(look: .vuiMung, greeting: "Gâu gâu!", sky: .meadow,
+        Page(look: .vui, greeting: "Gâu gâu!", sky: .garden,
              title: "Chào bạn, mình là Milu!",
              body: "Người bạn nhỏ giúp bạn ghi chép thu chi mỗi ngày, nhẹ tênh mà vẫn rõ ràng."),
-        Page(look: .toMo, greeting: "Hôm nay tiêu gì đó?", sky: .lake,
+        Page(look: .toMo, greeting: "Hôm nay tiêu gì đó?", sky: .pond,
              title: "Ghi một chạm, rõ từng đồng",
              body: "Ghi chi tiêu trong vài giây. Milu tự cộng số dư, chia theo hạng mục và vẽ báo cáo cho bạn."),
-        Page(look: .nhayMat, greeting: "Hỏi mình nè!", sky: .nau,
+        Page(look: .nhayMat, greeting: "Hỏi mình nè!", sky: .plane,
              title: "Hỏi Milu điều gì cũng được",
              body: "“Tháng này ăn uống hết bao nhiêu?” Hỏi bằng chữ hay giọng nói, Milu trả lời từ chính số liệu của bạn."),
-        Page(look: .yeuThuong, greeting: "Bí mật nha!", sky: .meadow,
+        Page(look: .meMan, greeting: "Bí mật nha!", sky: .garden,
              title: "Dữ liệu là của riêng bạn",
              body: "Lưu trên máy và trong iCloud của chính bạn. Không cần tạo tài khoản, không quảng cáo."),
     ]
@@ -50,8 +48,8 @@ struct WelcomeView: View {
 
     /// The drawings' reference width, and Milu's faces (350 × 220, the foot on the edge at 202).
     private static let referenceWidth: CGFloat = 402
-    private static let faceSize = CGSize(width: 350, height: 220)
-    private static let faceEdge: CGFloat = 202
+    private static let faceSize = CGSize(width: 320, height: 140)
+    private static let faceEdge: CGFloat = 135
 
     var body: some View {
         GeometryReader { proxy in
@@ -87,9 +85,6 @@ struct WelcomeView: View {
                                        startPoint: .top, endPoint: .bottom)
                             .frame(height: width * 0.2)
                     }
-                if current.sky.isDayOnly && colorScheme == .dark {
-                    Palette.nightShade.opacity(0.82)
-                }
             }
             .id(page)
             .transition(.opacity)
@@ -104,18 +99,17 @@ struct WelcomeView: View {
         .accessibilityHidden(true)
     }
 
-    /// Milu in the middle, its foot on the edge. A new page makes a new one: the old ducks down
-    /// behind the edge while the new rises with its face and its word.
+    /// Milu in the middle, its foot on the edge; a new page swaps its face and its word (no
+    /// movement until the Rive characters, user request 2026-11-13).
     private func milu(width: CGFloat) -> some View {
-        let faceWidth = min(width * 0.62, 280)
+        let faceWidth = min(width * 0.71, 320)
         let faceHeight = faceWidth * Self.faceSize.height / Self.faceSize.width
         let below = faceHeight * (Self.faceSize.height - Self.faceEdge) / Self.faceSize.height
         return MiluHero(look: current.look, greeting: current.greeting, bubbleSide: .aboveRight)
             .frame(width: faceWidth, height: faceHeight)
             .offset(y: below)
             .id(page)
-            .transition(reduceMotion ? .opacity
-                        : .asymmetric(insertion: .identity, removal: .offset(y: faceHeight).combined(with: .opacity)))
+            .transition(.identity)
     }
 
     @ViewBuilder private func skipButton(top: CGFloat) -> some View {

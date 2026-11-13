@@ -13,10 +13,10 @@ struct LockScreen: View {
     var body: some View {
         VStack(spacing: Spacing.l) {
             Spacer()
-            Image(MiluHero.Look.ngaiNgung.image)
+            Image(MiluHero.Look.nguongNgung.image)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 180)
+                .frame(width: 206)
                 .accessibilityHidden(true)
             VStack(spacing: Spacing.s) {
                 Text("Milu đang khoá")
@@ -64,10 +64,10 @@ struct PrivacyCover: View {
     var body: some View {
         ZStack {
             Palette.background
-            Image(MiluHero.Look.ngaiNgung.image)
+            Image(MiluHero.Look.nguongNgung.image)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 140)
+                .frame(width: 160)
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)

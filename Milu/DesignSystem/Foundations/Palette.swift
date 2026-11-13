@@ -75,23 +75,12 @@ enum Palette {
     /// Brand/Apricot: details of the art, never words.
     static let apricot = dynamic(0xF49B76, dark: 0xF1A389)
 
-    /// The top edge of the light and dark sky illustration, extended during a pull-down.
-    static let skyTop = dynamic(0x9ED8F2, dark: 0x142B47)
-    /// The small letters Nâu signs the Sổ ví with ("NÂU GIỮ VÍ"): the brown of Nâu's ink.
-    static let nauInk = dynamic(0x63482B, dark: 0xE7C79A)
-    /// The top edge of Than's sky on Giao dịch (Milu `than/skyTop`, Figma 239:6884), run on
-    /// above the head during a pull-down.
-    static let thanSkyTop = dynamic(0xCBE6F3, dark: 0x152C44)
-    /// The top edge of the three dogs' hill on Tổng quan (Figma 272:727 / 272:728, the scene's own
-    /// gradient start), run on above the head during a pull-down.
-    static let hillSkyTop = dynamic(0xCDEFEA, dark: 0x142E38)
-    /// The top edges of Milu's meadow and lake skies (Figma "Nền / Đồi hoa", "Nền / Bờ hồ", their
-    /// gradients' start). Drawn by day only: at night the whole sky takes `nightShade`, so the
-    /// same colour stays under it.
-    static let meadowSkyTop = dynamic(0xCDEFEA, dark: 0xCDEFEA)
-    static let lakeSkyTop = dynamic(0xDBEFEB, dark: 0xDBEFEB)
-    /// Laid over a day-only sky at night (`hillSkyTop`'s night colour), clear by day.
-    static let nightShade = dynamic(0x142E38, dark: 0x142E38)
+    /// The top edges of the three tab skies of 2026-11-13 (output/01-backgrounds, their
+    /// gradients' start), by day and by night: Tổng quan's garden, Tài khoản's lake, Thu chi's
+    /// paper plane.
+    static let gardenSkyTop = dynamic(0xF9EACD, dark: 0x172236)
+    static let pondSkyTop = dynamic(0xCFE7D8, dark: 0x102B35)
+    static let planeSkyTop = dynamic(0xB8DEEF, dark: 0x14263D)
 
     // MARK: Money and meaning
     //

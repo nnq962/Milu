@@ -8,7 +8,7 @@ enum ProfileAvatar: Equatable {
     case milu(MiluHero.Look)
 
     init(raw: String) {
-        if raw.hasPrefix("milu:"), let look = MiluHero.Look(rawValue: String(raw.dropFirst(5))) {
+        if raw.hasPrefix("milu:"), let look = MiluHero.Look(legacy: String(raw.dropFirst(5))) {
             self = .milu(look)
         } else {
             // Anything else, a photo chosen in an earlier build among it: the initial.
@@ -40,13 +40,15 @@ struct ProfileAvatarView: View {
             Circle().fill(Palette.primaryTint)
             switch avatar ?? ProfileAvatar(raw: savedAvatar) {
             case .milu(let look):
-                // The face large in the circle, the slopes cut by its edge, the foot just below
-                // it (the drawings are wide: whole, the face was small, Simulator 2026-11-12).
+                // A portrait: the ears near the top of the circle, the body down to its foot,
+                // the slopes cut by its edge (user 2026-11-13: the face sat far too low).
                 Image(look.image)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: size * 1.7)
-                    .offset(y: size * 0.18)
+                    // A little smaller (user 2026-11-13), the foot still at the circle's edge;
+                    // nudged right, as the head stands a little left of the drawing's middle.
+                    .frame(width: size * 1.85)
+                    .offset(x: size * 0.03, y: size * 0.1)
             case .initial:
                 if let initial = ProfileName.initial(of: name ?? savedName) {
                     Text(initial)
