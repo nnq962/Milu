@@ -27,6 +27,10 @@ struct MiluApp: App {
     @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
     /// Tổng quan's Than is loaded: the first page waits for it, so it opens with Than there.
     @State private var heroReady = false
+    /// The app went to the background since it was last active: only then is the database read
+    /// again, not after every banner, Control Centre or Face ID prompt (each left it inactive a
+    /// moment, and the reload froze the screen ~170 ms, Instruments on the iPhone 2026-11-13).
+    @State private var cameFromBackground = false
 
     init() {
         Typography.configureNativeAppearance()
@@ -136,10 +140,15 @@ struct MiluApp: App {
                 }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { appLock.didLeave() }
+            if phase == .background {
+                appLock.didLeave()
+                cameFromBackground = true
+            }
             // Back from the background: anything that came in meanwhile.
             if phase == .active {
                 appLock.didReturn()
+                guard cameFromBackground else { return }
+                cameFromBackground = false
                 store.reload()
                 store.recordDueRecurring()
                 sync.checkAccount()

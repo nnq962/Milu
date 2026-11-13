@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Scheduled amounts shown on the overview, separate from posted transactions/balances.
-struct PaymentReminder: Identifiable {
-    enum Avatar {
+struct PaymentReminder: Identifiable, Equatable {
+    enum Avatar: Equatable {
         case initials(String)
         case icon(String)
     }

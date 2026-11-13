@@ -121,19 +121,22 @@ final class FinanceStore {
         apply(database.load())
     }
 
+    /// Only what changed is set: setting a list, even to the same rows, redrew every page that
+    /// reads it, the three tabs at once, each time the app came back (Instruments on the iPhone
+    /// 2026-11-13: about 170 ms with nothing new, a swipe then went unanswered).
     private func apply(_ snapshot: FinanceDatabase.Snapshot) {
-        accounts = snapshot.accounts
-        archivedAccounts = snapshot.archivedAccounts
-        savingsGoals = snapshot.savingsGoals
-        transactions = snapshot.transactions
-        goalTransfers = snapshot.goalTransfers
-        accountTransfers = snapshot.accountTransfers
-        categories = snapshot.categories
-        loans = snapshot.loans
-        loanPayments = snapshot.loanPayments
-        paymentReminders = snapshot.paymentReminders
-        contacts = snapshot.contacts
-        customRelationships = snapshot.relationships
-        recurringRules = snapshot.recurringRules
+        if accounts != snapshot.accounts { accounts = snapshot.accounts }
+        if archivedAccounts != snapshot.archivedAccounts { archivedAccounts = snapshot.archivedAccounts }
+        if savingsGoals != snapshot.savingsGoals { savingsGoals = snapshot.savingsGoals }
+        if transactions != snapshot.transactions { transactions = snapshot.transactions }
+        if goalTransfers != snapshot.goalTransfers { goalTransfers = snapshot.goalTransfers }
+        if accountTransfers != snapshot.accountTransfers { accountTransfers = snapshot.accountTransfers }
+        if categories != snapshot.categories { categories = snapshot.categories }
+        if loans != snapshot.loans { loans = snapshot.loans }
+        if loanPayments != snapshot.loanPayments { loanPayments = snapshot.loanPayments }
+        if paymentReminders != snapshot.paymentReminders { paymentReminders = snapshot.paymentReminders }
+        if contacts != snapshot.contacts { contacts = snapshot.contacts }
+        if customRelationships != snapshot.relationships { customRelationships = snapshot.relationships }
+        if recurringRules != snapshot.recurringRules { recurringRules = snapshot.recurringRules }
     }
 }
