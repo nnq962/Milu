@@ -137,7 +137,7 @@ private struct RecordedRows: View {
                     amount: transaction.amount,
                     amountTone: transaction.kind == .income ? .signedIncome : .outflow,
                     showsChevron: false)
-                .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
         }
     }
 }

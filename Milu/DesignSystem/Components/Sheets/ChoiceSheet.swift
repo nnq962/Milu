@@ -26,7 +26,7 @@ struct ChoiceSheet<Value: Hashable>: View {
                     }
                     .buttonStyle(.row)
                     .accessibilityAddTraits(option == selection ? .isSelected : [])
-                    .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: optionIcon != nil) } }
+                    .separatorAbove(index > 0, order: index) { FormDivider(hasIcon: optionIcon != nil) }
                 }
             }
         }

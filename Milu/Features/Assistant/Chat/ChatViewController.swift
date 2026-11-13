@@ -107,8 +107,6 @@ final class ChatViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // The field's buttons knock evenly from the first tap (`Haptics.prepare`).
-        Haptics.prepare()
         view.backgroundColor = .clear
         buildList()
         buildGreeting()
@@ -1063,7 +1061,6 @@ final class ChatViewController: UIViewController {
     }
 
     @objc private func focusField() {
-        Haptics.prepare()
         guard state?.isDictating != true else { return }
         textView.becomeFirstResponder()
     }
@@ -1101,11 +1098,6 @@ final class ChatViewController: UIViewController {
 }
 
 extension ChatViewController: UITextViewDelegate {
-    /// The keyboard coming: the field's buttons are about to be used.
-    func textViewDidBeginEditing(_ textView: UITextView) {
-        Haptics.prepare()
-    }
-
     /// No typing into the hidden field while listening.
     func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
         state?.isDictating != true
@@ -1166,7 +1158,6 @@ extension ChatViewController: UIContextMenuInteractionDelegate {
             UIMenu(children: [
                 UIAction(title: "Sao chép", image: UIImage(systemName: "doc.on.doc")) { _ in
                     UIPasteboard.general.string = text
-                    Haptics.success()
                 },
             ])
         }

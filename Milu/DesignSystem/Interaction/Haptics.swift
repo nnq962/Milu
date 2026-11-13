@@ -1,35 +1,21 @@
-import SwiftUI
+import UIKit
 
-/// Haptics for actions that close the view they start in (save, delete, pick and close), where
-/// `.sensoryFeedback` could vanish with the view. Changes that stay on screen use `.sensoryFeedback`.
+/// The app's haptics, one set of rules everywhere, as iOS uses them (user choice 2026-11-13: the
+/// knocks were of three strengths, and every save buzzed):
+///
+/// - Tapping a button, card or row: none. iOS's own buttons do not knock; the press shows it.
+/// - `selection()`: a choice changing (a category, a chip, a month, a finger along a chart), and
+///   a question sent to Milu or its answer showing.
+/// - `milestone()`: something reached, not every save: Milu Pro bought or restored, a goal
+///   closed, the welcome done, an archived account brought back. A sheet closing says "saved".
+/// - `warning()`: the confirming tap of a delete or erase, not the tap that asks.
+/// - `error()`: ✓ with something missing or wrong.
+///
+/// Called where the action happens, so they play even when the view that started it closes.
+@MainActor
 enum Haptics {
-    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    static func selection() { UISelectionFeedbackGenerator().selectionChanged() }
+    static func milestone() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
     static func warning() { UINotificationFeedbackGenerator().notificationOccurred(.warning) }
     static func error() { UINotificationFeedbackGenerator().notificationOccurred(.error) }
-    static func selection() { UISelectionFeedbackGenerator().selectionChanged() }
-    /// A tap's knock, as iOS's own buttons give: `.light` for a control, `.soft` for sending.
-    /// One kept generator per style, woken ahead by `prepare()`: a new generator each time
-    /// knocked hard the first time, the Taptic Engine starting from rest (user report
-    /// 2026-11-11). At iOS's own strength: set lower, it knocked thin and dry.
-    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
-        let generator = impactGenerator(style)
-        generator.impactOccurred()
-        generator.prepare()
-    }
-
-    /// Wakes the engine for the knocks to come (a screen of controls about to be used): the
-    /// first one then lands as the others do.
-    static func prepare() {
-        impactGenerator(.light).prepare()
-        impactGenerator(.soft).prepare()
-    }
-
-    private static var impactGenerators: [UIImpactFeedbackGenerator.FeedbackStyle: UIImpactFeedbackGenerator] = [:]
-
-    private static func impactGenerator(_ style: UIImpactFeedbackGenerator.FeedbackStyle) -> UIImpactFeedbackGenerator {
-        if let kept = impactGenerators[style] { return kept }
-        let generator = UIImpactFeedbackGenerator(style: style)
-        impactGenerators[style] = generator
-        return generator
-    }
 }

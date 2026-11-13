@@ -116,11 +116,6 @@ final class SpeechDictation {
         let session = session
         startStretch(with: recognizer)
         startClock()
-        // The microphone a moment after the tap: its knock (`Haptics`) plays out first. Started
-        // at once, the audio session's first setting up cut the knock short, a dry click instead
-        // of iOS's warm tap (user report 2026-11-11, the first tap after the keyboard came).
-        try? await Task.sleep(for: .milliseconds(120))
-        guard isRecording, self.session == session else { return }
         microphone.start(feed: feed, onLevel: Self.levelHandler(for: self)) { [weak self] started in
             Task { @MainActor in
                 guard let self, !started, self.isRecording, self.session == session else { return }
@@ -378,8 +373,8 @@ private nonisolated final class Microphone: @unchecked Sendable {
     private static func configure(_ session: AVAudioSession) throws {
         guard session.category != .record || session.mode != .measurement else { return }
         try session.setCategory(.record, mode: .measurement, options: .duckOthers)
-        // ✕, ■ and ↑ knock while listening as they do otherwise: iOS keeps haptics quiet while
-        // it records, unless told (user report 2026-11-11: uneven knocks).
+        // The tick of a question sent (↑) plays while listening as it does otherwise: iOS keeps
+        // haptics quiet while it records, unless told (`Haptics`).
         try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
     }
 

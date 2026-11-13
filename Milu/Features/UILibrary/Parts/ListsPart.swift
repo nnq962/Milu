@@ -17,14 +17,14 @@ struct ListsPart: View {
                         trailingSubtitle: "08:30", amount: 45_000, amountTone: .signedExpense)
                 ListRow(icon: "hugeicons-money-bag-02", title: "Lương tháng 10", subtitle: "Thu nhập",
                         trailingSubtitle: "09:00", amount: 25_000_000, amountTone: .signedIncome)
-                    .overlay(alignment: .top) { RowDivider() }
+                    .separatorAbove { RowDivider() }
             }
 
             // The one way to draw an account in any list.
             SampleList(label: "Tài khoản · AccountRow") {
                 ForEach(Array(Self.accounts.enumerated()), id: \.element.id) { index, account in
                     AccountRow(account: account)
-                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                        .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                 }
             }
 
@@ -33,7 +33,7 @@ struct ListsPart: View {
                 SampleList(label: "Hũ · GoalRow") {
                     ForEach(Array(store.activeGoals.prefix(2).enumerated()), id: \.element.id) { index, goal in
                         GoalRow(goal: goal)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                            .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                     }
                 }
             }
@@ -141,7 +141,7 @@ struct ListsPart: View {
             .foregroundStyle(Palette.secondaryLabel)
             .frame(maxWidth: .infinity, minHeight: RowMetrics.minHeight, alignment: .leading)
             .padding(.horizontal, RowMetrics.horizontal)
-            .overlay(alignment: .bottom) { RowDivider(column: column) }
+            .background(alignment: .bottom) { RowDivider(column: column) }
     }
 
     private func dateLine(_ title: String, _ date: Date) -> some View {

@@ -222,6 +222,14 @@ final class SyncPillUIView: UIView {
     private func setIcon(_ state: SyncPillTimeline.Shown, animated: Bool) {
         let receiving = state == .receiving
         if receiving { spinner.startAnimating() }
+        // A tick once done; a cloud struck through with no network, in the quieter ink.
+        if state == .offline {
+            tick.image = UIImage(systemName: "icloud.slash.fill")
+            tick.tintColor = UIColor(Palette.secondaryLabel)
+        } else {
+            tick.image = UIImage(systemName: "checkmark.icloud.fill")
+            tick.tintColor = UIColor(Palette.positive)
+        }
         let apply = {
             self.spinner.alpha = receiving ? 1 : 0
             self.spinner.transform = receiving || self.reduceMotion ? .identity : CGAffineTransform(scaleX: 0.5, y: 0.5)

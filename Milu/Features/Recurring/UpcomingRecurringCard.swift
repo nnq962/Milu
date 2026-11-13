@@ -35,7 +35,7 @@ struct UpcomingRecurringCard: View {
                 VStack(spacing: 0) {
                     ForEach(Array((waiting + upcoming).enumerated()), id: \.element.id) { index, occurrence in
                         row(occurrence, isWaiting: index < waiting.count)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                            .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                     }
                 }
                 .listCard()

@@ -180,10 +180,8 @@ struct LoanRowList: View {
             ForEach(Array(loans.enumerated()), id: \.element.id) { index, loan in
                 Button { onOpen(loan) } label: { LoanRow(loan: loan, today: today, showsPerson: showsPerson) }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) {
-                        // From where the names start, the avatar column scaled with the text.
-                        if index > 0 { RowDivider(column: .logo) }
-                    }
+                    // From where the names start, the avatar column scaled with the text.
+                    .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
             }
         }
         .listCard()

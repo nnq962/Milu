@@ -50,11 +50,9 @@ struct AssistantView: View {
             // 2026-11-12); a question that needs a lượt is told so in the chat.
             isOutOfQuestions: false,
             leading: AnyView(roundButton("xmark", label: "Huỷ nhập giọng nói") {
-                Haptics.impact()
                 dictation.stop()
             }),
             stop: AnyView(roundButton("stop.fill", label: "Xong, chuyển thành chữ") {
-                Haptics.impact()
                 finishDictation(thenSend: false)
             }),
             action: AnyView(actionButton(isDictating: isDictating)),
@@ -92,6 +90,7 @@ struct AssistantView: View {
         )) {
             Button("Huỷ", role: .cancel) {}
             Button("Xoá", role: .destructive) {
+                Haptics.warning()
                 if let message = pendingRemoval { remove(message) }
             }
         }
@@ -269,7 +268,6 @@ struct AssistantView: View {
 
     /// ■ while Milu thinks: no answer comes, the three dots go, the question stays.
     private func stopAnswer() {
-        Haptics.impact()
         answering?.cancel()
         answering = nil
         // Stopped before any answer: the lượt is given back.
@@ -321,7 +319,6 @@ struct AssistantView: View {
 
     private func startDictation() {
         guard Date.now.timeIntervalSince(answeredAt) > 0.5 else { return }
-        Haptics.impact()
         // The names the server's recognizer favours: the user's accounts, then every bank and wallet.
         var seen = Set<String>()
         dictation.hotwords = (store.accounts.map(\.name) + Institution.all.map(\.shortName)).filter { seen.insert($0).inserted }
@@ -350,7 +347,6 @@ struct AssistantView: View {
     }
 
     private func startNewConversation() {
-        Haptics.impact()
         draft = ""
         dismissKeyboard()
         // The chat page slides the old one away and brings the greeting in (`ChatViewController`).
@@ -368,8 +364,8 @@ struct AssistantView: View {
         // With none left it is asked all the same: it may only record or delete, which is free.
         let paid = quota.spend()
         answerPaid = paid
-        // A soft knock as the question leaves, as the AI apps give.
-        Haptics.impact(.soft)
+        // A tick as the question leaves (`Haptics`).
+        Haptics.selection()
         dictation.stop()
         let chatID = chats.conversations[currentIndex].id
         let history = messages
@@ -409,9 +405,9 @@ struct AssistantView: View {
             let wait = Self.shortestWait - Date.now.timeIntervalSince(askedAt)
             if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
             if Task.isCancelled { return }
-            // One soft knock as Milu's words show, an answer or an error alike (user report
+            // One tick as Milu's words show, an answer or an error alike (user report
             // 2026-11-12: an answer came silent and an error buzzed twice).
-            Haptics.impact(.soft)
+            Haptics.selection()
             let card: ChatMessage.Card? = switch reply.action {
             case .recorded(let transaction): .recorded(transaction, removed: false)
             case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
@@ -438,7 +434,6 @@ struct AssistantView: View {
         case (.view, .recorded(let snapshot, _)):
             viewingTransaction = store.transaction(id: snapshot.id)
         case (.remove, .recorded):
-            Haptics.warning()
             pendingRemoval = message
         case (.confirm, .confirmDelete(let snapshot, .pending)):
             store.delete(snapshot)

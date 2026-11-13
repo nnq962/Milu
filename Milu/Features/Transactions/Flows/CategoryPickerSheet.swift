@@ -136,7 +136,7 @@ struct CategoryPickerSheet: View {
                 }
                 .buttonStyle(.row)
                 .accessibilityAddTraits(selected ? .isSelected : [])
-                .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                .separatorAbove(index > 0, order: index) { FormDivider() }
             }
         }
     }

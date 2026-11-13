@@ -134,7 +134,6 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
                 return
             }
             hasConfirmed = true
-            Haptics.success()
             confirm()
             Task {
                 try? await Task.sleep(for: .seconds(1))

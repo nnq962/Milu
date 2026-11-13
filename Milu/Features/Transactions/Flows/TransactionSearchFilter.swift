@@ -357,7 +357,7 @@ private struct MultiPickPage: View {
                     }
                     .buttonStyle(.row)
                     .accessibilityAddTraits(isOn ? .isSelected : [])
-                    .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                    .separatorAbove(index > 0, order: index) { FormDivider() }
                 }
             }
             .listCard()

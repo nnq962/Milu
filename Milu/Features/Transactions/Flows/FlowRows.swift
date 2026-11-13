@@ -29,6 +29,8 @@ struct DayTotals: View {
                 MoneyText(amount: expense, size: .caption, tone: .outflow)
             }
         }
+        // A row added or deleted: the figures roll to the new sum with the row, not jump.
+        .contentTransition(.numericText())
         // In words: "Thu 1.200.000 đ, chi 55.000 đ", not "trừ 55k".
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([income > 0 ? "Thu \(MoneyText.spoken(income))" : nil,
@@ -62,17 +64,20 @@ struct ActivityDayList: View {
 
     var body: some View {
         ForEach(groups, id: \.day) { group in
-            if headingOutside {
-                OutsideHeaderSection(title: group.day.transactionDayTitle) { dayTotals(group) } content: {
-                    rows(group).listCard()
-                }
-            } else {
-                HeaderCard(title: group.day.transactionDayTitle) {
-                    dayTotals(group)
-                } content: {
-                    rows(group).listCard()
+            Group {
+                if headingOutside {
+                    OutsideHeaderSection(title: group.day.transactionDayTitle) { dayTotals(group) } content: {
+                        rows(group).listCard()
+                    }
+                } else {
+                    HeaderCard(title: group.day.transactionDayTitle) {
+                        dayTotals(group)
+                    } content: {
+                        rows(group).listCard()
+                    }
                 }
             }
+            .transition(.unfold)
         }
     }
 
@@ -81,7 +86,8 @@ struct ActivityDayList: View {
             ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
                 ActivityRow(item: item, side: isGoal ? .goal : viewedAccount == nil ? .list : .account,
                             isEditable: isEditable, viewedAccount: viewedAccount, detail: .time, onEdit: onOpen)
-                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                    .separatorAbove(index > 0, order: index) { RowDivider() }
+                    .transition(.unfold)
             }
         }
     }
@@ -106,4 +112,3 @@ struct ActivityDayList: View {
         }
     }
 }
-

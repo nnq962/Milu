@@ -235,7 +235,6 @@ struct CategoryEditorView: View {
                 }
                 applyEdits()
                 store.unhide(category)
-                Haptics.success()
                 dismiss()
             }
         } else if store.hasHistory(category) {

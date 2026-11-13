@@ -56,7 +56,8 @@ struct ArchivedAccountsList: View {
                               isMuted: true)
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
+                .separatorAbove(index > 0, order: index) { LedgerDivider() }
+                .transition(.unfold)
             }
         }
         .cardSurface(radius: CardCorners.card)

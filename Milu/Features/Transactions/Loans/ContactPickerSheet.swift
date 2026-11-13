@@ -40,7 +40,7 @@ struct ContactPickerSheet: View {
                         FormGroup(title: trimmedQuery.isEmpty ? "Danh bạ" : nil) {
                             ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
                                 row(person)
-                                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                                    .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                             }
                         }
                     } else if trimmedQuery.isEmpty {

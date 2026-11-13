@@ -130,7 +130,6 @@ struct GoalEditorView: View {
                             // A name left empty: say so instead of dropping what was typed.
                             guard canSave else { failClose(); return }
                             applyEdits()
-                            Haptics.success()
                             leave(.reopen, original)
                         }
                     }
@@ -141,7 +140,7 @@ struct GoalEditorView: View {
                         FormActionRow(title: "Đóng hũ", icon: "hugeicons-checkmark-badge-01") {
                             guard canSave else { failClose(); return }
                             applyEdits()
-                            Haptics.success()
+                            Haptics.milestone()
                             leave(.close, original)
                         }
                     }

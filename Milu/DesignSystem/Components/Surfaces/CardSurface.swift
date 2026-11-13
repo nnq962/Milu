@@ -54,6 +54,7 @@ private struct CardSurface: ViewModifier {
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
+            .environment(\.rowGround, isInHeaderCard ? Palette.surfaceMuted : color)
             .clipShape(shape)
             .background {
                 if isInHeaderCard {

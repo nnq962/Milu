@@ -39,12 +39,12 @@ struct RecurringListView: View {
                         }
                         .buttonStyle(.row)
                         .accessibilityHint("Xem chi tiết")
-                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                        .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                     }
                     FormActionRow(title: "Thêm khoản định kỳ", icon: "hugeicons-add-01") {
                         editing = .new
                     }
-                    .overlay(alignment: .top) { if !rules.isEmpty { FormDivider() } }
+                    .separatorAbove(!rules.isEmpty) { FormDivider() }
                 }
                 .listCard()
             }

@@ -125,7 +125,7 @@ struct TransactionDetailView: View {
                                 amountTone: other.kind == .income ? .signedIncome : .outflow)
                     }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                    .separatorAbove(index > 0, order: index) { RowDivider() }
                 }
             }
         }

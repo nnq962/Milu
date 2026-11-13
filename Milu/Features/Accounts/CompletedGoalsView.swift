@@ -53,7 +53,8 @@ struct CompletedGoalsList: View {
                     CompletedGoalRow(goal: goal, subtitle: completedText(goal))
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
+                .separatorAbove(index > 0, order: index) { LedgerDivider() }
+                .transition(.unfold)
             }
         }
         .cardSurface(radius: CardCorners.card)

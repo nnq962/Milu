@@ -32,7 +32,7 @@ struct ReportTransactionList: View {
                     }
                     .buttonStyle(.row)
                     // No icon on this row, so the hairline starts where its words do.
-                    .overlay(alignment: .top) { RowDivider(column: .none) }
+                    .separatorAbove { RowDivider(column: .none) }
                 }
             }
             .listCard()
@@ -91,7 +91,7 @@ private struct TransactionRows: View {
                 TransactionListRow(transaction: transaction, detail: .day)
             }
             .buttonStyle(.row)
-            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+            .separatorAbove(index > 0, order: index) { RowDivider() }
         }
     }
 

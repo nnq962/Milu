@@ -160,7 +160,8 @@ struct AccountsView: View {
                     ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
                         AccountSheetLink(accountID: account.id) { WalletRow(account: account) }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { LedgerDivider() } }
+                            .separatorAbove(index > 0, order: index) { LedgerDivider() }
+                            .transition(.unfold)
                     }
                 }
                 .cardSurface(radius: CardCorners.card)
@@ -193,6 +194,7 @@ struct AccountsView: View {
                             GoalJar(goal: goal, water: Palette.jarWater(at: index))
                         }
                         .buttonStyle(.card)
+                        .transition(.tile)
                     }
                 }
                 .transition(.emptySwap)

@@ -1,6 +1,7 @@
 import CloudKit
 import CoreData
 import Foundation
+import Network
 import Observation
 
 /// What the iCloud sync is doing, for the screens (user request 2026-11-12: opening the app said
@@ -12,6 +13,8 @@ import Observation
 ///   flash after every transaction.
 /// - `lastSynced`: the last time a sync step succeeded, kept across launches.
 /// - `problem`: why the last step failed, in the user's words; cleared by the next success.
+/// - `isOffline`: the iPhone has no network. Said at once (user report 2026-11-13: with no
+///   network the sync still looked busy for a long while, until iCloud gave up on its own).
 @MainActor
 @Observable
 final class CloudSyncMonitor {
@@ -23,11 +26,13 @@ final class CloudSyncMonitor {
     private(set) var isReceiving = false
     private(set) var lastSynced: Date?
     private(set) var problem: String?
+    private(set) var isOffline = false
 
     @ObservationIgnored private var receiving: Set<UUID> = []
     /// Data came down since the screens last read the database (`takeNewData`).
     @ObservationIgnored private var hasNewData = false
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    @ObservationIgnored private var network: NWPathMonitor?
     @ObservationIgnored private let defaults: UserDefaults
     private static let lastSyncedKey = "sync.lastSynced"
 
@@ -50,6 +55,7 @@ final class CloudSyncMonitor {
         observers.append(center.addObserver(forName: .CKAccountChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkAccount() }
         })
+        watchNetwork()
         checkAccount()
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-demoSyncPill") { playDemoRestore() }
@@ -80,6 +86,28 @@ final class CloudSyncMonitor {
         }
     }
     #endif
+
+    /// The network as iOS sees it, as it changes. With none, nothing shows as coming down: a
+    /// round iCloud starts then only waits, and ends whenever it gives up.
+    private func watchNetwork() {
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            guard let self else { return }
+            let offline = path.status != .satisfied
+            Task { @MainActor in self.setOffline(offline) }
+        }
+        monitor.start(queue: DispatchQueue(label: "milu.sync.network"))
+        network = monitor
+    }
+
+    func setOffline(_ offline: Bool) {
+        guard offline != isOffline else { return }
+        isOffline = offline
+        if offline {
+            receiving.removeAll()
+            if isReceiving { isReceiving = false }
+        }
+    }
 
     func checkAccount() {
         Task {
@@ -124,7 +152,7 @@ final class CloudSyncMonitor {
     func handle(_ update: EventUpdate) {
         let shows = update.isImport || update.isSetup
         if !update.ended {
-            if shows { receiving.insert(update.id) }
+            if shows, !isOffline { receiving.insert(update.id) }
         } else {
             receiving.remove(update.id)
             if update.isImport, update.succeeded { hasNewData = true }

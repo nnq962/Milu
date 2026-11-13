@@ -138,6 +138,25 @@ struct CloudSyncTests {
         #expect(food.first?.name == "Ăn uống của tôi")
     }
 
+    /// A system category (hidden from the lists) twice: still found and made one, though the
+    /// snapshot never shows it (review 2026-11-13: the check read the lists, not the rows).
+    @Test func aHiddenDuplicateIsStillCleared() throws {
+        let container = FinanceDatabase.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let id = TransactionCategory.transferFee.rawValue
+        for offset in 0..<2 {
+            let row = CategoryRecord(id: id, kind: "expense", name: "Phí chuyển", icon: "hugeicons-money-send-01",
+                                     isBuiltIn: true, sortOrder: 0)
+            row.createdAt = day.addingTimeInterval(Double(offset) * 86_400)
+            context.insert(row)
+        }
+        try context.save()
+
+        _ = FinanceDatabase(context: context).load()
+        let rows = try context.fetch(FetchDescriptor<CategoryRecord>()).filter { $0.id == id }
+        #expect(rows.count == 1)
+    }
+
     /// A database from V7 (stored balances that are not the sum of the history, as the sample
     /// data's): after the move to V8 every balance is still what it was.
     @Test func movingFromV7KeepsEveryBalance() throws {

@@ -1,17 +1,36 @@
 import SwiftUI
 
 /// A tappable row: the row takes a faint wash of the primary colour while pressed and fades back on
-/// release, like a cell in an iOS list. The card around the rows clips it to its corners (see
-/// `cardSurface`).
+/// release, like a cell in an iOS list. As there, the wash covers the lines above and below the
+/// row (user report 2026-11-13: Cài đặt left both lines showing, Hạng mục the one under): it is
+/// solid (the card's colour under the wash), reaches a line's width past the row each way, and the
+/// pressed row is drawn over its neighbours. The card around the rows clips it to its corners
+/// (see `cardSurface`).
 struct RowButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.rowGround) private var ground
 
     func makeBody(configuration: Configuration) -> some View {
+        let pressed = configuration.isPressed
         configuration.label
-            .background(configuration.isPressed ? Palette.rowPressed : .clear)
+            .background {
+                ZStack {
+                    ground
+                    Palette.rowPressed
+                }
+                .padding(.vertical, -RowMetrics.separator)
+                .opacity(pressed ? 1 : 0)
+            }
+            .zIndex(pressed ? 1 : 0)
             // Instant on press, a short fade on release.
-            .animation(configuration.isPressed || reduceMotion ? nil : .easeOut(duration: 0.3), value: configuration.isPressed)
+            .animation(pressed || reduceMotion ? nil : .easeOut(duration: 0.3), value: pressed)
     }
+}
+
+extension EnvironmentValues {
+    /// The colour the rows stand on (the card's), so a pressed row's wash can be solid and hide
+    /// the lines beside it.
+    @Entry var rowGround: Color = Palette.surface
 }
 
 /// A whole tappable card or tile (a loan, a savings goal, a calendar day): `LivelyPress`.
@@ -60,7 +79,6 @@ struct LivelyPress: ViewModifier {
                     }
                 }
             }
-            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: isPressed) { _, new in new }
     }
 }
 

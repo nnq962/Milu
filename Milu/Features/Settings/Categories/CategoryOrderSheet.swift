@@ -53,8 +53,8 @@ struct CategoryOrderSheet: View {
     }
 
     private func save() {
-        // A "saved" tick only when it was (review 2026-11-08).
-        if store.reorder(order.map(\.id)) { Haptics.success() } else { Haptics.error() }
+        // Saved without a word; a buzz only when it could not be (`Haptics`).
+        if !store.reorder(order.map(\.id)) { Haptics.error() }
         dismiss()
     }
 }

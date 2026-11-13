@@ -57,7 +57,7 @@ struct CategoryReportView: View {
                                 itemRow(item, share: item.amount / spent)
                             }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                            .separatorAbove(index > 0, order: index) { RowDivider() }
                         }
                     }
                 }

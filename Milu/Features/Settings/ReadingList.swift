@@ -41,7 +41,7 @@ struct ReadingListView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, RowMetrics.horizontal)
                         .padding(.vertical, Spacing.l)
-                        .overlay(alignment: .top) { if index > 0 { FormDivider(hasIcon: false) } }
+                        .separatorAbove(index > 0, order: index) { FormDivider(hasIcon: false) }
                         .accessibilityElement(children: .combine)
                     }
                 }

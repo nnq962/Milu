@@ -219,7 +219,7 @@ struct ReportView: View {
                                           edgedDot: ChartShades.isRest(at: index))
                     }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                    .separatorAbove(index > 0, order: index) { RowDivider() }
                 }
             }
         }
@@ -398,7 +398,7 @@ struct ReportView: View {
                     }
                     .buttonStyle(.row)
                     // Accounts as drawn everywhere: a tile in the logo column (user report 2026-10-31).
-                    .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                    .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                 }
             }
         }

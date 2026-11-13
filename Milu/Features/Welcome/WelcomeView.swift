@@ -215,7 +215,7 @@ struct WelcomeView: View {
         }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { savedName = trimmed }
-        Haptics.success()
+        Haptics.milestone()
         onFinish()
     }
 }

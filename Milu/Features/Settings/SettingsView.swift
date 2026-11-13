@@ -344,7 +344,6 @@ struct SettingsView: View {
                 Button("Đóng", role: .cancel) {}
                 Button("Sao chép địa chỉ") {
                     UIPasteboard.general.string = Self.supportEmail
-                    Haptics.success()
                 }
             } message: {
                 Text("Bạn có thể sao chép địa chỉ \(Self.supportEmail) và gửi thư từ ứng dụng thư bạn dùng.")
@@ -517,6 +516,7 @@ private struct SyncRow: View {
         case .signedOut: return "iCloud đang tắt, dữ liệu chỉ ở trên máy này"
         case .restricted, .unavailable: return "iCloud chưa dùng được, dữ liệu chỉ ở trên máy này"
         case .available:
+            if sync.isOffline { return "Không có mạng, sẽ đồng bộ khi có mạng lại" }
             if sync.isReceiving { return "Đang đồng bộ…" }
             if let problem = sync.problem { return problem }
             guard let last = sync.lastSynced else { return "Đang bật" }

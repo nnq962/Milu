@@ -65,7 +65,7 @@ struct NetWorthPartView: View {
                             AccountRow(account: account)
                         }
                         .buttonStyle(.row)
-                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                        .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                     }
                 }
                 .listCard()
@@ -87,7 +87,7 @@ struct NetWorthPartView: View {
                             GoalRow(goal: goal)
                         }
                         .buttonStyle(.row)
-                        .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                        .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                     }
                 }
                 .listCard()

@@ -94,6 +94,10 @@ struct MiluApp: App {
                     .transition(.opacity.combined(with: .scale(scale: 1.04)))
                 }
             }
+                // The saved "Giao diện" on the window from the app's first view, the hold screen,
+                // not from the tabs': put on as the tab bar was first laid out, the switch to light
+                // on an iPhone in dark mode slid its pill down from the top (user report 2026-11-13).
+                .background { SavedAppearanceSetter().frame(width: 0, height: 0) }
                 // The body role (16 SemiBold), so a Text with no role still matches the scale
                 // (strict review 2026-10-31: 17 Regular sat outside it).
                 .font(TextRole.body.font)

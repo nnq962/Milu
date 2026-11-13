@@ -40,7 +40,7 @@ struct DebtSheet: View {
                                 AccountRow(account: account, amountTone: .outflow)
                             }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                            .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                         }
                     }
                     .listCard()

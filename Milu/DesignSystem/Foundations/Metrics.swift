@@ -70,6 +70,8 @@ enum RowMetrics {
     static let vertical: CGFloat = 10
     static let gap: CGFloat = 14
     static let minHeight: CGFloat = 52
+    /// The line between rows (`RowDivider`, `LedgerDivider`).
+    static let separator: CGFloat = 1
     /// Icon without a tile: glyph and the column it sits in (`IconSize`).
     static let iconGlyph: CGFloat = IconSize.rowGlyph
     static let iconColumn: CGFloat = IconSize.rowArtwork

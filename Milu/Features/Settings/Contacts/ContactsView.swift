@@ -38,13 +38,13 @@ struct ContactsView: View {
                             }
                             .buttonStyle(.row)
                             .accessibilityHint("Xem và sửa thông tin")
-                            .overlay(alignment: .top) { if index > 0 { RowDivider(column: .logo) } }
+                            .separatorAbove(index > 0, order: index) { RowDivider(column: .logo) }
                         }
                         if query.isEmpty {
                             FormActionRow(title: "Thêm người", icon: "hugeicons-add-01") {
                                 editing = .new()
                             }
-                            .overlay(alignment: .top) { if !contacts.isEmpty { FormDivider() } }
+                            .separatorAbove(!contacts.isEmpty) { FormDivider() }
                         }
                     }
                     .listCard()

@@ -195,7 +195,7 @@ struct PaywallView: View {
     private func buy() async {
         isBuying = true
         if await store.buy(plan) {
-            Haptics.success()
+            Haptics.milestone()
             dismiss()
         }
         isBuying = false
@@ -237,7 +237,7 @@ struct PaywallView: View {
                         isRestoring = true
                         await store.restore()
                         isRestoring = false
-                        if store.isPro { Haptics.success() }
+                        if store.isPro { Haptics.milestone() }
                     }
                 }
                 .disabled(isRestoring)

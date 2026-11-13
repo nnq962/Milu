@@ -154,7 +154,7 @@ struct AddAccountView: View {
                     // A name left empty: say so instead of restoring without what was typed.
                     guard validate() else { return }
                     applyEdits()
-                    Haptics.success()
+                    Haptics.milestone()
                     dismiss()
                     onLeave?(.restore)
                 }
@@ -170,8 +170,6 @@ struct AddAccountView: View {
                     // A name left empty: say so instead of archiving without what was typed.
                     guard validate() else { return }
                     applyEdits()
-                    // Done, as restoring is: the same tap of success (review 2026-11-06).
-                    Haptics.success()
                     dismiss()
                     onLeave?(.archive)
                 }

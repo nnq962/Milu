@@ -130,6 +130,26 @@ struct SyncPillTimelineTests {
         #expect(timeline.shown == nil)
     }
 
+    /// The network going while the spinner shows: "no network" at once, then gone, never "done".
+    @Test func goingOfflineSaysSoAndGoes() {
+        var timeline = SyncPillTimeline()
+        _ = timeline.fired(timeline.receivingChanged(true), receiving: true)
+        let hide = timeline.wentOffline()
+        #expect(hide == .hide)
+        #expect(timeline.shown == .offline)
+        #expect(timeline.receivingChanged(false) == .hide)
+        #expect(timeline.shown == .offline)
+        _ = timeline.fired(hide, receiving: false)
+        #expect(timeline.shown == nil)
+    }
+
+    /// The network going with nothing up: nothing shows.
+    @Test func goingOfflineWithNothingUpShowsNothing() {
+        var timeline = SyncPillTimeline()
+        #expect(timeline.wentOffline() == .none)
+        #expect(timeline.shown == nil)
+    }
+
     /// A sync whose end is never heard: the spinner gives up.
     @Test func aSyncThatNeverEndsStillGoes() {
         var timeline = SyncPillTimeline()

@@ -70,16 +70,22 @@ final class FinanceDatabase {
     /// Every row, with balances worked out from the history (`BalanceLedger`); a balance that
     /// moved is written back. Duplicate rows from two devices go first (`removeDuplicates`).
     func load() -> Snapshot {
-        removeDuplicates()
-        let (snapshot, rows) = readAll()
-        return settled(snapshot, rows: rows)
+        // Read once; only when two rows share an id (two devices synced the same row) are they
+        // cleared and the rows read again. Clearing first read every table twice on each launch
+        // and each sync, on the main thread (Instruments on the iPhone 2026-11-13).
+        var read = readAll()
+        if read.hasDuplicates {
+            removeDuplicates()
+            read = readAll()
+        }
+        return settled(read.snapshot, rows: read.rows)
     }
 
     /// Sets each opening balance so that, with the history, it makes the balance stored today: once,
     /// after the move to V8 (`MiluMigrationPlan.needsRebaseKey`) and after seeding sample data, whose
     /// balances were never the sum of its history. Balances on screen do not change.
     func rebaseOpeningBalances() {
-        let (snapshot, rows) = readAll()
+        let (snapshot, rows, _) = readAll()
         let moved = movements(in: snapshot)
         for row in rows {
             row.openingBalance = row.balance - Int64(dong: moved[row.id] ?? 0)
@@ -122,7 +128,9 @@ final class FinanceDatabase {
     }
 
     /// Every row as stored, and the account rows (goals too) the balances live on.
-    private func readAll() -> (Snapshot, [AccountRecord]) {
+    /// Every table read once, and whether any of them holds an id twice: checked on the rows as
+    /// stored, before any is filtered out or skipped, so it finds all `removeDuplicates` clears.
+    private func readAll() -> (snapshot: Snapshot, rows: [AccountRecord], hasDuplicates: Bool) {
         // Every row is loaded: closed goals are listed on "Hũ đã hoàn thành", archived accounts on
         // "Đã lưu trữ"; both keep their history.
         let goalType = SavingsGoal.accountType
@@ -133,6 +141,18 @@ final class FinanceDatabase {
         // Once, not once per record (review 2026-11-09: rebuilt for each of thousands of rows at launch).
         let accountIDs = Set(accountRows.filter { $0.type != goalType }.map(\.id))
         let transactionRows = fetch(FetchDescriptor<TransactionRecord>(sortBy: [SortDescriptor(\.occurredAt, order: .reverse)]))
+        let loanRows = fetch(FetchDescriptor<LoanRecord>(sortBy: [SortDescriptor(\.createdAt)]))
+        let paymentRows = fetch(FetchDescriptor<LoanPaymentRecord>(sortBy: [SortDescriptor(\.paidAt, order: .reverse)]))
+        let reminderRows = fetch(FetchDescriptor<ReminderRecord>(sortBy: [SortDescriptor(\.dueDate)]))
+        let categoryRows = fetch(FetchDescriptor<CategoryRecord>(sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]))
+        let contactRows = fetch(FetchDescriptor<ContactRecord>(sortBy: [SortDescriptor(\.createdAt)]))
+        let relationshipRows = fetch(FetchDescriptor<RelationshipRecord>(sortBy: [SortDescriptor(\.createdAt)]))
+        let ruleRows = fetch(FetchDescriptor<RecurringRuleRecord>(sortBy: [SortDescriptor(\.createdAt)]))
+        func repeats<ID: Hashable>(_ ids: [ID]) -> Bool { Set(ids).count != ids.count }
+        let hasDuplicates = repeats(accountRows.map(\.id)) || repeats(transactionRows.map(\.id))
+            || repeats(loanRows.map(\.id)) || repeats(paymentRows.map(\.id)) || repeats(reminderRows.map(\.id))
+            || repeats(categoryRows.map(\.id)) || repeats(contactRows.map(\.id))
+            || repeats(relationshipRows.map(\.id)) || repeats(ruleRows.map(\.id))
         let snapshot = Snapshot(
             accounts: accounts.filter { !$0.isArchived },
             // The most recently archived first, as the screen lists them.
@@ -144,20 +164,17 @@ final class FinanceDatabase {
             goalTransfers: transactionRows.compactMap {
                 GoalTransfer($0, goalIDs: goalIDs, accountIDs: accountIDs)
             },
-            loans: fetch(FetchDescriptor<LoanRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Loan.init),
-            loanPayments: fetch(FetchDescriptor<LoanPaymentRecord>(sortBy: [SortDescriptor(\.paidAt, order: .reverse)]))
-                .map(LoanPayment.init),
-            paymentReminders: fetch(FetchDescriptor<ReminderRecord>(sortBy: [SortDescriptor(\.dueDate)])).map(PaymentReminder.init),
-            categories: fetch(FetchDescriptor<CategoryRecord>(sortBy: [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]))
+            loans: loanRows.map(Loan.init),
+            loanPayments: paymentRows.map(LoanPayment.init),
+            paymentReminders: reminderRows.map(PaymentReminder.init),
+            categories: categoryRows
                 .filter { !Category.systemIDs.contains($0.id) }
                 .map(Category.init),
-            contacts: fetch(FetchDescriptor<ContactRecord>(sortBy: [SortDescriptor(\.createdAt)])).map(Contact.init),
-            relationships: fetch(FetchDescriptor<RelationshipRecord>(sortBy: [SortDescriptor(\.createdAt)]))
-                .map(Relationship.init),
-            recurringRules: fetch(FetchDescriptor<RecurringRuleRecord>(sortBy: [SortDescriptor(\.createdAt)]))
-                .map(RecurringRule.init)
+            contacts: contactRows.map(Contact.init),
+            relationships: relationshipRows.map(Relationship.init),
+            recurringRules: ruleRows.map(RecurringRule.init)
         )
-        return (snapshot, accountRows)
+        return (snapshot, accountRows, hasDuplicates)
     }
 
     /// Two devices can each make a row with the same `id` before they sync (the built-in

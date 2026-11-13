@@ -29,7 +29,7 @@ struct OptionSheet: View {
                         NavigationRowContent(title: option.title, subtitle: option.subtitle, icon: option.icon)
                     }
                     .buttonStyle(.row)
-                    .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                    .separatorAbove(index > 0, order: index) { FormDivider() }
                 }
             }
         }

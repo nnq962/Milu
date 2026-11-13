@@ -39,7 +39,7 @@ struct DayTransactionsSheet: View {
                                 TransactionListRow(transaction: transaction, detail: .time)
                             }
                         }
-                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                        .separatorAbove(index > 0, order: index) { RowDivider() }
                     }
                 }
                 .listCard()

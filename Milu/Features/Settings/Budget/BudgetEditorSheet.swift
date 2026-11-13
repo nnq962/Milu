@@ -109,9 +109,12 @@ struct BudgetEditorSheet: View {
         }
         // A new amount clears the old complaint until ✓ checks again.
         .onChange(of: input) { error = nil }
-        // iOS's own alert colours, as every alert of the app; a warning tick as it shows.
+        // iOS's own alert colours, as every alert of the app; the warning as it is confirmed.
         .systemAlert("Bỏ hạn mức?", isPresented: $isConfirmingRemove) {
-            Button("Bỏ hạn mức", role: .destructive) { remove() }
+            Button("Bỏ hạn mức", role: .destructive) {
+                Haptics.warning()
+                remove()
+            }
             Button("Huỷ", role: .cancel) {}
         } message: {
             Text(removeWarning)
@@ -140,7 +143,6 @@ struct BudgetEditorSheet: View {
     }
 
     private func askToRemove() {
-        Haptics.warning()
         isConfirmingRemove = true
     }
 

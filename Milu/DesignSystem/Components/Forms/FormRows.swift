@@ -237,11 +237,9 @@ struct FormActionRow: View {
     var canConfirm = true
     let action: () -> Void
 
-    @State private var isConfirming = false
-
     var body: some View {
         Button {
-            if question == nil { action() } else { isConfirming = true }
+            if let question { confirm(question) } else { action() }
         } label: {
             HStack(spacing: RowMetrics.gap) {
                 if let icon {
@@ -254,12 +252,14 @@ struct FormActionRow: View {
             .formRowFrame()
         }
         .buttonStyle(.row)
-        .systemAlert(question ?? "", isPresented: $isConfirming) {
-            Button(canConfirm ? "Huỷ" : "OK", role: .cancel) {}
-            if canConfirm { Button(title, action: action) }
-        } message: {
-            if let message { Text(message) }
-        }
+    }
+
+    /// iOS's alert, shown by UIKit (`NativeAlert`): in a sheet over a sheet, SwiftUI's lost its
+    /// buttons' actions.
+    private func confirm(_ question: String) {
+        var buttons: [NativeAlert.Button] = [.cancel(canConfirm ? "Huỷ" : "OK")]
+        if canConfirm { buttons.append(.init(title: title, action: action)) }
+        NativeAlert.show(question, message: message, buttons: buttons)
     }
 }
 
@@ -289,10 +289,8 @@ struct FormDestructiveRow: View {
     var warns = true
     let action: () -> Void
 
-    @State private var isConfirming = false
-
     var body: some View {
-        Button(role: .destructive) { isConfirming = true } label: {
+        Button(role: .destructive, action: confirm) {
             HStack(spacing: RowMetrics.gap) {
                 if let icon {
                     RowIcon(name: icon, tint: Palette.negative)
@@ -304,26 +302,29 @@ struct FormDestructiveRow: View {
             .formRowFrame()
         }
         .buttonStyle(.row)
-        // A centred iOS alert, not a sheet from the button (user choice 2026-10-29).
-        .systemAlert(question, isPresented: $isConfirming) {
-            Button(canConfirm ? "Huỷ" : "OK", role: .cancel) {}
-            if !canConfirm {
-                EmptyView()
-            } else if choices.isEmpty {
-                Button(title, role: .destructive) {
+    }
+
+    /// A centred iOS alert, not a sheet from the button (user choice 2026-10-29), shown by UIKit
+    /// (`NativeAlert`): in a sheet over a sheet, SwiftUI's alert rebuilt the form and its red
+    /// button then deleted nothing (2026-11-13).
+    private func confirm() {
+        var buttons: [NativeAlert.Button] = [.cancel(canConfirm ? "Huỷ" : "OK")]
+        if canConfirm {
+            if choices.isEmpty {
+                let warns = warns, action = action
+                buttons.append(.init(title: title, role: .destructive) {
                     if warns { Haptics.warning() }
                     action()
-                }
+                })
             } else {
-                ForEach(choices) { choice in
-                    Button(choice.title, role: .destructive) {
+                buttons += choices.map { choice in
+                    .init(title: choice.title, role: .destructive) {
                         Haptics.warning()
                         choice.action()
                     }
                 }
             }
-        } message: {
-            if let message { Text(message) }
         }
+        NativeAlert.show(question, message: message, buttons: buttons)
     }
 }

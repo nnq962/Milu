@@ -43,12 +43,12 @@ struct CategoriesView: View {
                                                      icon: group.icon)
                             }
                             .buttonStyle(.row)
-                            .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                            .separatorAbove(index > 0, order: index) { FormDivider() }
                         }
                         FormActionRow(title: "Thêm nhóm", icon: "hugeicons-add-01") {
                             editing = .newGroup(kind)
                         }
-                        .overlay(alignment: .top) { if !groups.isEmpty { FormDivider() } }
+                        .separatorAbove(!groups.isEmpty) { FormDivider() }
                     }
                     .listCard()
                 }
@@ -146,13 +146,13 @@ struct CategoryGroupView: View {
                                     CategorySheetRow(title: item.name, icon: item.icon)
                                 }
                                 .buttonStyle(.row)
-                                .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                                .separatorAbove(index > 0, order: index) { FormDivider() }
                             }
                             // An action, so in ink like every action row (grey reads as disabled).
                             FormActionRow(title: "Thêm hạng mục", icon: "hugeicons-add-01") {
                                 editing = .newItem(in: group)
                             }
-                            .overlay(alignment: .top) { if !items.isEmpty { FormDivider() } }
+                            .separatorAbove(!items.isEmpty) { FormDivider() }
                         }
                         .listCard()
                     }
@@ -167,7 +167,7 @@ struct CategoryGroupView: View {
                                                          icon: item.icon)
                                     }
                                     .buttonStyle(.row)
-                                    .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                                    .separatorAbove(index > 0, order: index) { FormDivider() }
                                 }
                             }
                             .listCard()
@@ -223,7 +223,7 @@ struct HiddenCategoriesView: View {
                             CategorySheetRow(title: category.name, subtitle: subtitle(category), icon: category.icon)
                         }
                         .buttonStyle(.row)
-                        .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                        .separatorAbove(index > 0, order: index) { FormDivider() }
                     }
                 }
                 .listCard()

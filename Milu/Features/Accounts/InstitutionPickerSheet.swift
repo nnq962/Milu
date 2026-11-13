@@ -23,8 +23,8 @@ struct InstitutionPickerSheet: View {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, institution in
                             row(institution)
-                                .overlay(alignment: .top) {
-                                    if index > 0 { RowDivider().padding(.trailing, RowMetrics.horizontal) }
+                                .separatorAbove(index > 0, order: index) {
+                                    RowDivider().padding(.trailing, RowMetrics.horizontal)
                                 }
                         }
                     }

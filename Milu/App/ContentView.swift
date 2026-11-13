@@ -37,8 +37,6 @@ struct ContentView: View {
             .tint(Palette.primary)
             .background {
                 InstantTabSwitch { add() }.frame(width: 0, height: 0)
-                // The saved "Giao diện", before the first frame shows.
-                SavedAppearanceSetter().frame(width: 0, height: 0)
             }
             .environment(addContext)
             // The first steps pay as the user does them, on whichever tab (user choice 2026-11-08).

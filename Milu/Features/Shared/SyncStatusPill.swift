@@ -38,6 +38,11 @@ struct SyncStatusPill: ViewModifier {
                 }
                 run(timeline.receivingChanged(receiving))
             }
+            // No network: a pill that was turning says so at once and goes, rather than turning
+            // on until iCloud gives up (user report 2026-11-13).
+            .onChange(of: sync.isOffline) { _, offline in
+                if offline { run(timeline.wentOffline()) }
+            }
     }
 
     /// Waits for the step `timeline` asked for, then tells it; a newer step replaces it.
@@ -55,7 +60,11 @@ struct SyncStatusPill: ViewModifier {
     private static let aboveTabBar: CGFloat = 76
 
     private var label: String {
-        timeline.shown == .done ? "Đã đồng bộ" : receivingText
+        switch timeline.shown {
+        case .done: "Đã đồng bộ"
+        case .offline: "Không có mạng, sẽ đồng bộ sau"
+        case .receiving, nil: receivingText
+        }
     }
 }
 
@@ -67,7 +76,7 @@ struct SyncStatusPill: ViewModifier {
 /// round has started for `settle`, so the pill does not flip between the two (iPhone test
 /// 2026-11-12, after a reinstall).
 struct SyncPillTimeline {
-    enum Shown: Hashable { case receiving, done }
+    enum Shown: Hashable { case receiving, done, offline }
 
     enum Step: Equatable {
         case none, show, settle, hide, giveUp
@@ -102,8 +111,15 @@ struct SyncPillTimeline {
         switch shown {
         case nil: return .none
         case .receiving: return .settle
-        case .done: return .hide
+        case .done, .offline: return .hide
         }
+    }
+
+    /// The network went: what shows says so, briefly; nothing showing stays so.
+    mutating func wentOffline() -> Step {
+        guard shown != nil else { return .none }
+        shown = .offline
+        return .hide
     }
 
     mutating func fired(_ step: Step, receiving: Bool) -> Step {

@@ -20,12 +20,12 @@ struct RelationshipPickerSheet: View {
             FormGroup {
                 ForEach(Array(relationships.enumerated()), id: \.element.id) { index, relationship in
                     row(relationship)
-                        .overlay(alignment: .top) { if index > 0 { FormDivider() } }
+                        .separatorAbove(index > 0, order: index) { FormDivider() }
                 }
                 FormActionRow(title: "Thêm loại mới", icon: "hugeicons-add-01") {
                     editing = .new
                 }
-                .overlay(alignment: .top) { FormDivider() }
+                .separatorAbove { FormDivider() }
             }
         }
         .sheet(item: $editing, onDismiss: {

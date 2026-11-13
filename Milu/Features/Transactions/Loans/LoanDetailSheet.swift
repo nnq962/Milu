@@ -197,7 +197,7 @@ struct LoanDetailSheet: View {
                       // On an archived account: shown, not changed (the footer says why).
                       .disabled(store.readOnlyReason(payment) != nil)
                       // Under the titles, the icon column scaled with the text as the rows' icons.
-                      .overlay(alignment: .top) { if index > 0 { RowDivider(column: .icon) } }
+                      .separatorAbove(index > 0, order: index) { RowDivider(column: .icon) }
                   }
                   if earlier > 0 {
                       // Not a repayment of the app's: no account, no date, nothing to open.
@@ -205,7 +205,7 @@ struct LoanDetailSheet: View {
                               title: lent ? "Đã thu trước đó" : "Đã trả trước đó",
                               subtitle: "Trước khi ghi vào Milu",
                               amount: earlier, amountTone: .neutral, showsChevron: false)
-                          .overlay(alignment: .top) { if !payments.isEmpty { RowDivider(column: .icon) } }
+                          .separatorAbove(!payments.isEmpty) { RowDivider(column: .icon) }
                   }
                 }
             }

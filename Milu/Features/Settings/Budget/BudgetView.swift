@@ -73,10 +73,10 @@ struct BudgetView: View {
                             ForEach(Array(limited.enumerated()), id: \.element.id) { index, group in
                                 limitedRow(group, progress: BudgetProgress(limit: categoryBudgets[group.id],
                                                                            spent: spentByGroup[group.id] ?? 0))
-                                    .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                                    .separatorAbove(index > 0, order: index) { RowDivider() }
                             }
                             restRow(rest, hasOverspend: overspend > 0, hasUnlimited: !others.isEmpty)
-                                .overlay(alignment: .top) { RowDivider() }
+                                .separatorAbove { RowDivider() }
                         }
                         .listCard()
                     }
@@ -95,7 +95,7 @@ struct BudgetView: View {
                             VStack(spacing: 0) {
                                 ForEach(Array(others.enumerated()), id: \.element.id) { index, group in
                                     unlimitedRow(group, spent: spentByGroup[group.id] ?? 0)
-                                        .overlay(alignment: .top) { if index > 0 { RowDivider() } }
+                                        .separatorAbove(index > 0, order: index) { RowDivider() }
                                 }
                             }
                             .listCard()
@@ -203,7 +203,7 @@ struct BudgetView: View {
                 }
                 .padding(.top, Spacing.m)
                 // A form hairline: from where the words start to the card's edge.
-                .overlay(alignment: .top) { FormDivider(hasIcon: false).padding(.horizontal, -RowMetrics.horizontal) }
+                .separatorAbove { FormDivider(hasIcon: false).padding(.horizontal, -RowMetrics.horizontal) }
             }
         }
         .settingsCard()

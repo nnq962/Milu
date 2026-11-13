@@ -39,36 +39,34 @@ struct NetWorthView: View {
                 // (strict review 2026-10-31).
                 if !accounts.isEmpty {
                     link(.accounts, icon: "hugeicons-wallet-01", subtitle: "\(accounts.count) tài khoản",
-                         amount: store.totalAssets - saved, first: true)
+                         amount: store.totalAssets - saved, first: true, order: 0)
                 }
                 if saved > 0 {
                     link(.goals, icon: "hugeicons-piggy-bank", subtitle: "\(store.activeGoals.count) hũ", amount: saved,
-                         first: accounts.isEmpty)
+                         first: accounts.isEmpty, order: 1)
                 }
                 if !lent.isEmpty {
                     link(.lent, icon: "hugeicons-hand-coins", subtitle: "\(lent.count) khoản", amount: store.totalLent,
-                         first: accounts.isEmpty && saved <= 0)
+                         first: accounts.isEmpty && saved <= 0, order: 2)
                 }
                 Button { isShowingDebt = true } label: {
                     ListRow(icon: "hugeicons-credit-card", title: "Nợ", subtitle: "Thẻ âm và đi vay",
                             amount: -store.totalDebt, amountTone: .balance)
                 }
                 .buttonStyle(.row)
-                .overlay(alignment: .top) {
-                    if !(accounts.isEmpty && saved <= 0 && lent.isEmpty) { RowDivider() }
-                }
+                .separatorAbove(!(accounts.isEmpty && saved <= 0 && lent.isEmpty), order: 3) { RowDivider() }
             }
             .listCard()
         }
     }
 
     private func link(_ part: NetWorthPart, icon: String, subtitle: String, amount: Double,
-                      first: Bool = false) -> some View {
+                      first: Bool = false, order: Int) -> some View {
         NavigationLink(value: part) {
             ListRow(icon: icon, title: part.title, subtitle: subtitle, amount: amount)
         }
         .buttonStyle(.row)
-        .overlay(alignment: .top) { if !first { RowDivider() } }
+        .separatorAbove(!first, order: order) { RowDivider() }
     }
 }
 

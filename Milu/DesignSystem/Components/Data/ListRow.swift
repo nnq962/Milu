@@ -19,8 +19,22 @@ struct RowDivider: View {
         case .none: RowMetrics.horizontal
         }
         Palette.separator
-            .frame(height: 1)
+            .frame(height: RowMetrics.separator)
             .padding(.leading, inset)
+            // Under the rows beside it, so a pressed row's wash covers it (`RowButtonStyle`).
+            .zIndex(-1)
+    }
+}
+
+extension View {
+    /// A line over this row (`RowDivider`, `FormDivider`, `LedgerDivider`), drawn behind it, the
+    /// rows of a list stacked with each one over the next (`order`, its place in the list; a row
+    /// after the list, such as "Thêm…", last). So a pressed row's wash covers the line over it
+    /// and the one under it, as in iOS's own lists (`RowButtonStyle`; user report 2026-11-13).
+    func separatorAbove<Line: View>(_ shown: Bool = true, order: Int = 100_000,
+                                    @ViewBuilder _ line: () -> Line) -> some View {
+        background(alignment: .top) { if shown { line() } }
+            .zIndex(-Double(order))
     }
 }
 
