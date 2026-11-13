@@ -100,6 +100,10 @@ struct SkyHeader: View {
                     .accessibilityHidden(true)
             }
         }
+        // Not drawn: the head is the sky and Milu alone (user request 2026-11-13). The words keep
+        // their room, so the head is as tall as before at every text size, and VoiceOver still
+        // reads them.
+        .hidden()
         .padding(.horizontal, Spacing.page)
         // Figma: the paw line 130 down, the title's foot at 200, the edge at 240. The bar ends near
         // 106 on a 402 screen, so 24 above and 40 below put each where it is drawn.
@@ -107,7 +111,9 @@ struct SkyHeader: View {
         .padding(.bottom, Self.bottomRoom)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(alignment: .bottom) { art }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title.map { "\(overline), \($0)" } ?? overline)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var usesRive: Bool { rive.map { !$0.character.loadFailed } ?? false }

@@ -40,10 +40,15 @@ enum DataReset {
 }
 
 /// Gọi từ một màn bất kỳ để xoá toàn bộ dữ liệu; `MiluApp` gắn việc thật vào đây.
-struct EraseAllDataAction {
+struct EraseAllDataAction: Equatable {
     let action: @MainActor () -> Void
 
     @MainActor func callAsFunction() { action() }
+
+    /// Always the same action (the app's one erase): made anew each time the app's root redraws
+    /// (a banner, Face ID, the sync), it read as a new value, and every view under it redrew
+    /// (Instruments on the iPhone 2026-11-13).
+    static func == (_: Self, _: Self) -> Bool { true }
 }
 
 extension EnvironmentValues {

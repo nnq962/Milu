@@ -59,9 +59,13 @@ struct OnboardingCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The card in view; the dots follow it.
     @State private var current: Step?
-    /// Opened on the first step not done once; coming back to the page keeps the card the user
-    /// left it on (review 2026-11-08: it jumped back every time).
-    @State private var hasOpened = false
+    /// When the row was first shown (set once: coming back to the page keeps the card the user
+    /// left it on, review 2026-11-08): the steps read as done can change in the first moments
+    /// (the AI turns coming back from iCloud), and the row then goes to the right card at once
+    /// rather than sliding there as the page opens (user report 2026-11-13).
+    @State private var openedAt: Date?
+    /// How long after opening a change of what is done is taken as the app settling, not the user.
+    private static let settling: TimeInterval = 2
     /// The step's picture, a row's 32 grown a little for a card; it grows with the words beside
     /// it, no more than 1.6 times (`RowMetrics.capped`).
     @ScaledMetric(relativeTo: .body) private var scaledPicture: CGFloat = Self.picture
@@ -123,8 +127,7 @@ struct OnboardingCard: View {
     /// The cards side by side, one page wide less the peek, each snapping to the page's edge.
     private func row(_ steps: [Step]) -> some View {
         let doneCount = steps.filter(isDone).count
-        return ScrollViewReader { proxy in
-            ScrollView(.horizontal) {
+        return ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: Spacing.m) {
                     ForEach(steps, id: \.self) { step in
                         card(step)
@@ -141,30 +144,44 @@ struct OnboardingCard: View {
                 .padding(.trailing, Self.peek)
             }
             .scrollTargetBehavior(.viewAligned)
-            // Read at the row's middle, where the card in view always is.
-            .scrollPosition(id: $current, anchor: .center)
+            // The card whose leading edge is on the page's: where a swipe snaps it, so setting
+            // `current` places it right (the middle read it right but placed it 12 off).
+            .scrollPosition(id: $current, anchor: .leading)
+            // Laid out from the first frame on the first step not done: card k of n starts k/(n-1)
+            // of the way along (each card and its gap are one step, the trailing room making up
+            // the last). Moved there after showing, it flashed in (user reports 2026-11-13).
+            .defaultScrollAnchor(UnitPoint(x: openingFraction(steps), y: 0.5))
             .scrollIndicators(.hidden)
             // The cards run on past the page margin to the screen's edge, so the next one peeks.
             .scrollClipDisabled()
-            // Moved in code with the card's leading edge on the page's, where a swipe snaps it:
-            // setting `current` would place it by the reading anchor (centre), 12 off (review
-            // 2026-11-08). Opens on the first step not done; moves on as one is done.
+            // Moves on as a step is done.
             .onAppear {
-                guard !hasOpened else { return }
-                hasOpened = true
-                if let first = firstUndone { proxy.scrollTo(first, anchor: .leading) }
+                if openedAt == nil { openedAt = .now }
             }
-            // On to the next step not done after the card in view, round to the start, never
-            // back past where the user is (review 2026-11-08: from card 4 it slid back to card 1
-            // only after going round).
-            // Only when the card in view is the one just done: a step done elsewhere (an expense
-            // from the tab bar's +) left the user's card where it was (review 2026-11-08).
             .onChange(of: doneCount) {
+                // Still opening: straight to the first step not done, no slide.
+                if let openedAt, Date.now.timeIntervalSince(openedAt) < Self.settling {
+                    place(on: firstUndone)
+                    return
+                }
                 if let current, !isDone(current) { return }
                 guard let next = nextUndone(after: current) else { return }
-                withAnimation(reduceMotion ? nil : .smooth) { proxy.scrollTo(next, anchor: .leading) }
+                withAnimation(reduceMotion ? nil : .smooth) { current = next }
             }
-        }
+    }
+
+    /// Where along the row the first step not done stands, 0 for the first card, 1 for the last.
+    private func openingFraction(_ steps: [Step]) -> CGFloat {
+        guard steps.count > 1, let first = firstUndone, let index = steps.firstIndex(of: first) else { return 0 }
+        return CGFloat(index) / CGFloat(steps.count - 1)
+    }
+
+    /// On this card at once, no slide.
+    private func place(on step: Step?) {
+        guard let step, step != current else { return }
+        var still = Transaction()
+        still.disablesAnimations = true
+        withTransaction(still) { current = step }
     }
 
     /// One row (user request 2026-11-08: shorter still): the picture, the name over what it pays,

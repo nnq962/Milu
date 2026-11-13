@@ -44,11 +44,41 @@ private struct TilePair<First: View, Second: View>: View {
         if typeSize.isAccessibilitySize {
             VStack(spacing: OverviewTileMetrics.gap) { first; second }
         } else {
-            Grid(horizontalSpacing: OverviewTileMetrics.gap) {
-                GridRow { first; second }
-            }
+            EqualColumns(gap: OverviewTileMetrics.gap) { first; second }
         }
     }
+}
+
+/// Views side by side in equal columns, every one as tall as the tallest (the two tiles, the
+/// week's seven days). Each is measured once for its height: a `Grid` measured them again and
+/// again, a slow first frame of Tổng quan with its charts starting late (Instruments on the
+/// iPhone 2026-11-13).
+private struct EqualColumns: Layout {
+    let gap: CGFloat
+
+    private func columnWidth(_ width: CGFloat, count: Int) -> CGFloat {
+        guard count > 0 else { return 0 }
+        return max((width - gap * CGFloat(count - 1)) / CGFloat(count), 0)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout CGFloat?) -> CGSize {
+        let width = proposal.width ?? 0
+        let column = ProposedViewSize(width: columnWidth(width, count: subviews.count), height: nil)
+        let height = subviews.map { $0.sizeThatFits(column).height }.max() ?? 0
+        cache = height
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout CGFloat?) {
+        let column = columnWidth(bounds.width, count: subviews.count)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + CGFloat(index) * (column + gap), y: bounds.minY),
+                          anchor: .topLeading,
+                          proposal: ProposedViewSize(width: column, height: cache ?? bounds.height))
+        }
+    }
+
+    func makeCache(subviews: Subviews) -> CGFloat? { nil }
 }
 
 /// One block: its graphic on top, a label, one figure, a line under it; on the card's white, on
@@ -397,8 +427,10 @@ struct WeekCard: View {
             Button(action: onOpenCalendar) { HeaderLink(title: "Lịch", opensPage: true) }
                 .headerLinkButton()
         } content: {
-            Grid(horizontalSpacing: Spacing.xs, verticalSpacing: Spacing.xs) {
-                GridRow {
+            // Two rows of seven equal columns, not a `Grid`, which measured each day again and
+            // again on Tổng quan's first frame (Instruments on the iPhone 2026-11-13).
+            VStack(spacing: Spacing.xs) {
+                EqualColumns(gap: Spacing.xs) {
                     ForEach(["T2", "T3", "T4", "T5", "T6", "T7", "CN"], id: \.self) { title in
                         Text(title)
                             .textRole(.footnote)
@@ -408,7 +440,7 @@ struct WeekCard: View {
                             .accessibilityHidden(true)
                     }
                 }
-                GridRow {
+                EqualColumns(gap: Spacing.xs) {
                     ForEach(days, id: \.self) { day in
                         CalendarDayCell(date: day, items: byDay[day] ?? []) { onSelectDay(day) }
                     }

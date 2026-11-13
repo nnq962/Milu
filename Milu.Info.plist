@@ -7,5 +7,15 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- Cún peeking over "Milu" on the page's colour (`SplashMark`), light and dark. -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>LaunchMark</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<false/>
+	</dict>
 </dict>
 </plist>

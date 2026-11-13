@@ -75,12 +75,13 @@ struct MiluApp: App {
         WindowGroup {
             Group {
                 if welcomeSeen && !heroReady {
-                    Palette.background
-                        .ignoresSafeArea()
+                    // The launch screen's cún and "Milu" again, in place, while Tổng quan gets
+                    // ready; then the page fades in over it (user choice 2026-11-13).
+                    SplashScreen()
                         .task {
                             await MiluRiveCharacter.overviewReady()
                             MiluRiveCharacter.park()
-                            heroReady = true
+                            withAnimation(Motion.gentle(.easeOut(duration: 0.3))) { heroReady = true }
                         }
                 } else if welcomeSeen {
                     ContentView()
@@ -124,13 +125,11 @@ struct MiluApp: App {
                 // Quick: the face is already known, the app should be there at once.
                 .animation(.easeOut(duration: 0.15), value: appLock.isLocked)
                 // What came down from iCloud: read once, when the sync has gone quiet (see
-                // `CloudSyncMonitor.takeNewData`).
-                .onChange(of: sync.isReceiving) { _, receiving in
-                    if !receiving, sync.takeNewData() {
-                        store.reload()
-                        store.recordDueRecurring()
-                    }
-                }
+                // `CloudSyncMonitor.takeNewData`). Watched by a small view of its own, not here:
+                // read here, each round of the sync at launch rebuilt the app's root, and every
+                // page under it redrew while Tổng quan's charts were still drawing (Instruments
+                // on the iPhone 2026-11-13).
+                .modifier(ReloadAfterSync(sync: sync, store: store))
                 // What recurring rules that record by themselves owe since the app was last open.
                 .task(id: generation) { store.recordDueRecurring() }
                 // Past midnight with the app open: today's are due now.
@@ -174,5 +173,20 @@ struct MiluApp: App {
         // Giao diện về "Hệ thống" ngay, không đợi mở lại app.
         AppAppearance.system.apply(animated: false)
         generation += 1
+    }
+}
+
+/// Reads the database again once the iCloud sync has gone quiet with new data.
+private struct ReloadAfterSync: ViewModifier {
+    let sync: CloudSyncMonitor
+    let store: FinanceStore
+
+    func body(content: Content) -> some View {
+        content.onChange(of: sync.isReceiving) { _, receiving in
+            if !receiving, sync.takeNewData() {
+                store.reload()
+                store.recordDueRecurring()
+            }
+        }
     }
 }
