@@ -162,7 +162,11 @@ final class MiluRiveCharacter {
             }
             let rive = try await Rive(file: file, artboard: artboard, stateMachine: stateMachine,
                                       fit: .contain(alignment: .bottomCenter))
-            canvas = RiveUIView(rive: rive, isPaused: false)
+            let canvas = RiveUIView(rive: rive, isPaused: false)
+            // 60 a second, not the screen's 120: breathing and blinking look the same, and the
+            // pages scroll beside it with half the drawing (Instruments on the iPhone 2026-11-13).
+            canvas.frameRate = .fps(60)
+            self.canvas = canvas
             self.rive = rive
             Self.park()
         } catch {
@@ -243,15 +247,18 @@ struct MiluRiveHero: View {
     /// True from the start: made paused, the view drew nothing for a frame or two when a tab
     /// opened (screen recording 2026-11-13); it only exists on screen, and leaving sets it false.
     @State private var isOnScreen = true
+    /// Still on the screen as the page scrolls: scrolled away, it stops drawing (2026-11-13).
+    @State private var isInView = true
     @Environment(\.scenePhase) private var scenePhase
 
     /// The artboard's size (output/03-animations/manifest.json).
     static let artboardSize = CGSize(width: 786.928, height: 400)
 
-    private var isVisible: Bool { isOnScreen && scenePhase == .active }
+    private var isVisible: Bool { isOnScreen && isInView && scenePhase == .active }
 
     var body: some View {
         stage
+            .onGeometryChange(for: Bool.self) { $0.frame(in: .global).maxY > 0 } action: { isInView = $0 }
             .aspectRatio(Self.artboardSize, contentMode: .fit)
             .contentShape(Rectangle())
             .onTapGesture(perform: pet)

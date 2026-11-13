@@ -153,22 +153,23 @@ struct TransactionsView: View {
             .onGeometryChange(for: Bool.self) { $0.frame(in: .scrollView).minY < 0 } action: { isPastFilter = $0 }
     }
 
-    /// A new month or segment is another list: the old fades out over the new one in the same
-    /// place, not stacked under it. A new filter just shows its rows.
+    /// A new month or segment is another list: the old one goes at once and the new one fades in
+    /// in its place. A new filter just shows its rows.
     private func listContainer(@ViewBuilder _ list: () -> some View) -> some View {
-        // Top-aligned without a ZStack: lining the list up by its top made the ZStack lay the whole
-        // month out a second time on a tab's first frame (Instruments 2026-11-09).
-        TopAlignedStack {
-            // At least the visible height, so a short filter does not pull the page back up. By
-            // layout, not a measured height kept in state: a keyboard in a sheet over this page
-            // changed that height, and redrawing here rebuilt the form in the sheet, which lost its
-            // focus and its edits (user report 2026-11-01).
-            Color.clear.containerRelativeFrame(.vertical)
-            VStack(alignment: .leading, spacing: Spacing.section) { list() }
-                .id(pageIdentity)
-                .transition(.opacity)
-        }
+        VStack(alignment: .leading, spacing: Spacing.section) { list() }
+            .id(pageIdentity)
+            .transition(.asymmetric(insertion: .opacity, removal: .identity))
+            // At least a screen's height, so a short filter does not pull the page back up. A fixed
+            // height, neither measured in state (a keyboard in a sheet over this page changed it,
+            // and redrawing rebuilt the form in the sheet, user report 2026-11-01) nor laid out
+            // beside the list: `TopAlignedStack` measured the whole month for it on every layout,
+            // so the lazy list was built in full and every scroll, tab switch and new row hitched
+            // (Instruments on the iPhone 2026-11-13).
+            .frame(minHeight: Self.minListHeight, alignment: .top)
     }
+
+    /// The screen's height: the list's room is never taller than that.
+    private static let minListHeight: CGFloat = UIScreen.main.bounds.height
 
     /// A new day: the rows' "Hôm nay" moves on, and a page that showed the month just ended shows the new
     /// one (another month picked stays picked).
@@ -417,22 +418,4 @@ struct MonthFlowList: View, Equatable {
         .environment(FinanceStore())
         .environment(\.locale, .vietnam)
         .textRole(.body)
-}
-
-/// Its pieces one over another, each at the top and the full width, as tall as the tallest. A
-/// `ZStack(alignment: .top)` asks each piece where its top is, which for a long list means laying it
-/// all out again; here each is measured once.
-private struct TopAlignedStack: Layout {
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width
-        let sizes = subviews.map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)) }
-        return CGSize(width: width ?? sizes.map(\.width).max() ?? 0, height: sizes.map(\.height).max() ?? 0)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        for subview in subviews {
-            subview.place(at: bounds.origin, anchor: .topLeading,
-                          proposal: ProposedViewSize(width: bounds.width, height: nil))
-        }
-    }
 }

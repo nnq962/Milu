@@ -17,10 +17,19 @@ struct ProfileBarButton: View {
     private var picture: UIImage? {
         let avatar = ProfileAvatar(raw: avatarRaw)
         guard avatar != .initial else { return nil }
+        // Drawn once for a face and scale, then kept: drawn on every pass, it ran each time the
+        // bar updated, at launch and while pages moved (Instruments on the iPhone 2026-11-13).
+        let key = "\(avatarRaw)@\(displayScale)"
+        if let kept = Self.pictures[key] { return kept }
         let renderer = ImageRenderer(content: ProfileAvatarView(avatar: avatar, name: name, size: RowMetrics.toolbarGlyphFrame))
         renderer.scale = displayScale
-        return renderer.uiImage
+        let image = renderer.uiImage
+        Self.pictures[key] = image
+        return image
     }
+
+    /// The faces drawn so far, by face and scale (a few at most).
+    @MainActor private static var pictures: [String: UIImage] = [:]
 
     var body: some View {
         Button(action: action) {

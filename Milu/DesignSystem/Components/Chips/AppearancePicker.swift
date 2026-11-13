@@ -112,6 +112,9 @@ private struct AppearanceSample: View {
             }
         }
         .aspectRatio(Self.aspect, contentMode: .fit)
+        // One flat picture, not some thirty shapes and masks each: the sheet of Cài đặt opens
+        // and follows a swipe lighter (Instruments on the iPhone 2026-11-13).
+        .drawingGroup()
         .clipShape(shape)
         .overlay { shape.strokeBorder(Palette.separator, lineWidth: 1) }
         .padding(Self.gap + Self.ring)

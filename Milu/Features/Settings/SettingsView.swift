@@ -8,7 +8,6 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
-    @Environment(CloudSyncMonitor.self) private var sync
     @Environment(\.eraseAllData) private var eraseAllData
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -96,37 +95,6 @@ struct SettingsView: View {
         return "Khi chi tới 80% và khi hết hạn mức"
     }
 
-    /// The row's second line: what the sync is doing now, else when it last went through.
-    private var syncStatus: String {
-        switch sync.account {
-        case .checking: return "Đang kiểm tra iCloud…"
-        case .signedOut: return "iCloud đang tắt, dữ liệu chỉ ở trên máy này"
-        case .restricted, .unavailable: return "iCloud chưa dùng được, dữ liệu chỉ ở trên máy này"
-        case .available:
-            if sync.isReceiving { return "Đang đồng bộ…" }
-            if let problem = sync.problem { return problem }
-            guard let last = sync.lastSynced else { return "Đang bật" }
-            return "Đã đồng bộ " + Self.when(last)
-        }
-    }
-
-    /// "lúc 16:05" today, "hôm qua lúc 16:05", else "12/11 lúc 16:05".
-    private static func when(_ date: Date) -> String {
-        let calendar = Calendar.current
-        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-        if calendar.isDateInToday(date) { return "lúc \(time)" }
-        if calendar.isDateInYesterday(date) { return "hôm qua lúc \(time)" }
-        return date.formatted(.dateTime.day().month(.defaultDigits)) + " lúc \(time)"
-    }
-
-    private var syncExplanation: String {
-        let state = switch sync.account {
-        case .available, .checking: "Milu đang lưu dữ liệu vào iCloud của bạn."
-        case .signedOut: "iPhone này chưa đăng nhập iCloud, hoặc iCloud đang tắt cho Milu, nên dữ liệu chỉ nằm trên máy. Bật lại trong Cài đặt của iPhone → tên bạn → iCloud để Milu tự sao lưu."
-        case .restricted, .unavailable: "iCloud trên iPhone này chưa dùng được nên dữ liệu chỉ nằm trên máy."
-        }
-        return state + "\n\nTài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và lượt AI được đồng bộ tự động giữa các thiết bị dùng chung Apple ID. Xoá app rồi cài lại, hay đổi iPhone, dữ liệu tự về.\n\nDữ liệu nằm trong iCloud riêng của bạn, Milu không xem được. Muốn bật hay tắt, vào Cài đặt của iPhone → tên bạn → iCloud, tìm Milu trong danh sách app dùng iCloud. Tắt đi thì dữ liệu vẫn còn trên máy này, chỉ ngừng đồng bộ."
-    }
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -138,7 +106,10 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.section) {
+                // Lazy: the sheet opens with the groups in view, and those below are built as they
+                // scroll in, not the whole page in the frames it slides up (Instruments on the
+                // iPhone 2026-11-13: 7 to 15 frames dropped each time Cài đặt opened).
+                LazyVStack(alignment: .leading, spacing: Spacing.section) {
                     VStack(spacing: Spacing.l) {
                         profile
                         aiQuotaCard
@@ -193,10 +164,7 @@ struct SettingsView: View {
                     // Where the data is and whether it is in iCloud (user request 2026-11-12).
                     // Nothing to switch: it follows the iPhone's iCloud; the row opens what that means.
                     FormGroup(title: "Sao lưu & đồng bộ") {
-                        FormNavigationRow(title: "Đồng bộ iCloud", subtitle: syncStatus, icon: "hugeicons-cloud",
-                                          accessory: .none) {
-                            note = Note(title: "Đồng bộ iCloud", message: syncExplanation)
-                        }
+                        SyncRow { note = Note(title: "Đồng bộ iCloud", message: $0) }
                     }
 
                     // Face ID lock, Milu Pro (user request 2026-11-12).
@@ -526,4 +494,51 @@ extension View {
         .environment(AIQuota())
         .environment(CloudSyncMonitor())
         .environment(AppLock())
+}
+
+/// "Đồng bộ iCloud" with what the sync is doing: a view of its own, so a sync event redraws this
+/// row and not all of Cài đặt (Instruments on the iPhone 2026-11-13: the whole page was rebuilt
+/// while it was open, the sheet hitching as it moved).
+private struct SyncRow: View {
+    @Environment(CloudSyncMonitor.self) private var sync
+    let onExplain: (String) -> Void
+
+    var body: some View {
+        FormNavigationRow(title: "Đồng bộ iCloud", subtitle: syncStatus, icon: "hugeicons-cloud",
+                          accessory: .none) {
+            onExplain(syncExplanation)
+        }
+    }
+
+    /// The row's second line: what the sync is doing now, else when it last went through.
+    private var syncStatus: String {
+        switch sync.account {
+        case .checking: return "Đang kiểm tra iCloud…"
+        case .signedOut: return "iCloud đang tắt, dữ liệu chỉ ở trên máy này"
+        case .restricted, .unavailable: return "iCloud chưa dùng được, dữ liệu chỉ ở trên máy này"
+        case .available:
+            if sync.isReceiving { return "Đang đồng bộ…" }
+            if let problem = sync.problem { return problem }
+            guard let last = sync.lastSynced else { return "Đang bật" }
+            return "Đã đồng bộ " + Self.when(last)
+        }
+    }
+
+    /// "lúc 16:05" today, "hôm qua lúc 16:05", else "12/11 lúc 16:05".
+    private static func when(_ date: Date) -> String {
+        let calendar = Calendar.current
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        if calendar.isDateInToday(date) { return "lúc \(time)" }
+        if calendar.isDateInYesterday(date) { return "hôm qua lúc \(time)" }
+        return date.formatted(.dateTime.day().month(.defaultDigits)) + " lúc \(time)"
+    }
+
+    private var syncExplanation: String {
+        let state = switch sync.account {
+        case .available, .checking: "Milu đang lưu dữ liệu vào iCloud của bạn."
+        case .signedOut: "iPhone này chưa đăng nhập iCloud, hoặc iCloud đang tắt cho Milu, nên dữ liệu chỉ nằm trên máy. Bật lại trong Cài đặt của iPhone → tên bạn → iCloud để Milu tự sao lưu."
+        case .restricted, .unavailable: "iCloud trên iPhone này chưa dùng được nên dữ liệu chỉ nằm trên máy."
+        }
+        return state + "\n\nTài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và lượt AI được đồng bộ tự động giữa các thiết bị dùng chung Apple ID. Xoá app rồi cài lại, hay đổi iPhone, dữ liệu tự về.\n\nDữ liệu nằm trong iCloud riêng của bạn, Milu không xem được. Muốn bật hay tắt, vào Cài đặt của iPhone → tên bạn → iCloud, tìm Milu trong danh sách app dùng iCloud. Tắt đi thì dữ liệu vẫn còn trên máy này, chỉ ngừng đồng bộ."
+    }
 }

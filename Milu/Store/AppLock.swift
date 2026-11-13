@@ -124,7 +124,9 @@ final class AppLock {
     // MARK: Tên
 
     /// "Face ID", "Touch ID", or "mật mã" on a phone with neither.
-    static var biometryName: String {
+    /// Asked once: a new `LAContext` on every draw of Cài đặt cost its sheet frames (Instruments on
+    /// the iPhone 2026-11-13), and the kind of sensor does not change.
+    static let biometryName: String = {
         let context = LAContext()
         _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
         return switch context.biometryType {
@@ -133,10 +135,10 @@ final class AppLock {
         case .opticID: "Optic ID"
         default: "mật mã"
         }
-    }
+    }()
 
     /// The SF Symbol for the unlock button.
-    static var biometrySymbol: String {
+    static let biometrySymbol: String = {
         let context = LAContext()
         _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
         return switch context.biometryType {
@@ -145,7 +147,7 @@ final class AppLock {
         case .opticID: "opticid"
         default: "lock.fill"
         }
-    }
+    }()
 
     /// The phone has a passcode at least: without one nothing can lock the app.
     static var isAvailable: Bool {
