@@ -51,6 +51,17 @@ extension View {
         }
     }
 
+    /// Calls `action` as the page scrolls, about every 24 points (Than wakes on it, 2026-11-13);
+    /// before iOS 18, never.
+    @ViewBuilder
+    func onScrollMoved(_ action: @escaping () -> Void) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollGeometryChange(for: Int.self) { Int($0.contentOffset.y / 24) } action: { _, _ in action() }
+        } else {
+            self
+        }
+    }
+
     /// The line under a bar's title (Trợ lý AI); before iOS 26 the bar has no room for one.
     @ViewBuilder
     func navigationSubtitleIfAvailable(_ subtitle: String) -> some View {

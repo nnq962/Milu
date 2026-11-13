@@ -28,6 +28,8 @@ struct OverviewView: View {
     /// Off the top: the bar shows its soft edge; at the top the hill runs on under it.
     @State private var isScrolled = false
     @Environment(FinanceStore.self) private var store
+    /// Than in Rive on the head (2026-11-13).
+    private let than = MiluRiveCharacter.overview
     @Environment(AIQuota.self) private var quota
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
 
@@ -87,6 +89,7 @@ struct OverviewView: View {
                 // under it.
                 VStack(alignment: .leading, spacing: 0) {
                     SkyHeader(overline: "Milu đồng hành", milu: miluLook, greeting: miluGreeting,
+                              rive: (than, .overview(store)),
                               sky: .garden)
                     // Sections 28 apart, as on every tab, each with its heading on the page 8
                     // above its card (user request 2026-11-08: the headings out of the cards).
@@ -133,6 +136,7 @@ struct OverviewView: View {
             }
             .topScrollEdgeIfAvailable(scrolled: isScrolled)
             .onScrolledFromTop { isScrolled = $0 }
+            .onScrollMoved { than.nudge() }
             // The plain page, as every tab: the light of lime behind the head went (user request
             // 2026-11-03).
             .pageBackground()

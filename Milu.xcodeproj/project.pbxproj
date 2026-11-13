@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A1C0FFEE00000000000000A3 /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0FFEE00000000000000A2 /* RiveRuntime */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A1C0FFEE0000000000000008 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -39,6 +43,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C0FFEE00000000000000A3 /* RiveRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +95,7 @@
 			);
 			name = Milu;
 			packageProductDependencies = (
+				A1C0FFEE00000000000000A2 /* RiveRuntime */,
 			);
 			productName = Milu;
 			productReference = 568C7C79308E036200F4B02D /* Milu.app */;
@@ -146,6 +152,9 @@
 			);
 			mainGroup = 568C7C70308E036200F4B02D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A1C0FFEE00000000000000A1 /* XCRemoteSwiftPackageReference "rive-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 568C7C7A308E036200F4B02D /* Products */;
 			projectDirPath = "";
@@ -488,6 +497,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A1C0FFEE00000000000000A1 /* XCRemoteSwiftPackageReference "rive-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/rive-app/rive-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 6.29.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1C0FFEE00000000000000A2 /* RiveRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1C0FFEE00000000000000A1 /* XCRemoteSwiftPackageReference "rive-ios" */;
+			productName = RiveRuntime;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 568C7C71308E036200F4B02D /* Project object */;
 }

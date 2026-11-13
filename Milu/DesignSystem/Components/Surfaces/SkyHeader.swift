@@ -14,6 +14,9 @@ struct SkyHeader: View {
     var milu: MiluHero.Look?
     /// What Milu says once when the tab first opens.
     var greeting: String?
+    /// Than in Rive in Milu's place, with what the page knows (2026-11-13); the still face stays
+    /// for when its file cannot load.
+    var rive: (character: MiluRiveCharacter, facts: MiluRiveFacts)?
     var sky: Sky = .garden
     /// The 🐾 before the role; Tổng quan's family line has none (Figma 272:727).
     var showsPaw = true
@@ -44,6 +47,9 @@ struct SkyHeader: View {
         /// the head as large and where the 350 × 220 faces had it. Row 135 of 140 sits on the
         /// edge, so the drawing's cut foot goes under it.
         static let milu = MascotPlacement(left: 200, top: 240 - 135 * 245 / 320, width: 245)
+        /// The Rive characters' 787 × 400 artboard, its head as large and where the still faces
+        /// have it (the nose at 370, 285 of the artboard), its lower edge on the sky's edge.
+        static let rive = MascotPlacement(left: 205, top: 240 - 400 * 238 / 786.928, width: 238)
     }
 
     private static let referenceWidth: CGFloat = 402
@@ -101,20 +107,24 @@ struct SkyHeader: View {
         .accessibilityElement(children: .combine)
     }
 
+    private var usesRive: Bool { rive.map { !$0.character.loadFailed } ?? false }
+
     /// Sky, sun and clouds, and the dog, behind the words. Above, the sky runs on under the bars;
     /// below, a straight edge meets the page, as Milu draws it (user 2026-11-05: no blur; the soft
     /// bands tried on 2026-11-04 and -05 read rough). Placed by `SkyArtLayout`, not a
     /// `GeometryReader`: reading the reader's size laid the whole page out once more before the
     /// first frame of a tab (Instruments 2026-11-09: about a fifth of opening Giao dịch).
     private var art: some View {
-        SkyArtLayout(skyHeight: sky.height, placement: .milu,
+        SkyArtLayout(skyHeight: sky.height, placement: usesRive ? .rive : .milu,
                      referenceWidth: Self.referenceWidth, referenceEdge: Self.referenceEdge,
                      overscroll: Self.overscroll) {
             sky.top
             Image(sky.image)
                 .resizable()
             ZStack {
-                if let milu {
+                if usesRive, let rive {
+                    MiluRiveHero(facts: rive.facts, character: rive.character)
+                } else if let milu {
                     MiluHero(look: milu, greeting: greeting, talks: title == nil)
                 }
             }

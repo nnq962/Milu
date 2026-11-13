@@ -16,6 +16,8 @@ enum TransactionSegment: String, CaseIterable, Identifiable {
 
 struct TransactionsView: View {
     @Environment(FinanceStore.self) private var store
+    /// Than in Rive on the head (2026-11-13).
+    private let than = MiluRiveCharacter.transactions
     @Environment(AddTransactionContext.self) private var addContext: AddTransactionContext?
     @State private var segment: TransactionSegment = .flows
     @State private var filter: TransactionFilter = .all
@@ -49,7 +51,7 @@ struct TransactionsView: View {
                     // under the sky, 12 from a heading to its card, 28 between the parts.
                     VStack(alignment: .leading, spacing: 0) {
                         SkyHeader(overline: "Milu ghi chép", title: "Sổ giao dịch",
-                                  milu: miluLook, sky: .plane)
+                                  milu: miluLook, rive: (than, .transactions(store)), sky: .plane)
                         VStack(alignment: .leading, spacing: 0) {
                             sectionHead
                             figuresRow
@@ -85,6 +87,7 @@ struct TransactionsView: View {
                 // 2026-11-07: "Sổ giao dịch" and "Thu chi" read through Q and Hỏi Milu).
                 .topScrollEdgeIfAvailable(scrolled: isScrolled)
                 .onScrolledFromTop { isScrolled = $0 }
+                .onScrollMoved { than.nudge() }
                 // Scrolled down into the list: a new filter glides back to the filter row, so what
                 // it shows starts in view.
                 .onChange(of: listIdentity) {

@@ -4,6 +4,8 @@ import SwiftUI
 
 struct AccountsView: View {
     @Environment(FinanceStore.self) private var store
+    /// Than in Rive on the head (2026-11-13).
+    private let than = MiluRiveCharacter.accounts
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isChoosingNew = false
     /// "Lưu trữ (n) ›" and "Đã xong (n) ›" open their lists in a sheet, as an account and a goal
@@ -44,6 +46,7 @@ struct AccountsView: View {
                 // apart, 24 under the sky.
                 VStack(alignment: .leading, spacing: 0) {
                     SkyHeader(overline: "Milu giữ ví", title: "Sổ ví của bạn", milu: miluLook,
+                              rive: (than, .accounts(store)),
                               sky: .pond)
                     VStack(alignment: .leading, spacing: Spacing.section) {
                         paymentSection
@@ -55,6 +58,7 @@ struct AccountsView: View {
                     .padding(.bottom, Spacing.xxl)
                 }
             }
+            .onScrollMoved { than.nudge() }
             .pageBackground()
             .foregroundStyle(Palette.label)
             // No title on the bar: Q on the left opens Cài đặt; no wordmark (user request

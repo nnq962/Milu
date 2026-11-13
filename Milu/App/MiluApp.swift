@@ -25,6 +25,8 @@ struct MiluApp: App {
     /// "Khoá bằng Face ID" (Milu Pro): locked from launch when on.
     @State private var appLock = AppLock()
     @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
+    /// Tổng quan's Than is loaded: the first page waits for it, so it opens with Than there.
+    @State private var heroReady = false
 
     init() {
         Typography.configureNativeAppearance()
@@ -50,6 +52,8 @@ struct MiluApp: App {
         // away in Debug (Cài đặt → Nhà phát triển → Đặt lại dữ liệu mẫu).
         let store = FinanceStore(database: FinanceDatabase(context: container.mainContext), seedsSampleData: false)
         _store = State(initialValue: store)
+        // Than for the three tabs, loaded now so each tab opens with it already there.
+        MiluRiveCharacter.preload(store)
         // An install that already holds data (this one before the welcome existed) is not new.
         if !store.accounts.isEmpty || !store.transactions.isEmpty || !store.savingsGoals.isEmpty {
             UserDefaults.standard.set(true, forKey: StorageKey.welcomeSeen)
@@ -66,7 +70,15 @@ struct MiluApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if welcomeSeen {
+                if welcomeSeen && !heroReady {
+                    Palette.background
+                        .ignoresSafeArea()
+                        .task {
+                            await MiluRiveCharacter.overviewReady()
+                            MiluRiveCharacter.park()
+                            heroReady = true
+                        }
+                } else if welcomeSeen {
                     ContentView()
                         .id(generation)
                         .syncStatusPill()
