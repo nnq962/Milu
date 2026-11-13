@@ -10,13 +10,16 @@ struct SkyHeader: View {
     /// The large title; nil on Tổng quan, where the dogs stand in its place (Figma 272:727). Its
     /// room is kept, so the head stays as tall as the other tabs' at every text size.
     var title: String?
-    /// Milu's face for how the page is going; nil for none.
-    var milu: MiluHero.Look?
+    /// Milu's face for how the page is going; nil for none. Worked out where the dog is drawn
+    /// (`SkyMascot`), as are the two below, so the page itself reads none of the records it
+    /// needs: a transaction saved redrew the whole of Tổng quan and Giao dịch for the dog's sake
+    /// (Instruments on the iPhone 2026-11-13).
+    var milu: (() -> MiluHero.Look)?
     /// What Milu says once when the tab first opens.
-    var greeting: String?
+    var greeting: (() -> String)?
     /// Than in Rive in Milu's place, with what the page knows (2026-11-13); the still face stays
     /// for when its file cannot load.
-    var rive: (character: MiluRiveCharacter, facts: MiluRiveFacts)?
+    var rive: (character: MiluRiveCharacter, facts: () -> MiluRiveFacts)?
     var sky: Sky = .garden
     /// The 🐾 before the role; Tổng quan's family line has none (Figma 272:727).
     var showsPaw = true
@@ -121,13 +124,7 @@ struct SkyHeader: View {
             sky.top
             Image(sky.image)
                 .resizable()
-            ZStack {
-                if usesRive, let rive {
-                    MiluRiveHero(facts: rive.facts, character: rive.character)
-                } else if let milu {
-                    MiluHero(look: milu, greeting: greeting, talks: title == nil)
-                }
-            }
+            SkyMascot(milu: milu, greeting: greeting, rive: usesRive ? rive : nil, talks: title == nil)
         }
         // Nothing past the edge: the dog's foot ends where the page begins.
         .mask(alignment: .bottom) { Rectangle().frame(height: 4000) }
@@ -163,5 +160,24 @@ private struct SkyArtLayout: Layout {
                                       y: bounds.minY + edge - (referenceEdge - placement.top) * scale),
                           anchor: .topLeading,
                           proposal: ProposedViewSize(width: placement.width * scale, height: nil))
+    }
+}
+
+/// The dog on the head, with what it needs read from the records here: this small view, not the
+/// page, is what a new transaction redraws.
+private struct SkyMascot: View {
+    let milu: (() -> MiluHero.Look)?
+    let greeting: (() -> String)?
+    let rive: (character: MiluRiveCharacter, facts: () -> MiluRiveFacts)?
+    let talks: Bool
+
+    var body: some View {
+        ZStack {
+            if let rive {
+                MiluRiveHero(facts: rive.facts(), character: rive.character)
+            } else if let milu {
+                MiluHero(look: milu(), greeting: greeting?(), talks: talks)
+            }
+        }
     }
 }

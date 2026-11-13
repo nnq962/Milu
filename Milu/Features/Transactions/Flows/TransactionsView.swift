@@ -51,7 +51,7 @@ struct TransactionsView: View {
                     // under the sky, 12 from a heading to its card, 28 between the parts.
                     VStack(alignment: .leading, spacing: 0) {
                         SkyHeader(overline: "Milu ghi chép", title: "Sổ giao dịch",
-                                  milu: miluLook, rive: (than, .transactions(store)), sky: .plane)
+                                  milu: { miluLook }, rive: (than, { .transactions(store) }), sky: .plane)
                         VStack(alignment: .leading, spacing: 0) {
                             sectionHead
                             figuresRow

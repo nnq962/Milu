@@ -45,8 +45,8 @@ struct AccountsView: View {
                 // three to a row; each part an empty card until it has something. Parts 28
                 // apart, 24 under the sky.
                 VStack(alignment: .leading, spacing: 0) {
-                    SkyHeader(overline: "Milu giữ ví", title: "Sổ ví của bạn", milu: miluLook,
-                              rive: (than, .accounts(store)),
+                    SkyHeader(overline: "Milu giữ ví", title: "Sổ ví của bạn", milu: { miluLook },
+                              rive: (than, { .accounts(store) }),
                               sky: .pond)
                     VStack(alignment: .leading, spacing: Spacing.section) {
                         paymentSection

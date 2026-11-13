@@ -88,8 +88,8 @@ struct OverviewView: View {
                 // over Vàng, Than and Nâu, the same head as Tài khoản and Giao dịch; the blocks 24
                 // under it.
                 VStack(alignment: .leading, spacing: 0) {
-                    SkyHeader(overline: "Milu đồng hành", milu: miluLook, greeting: miluGreeting,
-                              rive: (than, .overview(store)),
+                    SkyHeader(overline: "Milu đồng hành", milu: { miluLook }, greeting: { miluGreeting },
+                              rive: (than, { .overview(store) }),
                               sky: .garden)
                     // Sections 28 apart, as on every tab, each with its heading on the page 8
                     // above its card (user request 2026-11-08: the headings out of the cards).
