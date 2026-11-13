@@ -228,6 +228,15 @@ final class MiluRiveCharacter {
         }
     }
 
+    /// Back on screen (the tab chosen again, the app back in front): awake, as a scroll or a tap
+    /// would leave it. The same for the three (user request 2026-11-13): asleep after a while
+    /// left alone, awake on a tap, a scroll or coming back.
+    func wake() {
+        guard rive != nil else { return }
+        nudgedAt = .now
+        fire(scene == .overview ? "activity" : "reopen")
+    }
+
     func set(_ name: String, _ value: Bool) {
         instance?.setValue(of: BoolProperty(path: name), to: value)
     }
@@ -306,7 +315,10 @@ struct MiluRiveHero: View {
                 }
                 .onAppear { isOnScreen = true }
                 .onDisappear { isOnScreen = false }
-                .onChange(of: isVisible) { _, visible in character.set("visible", visible) }
+                .onChange(of: isVisible) { _, visible in
+                    character.set("visible", visible)
+                    if visible { character.wake() }
+                }
                 .onChange(of: facts) { _, new in character.update(new) }
                 .onChange(of: colorScheme) { _, scheme in character.set("dark", scheme == .dark) }
                 .onChange(of: reduceMotion) { _, reduced in character.set("reduced", reduced) }
