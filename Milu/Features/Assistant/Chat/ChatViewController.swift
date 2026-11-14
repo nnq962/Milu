@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UIKit.UIGestureRecognizerSubclass
 
 /// The chat page in UIKit: the messages in a collection view that scrolls under the field, the
 /// field (a `UITextView` in glass) riding on the keyboard through `keyboardLayoutGuide`, and the
@@ -11,6 +12,7 @@ final class ChatViewController: UIViewController {
     struct State {
         var conversation: Conversation
         var isThinking: Bool
+        var progress: AssistantProgress
         var draft: String
         var isDictating: Bool
         var showsLeading: Bool
@@ -122,6 +124,16 @@ final class ChatViewController: UIViewController {
             page.addGestureRecognizer(tap)
             keyboardTaps.append(tap)
         }
+        // A finger on the chat: it is read where it is, no longer kept to its end (an answer's
+        // steps opened at the foot of a long chat went up out from under the finger).
+        let watcher = TouchWatcher()
+        watcher.cancelsTouchesInView = false
+        watcher.delaysTouchesEnded = false
+        watcher.onTouch = { [weak self] in
+            self?.holdsToEnd = false
+            self?.stopFollowing()
+        }
+        collectionView.addGestureRecognizer(watcher)
         view.keyboardLayoutGuide.followsUndockedKeyboard = true
         if #available(iOS 26.0, *) {
             // iOS's soft edge where the chat runs under the field, as under its own bars.
@@ -203,11 +215,20 @@ final class ChatViewController: UIViewController {
                         self?.onAction(action, message)
                     }
                     .environment(\.onBubbleFrame) { [weak self] frame in self?.bubbleFrames[id] = frame }
+                    .environment(\.revealsAnswer, id == revealingID)
+                    .environment(\.resizeChatRow) { [weak self] id in self?.resizeRow(id) }
                 }
             case .typing:
-                TypingIndicator()
+                if let progress = state?.progress {
+                    ThinkingIndicator(progress: progress)
+                }
             }
         }
+        // Its own height whatever the cell's is for the moment, from the cell's top: as a row
+        // grows (an answer's steps opened), iOS grows the cell over a moment; the row squeezed
+        // into the old height and centred in it dipped and came back up (user report 2026-11-15).
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .modifier(MiluEnvironment(store: store))
         .environment(\.questionWordsWidth, questionWordsWidth)
         .environment(\.chatRowWidth, max(0, collectionView.bounds.width - 2 * Spacing.l))
@@ -492,8 +513,12 @@ final class ChatViewController: UIViewController {
             removeFlyer()
             flyingID = asked
         }
-        // The answer in: the three dots, as they were, fade over its first lines as they show.
+        // The answer in: "Đang nghĩ…", as it was, fades over its first lines as they show.
         let dots = answered != nil ? typingSnapshot() : nil
+        // Its words show one after another: told to the row as it is configured, in the apply.
+        if let answered, view.window != nil, !UIAccessibility.isReduceMotionEnabled {
+            revealingID = answered
+        }
         dataSource.apply(snapshot, animatingDifferences: sameChat && view.window != nil && answered == nil)
         if !sameChat {
             // Another chat (the history, a new one): opened at its end, nothing pinned.
@@ -568,8 +593,8 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    /// The three dots' row as it is on screen, laid over the list where it is: the row itself
-    /// goes with the answer's coming, the picture of it fades (`fadeOut`).
+    /// "Đang nghĩ…" as it is on screen, laid over the list where it is: the row itself goes with
+    /// the answer's coming, the picture of it fades (`fadeOut`).
     private func typingSnapshot() -> UIView? {
         guard view.window != nil, let indexPath = dataSource.indexPath(for: .typing),
               let cell = collectionView.cellForItem(at: indexPath),
@@ -580,8 +605,7 @@ final class ChatViewController: UIViewController {
         return picture
     }
 
-    /// The three dots going, over the answer's bubble growing in their place (user request
-    /// 2026-11-11: they went at once, a blink before the words came).
+    /// "Đang nghĩ…" and its steps going, over the answer coming in their place.
     private func fadeOut(_ picture: UIView) {
         guard !UIAccessibility.isReduceMotionEnabled else {
             picture.removeFromSuperview()
@@ -594,47 +618,42 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    /// Milu's words show from the top down, under a soft edge, as if written (the avatar and
-    /// the name are there at once, where the three dots were). Under Reduce Motion, a short fade.
+    /// A row that changed its height from within (an answer's steps opened or closed), measured
+    /// again at once and with no animation: left to iOS's own self-sizing, the cell grew on its
+    /// curve with the row centred in it, and the answer dipped and came back up (frames,
+    /// 2026-11-15). The row keeps its state: its cell is configured again, not replaced.
+    private func resizeRow(_ id: UUID) {
+        guard dataSource.indexPath(for: .message(id)) != nil else { return }
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems([.message(id)])
+        UIView.performWithoutAnimation {
+            dataSource.apply(snapshot, animatingDifferences: false)
+            collectionView.layoutIfNeeded()
+        }
+    }
+
+    /// The answer just in, whose words show one after another (`AnswerWords`, told through
+    /// `revealsAnswer`); none once they have, so a row drawn again later shows them at once.
+    private var revealingID: UUID?
+
+    /// Milu's answer coming in: its words show one after another in the row itself (user design
+    /// 2026-11-15), the page following them down. Under Reduce Motion, a short fade.
     private func reveal(_ id: UUID) {
         guard view.window != nil, let indexPath = dataSource.indexPath(for: .message(id)),
               let cell = collectionView.cellForItem(at: indexPath) else { return }
-        let content = cell.contentView
-        guard !UIAccessibility.isReduceMotionEnabled else {
+        guard revealingID == id, let message = messagesByID[id] else {
+            let content = cell.contentView
             content.alpha = 0
             UIView.animate(withDuration: 0.2) { content.alpha = 1 }
             return
         }
-        let height = content.bounds.height, width = content.bounds.width
-        let edge: CGFloat = 48
-        let sender = IconSize.rowArtwork + Spacing.s
-        let span = height + edge
-        let mask = CAGradientLayer()
-        mask.colors = [UIColor.black.cgColor, UIColor.black.cgColor, UIColor.clear.cgColor]
-        mask.locations = [0, NSNumber(value: Double(height / span)), 1]
-        mask.bounds = CGRect(x: 0, y: 0, width: width, height: span)
-        // From: shown down to the name, the soft edge under it. To: all shown.
-        let from = CGPoint(x: width / 2, y: sender + edge - span / 2)
-        let to = CGPoint(x: width / 2, y: span / 2)
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        mask.position = to
-        content.layer.mask = mask
-        CATransaction.commit()
-
-        let animation = CABasicAnimation(keyPath: "position")
-        animation.fromValue = NSValue(cgPoint: from)
-        animation.toValue = NSValue(cgPoint: to)
-        // Longer answers take a little longer, never long.
-        animation.duration = min(0.9, 0.35 + Double(height) * 0.0012)
-        animation.timingFunction = CAMediaTimingFunction(name: .easeOut)
-        CATransaction.begin()
-        CATransaction.setCompletionBlock { [weak content] in
-            if content?.layer.mask === mask { content?.layer.mask = nil }
+        let words = AnswerReveal.words(in: String(MessageRow.formatted(message.text).characters)).count
+        // The words, then the card popping up under them.
+        let duration = AnswerReveal.duration(words: words) + (message.card == nil ? 0 : 0.35)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.5) { [weak self] in
+            if self?.revealingID == id { self?.revealingID = nil }
         }
-        mask.add(animation, forKey: "reveal")
-        CATransaction.commit()
-        follow(id, mask: mask, rowHeight: height, span: span)
+        follow(id, duration: duration)
     }
 
     // MARK: Following the words
@@ -644,19 +663,18 @@ final class ChatViewController: UIViewController {
     /// head going up with it only then. A touch on the chat lets it go at once.
     private struct Follow {
         let id: UUID
-        let mask: CAGradientLayer
-        let rowHeight: CGFloat
-        let span: CGFloat
+        let start: CFTimeInterval
+        let duration: Double
         let link: CADisplayLink
     }
 
     private var following: Follow?
 
-    private func follow(_ id: UUID, mask: CAGradientLayer, rowHeight: CGFloat, span: CGFloat) {
+    private func follow(_ id: UUID, duration: Double) {
         stopFollowing()
         let link = CADisplayLink(target: self, selector: #selector(followTick))
         link.add(to: .main, forMode: .common)
-        following = Follow(id: id, mask: mask, rowHeight: rowHeight, span: span, link: link)
+        following = Follow(id: id, start: CACurrentMediaTime(), duration: max(duration, 0.1), link: link)
     }
 
     /// Each frame: where the words are shown down to, and the page brought up to keep that line
@@ -668,9 +686,10 @@ final class ChatViewController: UIViewController {
             stopFollowing()
             return
         }
-        let writing = follow.mask.animation(forKey: "reveal") != nil
-        let mask = follow.mask.presentation() ?? follow.mask
-        let shownTo = writing ? min(mask.position.y - follow.span / 2 + follow.rowHeight, follow.rowHeight) : follow.rowHeight
+        // How far down the words are shown by now: they come in order, line after line.
+        let fraction = min(1, (CACurrentMediaTime() - follow.start) / follow.duration)
+        let writing = fraction < 1
+        let shownTo = row.height * CGFloat(fraction)
         let visible = collectionView.bounds.height - barRoom
         let inset = collectionView.contentInset
         let end = collectionView.contentSize.height + inset.bottom - collectionView.bounds.height
@@ -1309,6 +1328,17 @@ private struct MiluEnvironment: ViewModifier {
             .scrollIndicators(.hidden, axes: .vertical)
             .environment(store)
             .environment(\.locale, .vietnam)
+    }
+}
+
+/// Hears a finger come down on the chat and gets out of the way at once: it never recognizes, so
+/// every other touch (a button, a scroll, a hold to select) goes on as before.
+private final class TouchWatcher: UIGestureRecognizer {
+    var onTouch: () -> Void = {}
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        onTouch()
+        state = .failed
     }
 }
 

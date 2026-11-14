@@ -10,13 +10,16 @@ import Foundation
 struct RemoteAssistant: AssistantService {
     let api: MiluAPI
     let store: FinanceStore
+    /// The app's own facts, for questions about Milu itself (`GetAppInfo`).
+    var app = AppFacts()
 
     /// Rounds of tools before giving up: a question takes one or two.
     private static let maxRounds = 5
     /// The chat so far the model reads: enough for "còn tháng trước?" after a question.
     private static let historyLength = 6
 
-    func reply(to question: String, history: [ChatMessage]) async throws -> AssistantReply {
+    func reply(to question: String, history: [ChatMessage],
+               onStep: @escaping (ThinkingStep) -> Void) async throws -> AssistantReply {
         var messages: [MiluAPI.ChatMessage] = history.suffix(Self.historyLength).compactMap { message in
             let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty, message.role != .notice else { return nil }
@@ -38,7 +41,9 @@ struct RemoteAssistant: AssistantService {
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
                 for call in reply.toolCalls {
-                    let output = AssistantTools.named(call.name)?.run(call.arguments, in: store)
+                    // Said in the chat as it is done (a stopped answer says no more).
+                    if !Task.isCancelled { onStep(ThinkingStep.tool(call.name, arguments: call.arguments)) }
+                    let output = AssistantTools.named(call.name, app: app)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
                     if let next = output.action { action = next }
                     toolsRun.insert(call.name)
@@ -65,9 +70,10 @@ struct RemoteAssistant: AssistantService {
         }
     }
 
-    /// Whether the question takes a lượt: not when every tool it ran only recorded or deleted.
-    private static func counts(_ tools: Set<String>) -> Bool {
-        tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, DeleteTransaction().name])
+    /// Whether the question takes a lượt: not when every tool it ran only recorded, deleted or
+    /// told of the app itself (its lượt, Milu Pro, privacy: asked too when none are left).
+    static func counts(_ tools: Set<String>) -> Bool {
+        tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, DeleteTransaction().name, GetAppInfo().name])
     }
 
     private static func emptyAnswer(_ action: AssistantReply.Action?) -> String {

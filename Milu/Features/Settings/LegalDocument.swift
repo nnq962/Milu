@@ -9,18 +9,18 @@ struct LegalDocument {
     let updated: String
     let entries: [ReadingEntry]
 
-    private static let supportEmail = "support@milu.nnqlab.dev"
+    static let supportEmail = "support@milu.nnqlab.dev"
 
     static let privacy = LegalDocument(
         title: "Chính sách quyền riêng tư",
-        updated: "12/11/2026",
+        updated: "15/11/2026",
         entries: [
             ReadingEntry("Tóm tắt",
                          "Số liệu bạn ghi trong Milu được lưu trên iPhone này và trong iCloud của chính bạn. Chỉ khi bạn hỏi Milu AI hoặc nói bằng giọng, phần dữ liệu cần thiết mới được gửi tới máy chủ riêng của Milu, xử lý xong là bỏ, không lưu lại.",
                          "Milu không hiện quảng cáo, không dùng công cụ theo dõi hay phân tích, và không bán hay chia sẻ dữ liệu của bạn cho ai."),
             ReadingEntry("Dữ liệu bạn ghi trong Milu",
                          "Tài khoản, giao dịch, hũ tiết kiệm, khoản vay, hạng mục và danh bạ được lưu trên iPhone này. Khi iPhone đăng nhập iCloud, chúng được đồng bộ vào iCloud riêng của bạn (do Apple giữ, tính vào dung lượng iCloud của bạn), để các thiết bị dùng chung Apple ID có cùng dữ liệu và dữ liệu tự về khi bạn cài lại app hay đổi máy. Milu không có máy chủ lưu dữ liệu này và không xem được iCloud của bạn.",
-                         "Hạn mức, tên hiển thị và các cài đặt khác hiện chỉ lưu trên iPhone này.",
+                         "Một vài cài đặt cũng đi theo bạn qua iCloud theo cách đó: hạn mức chi tiêu, tên hiển thị và hình đại diện, các lựa chọn thông báo, cùng lượt AI còn lại. Giao diện, khoá Face ID và lịch sử trò chuyện với Milu AI chỉ lưu trên iPhone này.",
                          "Nếu bạn bật sao lưu iCloud hoặc sao lưu iPhone vào máy tính, dữ liệu cũng có thể nằm trong bản sao lưu đó, do Apple và bạn quản lý."),
             ReadingEntry("Khi bạn hỏi Milu AI",
                          "Để trả lời, app gửi tới máy chủ của Milu câu hỏi của bạn cùng tối đa 6 tin nhắn gần nhất trong cuộc trò chuyện, tên hạng mục và tài khoản, tên hiển thị của bạn (nếu có đặt) và ngày hôm nay.",
@@ -34,7 +34,7 @@ struct LegalDocument {
                          "Milu chỉ xin quyền Micro và Nhận dạng giọng nói, và chỉ dùng khi bạn chạm nút micro để nói. Milu không xin quyền vị trí, ảnh hay danh bạ của iPhone. Bạn có thể tắt các quyền này bất cứ lúc nào trong Cài đặt của iPhone."),
             ReadingEntry("Quyền của bạn",
                          "Bạn xem, sửa hoặc xoá được từng mục ngay trong app.",
-                         "\"Xoá toàn bộ dữ liệu\" ở cuối Cài đặt xoá mọi số liệu (cả trong iCloud và trên các thiết bị khác của bạn), cùng cài đặt và lịch sử trò chuyện trên máy này. Lượt AI còn lại và các bước Làm quen đã xong vẫn được giữ trên máy, để lượt thưởng không bị nhận lại nhiều lần.",
+                         "\"Xoá toàn bộ dữ liệu\" ở cuối Cài đặt xoá mọi số liệu và cài đặt (cả trong iCloud và trên các thiết bị khác của bạn), cùng lịch sử trò chuyện trên máy này. Lượt AI còn lại và các bước Làm quen đã xong vẫn được giữ, trên máy và trong iCloud, để lượt thưởng không bị nhận lại nhiều lần.",
                          "Xoá app khỏi iPhone chỉ xoá dữ liệu trên máy đó; bản trong iCloud vẫn còn. Bạn có thể xoá hẳn trong Cài đặt của iPhone → tên bạn → iCloud → Quản lý dung lượng."),
             ReadingEntry("Thay đổi chính sách",
                          "Khi Milu thêm tính năng mới làm thay đổi cách xử lý dữ liệu, chẳng hạn tài khoản đăng nhập, chính sách này sẽ được cập nhật trước, kèm ngày cập nhật ở cuối trang. Thay đổi quan trọng sẽ được báo trong app."),

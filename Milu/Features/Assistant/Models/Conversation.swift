@@ -14,10 +14,19 @@ struct ChatMessage: Identifiable, Equatable, Codable {
 
     enum DeleteState: String, Equatable, Codable { case pending, deleted, cancelled }
 
+    /// How Milu came to an answer: the line over it, "Đã nghĩ 4 giây · 2 bước ›", opening on the
+    /// steps (`ThinkingStep.done`).
+    struct Thought: Equatable, Codable {
+        let seconds: Int
+        let steps: [String]
+    }
+
     var id = UUID()
     let role: Role
     let text: String
     var card: Card? = nil
+    /// Milu's answers only; none on an error or on a chat saved before 2026-11-15.
+    var thought: Thought? = nil
     /// When it was sent: the history orders chats by their last message.
     var date = Date.now
 }
@@ -43,7 +52,8 @@ struct Conversation: Identifiable, Codable, Equatable {
     var lastActivity: Date { messages.last?.date ?? startedAt }
 }
 
-enum CardAction { case view, remove, confirm, cancel }
+/// What a message's buttons ask of the page: a card's, or "Hỏi lại" under an answer.
+enum CardAction { case view, remove, confirm, cancel, retry }
 
 /// The chats, kept by the app rather than the page (Trợ lý AI opens anew each time) and saved on
 /// this phone, so the history is still there after a relaunch (user request 2026-11-09). Each

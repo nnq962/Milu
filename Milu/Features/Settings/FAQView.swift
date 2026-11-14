@@ -5,18 +5,18 @@ import SwiftUI
 /// looking like the answers, read by VoiceOver as one long element). Laid out by
 /// `ReadingListView`, like the legal pages. Every answer says what the app does today.
 struct FAQView: View {
-    private let entries = [
+    static let entries = [
         ReadingEntry("Dữ liệu của tôi lưu ở đâu?",
                      "Trên máy này, và trong iCloud của bạn khi iPhone đăng nhập iCloud: xoá app rồi cài lại, hay đổi máy cùng Apple ID, dữ liệu tự về. Milu không có máy chủ lưu dữ liệu và không xem được iCloud của bạn."),
         ReadingEntry("Hạn mức chi tiêu tính thế nào?",
                      "Cộng mọi khoản chi trong tháng, cả phí chuyển khoản và lãi vay; không tính các khoản bạn đánh dấu không tính vào báo cáo và các tài khoản đang khoá. Đặt ở Cài đặt → Hạn mức chi tiêu."),
         ReadingEntry("Lượt AI là gì?",
-                     "Mỗi câu hỏi gửi Milu AI dùng một lượt; nhờ Milu ghi hay xoá giao dịch thì không tốn lượt, và câu Milu không trả lời được (mất mạng, bấm dừng) được trả lại lượt. Mỗi tuần có \(AIQuota.weeklyFree) lượt miễn phí, làm mới lúc 0 giờ thứ Hai. Mỗi bước Làm quen với Milu bạn làm xong được thêm \(AIQuota.stepBonus) lượt thưởng, dùng trong \(AIQuota.bonusDays) ngày."),
+                     "Mỗi câu hỏi gửi Milu AI dùng một lượt; nhờ Milu ghi hay xoá giao dịch, hay hỏi về chính Milu (lượt AI, Milu Pro, quyền riêng tư), thì không tốn lượt, và câu Milu không trả lời được (mất mạng, bấm dừng) được trả lại lượt. Mỗi tuần có \(AIQuota.weeklyFree) lượt miễn phí, làm mới lúc 0 giờ thứ Hai. Mỗi bước Làm quen với Milu bạn làm xong được thêm \(AIQuota.stepBonus) lượt thưởng, dùng trong \(AIQuota.bonusDays) ngày."),
         ReadingEntry("Chuyển tiền giữa các tài khoản có tính là chi không?",
                      "Không. Chỉ phí chuyển khoản (nếu có) được tính là chi."),
     ]
 
     var body: some View {
-        ReadingListView(title: "Câu hỏi thường gặp", entries: entries)
+        ReadingListView(title: "Câu hỏi thường gặp", entries: Self.entries)
     }
 }

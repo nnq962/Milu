@@ -285,8 +285,9 @@ struct MockAssistant {
 
 extension MockAssistant: AssistantService {
     /// The keyword answer after a moment's "thinking", as a real AI would take; the chat so far
-    /// is not read.
-    func reply(to question: String, history: [ChatMessage]) async throws -> AssistantReply {
+    /// is not read, and it runs no tools, so it has no steps to tell.
+    func reply(to question: String, history: [ChatMessage],
+               onStep: @escaping (ThinkingStep) -> Void) async throws -> AssistantReply {
         try await Task.sleep(for: .seconds(1))
         return reply(to: question)
     }

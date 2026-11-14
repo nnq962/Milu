@@ -11,9 +11,12 @@ struct AssistantView: View {
     @Environment(FinanceStore.self) private var store
     @Environment(AIQuota.self) private var quota
     @Environment(AssistantChats.self) private var chats
+    @Environment(CloudSyncMonitor.self) private var sync
     @State private var draft = ""
     /// A question is out and Milu's answer not in yet.
     @State private var isThinking = false
+    /// What Milu has done so far on that answer, shown under "Đang nghĩ…".
+    @State private var progress = AssistantProgress()
     /// Asking for Milu's answer, until it is in; ■ cancels it.
     @State private var answering: Task<Void, Never>?
     /// Whether the question being answered took a lượt (`AIQuota.spend`), to give it back.
@@ -43,6 +46,7 @@ struct AssistantView: View {
         ChatScreen(
             conversation: chats.conversations[currentIndex],
             isThinking: isThinking,
+            progress: progress,
             draft: $draft,
             isDictating: isDictating,
             showsLeading: dictation.isRecording,
@@ -104,6 +108,8 @@ struct AssistantView: View {
         }
         .onAppear { dictation.prepare() }
         .onDisappear { dictation.stop() }
+        // Milu Pro's prices, for "Pro giá bao nhiêu?" (`GetAppInfo`): loaded once, as its page does.
+        .task { await ProStore.shared.loadProducts() }
     }
 
     // MARK: - Đầu trang
@@ -130,47 +136,18 @@ struct AssistantView: View {
 
     // MARK: - Lời chào
 
-    @ScaledMetric(relativeTo: .title) private var greetingMark: CGFloat = 72
-
-    /// A new chat: ✨, "Chào Minh!" and what Milu does, in the middle of the page (scrolling when
-    /// the text is large). No questions to pick: the field is where to ask (user request
-    /// 2026-11-11).
+    /// A new chat: the greeting and three questions to start with (`AssistantGreeting`).
     private var greeting: some View {
-        ScrollView {
-            VStack(spacing: Spacing.m) {
-                Image(IconCatalog.emojiName("✨"))
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: greetingMark * 0.55, height: greetingMark * 0.55)
-                    .frame(width: greetingMark, height: greetingMark)
-                    .background(Palette.surfaceMuted, in: Circle())
-                    .accessibilityHidden(true)
-                Text(greetingTitle)
-                    .textRole(.pageTitle)
-                    .multilineTextAlignment(.center)
-                    .accessibilityAddTraits(.isHeader)
-                Text("Hỏi mình về chi tiêu, khoản vay, hoặc nhờ mình ghi, sửa, xoá giao dịch.")
-                    .textRole(.body)
-                    .foregroundStyle(Palette.secondaryLabel)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                if !quota.isUnlimited {
-                    // What is left this week, and that recording costs none (user choice 2026-11-12).
-                    Text("Còn \(quota.remaining) lượt hỏi tuần này · ghi, xoá giao dịch không tốn lượt")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .multilineTextAlignment(.center)
-                        .monospacedDigit()
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.horizontal, Spacing.xl)
-            .padding(.vertical, Spacing.xl)
-            .frame(maxWidth: .infinity)
-            .containerRelativeFrame(.vertical, alignment: .center) { height, _ in height }
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
+        AssistantGreeting(
+            title: greetingTitle,
+            quotaLine: quota.isUnlimited ? nil : "Còn \(quota.remaining) lượt hỏi tuần này · ghi, xoá giao dịch không tốn lượt",
+            chatID: chats.currentID,
+            ask: { question in
+                guard !isThinking else { return }
+                ask(question)
+            },
+            fill: { words in draft = words }
+        )
     }
 
     /// "Chào Minh!", or "Chào bạn!" with no name set in Cài đặt.
@@ -361,7 +338,25 @@ struct AssistantView: View {
     private func send() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isThinking else { return }
-        // With none left it is asked all the same: it may only record or delete, which is free.
+        ask(question)
+        draft = ""
+    }
+
+    /// "Hỏi lại" under an answer: its question asked once more, at the chat's end.
+    private func retry(_ answer: ChatMessage) {
+        guard !isThinking, let row = messages.firstIndex(where: { $0.id == answer.id }),
+              let question = messages[..<row].last(where: { $0.role == .user })?.text else { return }
+        ask(question)
+    }
+
+    /// `question` into the chat, and the assistant asked for its answer, the steps it takes on
+    /// the way shown under "Đang nghĩ…" (`progress`).
+    private func ask(_ question: String) {
+        // What Milu may say of the app, the lượt as they are before this question: one about
+        // the app takes none, so that is what is left after it too.
+        let app = AppFacts.current(quota: quota, sync: sync)
+        // With none left it is asked all the same: it may only record or delete, or ask about the
+        // app, which are free.
         let paid = quota.spend()
         answerPaid = paid
         // A tick as the question leaves (`Haptics`).
@@ -373,18 +368,25 @@ struct AssistantView: View {
             chats.conversations[currentIndex].messages.append(ChatMessage(role: .user, text: question))
             isThinking = true
         }
-        draft = ""
+        progress.steps = []
         hasAskedAI = true
-        let service = AssistantServices.make(store: store)
+        let service = AssistantServices.make(store: store, app: app)
 
         let askedAt = Date.now
+        let progress = progress
         answering = Task {
             var reply: AssistantReply
+            /// How long it thought and what it did, for the line over the answer.
+            var thought: ChatMessage.Thought?
             do {
-                let answer = try await service.reply(to: question, history: history)
+                let answer = try await service.reply(to: question, history: history) { step in
+                    withAnimation(Motion.gentle(.spring(duration: 0.3, bounce: 0))) { progress.steps.append(step) }
+                }
                 // Stopped (■) while the answer was on its way: it is dropped.
                 try Task.checkCancellation()
                 reply = answer
+                thought = ChatMessage.Thought(seconds: max(1, Int(Date.now.timeIntervalSince(askedAt).rounded())),
+                                              steps: progress.steps.map(\.done))
             } catch is CancellationError {
                 return
             } catch {
@@ -393,12 +395,14 @@ struct AssistantView: View {
                 reply = AssistantReply(text: (error as? LocalizedError)?.errorDescription
                     ?? "Milu chưa trả lời được. Bạn thử lại sau nhé.", counts: false)
             }
-            // Only recording or deleting, or no answer: free (user choice 2026-11-12). A question
-            // asked with no lượt left is answered with when they come back.
-            if !reply.counts {
-                if paid { quota.refund() }
-            } else if !paid {
+            // Only recording, deleting or asking about the app, or no answer: free (user choice
+            // 2026-11-12). A question asked with no lượt left is answered with when they come back.
+            switch AnswerCharge(paid: paid, counts: reply.counts) {
+            case .free: if paid { quota.refund() }
+            case .paid: break
+            case .outOfQuestions:
                 reply = AssistantReply(text: outOfQuestionsReply)
+                thought = nil
             }
             // Never before the question has landed: with no connection the error came back at
             // once and showed while the question was still rising (user report 2026-11-12).
@@ -417,7 +421,7 @@ struct AssistantView: View {
             withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
                 if let index = chats.conversations.firstIndex(where: { $0.id == chatID }) {
                     chats.conversations[index].messages.append(
-                        ChatMessage(role: .assistant, text: reply.text, card: card))
+                        ChatMessage(role: .assistant, text: reply.text, card: card, thought: thought))
                 }
                 isThinking = false
             }
@@ -427,6 +431,7 @@ struct AssistantView: View {
     }
 
     private func handle(_ action: CardAction, in message: ChatMessage) {
+        if action == .retry { return retry(message) }
         let index = currentIndex
         guard let row = chats.conversations[index].messages.firstIndex(where: { $0.id == message.id }),
               let card = message.card else { return }
@@ -456,11 +461,28 @@ struct AssistantView: View {
     }
 }
 
+/// What an answer costs, once it is in: `paid` is whether the question took a lượt as it left
+/// (none were left otherwise), `counts` whether the answer is one that takes one (not recording,
+/// deleting or telling of the app, and not an error).
+enum AnswerCharge: Equatable {
+    /// Takes none: its lượt, if one was taken, goes back.
+    case free
+    /// Its lượt stays taken.
+    case paid
+    /// It needed a lượt and none were left: told when they come back instead.
+    case outOfQuestions
+
+    init(paid: Bool, counts: Bool) {
+        self = !counts ? .free : (paid ? .paid : .outOfQuestions)
+    }
+}
+
 #Preview {
     NavigationStack { AssistantView() }
         .environment(FinanceStore())
         .environment(AssistantChats(saving: false))
         .environment(AIQuota())
+        .environment(CloudSyncMonitor())
         .environment(\.locale, .vietnam)
         .textRole(.body)
 }

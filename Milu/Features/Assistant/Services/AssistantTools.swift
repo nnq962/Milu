@@ -26,17 +26,23 @@ struct ToolOutput {
 }
 
 enum AssistantTools {
-    static let all: [any AssistantTool] = [
-        SummarizeTransactions(),
-        ListTransactions(),
-        GetAccounts(),
-        GetLoans(),
-        RecordTransaction(),
-        DeleteTransaction(),
-    ]
+    /// Every tool, `get_app_info` reading `app`: the app's facts at the time of the question.
+    static func tools(app: AppFacts = AppFacts()) -> [any AssistantTool] {
+        [
+            SummarizeTransactions(),
+            ListTransactions(),
+            GetAccounts(),
+            GetLoans(),
+            RecordTransaction(),
+            DeleteTransaction(),
+            GetAppInfo(facts: app),
+        ]
+    }
 
-    static func named(_ name: String) -> (any AssistantTool)? {
-        all.first { $0.name == name }
+    static var all: [any AssistantTool] { tools() }
+
+    static func named(_ name: String, app: AppFacts = AppFacts()) -> (any AssistantTool)? {
+        tools(app: app).first { $0.name == name }
     }
 
     static var specs: [MiluAPI.ToolSpec] {

@@ -9,8 +9,10 @@ import SwiftUI
 /// as they are.
 struct ChatScreen: UIViewControllerRepresentable {
     let conversation: Conversation
-    /// A question is out and Milu's answer not in yet: three dots under the last message.
+    /// A question is out and Milu's answer not in yet: "Đang nghĩ…" under the last message.
     let isThinking: Bool
+    /// What Milu has done so far on the answer on its way, listed under "Đang nghĩ…".
+    let progress: AssistantProgress
     @Binding var draft: String
     /// Listening or turning the voice into words: the field is hidden, `fieldOverlay` in its place.
     let isDictating: Bool
@@ -40,6 +42,7 @@ struct ChatScreen: UIViewControllerRepresentable {
         controller.update(ChatViewController.State(
             conversation: conversation,
             isThinking: isThinking,
+            progress: progress,
             draft: self.draft,
             isDictating: isDictating,
             showsLeading: showsLeading,
@@ -135,13 +138,19 @@ struct QuestionWords: UIViewRepresentable {
 /// Milu's answer's words: selectable, as in ChatGPT and Claude (user request 2026-11-11), held to
 /// select a word and dragged for more, with iOS's own Copy. Set as the body text is (Nunito
 /// Medium, its 24 line), **bold** and _italic_ kept.
+///
+/// `reveals`: an answer just in shows its words one after another, each fading in (user design
+/// 2026-11-15), laid out from the start where they end up; `onRevealed` once all are shown.
 struct AnswerWords: UIViewRepresentable {
     let text: AttributedString
+    var reveals = false
+    var onRevealed: (() -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator {
         var shown: AttributedString?
+        var reveal: WordReveal?
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -166,9 +175,24 @@ struct AnswerWords: UIViewRepresentable {
 
     func updateUIView(_ view: UITextView, context: Context) {
         // Set only when the words change: set again, the reader's selection went.
-        guard context.coordinator.shown != text else { return }
-        context.coordinator.shown = text
-        view.attributedText = Self.attributed(text)
+        let coordinator = context.coordinator
+        guard coordinator.shown != text else { return }
+        let first = coordinator.shown == nil
+        coordinator.shown = text
+        coordinator.reveal?.stop()
+        coordinator.reveal = nil
+        let attributed = Self.attributed(text)
+        view.attributedText = attributed
+        guard reveals else { return }
+        if first, !UIAccessibility.isReduceMotionEnabled {
+            coordinator.reveal = WordReveal(view: view, text: attributed) { [weak coordinator] in
+                coordinator?.reveal = nil
+                onRevealed?()
+            }
+        } else {
+            // Not in this update: the row's state changes with it.
+            DispatchQueue.main.async { onRevealed?() }
+        }
     }
 
     /// As wide as its longest line, up to the width it is offered; as tall as its lines.
@@ -210,21 +234,182 @@ struct AnswerWords: UIViewRepresentable {
                 .baselineOffset: (line - runFont.lineHeight) / 4,
             ]))
         }
-        hangItems(in: result, font: regular, base: paragraph)
+        setParagraphs(in: result, font: regular, base: paragraph, metrics: metrics)
         return result
     }
 
-    /// A list item's lines after its first start under its words, not under its "•", as lists
-    /// are set everywhere (user report 2026-11-12: wrapped lines ran back to the margin).
-    private static func hangItems(in text: NSMutableAttributedString, font: UIFont, base: NSParagraphStyle) {
+    /// What a paragraph of an answer is: words, a list's item ("• ", "◦ " under it, "1. "), or the
+    /// blank line between two parts.
+    private enum Block: Equatable {
+        case blank, words, item(level: Int), numbered
+
+        var isItem: Bool { self != .blank && self != .words }
+    }
+
+    /// An answer's paragraphs set as Claude and ChatGPT set theirs (user report 2026-11-15: the
+    /// "•" stood on the margin, and a blank line between two parts took a whole empty line):
+    /// - a list stands in from the margin, its "•" a little in and its words further in, every
+    ///   line of an item under its words; an item under another stands in once more;
+    /// - a little room between items, a little more where a list starts or ends, and a part
+    ///   after a blank line starts a paragraph's gap lower, the blank line itself gone.
+    private static func setParagraphs(in text: NSMutableAttributedString, font: UIFont, base: NSParagraphStyle,
+                                      metrics: UIFontMetrics) {
         let string = text.string as NSString
-        string.enumerateSubstrings(in: NSRange(location: 0, length: string.length), options: .byParagraphs) { paragraph, range, _, _ in
-            guard let paragraph,
-                  let marker = [AnswerMarkdown.subBullet, AnswerMarkdown.bullet].first(where: paragraph.hasPrefix)
-                    ?? paragraph.firstMatch(of: #/^\d{1,2}[.)] /#).map({ String($0.0) }) else { return }
-            let style = base.mutableCopy() as! NSMutableParagraphStyle
-            style.headIndent = ceil((marker as NSString).size(withAttributes: [.font: font]).width)
-            text.addAttribute(.paragraphStyle, value: style, range: range)
+        var paragraphs: [(range: NSRange, block: Block, marker: String)] = []
+        string.enumerateSubstrings(in: NSRange(location: 0, length: string.length), options: .byParagraphs) { words, _, enclosing, _ in
+            let words = words ?? ""
+            if words.isEmpty {
+                paragraphs.append((enclosing, .blank, ""))
+            } else if words.hasPrefix(AnswerMarkdown.subBullet) {
+                paragraphs.append((enclosing, .item(level: 1), AnswerMarkdown.subBullet))
+            } else if words.hasPrefix(AnswerMarkdown.bullet) {
+                paragraphs.append((enclosing, .item(level: 0), AnswerMarkdown.bullet))
+            } else if let number = words.firstMatch(of: #/^\d{1,2}[.)] /#) {
+                paragraphs.append((enclosing, .numbered, String(number.0)))
+            } else {
+                paragraphs.append((enclosing, .words, ""))
+            }
         }
+
+        let scaled = { metrics.scaledValue(for: $0) }
+        /// Where the "•" stands, and where an item's words start, one level further in for each.
+        let markerIn = scaled(Spacing.s), wordsIn = scaled(Spacing.xxl), levelIn = scaled(Spacing.l)
+        let partGap = scaled(Spacing.m), listGap = scaled(Spacing.xs + 2), itemGap = scaled(Spacing.xs)
+
+        // From the end, so a paragraph changed or taken out leaves the ranges before it as they are.
+        for index in paragraphs.indices.reversed() {
+            let (range, block, marker) = paragraphs[index]
+            if block == .blank {
+                text.deleteCharacters(in: range)
+                continue
+            }
+            let before = index > 0 ? paragraphs[index - 1].block : nil
+            let style = base.mutableCopy() as! NSMutableParagraphStyle
+            switch before {
+            case .blank?: style.paragraphSpacingBefore = partGap
+            case let previous? where previous.isItem && block.isItem: style.paragraphSpacingBefore = itemGap
+            case let previous? where previous.isItem != block.isItem: style.paragraphSpacingBefore = listGap
+            default: break
+            }
+            var glyph = ""
+            switch block {
+            case .item(let level):
+                style.firstLineHeadIndent = markerIn + CGFloat(level) * levelIn
+                style.headIndent = wordsIn + CGFloat(level) * levelIn
+                glyph = level == 0 ? "•" : "◦"
+            case .numbered:
+                let width = ceil((marker as NSString).size(withAttributes: [.font: font]).width)
+                style.firstLineHeadIndent = scaled(Spacing.xs)
+                style.headIndent = max(wordsIn, scaled(Spacing.xs) + width + scaled(Spacing.xs))
+                glyph = marker.trimmingCharacters(in: .whitespaces)
+            case .words, .blank:
+                break
+            }
+            if block.isItem {
+                // The marker, then a tab to where the words start: they line up whatever its width.
+                style.tabStops = [NSTextTab(textAlignment: .natural, location: style.headIndent)]
+                style.defaultTabInterval = style.headIndent
+            }
+            text.addAttribute(.paragraphStyle, value: style, range: range)
+            if block.isItem {
+                text.replaceCharacters(in: NSRange(location: range.location, length: (marker as NSString).length),
+                                       with: glyph + "\t")
+            }
+        }
+        // No line break left at the end once a blank line before it went.
+        while text.string.hasSuffix("\n") { text.deleteCharacters(in: NSRange(location: text.length - 1, length: 1)) }
+    }
+}
+
+/// How an answer's words come in: each fades in over `fade`, the next starting `stagger` after,
+/// so a short answer reads as written and a long one still takes little more than a second.
+enum AnswerReveal {
+    static let fade: Double = 0.32
+
+    static func stagger(_ words: Int) -> Double { min(0.02, 1.2 / Double(max(words, 1))) }
+
+    /// From the first word starting to the last one shown.
+    static func duration(words: Int) -> Double { stagger(words) * Double(max(words - 1, 0)) + fade }
+
+    /// The words of `string`, as runs between spaces and line breaks (a "•" or a "12%," is one).
+    static func words(in string: String) -> [NSRange] {
+        let text = string as NSString
+        let spaces = CharacterSet.whitespacesAndNewlines
+        var ranges: [NSRange] = []
+        var start: Int?
+        for index in 0..<text.length {
+            let isSpace = Unicode.Scalar(text.character(at: index)).map(spaces.contains) ?? false
+            if isSpace {
+                if let begun = start { ranges.append(NSRange(location: begun, length: index - begun)) }
+                start = nil
+            } else if start == nil {
+                start = index
+            }
+        }
+        if let begun = start { ranges.append(NSRange(location: begun, length: text.length - begun)) }
+        return ranges
+    }
+}
+
+/// An answer's words shown one after another in its text view: every word starts clear, then
+/// each one's colour goes from clear to whole, frame by frame. Only the colour changes, so the
+/// lines are where they end up from the first frame and the row never changes its height.
+final class WordReveal: NSObject {
+    private weak var view: UITextView?
+    private let text: NSAttributedString
+    private let words: [NSRange]
+    private var shown: [CGFloat]
+    private let color: UIColor
+    private let stagger: Double
+    private let start = CACurrentMediaTime()
+    private var link: CADisplayLink?
+    private let done: () -> Void
+
+    init(view: UITextView, text: NSAttributedString, done: @escaping () -> Void) {
+        self.view = view
+        self.text = text
+        self.done = done
+        words = AnswerReveal.words(in: text.string)
+        shown = Array(repeating: 0, count: words.count)
+        stagger = AnswerReveal.stagger(words.count)
+        color = text.length > 0 ? (text.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor ?? .label) : .label
+        super.init()
+        let storage = view.textStorage
+        storage.beginEditing()
+        storage.addAttribute(.foregroundColor, value: color.withAlphaComponent(0),
+                             range: NSRange(location: 0, length: storage.length))
+        storage.endEditing()
+        let link = CADisplayLink(target: self, selector: #selector(tick))
+        link.add(to: .main, forMode: .common)
+        self.link = link
+    }
+
+    @objc private func tick() {
+        guard let view else { return stop() }
+        let elapsed = CACurrentMediaTime() - start
+        let storage = view.textStorage
+        storage.beginEditing()
+        for index in words.indices where shown[index] < 1 {
+            let progress = (elapsed - Double(index) * stagger) / AnswerReveal.fade
+            // The words after this one have not begun either.
+            if progress <= 0 { break }
+            let eased = 1 - pow(1 - min(progress, 1), 3)
+            shown[index] = progress >= 1 ? 1 : CGFloat(eased)
+            storage.addAttribute(.foregroundColor, value: color.withAlphaComponent(shown[index]), range: words[index])
+        }
+        storage.endEditing()
+        if shown.allSatisfy({ $0 >= 1 }) { finish() }
+    }
+
+    /// All shown: the words set back as they are, then the row told.
+    private func finish() {
+        stop()
+        view?.attributedText = text
+        done()
+    }
+
+    func stop() {
+        link?.invalidate()
+        link = nil
     }
 }

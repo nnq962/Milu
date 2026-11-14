@@ -1,13 +1,33 @@
 import SwiftUI
 
-/// One message of the chat: the user's in a bubble at the right, Milu's under its name, with the
-/// card of a transaction it recorded or is asked to delete.
+/// One message of the chat: the user's in a bubble at the right; Milu's on the page itself, with
+/// no bubble, avatar or name (user design 2026-11-15, Figma "12 · Milu · Trợ lý AI", as Claude and
+/// ChatGPT), under how long it thought, with the card of a transaction it recorded or is asked to
+/// delete, and "Sao chép" / "Hỏi lại".
 struct MessageRow: View {
     @Environment(FinanceStore.self) private var store
     @Environment(\.onBubbleFrame) private var onBubbleFrame
     @Environment(\.chatRowWidth) private var rowWidth
+    /// This answer just came in: its words show one after another (`AnswerWords`), then its card
+    /// pops up and its buttons come.
+    @Environment(\.revealsAnswer) private var revealsAnswer
+    @Environment(\.resizeChatRow) private var resizeChatRow
     let message: ChatMessage
     let onAction: (CardAction, ChatMessage) -> Void
+    @State private var revealDone = false
+    /// The answer's steps laid out under "Đã nghĩ …", and drawn (they fade in once laid out, and
+    /// out before they go).
+    @State private var thoughtOpen = false
+    @State private var stepsShown = false
+    /// The steps are opening or closing: a tap then waits.
+    @State private var thoughtMoving = false
+    /// The room the answer's steps take once open (`ThoughtLine`).
+    @State private var stepsRoom: CGFloat = 0
+    /// How far up the words under the steps are drawn while they slide down into place.
+    @State private var answerLift: CGFloat = 0
+    @State private var copied = false
+
+    private var revealing: Bool { revealsAnswer && !revealDone }
 
     var body: some View {
         switch message.role {
@@ -23,12 +43,15 @@ struct MessageRow: View {
             // mid-row for a moment (frames, 2026-11-12).
             .frame(minWidth: rowWidth, maxWidth: .infinity, alignment: .trailing)
         case .assistant:
-            // Milu's name over a bubble that may run the page's width, no avatar column beside it
-            // (user requests 2026-10-31: text close to both margins, yet still a chat).
             VStack(alignment: .leading, spacing: Spacing.s) {
-                AssistantSender()
+                if let thought = message.thought {
+                    ThoughtLine(thought: thought, expanded: thoughtOpen, stepsShown: stepsShown,
+                                toggle: toggleThought) { stepsRoom = $0 }
+                        .modifier(FadesInAfterThinking(active: revealsAnswer))
+                }
                 answer
-                cardButtons
+                    // Drawn moved, never laid out moved: the row keeps its height while it slides.
+                    .offset(y: answerLift)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .notice:
@@ -45,20 +68,117 @@ struct MessageRow: View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             // Words to select and copy, as in ChatGPT and Claude: no hold menu on an answer
             // (user request 2026-11-11).
-            AnswerWords(text: formattedText)
-                .accessibilityLabel(String(formattedText.characters))
+            AnswerWords(text: formattedText, reveals: revealsAnswer) {
+                revealDone = true
+                // The card pops up as the words are done: a "done" tap with it.
+                if case .recorded = message.card { Haptics.milestone() }
+            }
+            .accessibilityLabel(String(formattedText.characters))
             if let transaction = cardTransaction {
                 TransactionCard(transaction: transaction)
+                    .modifier(PopsIn(hidden: revealing))
             }
             if let status = cardStatus {
                 Text(status)
                     .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryLabel)
             }
+            cardButtons
+                .modifier(PopsIn(hidden: revealing, delay: 0.1))
+            if message.card == nil {
+                answerActions
+                    .opacity(revealing ? 0 : 1)
+                    .animation(Motion.gentle(.easeOut(duration: 0.25).delay(0.15)), value: revealing)
+            }
         }
-        .padding(.horizontal, Spacing.l)
-        .padding(.vertical, Spacing.m)
-        .background { Bubble.assistantShape }
+    }
+
+    /// The steps opened or closed, smoothly both ways, the row's height changing at once and
+    /// unseen (`ThoughtLine`, `resizeChatRow`):
+    /// - opening, the row grows at once with the words under the steps drawn where they were;
+    ///   then the steps fade in, the chevron turns down and the words slide down to their place;
+    /// - closing, the steps fade out, the chevron turns back and the words slide up over them;
+    ///   then the row shrinks at once, the words already where it puts them.
+    private func toggleThought() {
+        guard !thoughtMoving else { return }
+        let moves = !UIAccessibility.isReduceMotionEnabled && stepsRoom > 0
+        let motion = Animation.easeInOut(duration: 0.25)
+        if thoughtOpen {
+            guard moves else {
+                stepsShown = false
+                thoughtOpen = false
+                resizeChatRow?(message.id)
+                return
+            }
+            thoughtMoving = true
+            withAnimation(motion) {
+                stepsShown = false
+                answerLift = -stepsRoom
+            } completion: {
+                thoughtOpen = false
+                answerLift = 0
+                resizeChatRow?(message.id)
+                thoughtMoving = false
+            }
+        } else {
+            guard moves else {
+                thoughtOpen = true
+                stepsShown = true
+                resizeChatRow?(message.id)
+                return
+            }
+            thoughtMoving = true
+            answerLift = -stepsRoom
+            thoughtOpen = true
+            resizeChatRow?(message.id)
+            // Once the row has its new height (an animation begun with it resized the cell too).
+            ChatMotion.afterResize {
+                withAnimation(motion) {
+                    stepsShown = true
+                    answerLift = 0
+                } completion: {
+                    thoughtMoving = false
+                }
+            }
+        }
+    }
+
+    /// "Sao chép" and "Hỏi lại" under an answer with no card: "Hỏi lại" asks its question once
+    /// more, at the chat's end. Not under a card, where asking again would record or delete again.
+    private var answerActions: some View {
+        HStack(spacing: Spacing.xs) {
+            answerAction(copied ? "Đã chép" : "Sao chép", icon: copied ? "checkmark" : "doc.on.doc") {
+                UIPasteboard.general.string = Self.copiedText(of: message)
+                Haptics.selection()
+                withAnimation(Motion.gentle(.easeOut(duration: 0.2))) { copied = true }
+                Task {
+                    try? await Task.sleep(for: .seconds(1.6))
+                    withAnimation(Motion.gentle(.easeOut(duration: 0.2))) { copied = false }
+                }
+            }
+            answerAction("Hỏi lại", icon: "arrow.clockwise") { onAction(.retry, message) }
+        }
+        // Their glyphs in line with the words' edge.
+        .padding(.leading, -Spacing.s)
+    }
+
+    private func answerAction(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: Spacing.xs + 2) {
+                Image(systemName: icon)
+                    .font(.system(size: IconSize.inline, weight: .medium))
+                    .frame(width: IconSize.inline + 4)
+                    .contentTransition(.symbolEffect(.replace))
+                Text(title)
+                    .textRole(.caption)
+                    .contentTransition(.opacity)
+            }
+            .foregroundStyle(Palette.tertiaryLabel)
+            .padding(.horizontal, Spacing.s)
+            .frame(minHeight: ControlHeight.regular)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Shows the live transaction (after edits) while it exists, else the snapshot.
@@ -149,16 +269,47 @@ struct MessageRow: View {
     private static var formatted: [String: AttributedString] = [:]
 }
 
-/// Transaction summary inside an assistant bubble: the same row as every list of transactions
-/// (`TransactionListRow`: plain icon, `MoneyText` with its sign and colour) on a muted tile
-/// (strict review 2026-10-31: a white icon disc and a hand-made amount).
+/// The transaction an answer recorded or asks to delete: the same row as every list of
+/// transactions (`TransactionListRow`: plain icon, `MoneyText` with its sign and colour), on a card
+/// of its own now that the answer has no bubble (user design 2026-11-15).
 private struct TransactionCard: View {
     let transaction: FinanceTransaction
 
     var body: some View {
         TransactionListRow(transaction: transaction, detail: .day)
-            .cardSurface(radius: CardCorners.card, color: Palette.surfaceMuted, outlined: false)
+            .cardSurface(radius: CardCorners.card)
+            .cardShadow()
             .accessibilityElement(children: .combine)
+    }
+}
+
+/// The answer's first line coming in a beat after it does, as "Đang nghĩ…" fades away in its
+/// place: the two crossed at once, one over the other (frames, 2026-11-15).
+private struct FadesInAfterThinking: ViewModifier {
+    let active: Bool
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(active && !shown ? 0 : 1)
+            .onAppear {
+                guard active else { return }
+                withAnimation(Motion.gentle(.easeOut(duration: 0.25).delay(0.12))) { shown = true }
+            }
+    }
+}
+
+/// Hidden while the answer's words show, then popping up: from 96% and clear to whole, on a
+/// spring (user design 2026-11-15). Under Reduce Motion, there at once.
+private struct PopsIn: ViewModifier {
+    let hidden: Bool
+    var delay: Double = 0
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(hidden ? 0 : 1)
+            .scaleEffect(hidden ? 0.96 : 1, anchor: .top)
+            .animation(Motion.gentle(.spring(duration: 0.45, bounce: 0.3).delay(delay)), value: hidden)
     }
 }
 
@@ -196,6 +347,10 @@ enum ChatRow {
 }
 
 extension EnvironmentValues {
+    /// The answer row just in, whose words show one after another (`ChatViewController`).
+    @Entry var revealsAnswer = false
+    /// Has the chat take a message's row's new height at once (`ChatViewController`).
+    @Entry var resizeChatRow: ((UUID) -> Void)? = nil
     /// Where the row's bubble is, in `ChatRow.space`.
     @Entry var onBubbleFrame: ((CGRect) -> Void)? = nil
     /// The chat's rows' width, inside their margins (`ChatViewController`).
