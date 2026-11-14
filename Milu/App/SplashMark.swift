@@ -127,6 +127,26 @@ struct SplashScreen<Accessory: View>: View {
     }
 }
 
+/// iOS's launch picture drawn again: the sky and the garden, no words, no Than, placed as
+/// `SplashScreen` places its scene. Over a new user's welcome as it opens, fading off it (user
+/// request 2026-11-14), as the splash takes over from the same picture for everyone else.
+struct LaunchPicture: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let design = SplashCaption.frame
+            let scale = max(proxy.size.width / design.width, proxy.size.height / design.height)
+            SplashScene(greeted: false)
+                .scaleEffect(scale, anchor: .bottom)
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
+        }
+        .environment(\.colorScheme, .light)
+        .background(Color("milu-launch-sky"))
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+    }
+}
+
 extension SplashScreen where Accessory == EmptyView {
     init(greets: Bool = true) {
         self.init(greets: greets) { EmptyView() }

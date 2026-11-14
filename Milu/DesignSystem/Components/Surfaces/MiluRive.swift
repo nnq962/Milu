@@ -122,7 +122,8 @@ final class MiluRiveCharacter {
     private static let step: TimeInterval = 0.1
     private static let warmUpSteps = 30
 
-    private static func worker() async throws -> Worker {
+    /// Shared with the welcome's Than (`WelcomeThan`): one render thread and GPU context for all.
+    static func worker() async throws -> Worker {
         if let sharedWorker { return try await sharedWorker.value }
         let task = Task { @MainActor in try await Worker() }
         sharedWorker = task

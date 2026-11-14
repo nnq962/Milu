@@ -31,6 +31,18 @@ struct MiluApp: App {
     /// The splash still over the first page; it fades off once the page is drawn under it.
     @State private var showsSplash = true
     @State private var splashFading = false
+    /// A new user's first launch: iOS's launch picture, drawn again over the welcome, fades off
+    /// it instead of cutting from the garden to the welcome (user request 2026-11-14).
+    @State private var launchCover = false
+    /// The welcome was finished: Tổng quan is built under it before it fades.
+    @State private var homeUnderWelcome = false
+    /// The welcome on screen. Its own state, not `welcomeSeen`: a stored value changes after the
+    /// animation's moment, and the welcome cut to Tổng quan instead of fading (2026-11-14).
+    @State private var showsWelcome = false
+    /// The welcome and the launch picture fading, before they are taken away: at the app's root
+    /// only a change of opacity animates, a view taken away cuts (as the splash, 2026-11-14).
+    @State private var welcomeFading = false
+    @State private var launchFading = false
     /// The app went to the background since it was last active: only then is the database read
     /// again, not after every banner, Control Centre or Face ID prompt (each left it inactive a
     /// moment, and the reload froze the screen ~170 ms, Instruments on the iPhone 2026-11-13).
@@ -47,6 +59,8 @@ struct MiluApp: App {
     private static let greetingTime: TimeInterval = 0.9
     /// The page's first frames under the splash before it fades.
     private static let pageSettle: TimeInterval = 0.4
+    /// How long the welcome takes to fade off Tổng quan, and the launch picture off the welcome.
+    private static let welcomeFade: TimeInterval = 0.45
 
     /// Until `seconds` after launch.
     private static func wait(until seconds: TimeInterval) async {
@@ -85,10 +99,17 @@ struct MiluApp: App {
         if !store.accounts.isEmpty || !store.transactions.isEmpty || !store.savingsGoals.isEmpty {
             UserDefaults.standard.set(true, forKey: StorageKey.welcomeSeen)
         }
-        #if DEBUG
+        // The welcome again, launched with `-showWelcome` (Xcode, devicectl): in Release too, to
+        // see it on the phone, where Cài đặt's "Xem lại màn chào mừng" is Debug only. No one but
+        // a developer's tools passes launch arguments.
         if ProcessInfo.processInfo.arguments.contains("-showWelcome") {
             UserDefaults.standard.set(false, forKey: StorageKey.welcomeSeen)
         }
+        _launchCover = State(initialValue: !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen))
+        _showsWelcome = State(initialValue: !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen))
+        // The welcome's Than, loaded while iOS's launch picture shows.
+        if !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen) { WelcomeThan.preload() }
+        #if DEBUG
         // Recurring rules overdue, on an archived account, coming soon (`RecurringDemo`).
         if ProcessInfo.processInfo.arguments.contains("-demoRecurring") { store.seedRecurringDemo() }
         #endif
@@ -97,21 +118,37 @@ struct MiluApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                if welcomeSeen {
+                if !showsWelcome || homeUnderWelcome {
                     // Built under the splash once Tổng quan's Than is ready, so it is drawn and
-                    // still when the splash fades off it.
+                    // still when the splash fades off it; after the welcome, under the welcome.
                     if heroReady {
                         ContentView()
                             .id(generation)
                             .syncStatusPill()
                     }
-                } else {
-                    WelcomeView {
-                        withAnimation(.easeInOut(duration: 0.45)) { welcomeSeen = true }
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 1.04)))
                 }
-                if welcomeSeen && showsSplash {
+                if showsWelcome {
+                    WelcomeView(onFinish: finishWelcome)
+                        .opacity(welcomeFading ? 0 : 1)
+                        .scaleEffect(welcomeFading ? 1.04 : 1)
+                        .animation(Motion.gentle(.easeInOut(duration: Self.welcomeFade)), value: welcomeFading)
+                        .allowsHitTesting(!welcomeFading)
+                        .zIndex(1)
+                }
+                if showsWelcome && launchCover {
+                    LaunchPicture()
+                        .opacity(launchFading ? 0 : 1)
+                        .animation(Motion.gentle(.easeInOut(duration: Self.welcomeFade)), value: launchFading)
+                        .task {
+                            // A moment as iOS left it, then the welcome comes through.
+                            try? await Task.sleep(for: .milliseconds(120))
+                            launchFading = true
+                            try? await Task.sleep(for: .seconds(Self.welcomeFade))
+                            launchCover = false
+                        }
+                        .zIndex(2)
+                }
+                if !showsWelcome && showsSplash {
                     // Milu's greeting (`SplashScreen`) over the first page while it gets ready,
                     // then fading slowly off it (user requests 2026-11-13, -14).
                     SplashScreen()
@@ -182,6 +219,16 @@ struct MiluApp: App {
                 // page under it redrew while Tổng quan's charts were still drawing (Instruments
                 // on the iPhone 2026-11-13).
                 .modifier(ReloadAfterSync(sync: sync, store: store))
+                // The mark changed while the app runs: cleared by "Xem lại màn chào mừng" (Cài
+                // đặt, Debug), or set by iCloud on a reinstall (`CloudSettings`), when the welcome
+                // gives way to the splash and Tổng quan, as at a launch.
+                .onChange(of: welcomeSeen) { _, seen in
+                    if !seen {
+                        showsWelcome = true
+                    } else if showsWelcome && !homeUnderWelcome {
+                        showsWelcome = false
+                    }
+                }
                 // What recurring rules that record by themselves owe since the app was last open.
                 .task(id: generation) { store.recordDueRecurring() }
                 // Past midnight with the app open: today's are due now.
@@ -209,6 +256,27 @@ struct MiluApp: App {
                 store.recordDueRecurring()
                 sync.checkAccount()
             }
+        }
+    }
+
+    /// The welcome is done: straight to Tổng quan, built under the welcome and still before it
+    /// fades. No splash after it: the welcome was the greeting (user request 2026-11-14), and a
+    /// new user's splash, never shown at launch, was still waiting to play.
+    private func finishWelcome() {
+        showsSplash = false
+        Task { @MainActor in
+            await MiluRiveCharacter.overviewReady()
+            MiluRiveCharacter.park()
+            homeUnderWelcome = true
+            heroReady = true
+            try? await Task.sleep(for: .seconds(Self.pageSettle))
+            welcomeFading = true
+            try? await Task.sleep(for: .seconds(Self.welcomeFade))
+            showsWelcome = false
+            welcomeFading = false
+            welcomeSeen = true
+            homeUnderWelcome = false
+            WelcomeThan.shared.release()
         }
     }
 
