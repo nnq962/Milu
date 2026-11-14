@@ -176,7 +176,15 @@ struct SettingsView: View {
                         AppearancePicker(selection: $appearance)
                     }
                     .sensoryFeedback(.selection, trigger: appearance)
-                    .onChange(of: appearance) { _, new in new.apply(animated: true) }
+                    // After the tapped tile's press has sprung back: the whole-screen fade froze
+                    // it, and it bounced only once the new look was on (user report 2026-11-14).
+                    .onChange(of: appearance) { _, new in
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(0.3))
+                            // Only the last pick, should two come quickly.
+                            if appearance == new { new.apply(animated: true) }
+                        }
+                    }
 
                     // No footers here: a footer only carries a computed figure or an error
                     // (strict review 2026-10-31). Working since 2026-11-12 (`Reminders`): turning one

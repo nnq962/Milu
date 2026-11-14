@@ -35,9 +35,13 @@ extension EnvironmentValues {
 
 /// A whole tappable card or tile (a loan, a savings goal, a calendar day): `LivelyPress`.
 struct CardButtonStyle: ButtonStyle {
+    /// False where the dimming would let the card behind show through and change a picture's
+    /// colours (the theme samples, user report 2026-11-14): it only sinks.
+    var dims = true
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .modifier(LivelyPress(isPressed: configuration.isPressed))
+            .modifier(LivelyPress(isPressed: configuration.isPressed, dims: dims))
     }
 }
 
@@ -50,6 +54,8 @@ struct LivelyPress: ViewModifier {
 
     /// How far it sinks: a little more for a small control than for a card.
     var scale: CGFloat = 0.97
+    /// Whether it dims a touch while down.
+    var dims = true
 
     /// The shortest time it stays down. A quick tap inside a scroll view is pressed and let go in
     /// the same moment (iOS waits to see whether the touch scrolls), so following `isPressed` alone
@@ -64,7 +70,7 @@ struct LivelyPress: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(isDown && !reduceMotion ? scale : 1)
-            .opacity(isDown ? 0.85 : 1)
+            .opacity(isDown && dims ? 0.85 : 1)
             .onChange(of: isPressed) { _, pressed in
                 if pressed {
                     pressedAt = .now

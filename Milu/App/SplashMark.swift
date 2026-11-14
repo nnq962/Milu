@@ -14,6 +14,10 @@ struct SplashScene<Accessory: View>: View {
 
     /// False for the first frame, the launch picture's: then the greeting plays.
     var greeted = true
+    /// How far the words move down, in the design's points, on a screen shorter than the design
+    /// (iPhone SE): the scene stands on the screen's foot there, and its top, with the words,
+    /// would sit under the status bar.
+    var wordsDrop: CGFloat = 0
     /// The line under "Milu"; the lock says it is locked there.
     var caption = SplashCaption.tagline
     /// Under the words, in the sky: the lock's button.
@@ -40,7 +44,7 @@ struct SplashScene<Accessory: View>: View {
                     .padding(.top, Spacing.xl)
             }
             .frame(width: 354)
-            .offset(x: 24, y: 204 - Self.titleLead + (greeted ? 0 : 10))
+            .offset(x: 24, y: 204 - Self.titleLead + wordsDrop + (greeted ? 0 : 10))
             .opacity(greeted ? 1 : 0)
             // Than at the foot, as large as the design has it, its cut edge on the screen's;
             // before the greeting, below the screen.
@@ -62,7 +66,7 @@ struct SplashScene<Accessory: View>: View {
 
 extension SplashScene where Accessory == EmptyView {
     init(greeted: Bool = true, caption: String = SplashCaption.tagline) {
-        self.init(greeted: greeted, caption: caption) { EmptyView() }
+        self.init(greeted: greeted, wordsDrop: 0, caption: caption) { EmptyView() }
     }
 }
 
@@ -72,8 +76,10 @@ enum SplashCaption {
     static let frame = CGSize(width: 402, height: 874)
 }
 
-/// The hold screen: the scene filling the screen, as iOS's launch picture fills it, greeting as
-/// it appears. Still (`greets` false), the same scene is the app switcher's picture and the lock
+/// The hold screen: the scene filling the screen and standing on its foot, as iOS's launch
+/// picture does (`LaunchScreen.storyboard`), greeting as it appears. On its foot, not centred: on
+/// a screen shorter than the design (iPhone SE) centring cut Than off at the nose (2026-11-14);
+/// only plain sky goes off the top. Still (`greets` false), the same scene is the app switcher's picture and the lock
 /// (`PrivacyCover`, `LockScreen`): one look for opening, away and locked (user choice 2026-11-14).
 struct SplashScreen<Accessory: View>: View {
     var greets = true
@@ -83,15 +89,28 @@ struct SplashScreen<Accessory: View>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var greeted = false
 
+    /// The highest the words' line may start, from the screen's top: under the status bar.
+    private static var wordsLowest: CGFloat { 72 }
+
     var body: some View {
         GeometryReader { proxy in
-            let scale = max(proxy.size.width / SplashCaption.frame.width,
-                            proxy.size.height / SplashCaption.frame.height)
-            SplashScene(greeted: greeted || !greets, caption: caption) { accessory }
-                .scaleEffect(scale)
-                .frame(width: proxy.size.width, height: proxy.size.height)
+            let design = SplashCaption.frame
+            let scale = max(proxy.size.width / design.width, proxy.size.height / design.height)
+            // How much of the scene's top goes off the screen, in screen points.
+            let cut = design.height * scale - proxy.size.height
+            // The words' top kept clear of the status bar.
+            let wordsTop = 204 * scale - cut
+            let drop = max(Self.wordsLowest - wordsTop, 0) / scale
+            SplashScene(greeted: greeted || !greets, wordsDrop: drop, caption: caption) { accessory }
+                .scaleEffect(scale, anchor: .bottom)
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
         }
-        .background(Palette.background)
+        // Always the morning look, in the three places alike (user choice 2026-11-14): iOS's
+        // launch picture is that one even in dark mode, and the lock and the app switcher's
+        // picture now match it whatever Milu's "Giao diện" says.
+        .environment(\.colorScheme, .light)
+        // The sky's top colour behind, as the launch picture has (`milu-launch-sky`).
+        .background(Color("milu-launch-sky"))
         .ignoresSafeArea()
         .accessibilityElement(children: .contain)
         .task {

@@ -54,7 +54,9 @@ struct AppearancePicker: View {
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.card)
+        // It sinks without dimming: dimmed, the card behind showed through and changed the
+        // sample's colours under the finger (user report 2026-11-14).
+        .buttonStyle(CardButtonStyle(dims: false))
         .accessibilityLabel(option == .system ? "Theo hệ thống" : option.title)
         .accessibilityAddTraits(selected ? [.isSelected] : [])
     }
@@ -112,9 +114,10 @@ private struct AppearanceSample: View {
             }
         }
         .aspectRatio(Self.aspect, contentMode: .fit)
-        // One flat picture, not some thirty shapes and masks each: the sheet of Cài đặt opens
-        // and follows a swipe lighter (Instruments on the iPhone 2026-11-13).
-        .drawingGroup()
+        // One layer, not some thirty shapes and masks each. Not `drawingGroup`: its Metal picture
+        // was left out of the window's crossfade when the theme changes, so the samples jumped to
+        // their new look before the page faded (user report 2026-11-14).
+        .compositingGroup()
         .clipShape(shape)
         .overlay { shape.strokeBorder(Palette.separator, lineWidth: 1) }
         .padding(Self.gap + Self.ring)

@@ -8,7 +8,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Milu's launch: the sky and garden of SplashScene, filling the screen as the hold screen does (light and dark).-->
+        <!--Milu's launch: the sky and garden of SplashScene, on the screen's foot as the hold screen. iOS showed the morning one even in dark mode, so the hold screen keeps the morning look (MiluApp) and the app's look comes as it fades.-->
         <scene sceneID="Lch-Sc-001">
             <objects>
                 <viewController id="Lch-Vc-001" sceneMemberID="viewController">
@@ -16,17 +16,21 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" image="milu-launch-garden" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-Iv-001">
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="milu-launch-garden" translatesAutoresizingMaskIntoConstraints="NO" id="Lch-Iv-001">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Lch-Sa-001"/>
-                        <color key="backgroundColor" red="0.722" green="0.871" blue="0.937" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="milu-launch-sky"/>
                         <constraints>
-                            <constraint firstItem="Lch-Iv-001" firstAttribute="top" secondItem="Lch-Vw-001" secondAttribute="top" id="Lch-Ct-001"/>
-                            <constraint firstItem="Lch-Iv-001" firstAttribute="bottom" secondItem="Lch-Vw-001" secondAttribute="bottom" id="Lch-Ct-002"/>
-                            <constraint firstItem="Lch-Iv-001" firstAttribute="leading" secondItem="Lch-Vw-001" secondAttribute="leading" id="Lch-Ct-003"/>
-                            <constraint firstItem="Lch-Iv-001" firstAttribute="trailing" secondItem="Lch-Vw-001" secondAttribute="trailing" id="Lch-Ct-004"/>
+                            <!-- On the screen's foot and centred across, as large as fills it: only sky goes off the top (SplashScreen does the same). -->
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="bottom" secondItem="Lch-Vw-001" secondAttribute="bottom" id="Lch-Ct-001"/>
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="centerX" secondItem="Lch-Vw-001" secondAttribute="centerX" id="Lch-Ct-002"/>
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="width" secondItem="Lch-Iv-001" secondAttribute="height" multiplier="402:874" id="Lch-Ct-003"/>
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="width" relation="greaterThanOrEqual" secondItem="Lch-Vw-001" secondAttribute="width" id="Lch-Ct-004"/>
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="height" relation="greaterThanOrEqual" secondItem="Lch-Vw-001" secondAttribute="height" id="Lch-Ct-005"/>
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="width" secondItem="Lch-Vw-001" secondAttribute="width" priority="750" id="Lch-Ct-006"/>
+                            <constraint firstItem="Lch-Iv-001" firstAttribute="height" secondItem="Lch-Vw-001" secondAttribute="height" priority="750" id="Lch-Ct-007"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -36,5 +40,8 @@
     </scenes>
     <resources>
         <image name="milu-launch-garden" width="402" height="874"/>
+        <namedColor name="milu-launch-sky">
+            <color red="0.725" green="0.875" blue="0.941" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
     </resources>
 </document>

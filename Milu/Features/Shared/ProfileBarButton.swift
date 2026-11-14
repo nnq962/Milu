@@ -21,12 +21,16 @@ struct ProfileBarButton: View {
         // bar updated, at launch and while pages moved (Instruments on the iPhone 2026-11-13).
         let key = "\(avatarRaw)@\(displayScale)"
         if let kept = Self.pictures[key] { return kept }
-        let renderer = ImageRenderer(content: ProfileAvatarView(avatar: avatar, name: name, size: RowMetrics.toolbarGlyphFrame))
+        let renderer = ImageRenderer(content: ProfileAvatarView(avatar: avatar, name: name, size: Self.faceSize))
         renderer.scale = displayScale
         let image = renderer.uiImage
         Self.pictures[key] = image
         return image
     }
+
+    /// The face fills the glass but for a thin rim (user request 2026-11-14: the dog read small
+    /// at the glyph's 28). The button keeps the glyph's size, so the bar's circle stays 44.
+    private static var faceSize: CGFloat { ControlHeight.regular - 8 }
 
     /// The faces drawn so far, by face and scale (a few at most).
     @MainActor private static var pictures: [String: UIImage] = [:]
@@ -40,6 +44,8 @@ struct ProfileBarButton: View {
                 if let picture {
                     Image(uiImage: picture)
                         .renderingMode(.original)
+                        // Larger than the glyph's frame, drawn past it into the circle's room.
+                        .frame(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)
                 } else if let initial = ProfileName.initial(of: name) {
                     Image(size: CGSize(width: RowMetrics.toolbarGlyphFrame, height: RowMetrics.toolbarGlyphFrame)) { context in
                         // Regular, as the words of iOS's own glass buttons (user request 2026-11-05).
