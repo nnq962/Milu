@@ -17,7 +17,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         }
     }
 
-    fileprivate var style: UIUserInterfaceStyle {
+    var style: UIUserInterfaceStyle {
         switch self {
         case .system: .unspecified
         case .light: .light

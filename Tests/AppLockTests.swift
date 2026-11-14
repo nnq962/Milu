@@ -19,15 +19,15 @@ struct AppLockTests {
         defer { UserDefaults.standard.removeObject(forKey: StorageKey.debugPro) }
         let (appLock, _) = lock(on: true, pro: true)
         #expect(appLock.isLocked)
-        let start = Date(timeIntervalSince1970: 1_000_000)
+        let start = ContinuousClock.now
         // Opened again before the minute: still open.
         appLock.didReturnForTest(unlocked: true)
         appLock.didLeave(now: start)
-        appLock.didReturn(now: start.addingTimeInterval(30))
+        appLock.didReturn(now: start + .seconds(30))
         #expect(!appLock.isLocked)
         // Away a minute and more: locked.
         appLock.didLeave(now: start)
-        appLock.didReturn(now: start.addingTimeInterval(61))
+        appLock.didReturn(now: start + .seconds(61))
         #expect(appLock.isLocked)
     }
 
@@ -45,7 +45,32 @@ struct AppLockTests {
         let (appLock, _) = lock(on: true, pro: false, delay: .immediately)
         #expect(!appLock.isLocked)
         appLock.didLeave(now: .now)
-        appLock.didReturn(now: .now.addingTimeInterval(600))
+        appLock.didReturn(now: .now + .seconds(600))
         #expect(!appLock.isLocked)
+    }
+
+    /// The switcher's cover while inactive: on with the lock, not over a system sheet Milu opened
+    /// (Mail, Quản lý gói), and never on the free plan.
+    @Test func coversWhileInactiveButNotOverASystemSheet() {
+        defer { UserDefaults.standard.removeObject(forKey: StorageKey.debugPro) }
+        let (appLock, _) = lock(on: true, pro: true, delay: .immediately)
+        #expect(appLock.coversWhileInactive())
+        appLock.isShowingSystemSheet = true
+        #expect(!appLock.coversWhileInactive())
+        appLock.isShowingSystemSheet = false
+        #expect(appLock.coversWhileInactive())
+        let (free, _) = lock(on: true, pro: false)
+        #expect(!free.coversWhileInactive())
+    }
+
+    /// Just after Face ID: no cover until the app is back in front, then covered again, however
+    /// long that took (user reports 2026-11-14: a time limit both ran out too soon and never ended).
+    @Test func noCoverJustAfterFaceIDUntilBackInFront() {
+        defer { UserDefaults.standard.removeObject(forKey: StorageKey.debugPro) }
+        let (appLock, _) = lock(on: true, pro: true, delay: .immediately)
+        appLock.markJustAskedForTest()
+        #expect(!appLock.coversWhileInactive())
+        appLock.didBecomeActive()
+        #expect(appLock.coversWhileInactive())
     }
 }

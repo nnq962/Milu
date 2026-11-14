@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import UIKit
 import Observation
 
 /// What the user's plan allows: Milu Pro when the App Store says it is owned (`ProStore`, its last
@@ -48,17 +49,24 @@ final class AppLock {
     private(set) var isLocked = false
     /// Asking Face ID now: the button waits rather than asking twice.
     private(set) var isAuthenticating = false
-    /// When Face ID last opened the app: the prompt leaves the app inactive a moment longer, and
-    /// the cover is not shown over the app for that moment (user report 2026-11-12: after the
-    /// scan the cover stayed a while before the app showed).
-    private(set) var unlockedAt: Date?
+    /// Face ID has just answered (yes, or cancelled, failed) and the app is not yet back in front:
+    /// the prompt leaves it inactive a moment longer, and the cover is not shown for that moment
+    /// (user report 2026-11-12: after the scan the cover stayed a while before the app showed).
+    /// Over once the app is active again (`didBecomeActive`), not after a time: on the iPhone that
+    /// moment ran past a second, and the cover came up between the lock and the page. After a
+    /// "no" too: the cover came over the lock as the prompt went, hiding its button, which then
+    /// showed twice (user reports 2026-11-14).
+    private(set) var isJustAsked = false
     /// A system screen Milu opened is up (the photo picker, Mail): it runs apart from the app and
     /// leaves it inactive, which is not the user leaving (user report 2026-11-12: the cover
     /// flickered over the photo picker the whole time).
     var isShowingSystemSheet = false
 
     @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private var leftAt: Date?
+    /// When the app went to the background, on the clock that keeps running while the phone
+    /// sleeps and that changing the iPhone's time does not move: set back, the date let "Sau 1
+    /// phút" never lock (review 2026-11-14).
+    @ObservationIgnored private var leftAt: ContinuousClock.Instant?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -75,24 +83,34 @@ final class AppLock {
     // MARK: Khi rời và quay lại
 
     /// The app went to the background.
-    func didLeave(now: Date = .now) {
+    func didLeave(now: ContinuousClock.Instant = .now) {
         guard isOn, !isLocked else { return }
         leftAt = now
     }
 
     /// Back in front: locked again once away for `delay` or more. A Face ID prompt also makes the
     /// app inactive for a moment; it never went to the background, so that does not lock.
-    func didReturn(now: Date = .now) {
+    func didReturn(now: ContinuousClock.Instant = .now) {
         guard isOn, let leftAt else { return }
         self.leftAt = nil
-        if now.timeIntervalSince(leftAt) >= TimeInterval(delay.rawValue) { isLocked = true }
+        if now - leftAt >= .seconds(delay.rawValue) { isLocked = true }
     }
 
     /// Whether the cover goes over the app while it is `inactive`: not while Face ID asks or just
     /// after it opened the app (the prompt's own inactive moment), else the app switcher.
-    func coversWhileInactive(now: Date = .now) -> Bool {
-        guard isOn, !isAuthenticating, !isShowingSystemSheet else { return false }
-        return unlockedAt.map { now.timeIntervalSince($0) > 1.5 } ?? true
+    func coversWhileInactive() -> Bool {
+        isOn && !isAuthenticating && !isShowingSystemSheet && !isJustAsked
+    }
+
+    /// Face ID answered: no cover for the prompt's own inactive moment. Already active (the
+    /// prompt gone first): there is no such moment, and the next switcher is covered.
+    private func markJustAsked() {
+        isJustAsked = UIApplication.shared.applicationState != .active
+    }
+
+    /// The app is in front again: the moment after Face ID is over.
+    func didBecomeActive() {
+        if isJustAsked { isJustAsked = false }
     }
 
     /// Turned off (or the plan lapsed): open at once.
@@ -103,6 +121,8 @@ final class AppLock {
     #if DEBUG
     /// Tests: as if Face ID had said yes.
     func didReturnForTest(unlocked: Bool) { if unlocked { isLocked = false } }
+    /// Tests: as if Face ID had just answered with the app not yet back in front.
+    func markJustAskedForTest() { isJustAsked = true }
     #endif
 
     // MARK: Mở khoá
@@ -110,18 +130,32 @@ final class AppLock {
     /// Face ID (or Touch ID), then the iPhone's passcode if it fails: never locked out of the app.
     func unlock() async {
         guard isLocked, !isAuthenticating else { return }
+        // No passcode on the phone any more (taken off in iOS's Settings, Face ID with it):
+        // nothing can say who holds it, and asking would keep the owner out of Milu for good
+        // (review 2026-11-14). The phone itself is open, so Milu opens too.
+        guard Self.isAvailable else {
+            isLocked = false
+            return
+        }
         isAuthenticating = true
         defer { isAuthenticating = false }
-        if await Self.authenticate(reason: "Mở khoá Milu") {
-            unlockedAt = .now
-            isLocked = false
-        }
+        let yes = await Self.authenticate(reason: "Mở khoá Milu")
+        markJustAsked()
+        if yes { isLocked = false }
     }
 
-    /// Asked once as the switch is turned on, so a face that is not set up, or a "no" to Face ID,
-    /// leaves it off instead of locking the user out later.
-    static func confirmTurningOn() async -> Bool {
-        await authenticate(reason: "Bật khoá Milu bằng \(biometryName)")
+    /// Asked as the switch is turned on, so a face that is not set up, or a "no" to Face ID,
+    /// leaves it off instead of locking the user out later; and as it is turned off, so whoever
+    /// holds the phone with Milu open cannot take the lock away (review 2026-11-14). As an
+    /// unlock: the prompt's inactive moment, and the one after it, show no cover (user report
+    /// 2026-11-14: the cover came up behind Cài đặt as the switch went on).
+    func confirmOwner(turningOn: Bool) async -> Bool {
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+        let reason = turningOn ? "Bật khoá Milu bằng \(Self.biometryName)" : "Tắt khoá Milu"
+        let yes = await Self.authenticate(reason: reason)
+        markJustAsked()
+        return yes
     }
 
     private static func authenticate(reason: String) async -> Bool {

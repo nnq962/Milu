@@ -24,6 +24,7 @@ struct MiluApp: App {
     @Environment(\.scenePhase) private var scenePhase
     /// "Khoá bằng Face ID" (Milu Pro): locked from launch when on.
     @State private var appLock = AppLock()
+    @State private var lockCurtain = LockCurtain()
     @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
     /// Tổng quan's Than is loaded: the first page waits for it, so it opens with Than there.
     @State private var heroReady = false
@@ -127,6 +128,11 @@ struct MiluApp: App {
                                 while appLock.isLocked {
                                     try? await Task.sleep(for: .milliseconds(50))
                                 }
+                                // Gone at once under the lock as it fades: one fade from the lock
+                                // to the page, not the lock's words giving way to the splash's
+                                // (user report 2026-11-14).
+                                showsSplash = false
+                                return
                             } else {
                                 // The greeting plays first; the page is built under it once Than
                                 // has popped up, the splash still, so its first heavy frame
@@ -167,19 +173,9 @@ struct MiluApp: App {
                 .environment(\.locale, .vietnam)
                 .environment(\.eraseAllData, EraseAllDataAction(action: eraseAllData))
                 .environment(appLock)
-                // Locked: the lock over everything. Not in front with the lock on: a cover, so
-                // the app switcher's picture shows no balance.
-                .overlay {
-                    if appLock.isLocked {
-                        LockScreen(lock: appLock)
-                            .transition(.opacity)
-                    } else if appLock.isOn, scenePhase == .background
-                                || (scenePhase == .inactive && appLock.coversWhileInactive()) {
-                        PrivacyCover()
-                    }
-                }
-                // Quick: the face is already known, the app should be there at once.
-                .animation(.easeOut(duration: 0.15), value: appLock.isLocked)
+                // The lock, and the cover while Milu is not in front with the lock on, in a window of
+                // their own above this one, so over any sheet open too (`LockWindowInstaller`).
+                .background { LockWindowInstaller(lock: appLock, curtain: lockCurtain).frame(width: 0, height: 0) }
                 // What came down from iCloud: read once, when the sync has gone quiet (see
                 // `CloudSyncMonitor.takeNewData`). Watched by a small view of its own, not here:
                 // read here, each round of the sync at launch rebuilt the app's root, and every
@@ -199,13 +195,12 @@ struct MiluApp: App {
                 }
         }
         .onChange(of: scenePhase) { _, phase in
+            // The lock follows UIKit's scene notifications itself (`LockWindowInstaller`).
             if phase == .background {
-                appLock.didLeave()
                 cameFromBackground = true
             }
             // Back from the background: anything that came in meanwhile.
             if phase == .active {
-                appLock.didReturn()
                 // A plan cancelled or lapsed while away (Cài đặt › Đăng ký): Pro follows at once.
                 Task { await ProStore.shared.refresh() }
                 guard cameFromBackground else { return }

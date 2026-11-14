@@ -7,6 +7,7 @@ import SwiftUI
 /// policy; and "Nhập mã ưu đãi" for an offer code. Owned already: the plan and "Quản lý gói".
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppLock.self) private var appLock
     @State private var store = ProStore.shared
     @State private var plan = ProStore.Plan.yearly
     @State private var isBuying = false
@@ -46,7 +47,15 @@ struct PaywallView: View {
         }
         .manageSubscriptionsSheet(isPresented: $isManaging)
         // Back from Apple's sheet (a plan cancelled or changed there): what is owned now.
-        .onChange(of: isManaging) { _, open in if !open { Task { await store.refresh() } } }
+        .onChange(of: isManaging) { _, open in
+            // The App Store's sheet runs apart from Milu and leaves it inactive: not leaving, so
+            // no cover behind it (review 2026-11-14).
+            appLock.isShowingSystemSheet = open
+            if !open { Task { await store.refresh() } }
+        }
+        // Closed with the App Store's sheet still counted as up: the switcher would never be
+        // covered again until Milu was quit.
+        .onDisappear { if isManaging { appLock.isShowingSystemSheet = false } }
         .sheet(item: $legal) { page in
             NavigationStack { LegalDocumentView(document: page.document) }
                 .miluSheetStyle()

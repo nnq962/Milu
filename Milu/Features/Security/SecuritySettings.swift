@@ -50,22 +50,21 @@ struct SecuritySettings: View {
         }
     }
 
-    /// On only once Face ID (or the passcode) says it is the owner: a face not set up, or a "no"
-    /// to Face ID, leaves it off rather than locking the user out later.
+    /// Changed only once Face ID (or the passcode) says it is the owner: on, so a face not set up
+    /// or a "no" leaves it off rather than locking the user out later; off, so whoever holds the
+    /// open phone cannot take the lock away (review 2026-11-14).
     private var toggle: Binding<Bool> {
         Binding {
             isOn
         } set: { on in
-            guard on else {
-                isOn = false
-                return
-            }
+            guard on != isOn else { return }
             guard AppLock.isAvailable else {
-                isExplainingNoPasscode = true
+                // No passcode left on the phone: nothing could lock the app, so off is let through.
+                if on { isExplainingNoPasscode = true } else { isOn = false }
                 return
             }
             Task {
-                if await AppLock.confirmTurningOn() { isOn = true }
+                if await lock.confirmOwner(turningOn: on) { isOn = on }
             }
         }
     }

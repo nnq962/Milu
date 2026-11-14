@@ -259,11 +259,16 @@ struct MiluRiveHero: View {
     /// Still on the screen as the page scrolls: scrolled away, it stops drawing (2026-11-13).
     @State private var isInView = true
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(AppLock.self) private var appLock: AppLock?
 
     /// The artboard's size (output/03-animations/manifest.json).
     static let artboardSize = CGSize(width: 786.928, height: 400)
 
-    private var isVisible: Bool { isOnScreen && isInView && scenePhase == .active }
+    /// Not under the lock: drawing on behind it, Than took frames from the lock's own button as
+    /// it came (user report 2026-11-14).
+    private var isVisible: Bool {
+        isOnScreen && isInView && scenePhase == .active && appLock?.isLocked != true
+    }
 
     var body: some View {
         stage
@@ -301,8 +306,10 @@ struct MiluRiveHero: View {
         @Environment(\.colorScheme) private var colorScheme
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @Environment(\.scenePhase) private var scenePhase
+        @Environment(AppLock.self) private var appLock: AppLock?
 
-        private var isVisible: Bool { isOnScreen && scenePhase == .active }
+        /// Under the lock counts as away: opened, Than wakes as on coming back.
+        private var isVisible: Bool { isOnScreen && scenePhase == .active && appLock?.isLocked != true }
 
         func body(content: Content) -> some View {
             content
