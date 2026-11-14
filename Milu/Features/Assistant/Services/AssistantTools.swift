@@ -33,6 +33,12 @@ enum AssistantTools {
             ListTransactions(),
             GetAccounts(),
             GetLoans(),
+            GetBudget(),
+            GetSavingsGoals(),
+            GetRecurring(),
+            GetUpcoming(),
+            GetMonthlyTrend(),
+            ListTransfers(),
             RecordTransaction(),
             DeleteTransaction(),
             GetAppInfo(facts: app),
@@ -82,7 +88,7 @@ struct SummarizeTransactions: AssistantTool {
             .prefix(8).map { ["name": .string($0.name), "amount": ToolMoney.value($0.amount)] as JSONValue }
         let byAccount = store.totalsByAccount(of: items).prefix(5)
             .map { ["name": .string($0.name), "amount": ToolMoney.value(kind == .expense ? $0.expense : $0.income)] as JSONValue }
-        return ToolOutput(result: [
+        var result: [String: JSONValue] = [
             "from": .string(ToolDates.text(interval.start)),
             "to": .string(ToolDates.text(interval.end.addingTimeInterval(-1))),
             "kind": .string(kind.rawValue),
@@ -91,7 +97,20 @@ struct SummarizeTransactions: AssistantTool {
             "count": .number(Double(items.count)),
             "byCategory": .array(Array(byCategory)),
             "byAccount": .array(Array(byAccount)),
-        ])
+        ]
+        // A day's average over the days gone by: a month not over yet counts up to today.
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: .now)) ?? interval.end
+        let days = calendar.dateComponents([.day], from: interval.start, to: min(interval.end, tomorrow)).day ?? 0
+        if days > 1 { result["perDay"] = ToolMoney.value(total / Double(days)) }
+        // Spending of one group alone: its items too ("Ăn uống" into "Ăn sáng", "Ăn trưa"…).
+        if kind == .expense, Set(items.map { store.groupID(of: $0.categoryID) }).count == 1 {
+            let byItem = store.expensesByItem(of: items).prefix(8)
+            if byItem.count > 1 {
+                result["byItem"] = .array(byItem.map { ["name": .string($0.name), "amount": ToolMoney.value($0.amount)] })
+            }
+        }
+        return ToolOutput(result: .object(result))
     }
 }
 
@@ -140,19 +159,37 @@ struct ListTransactions: AssistantTool {
 /// Every account's balance, and what the user owns and owes in all.
 struct GetAccounts: AssistantTool {
     let name = "get_accounts"
-    let description = "Số dư từng tài khoản (tiền mặt, ngân hàng, ví, thẻ tín dụng), tổng tài sản ròng, dư nợ thẻ và tiền đang cho vay."
+    let description = """
+        Số dư từng tài khoản (tiền mặt, ngân hàng, ví, thẻ tín dụng), tổng tiền đang có, tiền trong các hũ, \
+        tổng tài sản ròng, dư nợ thẻ, tiền cho vay và đi vay còn lại.
+        """
     let parameters: JSONValue = ["type": "object", "properties": [:]]
 
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
         let accounts = store.accounts.sorted { $0.balance > $1.balance }.map { account -> JSONValue in
-            ["name": .string(account.name), "type": .string(account.type.title), "balance": ToolMoney.value(account.balance)]
+            var item: [String: JSONValue] = [
+                "name": .string(account.name), "type": .string(account.type.title), "balance": ToolMoney.value(account.balance),
+            ]
+            // Khoá: kept out of every total, as the user chose for it.
+            if account.isLocked { item["notCounted"] = true }
+            return .object(item)
         }
+        let cardDebt = store.countedAccounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance }
+        let owed = cardDebt + store.totalBorrowed
         return ToolOutput(result: [
             "accounts": .array(accounts),
-            "netWorth": ToolMoney.value(store.netWorth),
-            "netWorthText": .string(store.netWorth.vnd),
-            "creditDebt": ToolMoney.value(store.totalDebt),
+            // As Tài khoản's "Tổng số dư": the payment accounts and the goals, no credit cards.
+            "moneyOnHand": ToolMoney.value(store.paymentBalance),
+            "savedInGoals": ToolMoney.value(store.totalSaved),
+            "creditDebt": ToolMoney.value(cardDebt),
             "lent": ToolMoney.value(store.totalLent),
+            "borrowed": ToolMoney.value(store.totalBorrowed),
+            "netWorth": ToolMoney.value(store.netWorth),
+            "say": .string("""
+                Tài sản ròng \(store.netWorth.vnd): tiền đang có \(store.paymentBalance.vnd) (kể cả \(store.totalSaved.vnd) \
+                trong hũ), người khác còn nợ bạn \(store.totalLent.vnd), bạn còn nợ \(owed.vnd) (thẻ tín dụng \
+                \(cardDebt.vnd), đi vay \(store.totalBorrowed.vnd)).
+                """),
         ])
     }
 }
@@ -160,25 +197,49 @@ struct GetAccounts: AssistantTool {
 /// Money lent and borrowed, still owed.
 struct GetLoans: AssistantTool {
     let name = "get_loans"
-    let description = "Các khoản cho vay (người khác nợ mình) và đi vay (mình nợ người khác) còn chưa trả xong, kèm hạn trả."
+    let description = """
+        Các khoản cho vay (người khác nợ mình) và đi vay (mình nợ người khác): còn lại bao nhiêu, đã trả bao \
+        nhiêu, vay từ ngày nào, hạn trả, lãi mỗi tháng, của ai. Mặc định chỉ các khoản chưa trả xong.
+        """
     let parameters: JSONValue = [
         "type": "object",
         "properties": [
             "direction": ["type": "string", "enum": ["lent", "borrowed"], "description": "lent: mình cho vay, borrowed: mình đi vay; bỏ trống là cả hai"],
+            "include_settled": ["type": "boolean", "description": "true để kể cả các khoản đã trả xong"],
         ],
     ]
 
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
         let direction = arguments["direction"]?.string.flatMap(LoanDirection.init(rawValue:))
-        let loans = store.loans.filter { !$0.isSettled && (direction == nil || $0.direction == direction) }
+        let settledToo = arguments["include_settled"] == true || arguments["include_settled"]?.string == "true"
+        let loans = store.loans.filter { (settledToo || !$0.isSettled) && (direction == nil || $0.direction == direction) }
+            .sorted { $0.outstanding > $1.outstanding }
+        let today = Calendar.current.startOfDay(for: .now)
         return ToolOutput(result: [
-            "loans": .array(loans.map { loan -> JSONValue in
-                [
+            "lentOutstanding": ToolMoney.value(store.totalLent),
+            "borrowedOutstanding": ToolMoney.value(store.totalBorrowed),
+            "loans": .array(loans.prefix(20).map { loan -> JSONValue in
+                var item: [String: JSONValue] = [
                     "name": .string(loan.name),
                     "direction": .string(loan.direction == .lent ? "lent" : "borrowed"),
+                    "principal": ToolMoney.value(loan.principal),
                     "outstanding": ToolMoney.value(loan.outstanding),
-                    "dueDate": loan.dueDate.map { .string(ToolDates.text($0)) } ?? .null,
+                    "paid": ToolMoney.value(max(loan.principal - loan.outstanding, 0)),
+                    "since": .string(ToolDates.text(loan.date)),
                 ]
+                if loan.isSettled { item["settledOn"] = .string(ToolDates.text(store.settledDate(of: loan))) }
+                if let due = loan.dueDate {
+                    item["dueDate"] = .string(ToolDates.text(due))
+                    if !loan.isSettled, Calendar.current.startOfDay(for: due) < today { item["late"] = true }
+                }
+                if loan.monthlyInterestRate > 0 {
+                    item["interestRatePerMonth"] = .string("\(loan.monthlyInterestRate.formatted(.number.locale(.vietnam)))%")
+                    item["interestPerMonth"] = ToolMoney.value(loan.monthlyInterest)
+                }
+                if let person = loan.contactID.flatMap(store.contact(id:))?.name, person != loan.name {
+                    item["person"] = .string(person)
+                }
+                return .object(item)
             }),
         ])
     }

@@ -40,6 +40,16 @@ struct ThinkingStep: Identifiable, Equatable {
             return ThinkingStep("tìm", (search.isEmpty ? "giao dịch" : "“\(search)”") + period)
         case GetAccounts().name: return ThinkingStep("xem", "số dư các tài khoản")
         case GetLoans().name: return ThinkingStep("xem", "các khoản vay")
+        case GetBudget().name:
+            let month = arguments["month"]?.string.flatMap(ToolDates.month).map { " " + ToolDates.monthName($0) } ?? ""
+            return ThinkingStep("xem", "hạn mức chi tiêu" + month)
+        case GetSavingsGoals().name: return ThinkingStep("xem", "các hũ tiết kiệm")
+        case GetRecurring().name: return ThinkingStep("xem", "giao dịch định kỳ")
+        case GetUpcoming().name: return ThinkingStep("xem", "các khoản sắp đến hạn")
+        case GetMonthlyTrend().name:
+            let months = arguments["months"]?.number.map { min(max(Int($0), 2), 24) } ?? 6
+            return ThinkingStep("so sánh", "\(months) tháng gần đây")
+        case ListTransfers().name: return ThinkingStep("tìm", "các lần chuyển tiền" + period)
         case RecordTransaction().name: return ThinkingStep("ghi", "giao dịch")
         case DeleteTransaction().name: return ThinkingStep("tìm", "khoản cần xoá")
         case GetAppInfo().name:
