@@ -82,6 +82,12 @@ final class AIQuota {
     /// When the soonest bonus runs out, if there is any.
     var bonusExpires: Date? { liveGrants.map(\.expires).min() }
     var remaining: Int { weeklyLeft + bonus }
+    /// The bonus given that has not run out yet, used or not: the scale of its bar in Cài đặt.
+    var bonusGiven: Int {
+        let moment = now()
+        let given = grants.filter { $0.expires > moment }.count * Self.stepBonus
+        return max(given, bonus)
+    }
     var isEmpty: Bool { !isUnlimited && remaining == 0 }
 
     /// When the week fills up again: 0:00 next Monday.

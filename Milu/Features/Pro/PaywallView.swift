@@ -1,10 +1,11 @@
 import StoreKit
 import SwiftUI
 
-/// "Milu Pro": what it brings, the two plans (the year chosen first, with what it saves), and the
-/// one button that buys (user request 2026-11-12). Below it what Apple asks every plan to say:
-/// it renews until cancelled, how to cancel, restoring a purchase, the terms and the privacy
-/// policy; and "Nhập mã ưu đãi" for an offer code. Owned already: the plan and "Quản lý gói".
+/// "Milu Pro": Than on the sky and one line, what it brings as three tiles, the two plans (the year
+/// chosen first, with what it saves), and the one button that buys (user requests 2026-11-12,
+/// -14: it read like Cài đặt, rows and many words). Below, in small print, what Apple asks every
+/// plan to say (it renews until cancelled) and the links: restore, offer code, terms, privacy.
+/// Owned already: the plan, when it renews, and "Quản lý gói".
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppLock.self) private var appLock
@@ -28,7 +29,7 @@ struct PaywallView: View {
         SheetScaffold(title: "Milu Pro") {
             hero
         } content: {
-            // The plans first, what Pro brings under them (user request 2026-11-12, as Claude's).
+            benefits
             if store.isPro {
                 owned
             } else {
@@ -37,7 +38,6 @@ struct PaywallView: View {
                     buyButton
                 }
             }
-            benefits
             finePrint
         }
         .miluSheetStyle()
@@ -76,37 +76,46 @@ struct PaywallView: View {
     // MARK: - Đầu trang
 
     private var hero: some View {
-        // Words only, no picture: the plans come up the page (user request 2026-11-12).
-        VStack(spacing: Spacing.xs) {
-            Text(store.isPro ? "Bạn đang dùng Milu Pro" : "Dùng Milu trọn vẹn")
-                .textRole(.pageTitle)
-                .accessibilityAddTraits(.isHeader)
-            Text(store.isPro ? "Cảm ơn bạn đã ủng hộ Milu!" : "Chọn gói phù hợp với bạn")
-                .textRole(.body)
-                .foregroundStyle(Palette.secondaryLabel)
+        VStack(spacing: Spacing.m) {
+            // Than glad on the sky, standing on the panel's foot, as on the tabs' heads.
+            ZStack(alignment: .bottom) {
+                Palette.sky
+                Image(MiluHero.Look.vui.image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 210)
+                    .accessibilityHidden(true)
+            }
+            .frame(height: 112)
+            .clipShape(RoundedRectangle(cornerRadius: CardCorners.card, style: .continuous))
+            VStack(spacing: Spacing.xs) {
+                // Not "Milu Pro" again under the bar that says it.
+                Text(store.isPro ? "Bạn đang dùng Milu Pro" : "Dùng Milu trọn vẹn")
+                    .textRole(.pageTitle)
+                    .accessibilityAddTraits(.isHeader)
+                Text(store.isPro ? "Cảm ơn bạn đã ủng hộ Milu!" : "Một câu nói là xong, Milu lo phần còn lại")
+                    .textRole(.body)
+                    .foregroundStyle(Palette.secondaryLabel)
+            }
+            .multilineTextAlignment(.center)
         }
-        .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Spacing.s)
     }
 
-    /// What Pro brings today, and what is still to come said so.
+    /// What Pro brings, as a short list on the page itself, no cards (user request 2026-11-14:
+    /// three tiles were too many cards; rows in a group read as Cài đặt): a tinted disc, the
+    /// thing, and a few words under it.
     private var benefits: some View {
-        FormGroup(title: "Có trong Milu Pro") {
-            benefit("\(AIQuota.weeklyPro) lượt hỏi Milu mỗi tuần", detail: "Gói miễn phí có \(AIQuota.weeklyFree) lượt",
-                    icon: "hugeicons-ai-magic")
-            FormDivider()
-            benefit("Khoá app bằng \(AppLock.biometryName)", detail: "Chỉ bạn mới mở được Milu",
-                    icon: "hugeicons-square-lock-02")
-            FormDivider()
-            benefit("Xuất báo cáo PDF, Excel", detail: "Sắp có", icon: "hugeicons-file-02")
+        VStack(alignment: .leading, spacing: Spacing.l) {
+            BenefitRow(emoji: "✨", ground: Palette.honey, title: "Trợ lý AI",
+                       detail: "\(AIQuota.weeklyPro) lượt mỗi tuần")
+            BenefitRow(emoji: "🔒", ground: Palette.sky, title: "Khoá bằng \(AppLock.biometryName)",
+                       detail: "Chỉ bạn mở được Milu")
+            BenefitRow(emoji: "📊", ground: Palette.accentSoft, title: "Xuất báo cáo",
+                       detail: "PDF và Excel", isComing: true)
         }
-    }
-
-    private func benefit(_ title: String, detail: String, icon: String) -> some View {
-        FormRowLabel(title: title, subtitle: detail, icon: icon)
-            .formRowFrame()
-            .accessibilityElement(children: .combine)
+        .padding(.horizontal, RowMetrics.horizontal)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Gói
@@ -156,11 +165,11 @@ struct PaywallView: View {
                         .textRole(.title)
                         .monospacedDigit()
                         .redacted(reason: price == nil ? .placeholder : [])
-                    Text(option == .yearly ? "Thanh toán mỗi năm" : "Thanh toán mỗi tháng")
+                    Text(option == .yearly ? "mỗi năm" : "mỗi tháng")
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                     if let perMonth {
-                        Text("Chỉ \(perMonth)")
+                        Text("≈ \(perMonth)")
                             .textRole(.captionStrong)
                             .foregroundStyle(Palette.primary)
                     }
@@ -181,7 +190,7 @@ struct PaywallView: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel([option.title, price, perMonth.map { "chỉ \($0)" }, saving].compactMap { $0 }.joined(separator: ", "))
+        .accessibilityLabel([option.title, price, perMonth.map { "khoảng \($0)" }, saving].compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(selected ? .isSelected : [])
         .animation(Motion.gentle(.easeOut(duration: 0.15)), value: selected)
     }
@@ -214,70 +223,169 @@ struct PaywallView: View {
 
     /// "20/12/2026", or "hôm nay 22:15" when it is today (a test plan lasts minutes).
     private static func when(_ date: Date) -> String {
-        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
         if Calendar.current.isDateInToday(date) { return "hôm nay \(time)" }
         return date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year())
     }
 
-    /// Owned already: the plan, and Apple's own sheet to change or cancel it.
+    /// Owned already: the plan and when it renews (or, cancelled, until when it lasts) on one card,
+    /// and Apple's own sheet to change or cancel it.
     private var owned: some View {
-        FormGroup(title: "Gói của bạn") {
-            FormInfoRow(title: "Đang dùng", value: store.ownedPlan?.title ?? "Milu Pro")
-            FormDivider(hasIcon: false)
-            // When it renews, or, cancelled, until when it lasts (Pro stays to the end of what
-            // was paid, then goes by itself).
-            if let end = store.expiresAt {
-                FormInfoRow(title: store.renews ? "Gia hạn vào" : "Đã huỷ, dùng đến", value: Self.when(end))
-                FormDivider(hasIcon: false)
+        VStack(alignment: .leading, spacing: Spacing.l) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    Text(store.ownedPlan?.title ?? "Milu Pro")
+                        .textRole(.bodyStrong)
+                    // Pro stays to the end of what was paid, then goes by itself.
+                    if let end = store.expiresAt {
+                        Text("\(store.renews ? "Gia hạn" : "Đã huỷ, dùng đến") \(Self.when(end))")
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.secondaryLabel)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                StatusBadge(title: "Pro", tone: .pro, showsDot: false)
+                    .fixedSize()
             }
+            .accessibilityElement(children: .combine)
             #if DEBUG
             if store.isMockOwned {
-                FormNavigationRow(title: "Huỷ gói thử", subtitle: "Bản Debug: trở lại gói miễn phí", accessory: .none) {
+                MiluButton("Huỷ gói thử", role: .secondary, fullWidth: true) {
                     Task { await store.cancelMock() }
                 }
             } else {
-                FormNavigationRow(title: "Quản lý gói", accessory: .none) { isManaging = true }
+                MiluButton("Quản lý gói", role: .secondary, fullWidth: true) { isManaging = true }
             }
             #else
-            FormNavigationRow(title: "Quản lý gói", accessory: .none) { isManaging = true }
+            MiluButton("Quản lý gói", role: .secondary, fullWidth: true) { isManaging = true }
             #endif
         }
+        .settingsCard()
     }
 
     // MARK: - Chữ nhỏ
 
-    /// What Apple asks a plan that renews to say, then the links.
+    /// What Apple asks a plan that renews to say, in one short line, then the links as small words
+    /// rather than a group of rows (user request 2026-11-14).
     private var finePrint: some View {
-        VStack(spacing: Spacing.m) {
+        VStack(spacing: Spacing.s) {
             if !store.isPro {
-                Text("Gói tự gia hạn cho tới khi bạn huỷ. Huỷ bất cứ lúc nào trong Cài đặt › Apple ID › Đăng ký, chậm nhất 24 giờ trước kỳ gia hạn.")
+                // Two even lines, not "Apple ID." alone on the second (review 2026-11-14).
+                Text("Tự gia hạn đến khi bạn huỷ.\nHuỷ bất cứ lúc nào trong Cài đặt › Apple ID.")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryLabel)
                     .multilineTextAlignment(.center)
             }
-            FormGroup {
-                FormNavigationRow(title: "Khôi phục giao dịch mua", icon: "hugeicons-history", accessory: .none) {
-                    Task {
-                        isRestoring = true
-                        await store.restore()
-                        isRestoring = false
-                        if store.isPro { Haptics.milestone() }
-                    }
+            // The four on one line when they fit, else two lines, close together (user request
+            // 2026-11-14: the small print took too much room).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Spacing.xs) {
+                    restoreLink; dot; offerLink; dot; termsLink; dot; privacyLink
                 }
-                .disabled(isRestoring)
-                FormDivider()
-                FormNavigationRow(title: "Nhập mã ưu đãi", icon: "hugeicons-coupon-01", accessory: .none) {
-                    isRedeeming = true
-                }
-                FormDivider()
-                FormNavigationRow(title: "Điều khoản sử dụng", icon: "hugeicons-legal-document-01", accessory: .none) {
-                    legal = .terms
-                }
-                FormDivider()
-                FormNavigationRow(title: "Chính sách quyền riêng tư", icon: "hugeicons-security-check", accessory: .none) {
-                    legal = .privacy
+                VStack(spacing: 0) {
+                    HStack(spacing: Spacing.xs) { restoreLink; dot; offerLink }
+                    HStack(spacing: Spacing.xs) { termsLink; dot; privacyLink }
                 }
             }
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var restoreLink: some View {
+        FinePrintLink(title: isRestoring ? "Đang khôi phục…" : "Khôi phục") {
+            Task {
+                isRestoring = true
+                await store.restore()
+                isRestoring = false
+                if store.isPro { Haptics.milestone() }
+            }
+        }
+        .disabled(isRestoring)
+        .accessibilityLabel("Khôi phục giao dịch mua")
+    }
+
+    private var offerLink: some View {
+        FinePrintLink(title: "Mã ưu đãi") { isRedeeming = true }
+            .accessibilityLabel("Nhập mã ưu đãi")
+    }
+
+    private var termsLink: some View {
+        FinePrintLink(title: "Điều khoản") { legal = .terms }
+    }
+
+    private var privacyLink: some View {
+        FinePrintLink(title: "Quyền riêng tư") { legal = .privacy }
+    }
+
+    private var dot: some View {
+        Text("·").textRole(.caption).foregroundStyle(Palette.tertiaryLabel).accessibilityHidden(true)
+    }
+}
+
+/// One thing Pro brings: its Fluent Flat picture on a soft tile of Milu's colours (as the crown
+/// on Tổng quan's Pro card), its name, "Sắp có" beside the name while it is still to come, and a
+/// few words under it (user request 2026-11-14: grey line glyphs on grey discs looked plain).
+private struct BenefitRow: View {
+    let emoji: String
+    let ground: Color
+    let title: String
+    let detail: String
+    var isComing = false
+
+    @ScaledMetric(relativeTo: .body) private var scaledTile: CGFloat = Self.tileBase
+    private static let tileBase: CGFloat = 48
+    /// Grows with the words, no more than 1.6 times.
+    private var tile: CGFloat { RowMetrics.capped(scaledTile, base: Self.tileBase) }
+
+    var body: some View {
+        HStack(spacing: RowMetrics.gap) {
+            Image(IconCatalog.emojiName(emoji))
+                .resizable()
+                .scaledToFit()
+                .frame(width: tile * 0.58, height: tile * 0.58)
+                .frame(width: tile, height: tile)
+                .background(ground, in: RoundedRectangle(cornerRadius: CardCorners.small + 6, style: .continuous))
+                .saturation(isComing ? 0.4 : 1)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                    Text(title)
+                        .textRole(.bodyStrong)
+                    if isComing {
+                        Text("Sắp có")
+                            .textRole(.captionStrong)
+                            .foregroundStyle(Palette.secondaryLabel)
+                            .padding(.horizontal, Spacing.s)
+                            .padding(.vertical, Spacing.xxs)
+                            .background(Palette.fill, in: Capsule())
+                            .fixedSize()
+                    }
+                }
+                Text(detail)
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryLabel)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// A link in the small print: the action colour, caption size, a tap target a little taller than
+/// its words so two lines of links sit close.
+private struct FinePrintLink: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .textRole(.captionStrong)
+                .foregroundStyle(Palette.primary)
+                .padding(.vertical, Spacing.s)
+                .padding(.horizontal, Spacing.xs)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }

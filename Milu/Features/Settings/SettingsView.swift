@@ -103,8 +103,12 @@ struct SettingsView: View {
                 // scroll in, not the whole page in the frames it slides up (Instruments on the
                 // iPhone 2026-11-13: 7 to 15 frames dropped each time Cài đặt opened).
                 LazyVStack(alignment: .leading, spacing: Spacing.section) {
-                    VStack(spacing: Spacing.l) {
-                        profile
+                    profile
+
+                    // Titled outside its card, as every group of the page (review 2026-11-14: a
+                    // heading inside, the size of the lines under it, stood apart from the rest).
+                    VStack(alignment: .leading, spacing: Spacing.headerGap) {
+                        SectionHeader(title: "Hạn mức AI", style: .group)
                         aiQuotaCard
                     }
 
@@ -403,62 +407,30 @@ struct SettingsView: View {
         StatusBadge(title: isPro ? "Pro" : "Miễn phí", tone: isPro ? .pro : .neutral, showsDot: false)
     }
 
-    /// "Lượt AI tháng này": what is left, large (the free lượt left plus the bonus), over a bar of
-    /// what is left on the same scale and one quiet line of the details, then "Tìm hiểu Milu Pro"
-    /// across the card. What Pro gives is not listed here: the plans sheet will show it (user
-    /// choice 2026-10-31).
+    /// "Hạn mức AI" (its heading over the card): a line and a bar for each kind, the week's free (or Pro) lượt and the bonus from
+    /// Làm quen, each with when it renews or runs out, then the plans button across the card. No
+    /// total over them (user choice 2026-11-14): each line says what is left of its own.
     private var aiQuotaCard: some View {
-        // One scale for the figure and the bar: what is left of this week's free lượt plus the
-        // bonus (review 2026-11-09: the bar filled with the free ones alone, full and orange
-        // while 15 bonus lượt were still there).
-        let allowance = isPro ? AIQuota.weeklyPro : AIQuota.weeklyFree
-        let kind = isPro ? "lượt Pro" : "lượt miễn phí"
-        let total = allowance + quota.bonus
-        // The bonus and when it runs out (it lasts 7 days, user choice 2026-11-12).
-        let bonusLine = quota.bonus > 0
-            ? "còn \(quota.bonus) lượt thưởng" + (quota.bonusExpires.map { " (hết hạn \($0.shortDay))" } ?? "")
-            : nil
-        // The week's free ones used, and the bonus still there (a bonus lượt used is taken off
-        // the bonus, so "đã dùng" stops at 10, review 2026-11-09).
-        let details = ["Đã dùng \(quota.usedThisWeek)/\(allowance) \(kind)", bonusLine].compactMap { $0 }
-        // "3 trên 10", not a slash read aloud (review 2026-11-09).
-        let spokenDetails = ["Đã dùng \(quota.usedThisWeek) trên \(allowance) \(kind)", bonusLine].compactMap { $0 }
-        return VStack(alignment: .leading, spacing: Spacing.l) {
-            VStack(alignment: .leading, spacing: Spacing.m) {
-                AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                    // "Lượt", not "Hạn mức": right above "Hạn mức chi tiêu" the same word meant
-                    // two things (review 2026-11-09).
-                    Text("Lượt AI tuần này")
-                        .textRole(.bodyStrong)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Làm mới thứ Hai \(quota.renewsOn.shortDay)")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                }
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                    Text("\(quota.remaining)")
-                        .textRole(.display)
-                        .monospacedDigit()
-                        .contentTransition(reduceMotion ? .identity : .numericText())
-                        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: quota.remaining)
-                    Text("lượt còn lại")
-                        .textRole(.captionStrong)
-                        .foregroundStyle(Palette.secondaryLabel)
-                }
-                .accessibilityElement(children: .combine)
-                VStack(alignment: .leading, spacing: Spacing.s) {
-                    // What is left, shrinking as lượt are used; orange once 3 or fewer are left.
-                    ProgressBar(value: total > 0 ? Double(quota.remaining) / Double(total) : 0,
-                                color: quota.remaining <= 3 ? Palette.warning : Palette.progress)
-                        .accessibilityHidden(true)
-                    Text(details.joined(separator: " · "))
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .monospacedDigit()
-                        .contentTransition(reduceMotion ? .identity : .numericText())
-                        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: details)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityLabel(spokenDetails.joined(separator: ", "))
+        let allowance = quota.weeklyAllowance
+        let showsBonus = quota.bonus > 0
+        // The widest count the card may show, so both counts take one width and the times beside
+        // them line up (review 2026-11-14: "150/150" over "15/20" set them askew).
+        let widest = [allowance, showsBonus ? quota.bonusGiven : 0].max() ?? allowance
+        let countRoom = "\(widest)/\(widest)"
+        // 24 above the button: set apart from the lines, not read as one more (review 2026-11-14).
+        return VStack(alignment: .leading, spacing: Spacing.xxl) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                QuotaLine(title: allowance == AIQuota.weeklyPro ? "Pro" : "Miễn phí",
+                          // The day only: the week always starts again at 0:00 (user request 2026-11-14).
+                          when: "Làm mới \(QuotaLine.day(quota.renewsOn))",
+                          left: quota.weeklyLeft, of: allowance, countRoom: countRoom,
+                          // Amber once 3 or fewer are left, as before.
+                          warns: quota.weeklyLeft <= 3)
+                // Only while there is some: none earned, or all used or run out, says nothing.
+                if showsBonus {
+                    QuotaLine(title: "Thưởng",
+                              when: quota.bonusExpires.map { "Hết hạn \(QuotaLine.dayAndTime($0))" },
+                              left: quota.bonus, of: quota.bonusGiven, countRoom: countRoom)
                 }
             }
             // The plans; once Pro is owned, the same page shows the plan and "Quản lý gói".
@@ -537,7 +509,7 @@ private struct SyncRow: View {
     /// "lúc 16:05" today, "hôm qua lúc 16:05", else "12/11 lúc 16:05".
     private static func when(_ date: Date) -> String {
         let calendar = Calendar.current
-        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
         if calendar.isDateInToday(date) { return "lúc \(time)" }
         if calendar.isDateInYesterday(date) { return "hôm qua lúc \(time)" }
         return date.formatted(.dateTime.day().month(.defaultDigits)) + " lúc \(time)"
@@ -550,5 +522,91 @@ private struct SyncRow: View {
         case .restricted, .unavailable: "iCloud trên iPhone này chưa dùng được nên dữ liệu chỉ nằm trên máy."
         }
         return state + "\n\nTài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và lượt AI được đồng bộ tự động giữa các thiết bị dùng chung Apple ID. Xoá app rồi cài lại, hay đổi iPhone, dữ liệu tự về.\n\nDữ liệu nằm trong iCloud riêng của bạn, Milu không xem được. Muốn bật hay tắt, vào Cài đặt của iPhone → tên bạn → iCloud, tìm Milu trong danh sách app dùng iCloud. Tắt đi thì dữ liệu vẫn còn trên máy này, chỉ ngừng đồng bộ."
+    }
+}
+
+/// One kind of lượt AI on its card in Cài đặt: its name, when it renews or runs out and what is
+/// left on one line (stacked when the words do not fit), and a bar of what is left, in the ink of
+/// every bar (user choice 2026-11-14: the bonus in a shade of its own read as something else).
+private struct QuotaLine: View {
+    let title: String
+    let when: String?
+    let left: Int
+    let of: Int
+    /// The widest count on the card ("150/150"): every count takes its width, so the times line up.
+    let countRoom: String
+    var warns = false
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// "Thứ Hai 00:00": within the week, the day and the time say when (user request 2026-11-14).
+    static func dayAndTime(_ date: Date) -> String {
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
+        return "\(day(date)) \(time)"
+    }
+
+    /// "Thứ Hai".
+    static func day(_ date: Date) -> String {
+        date.formatted(.dateTime.weekday(.wide).locale(.vietnam)).capitalized(with: .vietnam)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                    name
+                    Spacer(minLength: Spacing.s)
+                    whenText
+                    count
+                }
+                // Large text: the time under the name, both free to wrap, never cut short with
+                // "…" (review 2026-11-14).
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                    VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                        name.lineLimit(nil)
+                        whenText.lineLimit(nil)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: Spacing.s)
+                    count
+                }
+            }
+            ProgressBar(value: of > 0 ? Double(left) / Double(of) : 0,
+                        color: warns ? Palette.warning : Palette.progress)
+        }
+        .accessibilityElement(children: .ignore)
+        // "Thưởng, còn 15 trên 20, hết hạn Thứ Năm 15:20": no slash read aloud.
+        .accessibilityLabel([title, "còn \(left) trên \(of)", when].compactMap { $0 }.joined(separator: ", "))
+    }
+
+    private var name: some View {
+        Text(title)
+            .textRole(.body)
+            .lineLimit(1)
+    }
+
+    @ViewBuilder private var whenText: some View {
+        if let when {
+            Text(when)
+                .textRole(.caption)
+                .foregroundStyle(Palette.secondaryLabel)
+                .lineLimit(1)
+        }
+    }
+
+    private var count: some View {
+        // In the room of the widest count, flush right.
+        Text(countRoom)
+            .textRole(.bodyStrong)
+            .monospacedDigit()
+            .hidden()
+            .overlay(alignment: .trailing) {
+                Text("\(left)/\(of)")
+                    .textRole(.bodyStrong)
+                    .monospacedDigit()
+                    .contentTransition(reduceMotion ? .identity : .numericText())
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: left)
+                    .fixedSize()
+            }
     }
 }
