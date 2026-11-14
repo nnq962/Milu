@@ -272,7 +272,8 @@ enum RecurringReminderPlan {
     @MainActor
     static func turnOnIfNeverSet(defaults: UserDefaults = .standard) async {
         guard defaults.object(forKey: StorageKey.recurringAlerts) == nil else { return }
-        let allowed = await Reminders.shared.requestPermission()
+        // No Face ID cover over iOS's prompt (`AppLock.whileSystemAsks`).
+        let allowed = await AppLock.shared.whileSystemAsks { await Reminders.shared.requestPermission() }
         defaults.set(allowed, forKey: StorageKey.recurringAlerts)
     }
 }

@@ -94,6 +94,8 @@ struct FormRowLabel: View {
     /// says why ("Sắp có"), and faded grey on grey was hard to read in dark mode (review 2026-11-09).
     var isDimmed = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         // One line: the icon's centre on the middle of the words, not on their line's box (see
         // `centeredOnTextLine`); with a subtitle, centred on the two lines.
@@ -109,9 +111,13 @@ struct FormRowLabel: View {
                     .foregroundStyle(isInvalid ? Palette.negative : Palette.label)
                     .opacity(isDimmed ? 0.45 : 1)
                 if let subtitle {
+                    // A new line rolls in, as a row's value does (`FormValueRowContent`): "Đồng bộ
+                    // iCloud" saying what the sync is doing (user request 2026-11-14).
                     Text(subtitle)
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: subtitle)
                 }
             }
         }

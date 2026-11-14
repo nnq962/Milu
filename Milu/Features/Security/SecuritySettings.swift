@@ -17,14 +17,17 @@ struct SecuritySettings: View {
     var body: some View {
         FormGroup(title: "Bảo mật") {
             if MiluPlan.isPro {
-                FormToggleRow(title: title, subtitle: "Mở Milu bằng khuôn mặt hoặc mật mã iPhone",
-                              icon: "hugeicons-square-lock-02", isOn: toggle)
+                FormConfirmedToggleRow(title: title, subtitle: "Mở Milu bằng khuôn mặt hoặc mật mã iPhone",
+                                       icon: "hugeicons-square-lock-02", isOn: $isOn, confirm: confirm)
                 if isOn {
                     FormDivider()
                     FormPickerRow(title: "Khoá lại", icon: "hugeicons-clock-01",
                                   selection: Binding { AppLock.Delay(rawValue: delaySeconds) ?? .immediately }
                                       set: { delaySeconds = $0.rawValue },
                                   options: AppLock.Delay.allCases) { $0.title }
+                        // Opened under the switch as "Hạn trả" opens its date in a loan (user
+                        // request 2026-11-14: one way for the two).
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             } else {
                 Button(action: onShowPro) {
@@ -41,7 +44,7 @@ struct SecuritySettings: View {
                 .accessibilityHint("Xem Milu Pro")
             }
         }
-        .animation(.easeOut(duration: 0.2), value: isOn)
+        .animation(Motion.gentle(.smooth(duration: 0.25)), value: isOn)
         .onChange(of: isOn) { lock.refresh() }
         .systemAlert("iPhone chưa có mật mã", isPresented: $isExplainingNoPasscode) {
             Button("OK", role: .cancel) {}
@@ -53,19 +56,12 @@ struct SecuritySettings: View {
     /// Changed only once Face ID (or the passcode) says it is the owner: on, so a face not set up
     /// or a "no" leaves it off rather than locking the user out later; off, so whoever holds the
     /// open phone cannot take the lock away (review 2026-11-14).
-    private var toggle: Binding<Bool> {
-        Binding {
-            isOn
-        } set: { on in
-            guard on != isOn else { return }
-            guard AppLock.isAvailable else {
-                // No passcode left on the phone: nothing could lock the app, so off is let through.
-                if on { isExplainingNoPasscode = true } else { isOn = false }
-                return
-            }
-            Task {
-                if await lock.confirmOwner(turningOn: on) { isOn = on }
-            }
+    private func confirm(_ on: Bool) async -> Bool {
+        guard AppLock.isAvailable else {
+            // No passcode left on the phone: nothing could lock the app, so off is let through.
+            if on { isExplainingNoPasscode = true }
+            return !on
         }
+        return await lock.confirmOwner(turningOn: on)
     }
 }

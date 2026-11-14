@@ -50,6 +50,53 @@ struct FormToggleRow: View {
     }
 }
 
+/// A switch whose change must be allowed first (Face ID, the notification permission): it moves at
+/// once, greyed and still while asking, then stays or goes back, with the rows it opens following.
+/// One way for every such switch (user request 2026-11-14: it stayed put as if not moved, and
+/// could be flicked again meanwhile).
+struct FormConfirmedToggleRow: View {
+    let title: String
+    var subtitle: String? = nil
+    var icon: String? = nil
+    @Binding var isOn: Bool
+    /// Asked before a change is kept: true keeps it, false sends the switch back.
+    let confirm: (Bool) async -> Bool
+
+    /// Where the switch was moved while `confirm` answers.
+    @State private var pending: Bool?
+    /// The answer is taking a while (a prompt is up): only then is the row greyed. Greyed at once,
+    /// an answer that came straight back (notifications already allowed, turning one off) dimmed
+    /// the words and lit them again, a blink (user report 2026-11-14).
+    @State private var isWaiting = false
+
+    /// How long an answer may take before the row is greyed.
+    private static let greyAfter: Duration = .milliseconds(200)
+
+    var body: some View {
+        FormToggleRow(title: title, subtitle: subtitle, icon: icon, isOn: Binding {
+            pending ?? isOn
+        } set: { on in
+            guard pending == nil, on != isOn else { return }
+            pending = on
+            Task {
+                try? await Task.sleep(for: Self.greyAfter)
+                if pending != nil { isWaiting = true }
+            }
+            Task {
+                let yes = await confirm(on)
+                withAnimation(Motion.gentle(.smooth(duration: 0.25))) {
+                    if yes { isOn = on }
+                    pending = nil
+                    isWaiting = false
+                }
+            }
+        })
+        .disabled(isWaiting)
+        // Still while asking, greyed or not: not flicked again before the answer.
+        .allowsHitTesting(pending == nil)
+    }
+}
+
 /// Label, grey value and › on one row: the look shared by every row that opens a picker sheet.
 /// Without the › (`showsChevron: false`) it only shows a value, as on a detail sheet.
 struct FormValueRowContent: View {
@@ -143,6 +190,7 @@ struct NavigationRowContent: View {
     var iconSize: CGFloat = RowMetrics.iconColumn
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // One line: the › on the words' baseline (see `FormValueRowContent`); with a subtitle,
@@ -177,11 +225,15 @@ struct NavigationRowContent: View {
     private var stacksValue: Bool { dynamicTypeSize.isAccessibilitySize && value != nil }
 
     private func valueText(_ value: String) -> some View {
+        // A new value rolls in, as a form row's does (`FormValueRowContent`): "Chưa đặt" giving
+        // way to the limit, a count going up (user request 2026-11-14: one way everywhere).
         Text(value)
             .textRole(.body)
             .foregroundStyle(Palette.secondaryLabel)
             .monospacedDigit()
             .lineLimit(1)
+            .contentTransition(reduceMotion ? .identity : .numericText())
+            .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: value)
     }
 }
 

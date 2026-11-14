@@ -68,6 +68,10 @@ final class AppLock {
     /// phút" never lock (review 2026-11-14).
     @ObservationIgnored private var leftAt: ContinuousClock.Instant?
 
+    /// The app's lock: also for what asks iOS for something outside a view (dictation's microphone,
+    /// the first recurring rule's notifications), so no cover comes over the prompt.
+    static let shared = AppLock()
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         isLocked = isOn
@@ -106,6 +110,17 @@ final class AppLock {
     /// prompt gone first): there is no such moment, and the next switcher is covered.
     private func markJustAsked() {
         isJustAsked = UIApplication.shared.applicationState != .active
+    }
+
+    /// iOS asking something over Milu (the notification permission): it leaves the app inactive,
+    /// which is not leaving, so no cover over it or as it goes (user report 2026-11-14: the garden
+    /// covered Cài đặt behind the notifications prompt).
+    func whileSystemAsks<T>(_ ask: () async -> T) async -> T {
+        isShowingSystemSheet = true
+        let answer = await ask()
+        isShowingSystemSheet = false
+        markJustAsked()
+        return answer
     }
 
     /// The app is in front again: the moment after Face ID is over.

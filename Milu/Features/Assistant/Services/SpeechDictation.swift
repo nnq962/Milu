@@ -95,7 +95,8 @@ final class SpeechDictation {
         guard !isRecording else { return }
         // Already allowed: no hop off the main thread, so the wave shows the moment the mic is
         // tapped (seen in testing 2026-11-10: it came a beat late).
-        let allowed = Self.alreadyAllowed ? true : await Self.requestPermissions()
+        // No Face ID cover over iOS's prompts for speech and the microphone (`AppLock.whileSystemAsks`).
+        let allowed = Self.alreadyAllowed ? true : await AppLock.shared.whileSystemAsks { await Self.requestPermissions() }
         guard allowed else {
             failure = .denied
             return

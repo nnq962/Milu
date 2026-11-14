@@ -10,6 +10,7 @@ struct SettingsView: View {
     @Environment(AIQuota.self) private var quota
     @Environment(\.eraseAllData) private var eraseAllData
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
     @AppStorage(StorageKey.appearance) private var appearance = AppAppearance.system
@@ -49,25 +50,17 @@ struct SettingsView: View {
         var id: String { title }
     }
 
-    /// Turning a notification on asks for permission first; refused, the switch stays off.
-    private func needsPermission(_ setting: Binding<Bool>) -> Binding<Bool> {
-        Binding {
-            setting.wrappedValue
-        } set: { on in
-            guard on else {
-                setting.wrappedValue = false
-                return
-            }
-            Task {
-                if await Reminders.shared.requestPermission() {
-                    notificationsDenied = false
-                    setting.wrappedValue = true
-                } else {
-                    notificationsDenied = true
-                    isAskingForNotifications = true
-                }
-            }
+    /// Turning a notification on asks for permission first; refused, the switch goes back off
+    /// (`FormConfirmedToggleRow`, as the Face ID switch).
+    private func allowNotifications(_ on: Bool) async -> Bool {
+        guard on else { return true }
+        if await appLock.whileSystemAsks({ await Reminders.shared.requestPermission() }) {
+            notificationsDenied = false
+            return true
         }
+        notificationsDenied = true
+        isAskingForNotifications = true
+        return false
     }
 
     private func checkNotificationPermission() async {
@@ -191,22 +184,28 @@ struct SettingsView: View {
                     // on asks for notifications then, not at launch; refused, it stays off and offers
                     // the iPhone's Settings.
                     FormGroup(title: "Thông báo") {
-                        FormToggleRow(title: "Nhắc ghi chi tiêu", subtitle: reminderSubtitle,
-                                      icon: "hugeicons-notification-01", isOn: needsPermission($dailyReminder))
+                        FormConfirmedToggleRow(title: "Nhắc ghi chi tiêu", subtitle: reminderSubtitle,
+                                               icon: "hugeicons-notification-01", isOn: $dailyReminder,
+                                               confirm: allowNotifications)
                         if dailyReminder {
                             FormDivider()
                             FormTimeRow(title: "Giờ nhắc", icon: "hugeicons-clock-01", date: reminderTime)
+                                // Opened under the switch as every row a switch opens (user
+                                // request 2026-11-14: one way across Cài đặt and Giao dịch).
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                         FormDivider()
-                        FormToggleRow(title: "Cảnh báo hạn mức", subtitle: budgetAlertSubtitle,
-                                      icon: "hugeicons-alert-circle", isOn: needsPermission($budgetAlerts))
+                        FormConfirmedToggleRow(title: "Cảnh báo hạn mức", subtitle: budgetAlertSubtitle,
+                                               icon: "hugeicons-alert-circle", isOn: $budgetAlerts,
+                                               confirm: allowNotifications)
                         FormDivider()
-                        FormToggleRow(title: "Nhắc khoản định kỳ",
-                                      subtitle: recurringAlerts && notificationsDenied
-                                          ? "Thông báo đang tắt trong Cài đặt iPhone" : "8:00 sáng ngày tới hạn",
-                                      icon: "hugeicons-calendar-03", isOn: needsPermission($recurringAlerts))
+                        FormConfirmedToggleRow(title: "Nhắc khoản định kỳ",
+                                               subtitle: recurringAlerts && notificationsDenied
+                                                   ? "Thông báo đang tắt trong Cài đặt iPhone" : "8:00 sáng ngày tới hạn",
+                                               icon: "hugeicons-calendar-03", isOn: $recurringAlerts,
+                                               confirm: allowNotifications)
                     }
-                    .animation(.easeOut(duration: 0.2), value: dailyReminder)
+                    .animation(Motion.gentle(.smooth(duration: 0.25)), value: dailyReminder)
                     .task { await checkNotificationPermission() }
                     .systemAlert("Milu chưa được gửi thông báo", isPresented: $isAskingForNotifications) {
                         Button("Để sau", role: .cancel) {}
@@ -440,7 +439,8 @@ struct SettingsView: View {
                     Text("\(quota.remaining)")
                         .textRole(.display)
                         .monospacedDigit()
-                        .contentTransition(.numericText())
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: quota.remaining)
                     Text("lượt còn lại")
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryLabel)
@@ -455,6 +455,8 @@ struct SettingsView: View {
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: details)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityLabel(spokenDetails.joined(separator: ", "))
                 }

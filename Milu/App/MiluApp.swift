@@ -23,7 +23,7 @@ struct MiluApp: App {
     @State private var generation = 0
     @Environment(\.scenePhase) private var scenePhase
     /// "Khoá bằng Face ID" (Milu Pro): locked from launch when on.
-    @State private var appLock = AppLock()
+    @State private var appLock = AppLock.shared
     @State private var lockCurtain = LockCurtain()
     @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
     /// Tổng quan's Than is loaded: the first page waits for it, so it opens with Than there.
