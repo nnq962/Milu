@@ -7,6 +7,10 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- Export compliance: only Apple's own encryption (HTTPS to Milu's server, iCloud), which is
+	     exempt; TestFlight and the App Store then ask nothing for each build (2026-11-14). -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- Milu's splash (`SplashScene`), its sky and garden filling the screen at launch, light and dark. -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

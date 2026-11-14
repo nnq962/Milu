@@ -67,6 +67,10 @@ struct SkyHeader: View {
     private static let overlineTracking: CGFloat = 1.6
     /// Room under the title down to the sky's edge (Figma: the title's foot 200, the edge 240).
     private static let bottomRoom: CGFloat = 40
+    /// The head's lower corners, from the cards under it, not by eye (HIG: concentric corners,
+    /// aligned edges): a card's corner and the page's margin, so the head's curve ends right
+    /// above where the cards' straight edges begin.
+    static let cornerRadius: CGFloat = CardCorners.card + Spacing.page
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -132,9 +136,28 @@ struct SkyHeader: View {
                 .resizable()
             SkyMascot(milu: milu, greeting: greeting, rive: usesRive ? rive : nil, talks: title == nil)
         }
-        // Nothing past the edge: the dog's foot ends where the page begins.
-        .mask(alignment: .bottom) { Rectangle().frame(height: 4000) }
+        // Nothing past the edge: the dog's foot ends where the page begins. Its lower corners
+        // rounded and the head lifted off the page by a soft shadow (user choice 2026-11-14, of
+        // three tried); the dog's foot stays on the straight part, the curve only trims a shoulder.
+        .mask(alignment: .bottom) {
+            UnevenRoundedRectangle(bottomLeadingRadius: Self.cornerRadius, bottomTrailingRadius: Self.cornerRadius,
+                                   style: .continuous)
+                .frame(height: 4000)
+        }
+        .modifier(HeadShadow())
         .accessibilityHidden(true)
+    }
+}
+
+/// The head's shadow on the page: soft and low in light; a little deeper in dark, where a light
+/// shadow does not show (HIG: depth by elevation, never a hard line).
+private struct HeadShadow: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .compositingGroup()
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.4 : 0.1), radius: 14, y: 6)
     }
 }
 
