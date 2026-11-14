@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Over the whole app while it is locked (`AppLock`): Milu, its finger on its lips, and the one
+/// Over the whole app while it is locked (`AppLock`): the splash scene saying so, and the one
 /// button that asks Face ID again. Asks by itself as it shows.
 struct LockScreen: View {
     let lock: AppLock
@@ -11,35 +11,16 @@ struct LockScreen: View {
     @State private var wasAway = false
 
     var body: some View {
-        VStack(spacing: Spacing.l) {
-            Spacer()
-            Image(MiluHero.Look.nguongNgung.image)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 206)
-                .accessibilityHidden(true)
-            VStack(spacing: Spacing.s) {
-                Text("Milu đang khoá")
-                    .textRole(.pageTitle)
-                    .accessibilityAddTraits(.isHeader)
-                Text("Mở khoá để xem số liệu của bạn.")
-                    .textRole(.body)
-                    .foregroundStyle(Palette.secondaryLabel)
-            }
-            .multilineTextAlignment(.center)
-            Spacer()
+        // The splash's garden, "Milu" and Than, still, saying it is locked, with the one button
+        // in the sky: opening, away and locked look the same (user choice 2026-11-14).
+        SplashScreen(greets: false, caption: "Milu đang khoá. Mở khoá để xem số liệu.") {
             MiluButton(role: .primary, fullWidth: true) {
                 Task { await lock.unlock() }
             } label: {
                 Label("Mở khoá bằng \(AppLock.biometryName)", systemImage: AppLock.biometrySymbol)
             }
             .disabled(lock.isAuthenticating)
-            .padding(.horizontal, Spacing.page)
-            .padding(.bottom, Spacing.xl)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Palette.background.ignoresSafeArea())
-        .foregroundStyle(Palette.label)
         // Asked as it shows, and on coming back to it; the button is there if that was cancelled.
         .task { await ask() }
         .onChange(of: scenePhase) { _, phase in
@@ -62,14 +43,8 @@ struct LockScreen: View {
 /// balances.
 struct PrivacyCover: View {
     var body: some View {
-        ZStack {
-            Palette.background
-            Image(MiluHero.Look.nguongNgung.image)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 160)
-        }
-        .ignoresSafeArea()
-        .accessibilityHidden(true)
+        // Milu's splash, still: the garden, "Milu" and Than (user request 2026-11-14).
+        SplashScreen(greets: false)
+            .accessibilityHidden(true)
     }
 }

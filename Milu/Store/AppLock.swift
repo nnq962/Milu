@@ -5,6 +5,16 @@ import Observation
 /// What the user's plan allows: Milu Pro when the App Store says it is owned (`ProStore`, its last
 /// answer kept in UserDefaults); Debug can also pretend (Cài đặt → Nhà phát triển).
 enum MiluPlan {
+    /// Cài đặt → Nhà phát triển → "Giả lập Milu Pro", in a Debug build only: the switch is kept
+    /// in UserDefaults, and a Release build installed over a Debug one read it as Pro.
+    static func pretends(_ stored: Bool) -> Bool {
+        #if DEBUG
+        stored
+        #else
+        false
+        #endif
+    }
+
     static var isPro: Bool {
         let defaults = UserDefaults.standard
         #if DEBUG

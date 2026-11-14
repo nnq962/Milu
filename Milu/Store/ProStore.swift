@@ -39,6 +39,10 @@ final class ProStore {
     var failure: String?
     /// Owned through the made-up purchase of a Debug build, not the App Store.
     private(set) var isMockOwned = false
+    /// When the plan owned ends unless it renews.
+    private(set) var expiresAt: Date?
+    /// Whether it renews then: false once cancelled, when it stays until `expiresAt` and goes.
+    private(set) var renews = true
 
     #if DEBUG
     /// Debug builds with no plan from the App Store (not set up in App Store Connect yet, or run
@@ -51,6 +55,9 @@ final class ProStore {
     #endif
 
     @ObservationIgnored private var updates: Task<Void, Never>?
+    /// Asks again as the plan ends: a plan running out is no change Apple reports, so a cancelled
+    /// plan stayed Pro until the app was opened again (user report 2026-11-13).
+    @ObservationIgnored private var expiryCheck: Task<Void, Never>?
 
     private init() {}
 
@@ -125,21 +132,48 @@ final class ProStore {
     /// What is owned now.
     func refresh() async {
         var owned: Plan?
+        var ends: Date?
+        var renewing = true
         for await entitlement in Transaction.currentEntitlements {
             guard case .verified(let transaction) = entitlement, transaction.revocationDate == nil,
                   let plan = Plan(rawValue: transaction.productID) else { continue }
+            // Lapsed already, though still listed a moment: not owned.
+            if let end = transaction.expirationDate, end <= .now { continue }
             owned = plan
+            ends = transaction.expirationDate
+            if case .verified(let renewal)? = await transaction.subscriptionStatus?.renewalInfo {
+                renewing = renewal.willAutoRenew
+            }
         }
-        isMockOwned = false
+        // Each set only when it changed: asked again every time the app comes back, a same value
+        // set anew still redrew every view that reads it.
+        if expiresAt != ends { expiresAt = ends }
+        if renews != renewing { renews = renewing }
+        scheduleExpiryCheck()
+        var mock = false
         #if DEBUG
         if owned == nil, let raw = UserDefaults.standard.string(forKey: StorageKey.debugMockPlan) {
             owned = Plan(rawValue: raw)
-            isMockOwned = owned != nil
+            mock = owned != nil
         }
         #endif
-        ownedPlan = owned
-        isPro = owned != nil
+        if isMockOwned != mock { isMockOwned = mock }
+        if ownedPlan != owned { ownedPlan = owned }
+        if isPro != (owned != nil) { isPro = owned != nil }
         UserDefaults.standard.set(isPro, forKey: StorageKey.proActive)
+    }
+
+    /// A second after the plan owned ends, asks the App Store again: renewed, still Pro; lapsed
+    /// (cancelled, a failed payment), back to free on the spot.
+    private func scheduleExpiryCheck() {
+        expiryCheck?.cancel()
+        guard let expiresAt else { return }
+        let wait = max(expiresAt.timeIntervalSinceNow, 0) + 1
+        expiryCheck = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(wait))
+            guard !Task.isCancelled else { return }
+            await self?.refresh()
+        }
     }
 
     #if DEBUG

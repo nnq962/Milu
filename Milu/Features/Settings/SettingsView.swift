@@ -388,7 +388,7 @@ struct SettingsView: View {
         .accessibilityHint(profileName.isEmpty ? "Đặt tên của bạn" : "Đổi tên của bạn")
     }
 
-    private var isPro: Bool { ProStore.shared.isPro || debugPro }
+    private var isPro: Bool { ProStore.shared.isPro || MiluPlan.pretends(debugPro) }
     private var planName: String { isPro ? "Milu Pro" : "Miễn phí" }
 
     /// The plan by the name: "Pro" in the brand's colour, or a quiet "Miễn phí".

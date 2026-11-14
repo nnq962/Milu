@@ -45,6 +45,8 @@ struct PaywallView: View {
             Task { await store.refresh() }
         }
         .manageSubscriptionsSheet(isPresented: $isManaging)
+        // Back from Apple's sheet (a plan cancelled or changed there): what is owned now.
+        .onChange(of: isManaging) { _, open in if !open { Task { await store.refresh() } } }
         .sheet(item: $legal) { page in
             NavigationStack { LegalDocumentView(document: page.document) }
                 .miluSheetStyle()
@@ -201,11 +203,24 @@ struct PaywallView: View {
         isBuying = false
     }
 
+    /// "20/12/2026", or "hôm nay 22:15" when it is today (a test plan lasts minutes).
+    private static func when(_ date: Date) -> String {
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        if Calendar.current.isDateInToday(date) { return "hôm nay \(time)" }
+        return date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year())
+    }
+
     /// Owned already: the plan, and Apple's own sheet to change or cancel it.
     private var owned: some View {
         FormGroup(title: "Gói của bạn") {
             FormInfoRow(title: "Đang dùng", value: store.ownedPlan?.title ?? "Milu Pro")
             FormDivider(hasIcon: false)
+            // When it renews, or, cancelled, until when it lasts (Pro stays to the end of what
+            // was paid, then goes by itself).
+            if let end = store.expiresAt {
+                FormInfoRow(title: store.renews ? "Gia hạn vào" : "Đã huỷ, dùng đến", value: Self.when(end))
+                FormDivider(hasIcon: false)
+            }
             #if DEBUG
             if store.isMockOwned {
                 FormNavigationRow(title: "Huỷ gói thử", subtitle: "Bản Debug: trở lại gói miễn phí", accessory: .none) {

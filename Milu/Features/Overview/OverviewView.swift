@@ -121,7 +121,7 @@ struct OverviewView: View {
                         if Self.showsAttention { AttentionCard() }
                         // Last, at the foot of the page (user request 2026-10-31).
                         // Gone once Pro is owned: nothing left to sell.
-                        if !(ProStore.shared.isPro || debugPro) {
+                        if !(ProStore.shared.isPro || MiluPlan.pretends(debugPro)) {
                             ProUpgradeCard { isShowingPaywall = true }
                         }
                     }
