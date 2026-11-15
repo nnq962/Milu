@@ -58,14 +58,35 @@ struct ChoiceTile: View {
 struct ChoiceTileGrid<Item: Hashable, Cell: View>: View {
     let items: [Item]
     var columns = 4
+    /// Pictures without names: fewer columns when the tiles do not fit side by side. Not for named
+    /// tiles, whose long names would take a column away at every size; they shorten instead.
+    var dropsColumnsToFit = false
     @ViewBuilder let cell: (Item) -> Cell
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let columns = dynamicTypeSize.isAccessibilitySize ? self.columns - 1 : self.columns
+        let most = max(dynamicTypeSize.isAccessibilitySize ? self.columns - 1 : self.columns, 1)
+        Group {
+            if dropsColumnsToFit {
+                // The most columns that fit side by side: five pictures at the larger text sizes
+                // ran past the card on a 375pt iPhone and were cut at both edges (audit 2026-11-15).
+                ViewThatFits(in: .horizontal) {
+                    ForEach(Array((1...most).reversed()), id: \.self) { columns in
+                        grid(columns: columns)
+                    }
+                }
+            } else {
+                grid(columns: most)
+            }
+        }
+        .padding(.horizontal, RowMetrics.horizontal)
+        .padding(.vertical, Spacing.l)
+    }
+
+    private func grid(columns: Int) -> some View {
         let rows = stride(from: 0, to: items.count, by: columns).map { Array(items[$0..<min($0 + columns, items.count)]) }
-        Grid(horizontalSpacing: Spacing.s, verticalSpacing: Spacing.l) {
+        return Grid(horizontalSpacing: Spacing.s, verticalSpacing: Spacing.l) {
             ForEach(rows, id: \.self) { row in
                 GridRow(alignment: .top) {
                     ForEach(row, id: \.self) { item in
@@ -76,8 +97,6 @@ struct ChoiceTileGrid<Item: Hashable, Cell: View>: View {
                 }
             }
         }
-        .padding(.horizontal, RowMetrics.horizontal)
-        .padding(.vertical, Spacing.l)
     }
 }
 
@@ -146,7 +165,7 @@ struct IconTilePicker: View {
     }
 
     private var grid: some View {
-        ChoiceTileGrid(items: tiles, columns: 5) { tile in
+        ChoiceTileGrid(items: tiles, columns: 5, dropsColumnsToFit: true) { tile in
             switch tile {
             case .icon(let name):
                 ChoiceTile(icon: name, title: Self.title(of: name), isChosen: name == selection,

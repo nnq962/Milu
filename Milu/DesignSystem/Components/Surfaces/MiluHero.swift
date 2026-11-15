@@ -27,6 +27,33 @@ struct MiluHero: View {
         }
 
         var image: String { "milu-\(rawValue)" }
+
+        /// The face in words, for VoiceOver: "Milu Thân thiện" (audit 2026-11-15: twenty buttons
+        /// all read "Milu").
+        var title: String {
+            switch self {
+            case .nguyenBan: "Nguyên bản"
+            case .thanThien: "Thân thiện"
+            case .toMo: "Tò mò"
+            case .vui: "Vui"
+            case .boiRoi: "Bối rối"
+            case .nhayMat: "Nháy mắt"
+            case .cuoiBanhNoc: "Cười banh nóc"
+            case .meMan: "Mê mẩn"
+            case .nguongNgung: "Ngượng ngùng"
+            case .buonThiu: "Buồn thiu"
+            case .tuiThan: "Tủi thân"
+            case .khocOa: "Khóc oà"
+            case .gianDoi: "Giận dỗi"
+            case .hotHoang: "Hốt hoảng"
+            case .buonNgu: "Buồn ngủ"
+            case .nguKho: "Ngủ khò"
+            case .sutSit: "Sụt sịt"
+            case .dungHinh: "Đứng hình"
+            case .ngaoNgo: "Ngáo ngơ"
+            case .chongMat: "Chóng mặt"
+            }
+        }
     }
 
     /// The face the page gives it: how things are going.

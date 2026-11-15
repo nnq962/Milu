@@ -27,6 +27,10 @@ final class CloudSyncMonitor {
     private(set) var lastSynced: Date?
     private(set) var problem: String?
     private(set) var isOffline = false
+    /// Counts the imports that came in while the pill was not up (one begun offline, or one the
+    /// network dropped in the middle of): `isReceiving` did not change for them, so the screens
+    /// read their data on this instead (audit 2026-11-15: it stayed unread until the next import).
+    private(set) var quietImports = 0
 
     @ObservationIgnored private var receiving: Set<UUID> = []
     /// Data came down since the screens last read the database (`takeNewData`).
@@ -172,7 +176,11 @@ final class CloudSyncMonitor {
             }
         }
         let receivingNow = !receiving.isEmpty
-        if receivingNow != isReceiving { isReceiving = receivingNow }
+        if receivingNow != isReceiving {
+            isReceiving = receivingNow
+        } else if update.ended, update.isImport, update.succeeded, !receivingNow {
+            quietImports += 1
+        }
     }
 
     /// Whether data came down since the last call: the app reads the database again once the sync

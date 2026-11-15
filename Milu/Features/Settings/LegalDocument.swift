@@ -29,9 +29,14 @@ struct LegalDocument {
                          "Lịch sử trò chuyện với Milu AI được lưu trên iPhone này."),
             ReadingEntry("Khi bạn nói bằng giọng",
                          "Đoạn ghi âm được gửi tới máy chủ của Milu, kèm tên hạng mục và tài khoản để nhận đúng chữ, chuyển thành chữ rồi bỏ đi, không lưu lại.",
-                         "Khi không kết nối được máy chủ, iPhone tự nhận giọng bằng công cụ của Apple: ngay trên máy nếu iPhone hỗ trợ, nếu không thì qua máy chủ của Apple, theo chính sách quyền riêng tư của Apple."),
+                         // What it does (audit 2026-11-15: this said Apple's only when the server fails,
+                         // but Apple's runs as the user speaks, so the words show at once).
+                         "Trong lúc bạn nói, iPhone cũng nhận giọng bằng công cụ của Apple để chữ hiện ngay, và dùng nó khi không kết nối được máy chủ của Milu: ngay trên máy nếu iPhone hỗ trợ tiếng Việt, nếu không thì qua máy chủ của Apple, theo chính sách quyền riêng tư của Apple."),
             ReadingEntry("Quyền truy cập trên iPhone",
-                         "Milu chỉ xin quyền Micro và Nhận dạng giọng nói, và chỉ dùng khi bạn chạm nút micro để nói. Milu không xin quyền vị trí, ảnh hay danh bạ của iPhone. Bạn có thể tắt các quyền này bất cứ lúc nào trong Cài đặt của iPhone."),
+                         "Micro và Nhận dạng giọng nói: chỉ dùng khi bạn chạm nút micro để nói.",
+                         "Thông báo: để nhắc ghi chi tiêu, báo khoản định kỳ tới hạn và cảnh báo hạn mức. Các thông báo này được hẹn ngay trên iPhone, không đi qua máy chủ nào.",
+                         "Face ID (hoặc mật mã iPhone): khi bạn bật Khoá bằng Face ID. iOS tự kiểm tra, Milu chỉ nhận biết mở được hay không, không bao giờ thấy hay gửi đi khuôn mặt hay mật mã của bạn.",
+                         "Milu không xin quyền vị trí, ảnh hay danh bạ của iPhone. Bạn có thể tắt các quyền trên bất cứ lúc nào trong Cài đặt của iPhone."),
             ReadingEntry("Quyền của bạn",
                          "Bạn xem, sửa hoặc xoá được từng mục ngay trong app.",
                          "\"Xoá toàn bộ dữ liệu\" ở cuối Cài đặt xoá mọi số liệu và cài đặt (cả trong iCloud và trên các thiết bị khác của bạn), cùng lịch sử trò chuyện trên máy này. Lượt AI còn lại và các bước Làm quen đã xong vẫn được giữ, trên máy và trong iCloud, để lượt thưởng không bị nhận lại nhiều lần.",
@@ -45,7 +50,7 @@ struct LegalDocument {
 
     static let terms = LegalDocument(
         title: "Điều khoản sử dụng",
-        updated: "12/11/2026",
+        updated: "15/11/2026",
         entries: [
             ReadingEntry("Đồng ý điều khoản",
                          "Khi dùng Milu, bạn đồng ý với các điều khoản dưới đây. Nếu không đồng ý, bạn có thể ngừng dùng và xoá app bất cứ lúc nào."),
@@ -62,8 +67,12 @@ struct LegalDocument {
                          "Gói miễn phí có \(AIQuota.weeklyFree) lượt hỏi mỗi tuần, làm mới lúc 0 giờ thứ Hai; lượt không dùng hết không cộng dồn sang tuần sau. Mỗi bước Làm quen với Milu bạn hoàn thành được tặng \(AIQuota.stepBonus) lượt thưởng một lần, dùng trong \(AIQuota.bonusDays) ngày và được dùng trước lượt của tuần.",
                          "Nhờ Milu AI ghi hay xoá giao dịch không tốn lượt. Câu Milu không trả lời được (mất mạng, máy chủ lỗi, bạn bấm dừng) được trả lại lượt.",
                          "Lượt AI không quy đổi thành tiền và không chuyển cho người khác được. Milu có thể thay đổi số lượt hoặc cách tính lượt và sẽ báo trong app trước khi áp dụng; khi thấy dấu hiệu lạm dụng, Milu có thể tạm giới hạn việc dùng Milu AI."),
+            // The paywall sells it and links here (audit 2026-11-15: this still said it was not on
+            // sale). What Apple asks of a subscription: renews until cancelled, where to cancel.
             ReadingEntry("Milu Pro",
-                         "Milu Pro chưa mở bán. Khi mở bán, giá, quyền lợi và cách huỷ sẽ được nêu rõ trước khi bạn mua, và việc thanh toán do App Store xử lý theo điều khoản của Apple."),
+                         "Milu Pro là gói đăng ký theo tháng hoặc theo năm, mua qua App Store. Giá và quyền lợi của từng gói hiện trên màn Milu Pro trước khi bạn mua; việc thanh toán do App Store xử lý theo điều khoản của Apple và được trừ vào Apple ID khi bạn xác nhận mua.",
+                         "Gói tự gia hạn khi hết kỳ, trừ khi bạn huỷ ít nhất 24 giờ trước khi kỳ hiện tại kết thúc. Bạn quản lý hoặc huỷ gói bất cứ lúc nào trong Cài đặt › Apple ID › Đăng ký; huỷ thì vẫn dùng Milu Pro tới hết kỳ đã trả.",
+                         "Khi Milu Pro hết hạn, dữ liệu của bạn vẫn giữ nguyên; chỉ các quyền lợi của Pro (thêm lượt Milu AI, khoá bằng \(AppLock.biometryName)) ngừng lại."),
             ReadingEntry("Sở hữu trí tuệ",
                          "Tên, giao diện, hình ảnh và mã nguồn của Milu thuộc về nhà phát triển Milu. Bạn được dùng app cho mục đích cá nhân, không được sao chép, bán lại hay dịch ngược app.",
                          "Một số thành phần (biểu tượng, phông chữ, hình emoji) thuộc bên thứ ba và dùng theo giấy phép riêng, liệt kê ở Giấy phép mã nguồn mở."),

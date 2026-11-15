@@ -240,8 +240,9 @@ struct MiluApp: App {
                     guard !showsWelcome, !showsSplash else { return }
                     // A moment on the page first, so the invitation comes over it, not its arrival.
                     try? await Task.sleep(for: .seconds(0.8))
-                    guard !Task.isCancelled, await NotificationInvite.isDue() else { return }
-                    NotificationInvite.markShown()
+                    // Not over another sheet, where it could not show (it then comes at a later
+                    // launch); marked seen only once it is on screen (audit 2026-11-15).
+                    guard !Task.isCancelled, await NotificationInvite.isDue(), !Presentation.isShowingSheet else { return }
                     showsNotificationInvite = true
                 }
                 // What recurring rules that record by themselves owe since the app was last open.
@@ -267,7 +268,9 @@ struct MiluApp: App {
                 Task { await ProStore.shared.refresh() }
                 guard cameFromBackground else { return }
                 cameFromBackground = false
-                store.reload()
+                // Read again only when iCloud brought something meanwhile: every return read the
+                // whole database on the main thread, years of it, for nothing (audit 2026-11-15).
+                if sync.takeNewData() { store.reload() }
                 store.recordDueRecurring()
                 sync.checkAccount()
             }
@@ -318,12 +321,17 @@ private struct ReloadAfterSync: ViewModifier {
     let store: FinanceStore
 
     func body(content: Content) -> some View {
-        content.onChange(of: sync.isReceiving) { _, receiving in
-            if !receiving, sync.takeNewData() {
-                store.reload()
-                store.recordDueRecurring()
+        content
+            .onChange(of: sync.isReceiving) { _, receiving in
+                if !receiving { readNewData() }
             }
-        }
+            .onChange(of: sync.quietImports) { readNewData() }
+    }
+
+    private func readNewData() {
+        guard !sync.isReceiving, sync.takeNewData() else { return }
+        store.reload()
+        store.recordDueRecurring()
     }
 }
 

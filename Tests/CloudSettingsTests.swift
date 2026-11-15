@@ -113,6 +113,21 @@ struct CloudSettingsTests {
     }
 
     /// The pill shows while data comes down, not while it goes up; a success is remembered.
+    /// An import the pill never tracked (the network dropped in the middle of it) still has its
+    /// data read once it ends (audit 2026-11-15).
+    @Test func anImportEndingUnseenIsStillRead() {
+        let monitor = CloudSyncMonitor(defaults: makeDefaults())
+        let download = UUID()
+        monitor.handle(.init(id: download, isImport: true, ended: false))
+        #expect(monitor.isReceiving)
+        monitor.setOffline(true)
+        #expect(!monitor.isReceiving)
+        let before = monitor.quietImports
+        monitor.handle(.init(id: download, isImport: true, ended: true))
+        #expect(monitor.quietImports == before + 1)
+        #expect(monitor.takeNewData())
+    }
+
     @Test func theMonitorShowsOnlyDataComingDown() {
         let monitor = CloudSyncMonitor(defaults: makeDefaults())
         let upload = UUID()

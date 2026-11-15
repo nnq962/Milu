@@ -15,6 +15,9 @@ struct AssistantView: View {
     @State private var draft = ""
     /// A question is out and Milu's answer not in yet.
     @State private var isThinking = false
+    /// The chat that question was asked in: "Đang nghĩ…" and ■ show there only, and ■ says it
+    /// stopped there (audit 2026-11-15: another chat opened meanwhile showed both, and got the notice).
+    @State private var answeringChatID: Conversation.ID?
     /// What Milu has done so far on that answer, shown under "Đang nghĩ…".
     @State private var progress = AssistantProgress()
     /// Asking for Milu's answer, until it is in; ■ cancels it.
@@ -30,6 +33,8 @@ struct AssistantView: View {
     /// The chat card whose "Xoá" was tapped, until the alert is answered: deleting always asks
     /// first, in chat too (strict review 2026-10-31: it deleted at once).
     @State private var pendingRemoval: ChatMessage?
+    /// A card's transaction the store would not delete (a closed goal's, an archived account's).
+    @State private var cannotDelete: FinanceTransaction?
     @State private var dictation = SpeechDictation()
     @State private var isShowingHistory = false
     @AppStorage(StorageKey.profileName) private var profileName = ""
@@ -39,13 +44,15 @@ struct AssistantView: View {
     }
 
     private var messages: [ChatMessage] { chats.conversations[currentIndex].messages }
+    /// Milu is answering in the chat on screen.
+    private var isThinkingHere: Bool { isThinking && answeringChatID == chats.conversations[currentIndex].id }
     private var hasQuestions: Bool { chats.conversations[currentIndex].hasQuestions }
 
     var body: some View {
         let isDictating = dictation.isRecording || dictation.isTranscribing
         ChatScreen(
             conversation: chats.conversations[currentIndex],
-            isThinking: isThinking,
+            isThinking: isThinkingHere,
             progress: progress,
             draft: $draft,
             isDictating: isDictating,
@@ -97,6 +104,14 @@ struct AssistantView: View {
                 Haptics.warning()
                 if let message = pendingRemoval { remove(message) }
             }
+        }
+        .systemAlert("Chưa xoá được", isPresented: Binding(
+            get: { cannotDelete != nil },
+            set: { if !$0 { cannotDelete = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(cannotDelete.flatMap { store.readOnlyReason($0) } ?? "Giao dịch này không xoá được nữa.")
         }
         .systemAlert("Không dùng được micro", isPresented: Binding(
             get: { dictation.failure != nil },
@@ -203,7 +218,7 @@ struct AssistantView: View {
     ///
     /// While Milu thinks it is ■ on the disc: the answer stops coming (user request 2026-11-11).
     private func actionButton(isDictating: Bool) -> some View {
-        let stops = isThinking && !isDictating
+        let stops = isThinkingHere && !isDictating
         let sends = !stops && (isDictating || canSend)
         let disc = sends || stops
         let enabled = stops || (sends ? (dictation.isRecording || (!isDictating && canSend)) : true)
@@ -252,10 +267,12 @@ struct AssistantView: View {
         answerPaid = false
         // Said in the chat where the answer would have been (user request 2026-11-12: the dots
         // only went, as if nothing had been asked).
+        let index = chats.conversations.firstIndex { $0.id == answeringChatID } ?? currentIndex
         withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
-            chats.conversations[currentIndex].messages.append(ChatMessage(role: .notice, text: "Bạn đã dừng câu trả lời"))
+            chats.conversations[index].messages.append(ChatMessage(role: .notice, text: "Bạn đã dừng câu trả lời"))
             isThinking = false
         }
+        answeringChatID = nil
     }
 
     /// ✕ and ■ while listening: a glyph on a grey disc.
@@ -385,6 +402,7 @@ struct AssistantView: View {
             chats.conversations[currentIndex].messages.append(ChatMessage(role: .user, text: question))
             isThinking = true
         }
+        answeringChatID = chatID
         progress.steps = []
         hasAskedAI = true
         let service = AssistantServices.make(store: store, app: app)
@@ -449,6 +467,10 @@ struct AssistantView: View {
                 }
                 isThinking = false
             }
+            answeringChatID = nil
+            // VoiceOver says the answer as it comes, as it would read it in the chat (audit
+            // 2026-11-15: nothing was said, and the user had to look for it).
+            AccessibilityNotification.Announcement(Self.spoken(reply.text)).post()
             answeredAt = .now
             answering = nil
         }
@@ -466,6 +488,12 @@ struct AssistantView: View {
             pendingRemoval = message
         case (.confirm, .confirmDelete(let snapshot, .pending)):
             store.delete(snapshot)
+            // "Đã xoá" only once it is gone: one the store keeps (a closed goal's, an archived
+            // account's) is said so instead (audit 2026-11-15: the card said it was deleted).
+            guard store.transaction(id: snapshot.id) == nil else {
+                cannotDelete = snapshot
+                return
+            }
             chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .deleted)
         case (.cancel, .confirmDelete(let snapshot, .pending)):
             chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .cancelled)
@@ -481,7 +509,16 @@ struct AssistantView: View {
               case .recorded(let snapshot, removed: false) = chats.conversations[index].messages[row].card
         else { return }
         store.delete(snapshot)
+        guard store.transaction(id: snapshot.id) == nil else {
+            cannotDelete = snapshot
+            return
+        }
         chats.conversations[index].messages[row].card = .recorded(snapshot, removed: true)
+    }
+
+    /// An answer as VoiceOver should say it: without the Markdown marks it is written with.
+    static func spoken(_ text: String) -> String {
+        text.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "• ", with: "")
     }
 }
 

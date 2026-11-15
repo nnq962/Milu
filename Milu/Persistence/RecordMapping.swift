@@ -4,10 +4,19 @@ import Foundation
 // Screens still work in `Double`; money is rounded to whole đồng at this boundary.
 
 extension Int64 {
-    /// Whole đồng from an amount the screens hold as `Double`.
+    /// Whole đồng from an amount the screens hold as `Double`. Never past what Int64 holds: one
+    /// past it stopped the app (audit 2026-11-15: an amount Milu AI was told, 10 tỷ tỷ).
     init(dong amount: Double) {
-        self = amount.isFinite ? Int64(amount.rounded()) : 0
+        guard amount.isFinite else {
+            self = 0
+            return
+        }
+        self = Int64(exactly: amount.rounded()) ?? (amount < 0 ? -Self.dongLimit : Self.dongLimit)
     }
+
+    /// A sum far past any money, still well inside Int64 so sums of a few do not overflow.
+    static let dongLimit: Int64 = 100_000_000_000_000_000
+
 }
 
 extension Double {

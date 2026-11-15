@@ -20,7 +20,12 @@ struct OverviewView: View {
     @State private var selectedDay: CalendarDay?
     /// What a first step's button opens (`OnboardingCard`).
     @State private var adding: AddTransactionView.Mode?
-    @State private var isAddingAccount = false
+    /// "Thêm tài khoản": first the kind (cash, a bank, an e-wallet), as the + of Tài khoản asks
+    /// (audit 2026-11-15: it opened the bank form, which wants a bank, so cash could not be added).
+    @State private var isChoosingAccountKind = false
+    @State private var pendingAccountKind: AccountsView.NewItem?
+    @State private var addingAccountKind: AccountsView.NewItem?
+    private static let accountKinds: [AccountsView.NewItem] = [.cash, .bank, .eWallet]
     @State private var isAddingLoan = false
     @State private var isAddingGoal = false
     /// A recurring payment that fell due, being recorded ("Sắp tới" → "Ghi").
@@ -98,14 +103,14 @@ struct OverviewView: View {
                         // empty figures (user request 2026-11-08: a friendlier first run).
                         OnboardingCard { step in
                             switch step {
-                            case .account: isAddingAccount = true
+                            case .account: isChoosingAccountKind = true
                             case .transaction: adding = .expense
                             case .loan: isAddingLoan = true
                             case .askAI: isShowingAssistant = true
                             }
                         }
                         OverviewHeader(onOpenNetWorth: { path.append(NetWorthRoute()) },
-                                       onAddAccount: { isAddingAccount = true })
+                                       onAddAccount: { isChoosingAccountKind = true })
                         SpendingTiles(onOpenReport: { path.append(ReportRoute(month: .now)) },
                                       onOpenToday: { selectedDay = CalendarDay(date: .now) },
                                       onOpenBudget: { path.append(BudgetRoute()) })
@@ -174,7 +179,22 @@ struct OverviewView: View {
             .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(item: $adding) { AddTransactionView(mode: $0) }
-            .sheet(isPresented: $isAddingAccount) { AddAccountView(type: .bank) }
+            // The form once the choice has gone, so one sheet follows the other.
+            .sheet(isPresented: $isChoosingAccountKind, onDismiss: {
+                addingAccountKind = pendingAccountKind
+                pendingAccountKind = nil
+            }) {
+                OptionSheet(title: "Thêm tài khoản", options: Self.accountKinds.map(\.option)) { option in
+                    pendingAccountKind = Self.accountKinds.first { $0.option.title == option.title }
+                }
+            }
+            .sheet(item: $addingAccountKind) { kind in
+                switch kind {
+                case .cash: AddAccountView(type: .cash)
+                case .eWallet: AddAccountView(type: .eWallet)
+                case .bank, .goal: AddAccountView(type: .bank)
+                }
+            }
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(isPresented: $isAddingGoal) { GoalEditorView(goal: nil) }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }

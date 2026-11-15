@@ -69,8 +69,11 @@ struct FormAmountRow: View {
                     .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                     .focused($isFocused)
                     .accessibilityLabel(title)
+                    // "11.000 đồng", one element (audit 2026-11-15: "đ" was a letter on its own).
+                    .accessibilityValue(MoneyText.spoken(text.vndInputAmount))
                 Text("đ")
                     .foregroundStyle(text.isEmpty ? Color(.placeholderText) : Palette.label)
+                    .accessibilityHidden(true)
             }
             .textRole(.amount)
             .foregroundStyle(Palette.label)

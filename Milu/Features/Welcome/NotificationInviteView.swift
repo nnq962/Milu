@@ -14,12 +14,15 @@ struct NotificationInviteView: View {
     /// iOS's prompt is up: the buttons wait, and the sheet stays.
     @State private var isAsking = false
 
+    /// The reminder's time as set (21:00 unless the user chose another, on another device too),
+    /// so the page says when it will come (audit 2026-11-15: it said 21:00 for a 07:00 one).
+    @AppStorage(StorageKey.dailyReminderMinutes) private var minutes = DailyReminderPlan.defaultMinutes
+
     /// The sample reminder: one of the lines the real ones pick from ("Ví ơi ví à 💸": its emoji
     /// reads on the light and the dark card; the paw of another line was lost on the dark one).
     private static let sample = DailyReminderPlan.messages[0]
     /// The reminder's time, as Cài đặt shows it ("21:00").
-    private static let time = String(format: "%02d:%02d", DailyReminderPlan.defaultMinutes / 60,
-                                      DailyReminderPlan.defaultMinutes % 60)
+    private var time: String { String(format: "%02d:%02d", minutes / 60, minutes % 60) }
 
     var body: some View {
         ScrollView {
@@ -41,6 +44,8 @@ struct NotificationInviteView: View {
         .presentationDragIndicator(.visible)
         .presentationBackground(Palette.surface)
         .interactiveDismissDisabled(isAsking)
+        // Seen once it is on screen (`NotificationInvite`).
+        .onAppear { NotificationInvite.markShown() }
         .task {
             // The reminder drops in a beat after the sheet is up, as it would on the lock screen.
             if reduceMotion {
@@ -84,7 +89,7 @@ struct NotificationInviteView: View {
                     Text("Milu")
                         .textRole(.captionStrong)
                     Spacer(minLength: 0)
-                    Text(Self.time)
+                    Text(time)
                         .textRole(.footnote)
                         .foregroundStyle(Palette.tertiaryLabel)
                 }
@@ -100,7 +105,7 @@ struct NotificationInviteView: View {
         .background(Palette.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .cardShadow()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Ví dụ lời nhắc lúc \(Self.time): \(Self.sample.title) \(Self.sample.body)")
+        .accessibilityLabel("Ví dụ lời nhắc lúc \(time): \(Self.sample.title) \(Self.sample.body)")
     }
 
     /// The line in bold, its emoji as Milu draws them (`MiluEmoji2D`): Nunito has none, and the
@@ -142,7 +147,7 @@ struct NotificationInviteView: View {
             Text("Để Milu nhắc bạn nha?")
                 .textRole(.pageTitle)
                 .accessibilityAddTraits(.isHeader)
-            Text("Mỗi tối lúc \(Self.time), Milu nhắc bạn ghi lại chi tiêu trong ngày. Đổi giờ hay tắt lúc nào cũng được trong Cài đặt.")
+            Text("Mỗi tối lúc \(time), Milu nhắc bạn ghi lại chi tiêu trong ngày. Đổi giờ hay tắt lúc nào cũng được trong Cài đặt.")
                 .textRole(.body)
                 .foregroundStyle(Palette.secondaryLabel)
         }

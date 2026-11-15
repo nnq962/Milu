@@ -362,12 +362,49 @@ struct GoalSheetLink<Label: View>: View {
     let goalID: SavingsGoal.ID
     @ViewBuilder var label: Label
 
+    @Environment(\.openDetailSheet) private var openDetail
     @State private var isOpen = false
 
     var body: some View {
-        Button { isOpen = true } label: { label }
+        Button {
+            if let openDetail { openDetail(.goal(goalID)) } else { isOpen = true }
+        } label: { label }
             .sheet(isPresented: $isOpen) { GoalDetailSheet(goalID: goalID) }
     }
+}
+
+/// A goal's or an account's sheet, opened from the page rather than from its row
+/// (`detailSheets()`): a row's own sheet closed the moment its row left the list, as "Rút hết"
+/// or "Mua ngay" closed the goal (audit 2026-11-15).
+enum DetailSheet: Identifiable, Hashable {
+    case goal(SavingsGoal.ID)
+    case account(Account.ID)
+    var id: Self { self }
+}
+
+extension EnvironmentValues {
+    /// Set by `detailSheets()`; rows open their sheet through it when it is there.
+    @Entry var openDetailSheet: ((DetailSheet) -> Void)? = nil
+}
+
+private struct DetailSheets: ViewModifier {
+    @State private var open: DetailSheet?
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.openDetailSheet) { open = $0 }
+            .sheet(item: $open) { sheet in
+                switch sheet {
+                case .goal(let id): GoalDetailSheet(goalID: id)
+                case .account(let id): AccountDetailSheet(accountID: id)
+                }
+            }
+    }
+}
+
+extension View {
+    /// The page opens its rows' goal and account sheets (`DetailSheet`).
+    func detailSheets() -> some View { modifier(DetailSheets()) }
 }
 
 #Preview {

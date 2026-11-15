@@ -22,7 +22,7 @@ struct OptionSheet: View {
             FormGroup {
                 ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
                     Button {
-                        Haptics.selection()
+                        // No tick: tapping a row opens something, not a choice made (Haptics rules).
                         dismiss()
                         onSelect(option)
                     } label: {

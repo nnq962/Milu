@@ -72,13 +72,13 @@ struct RemindersTests {
         #expect(defaults.object(forKey: StorageKey.dailyReminder) == nil)
     }
 
-    /// A reinstall where the user had turned the reminder off (back through iCloud): allowed, it
-    /// stays off; one they had on stays on, at their own time.
-    @Test func aChoiceMadeBeforeIsKept() async {
+    /// A reinstall where the user had turned the reminder off (back through iCloud): the tap on
+    /// "Bật nhắc nhở" is the newer choice, it comes on; one they had on stays on, at their own time.
+    @Test func theTapIsTheNewerChoice() async {
         let off = scratchDefaults()
         off.set(false, forKey: StorageKey.dailyReminder)
         _ = await NotificationInvite.accept(defaults: off, ask: { true })
-        #expect(off.object(forKey: StorageKey.dailyReminder) as? Bool == false)
+        #expect(off.object(forKey: StorageKey.dailyReminder) as? Bool == true)
 
         let on = scratchDefaults()
         on.set(true, forKey: StorageKey.dailyReminder)

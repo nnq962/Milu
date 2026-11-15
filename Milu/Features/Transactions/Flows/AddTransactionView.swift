@@ -474,13 +474,13 @@ struct AddTransactionView: View {
         // "Chọn" until picked; picking on one side the account already on the other swaps them.
         // One buzz a pick, also when it swaps the sides and so changes both (review 2026-11-07:
         // each side buzzed its own).
-        optionalAccountRow(title: "Từ", selection: accountID) { new in
+        optionalAccountRow(title: "Từ", selection: accountID, keeping: editingTransfer?.fromAccountID) { new in
             if new != accountID { Haptics.selection() }
             if new == toAccountID { toAccountID = self.accountID }
             self.accountID = new
         }
         FormDivider(hasIcon: false)
-        optionalAccountRow(title: "Đến", selection: toAccountID) { new in
+        optionalAccountRow(title: "Đến", selection: toAccountID, keeping: editingTransfer?.toAccountID) { new in
             if new != toAccountID { Haptics.selection() }
             if new == accountID { accountID = self.toAccountID }
             self.toAccountID = new
@@ -489,11 +489,13 @@ struct AddTransactionView: View {
         FormAmountRow(title: "Phí", text: $feeText)
     }
 
-    /// A transfer's side, "Chọn" (red after ✓) until an account is picked.
-    private func optionalAccountRow(title: String, selection: Account.ID?,
+    /// A transfer's side, "Chọn" (red after ✓) until an account is picked. No locked account but
+    /// the one this side already had (`kept`): a locked one moved to the other side does not save
+    /// (audit 2026-11-15: picking it swapped the sides, and ✓ closed with nothing changed).
+    private func optionalAccountRow(title: String, selection: Account.ID?, keeping kept: Account.ID?,
                                     set: @escaping (Account.ID) -> Void) -> some View {
         OptionalAccountRow(title: title, selection: selection,
-                           options: accountOptions.filter { store.account(id: $0) != nil },
+                           options: store.accounts.filter { !$0.isLocked || $0.id == kept }.map(\.id),
                            isInvalid: showsErrors && selection == nil, set: set)
     }
 

@@ -84,6 +84,7 @@ struct AccountsView: View {
                     .presentationBackground(Palette.background)
             }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
+            .detailSheets()
             .sheet(isPresented: $isShowingArchived) { ArchivedAccountsSheet() }
             .sheet(isPresented: $isShowingCompleted) { CompletedGoalsSheet() }
             .sheet(isPresented: $isShowingArchiveAndDone) { ArchiveAndDoneSheet() }
@@ -152,8 +153,12 @@ struct AccountsView: View {
     private var paymentSection: some View {
         PageSection(title: "Ví & ngân hàng") {
             if accounts.isEmpty {
-                EmptyNoteCard(emoji: "👝", title: "Chưa có tài khoản",
-                              message: "Số dư ví và tài khoản của bạn sẽ hiện ở đây.")
+                // Every one archived is not "none yet" (audit 2026-11-15).
+                EmptyNoteCard(emoji: "👝",
+                              title: store.archivedAccounts.isEmpty ? "Chưa có tài khoản" : "Không còn tài khoản đang dùng",
+                              message: store.archivedAccounts.isEmpty
+                                  ? "Số dư ví và tài khoản của bạn sẽ hiện ở đây."
+                                  : "Các tài khoản đã lưu trữ ở mục Lưu trữ bên dưới.")
                     .transition(.emptySwap)
             } else {
                 VStack(spacing: 0) {

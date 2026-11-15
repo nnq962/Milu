@@ -36,6 +36,8 @@ struct LicensesView: View {
         Work(name: "Nunito", use: "SIL Open Font License 1.1", file: "OFL"),
         // Every picture in the app (categories, goals, empty states, Tổng quan) is Fluent Emoji Flat.
         Work(name: "Fluent Emoji (Microsoft)", use: "MIT", file: "FluentEmoji-LICENSE"),
+        // Than's animations run on it (audit 2026-11-15: its notice was missing).
+        Work(name: "Rive", use: "MIT", file: "Rive-LICENSE"),
     ]
 
     var body: some View {

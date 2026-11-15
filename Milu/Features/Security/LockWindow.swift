@@ -69,7 +69,8 @@ struct LockWindowInstaller: UIViewRepresentable {
             coverView = cover
             watch(scene)
             prepareCover()
-            follow()
+            apply()
+            observe()
         }
 
         /// The cover's picture, drawn once the lock is on: at launch, and each time the app is in
@@ -117,19 +118,30 @@ struct LockWindowInstaller: UIViewRepresentable {
 
         private func set(_ phase: ScenePhase) {
             curtain.phase = phase
-            follow()
+            apply()
             lockWindow?.rootViewController?.view.layoutIfNeeded()
         }
 
-        /// Shows the window while there is something to show, hides it after: watched here, not
-        /// from the view inside it, which a hidden window did not always update.
-        private func follow() {
-            let (shows, covers) = withObservationTracking {
-                (LockLayer.shows(lock: lock, phase: curtain.phase),
-                 LockLayer.covers(lock: lock, phase: curtain.phase))
+        /// Watches what the window shows, from its install on: each change applies it and watches
+        /// again, one watch only (audit 2026-11-15: every scene change added one that never ended,
+        /// and each change then ran as many times as the app had gone to the background).
+        private func observe() {
+            withObservationTracking {
+                _ = LockLayer.shows(lock: lock, phase: curtain.phase)
+                _ = LockLayer.covers(lock: lock, phase: curtain.phase)
             } onChange: { [weak self] in
-                Task { @MainActor [weak self] in self?.follow() }
+                Task { @MainActor [weak self] in
+                    self?.apply()
+                    self?.observe()
+                }
             }
+        }
+
+        /// Shows the window while there is something to show, hides it after: done here, not
+        /// from the view inside it, which a hidden window did not always update.
+        private func apply() {
+            let shows = LockLayer.shows(lock: lock, phase: curtain.phase)
+            let covers = LockLayer.covers(lock: lock, phase: curtain.phase)
             guard let lockWindow else { return }
             // Over the lock too while Milu is not in front: the lock is still being drawn under it.
             if covers { prepareCover() }

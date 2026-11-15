@@ -153,6 +153,8 @@ struct ListRowTrailing<Figure: View>: View {
                     .textRole(.caption)
                     .foregroundStyle(noteColor)
                     .monospacedDigit()
+                    // "8 tháng 10", not "8 phần 10" (audit 2026-11-15), as `FormDateRow` says it.
+                    .accessibilityLabel(FormDateRow.spokenDays(in: note))
                     .lineLimit(isAccessibilitySize ? nil : 1)
             }
         }

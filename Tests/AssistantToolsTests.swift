@@ -132,6 +132,10 @@ struct AssistantToolsTests {
         #expect(!RemoteAssistant.counts([GetAppInfo().name, RecordTransaction().name]))
         #expect(RemoteAssistant.counts([GetAppInfo().name, SummarizeTransactions().name]))
         #expect(RemoteAssistant.counts([]))
+        // Finding a transaction to delete it is part of deleting; finding one to read about is not.
+        #expect(!RemoteAssistant.counts([ListTransactions().name, DeleteTransaction().name]))
+        #expect(RemoteAssistant.counts([ListTransactions().name]))
+        #expect(RemoteAssistant.counts([ListTransactions().name, SummarizeTransactions().name, DeleteTransaction().name]))
     }
 
     /// With no lượt left (the question took none), asking about the app is still answered, and a

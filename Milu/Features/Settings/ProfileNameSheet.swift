@@ -50,7 +50,7 @@ struct ProfileNameSheet: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: Self.choiceSize), spacing: Spacing.m)], spacing: Spacing.m) {
             choice(.initial, label: "Chữ cái đầu")
             ForEach(MiluHero.Look.allCases, id: \.self) { look in
-                choice(.milu(look), label: "Milu")
+                choice(.milu(look), label: "Milu \(look.title)")
             }
         }
     }

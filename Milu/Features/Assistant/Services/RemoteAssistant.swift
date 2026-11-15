@@ -74,7 +74,12 @@ struct RemoteAssistant: AssistantService {
     /// Whether the question takes a lượt: not when every tool it ran only recorded, deleted or
     /// told of the app itself (its lượt, Milu Pro, privacy: asked too when none are left).
     static func counts(_ tools: Set<String>) -> Bool {
-        tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, DeleteTransaction().name, GetAppInfo().name])
+        var tools = tools
+        // A delete needs the transaction's ref, which only list_transactions gives: finding it is
+        // part of deleting (audit 2026-11-15: every delete took a lượt, and with none left could not
+        // be done, against the Terms).
+        if tools.contains(DeleteTransaction().name) { tools.remove(ListTransactions().name) }
+        return tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, DeleteTransaction().name, GetAppInfo().name])
     }
 
     private static func emptyAnswer(_ action: AssistantReply.Action?) -> String {

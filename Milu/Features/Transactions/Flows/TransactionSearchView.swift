@@ -11,6 +11,8 @@ struct TransactionSearchView: View {
 
     @Environment(FinanceStore.self) private var store
     @State private var query = ""
+    /// The words searched: `query` once typing pauses (`.task(id:)` below).
+    @State private var searchedQuery = ""
     /// Each text searched in, folded once ("Cà phê" → "ca phe") and kept for the next letters.
     @State private var keys = SearchKeys()
     /// Whether the search field is active (keyboard up); a recent search tapped lowers it.
@@ -55,7 +57,7 @@ struct TransactionSearchView: View {
                 .padding(.bottom, Spacing.xxl)
                 .animation(Motion.gentle(.smooth(duration: 0.25)), value: filter)
                 .animation(Motion.gentle(.smooth(duration: 0.25)), value: loanKind)
-                .animation(Motion.gentle(.smooth(duration: 0.2)), value: trimmedQuery.isEmpty)
+                .animation(Motion.gentle(.smooth(duration: 0.2)), value: searchedQuery.isEmpty)
             }
             .scrollDismissesKeyboard(.immediately)
             .pageBackground()
@@ -71,6 +73,13 @@ struct TransactionSearchView: View {
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             .onSubmit(of: .search) { remember(query) }
+            // The search runs a moment after the last letter, not on every one (audit 2026-11-15:
+            // each letter searched all the history on the main thread). Emptied, at once.
+            .task(id: trimmedQuery) {
+                let words = trimmedQuery
+                if !words.isEmpty { try? await Task.sleep(for: .milliseconds(150)) }
+                if !Task.isCancelled { searchedQuery = words }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
                 ToolbarItem(placement: .topBarTrailing) { filterButton }
@@ -93,18 +102,11 @@ struct TransactionSearchView: View {
 
     @ViewBuilder
     private var flowsResults: some View {
-        if trimmedQuery.isEmpty && !filter.isActive {
+        if searchedQuery.isEmpty && !filter.isActive {
             recentSearches
         } else {
-            let matcher = filter.matcher(in: store)
-            let groups = ActivityDayList.byDay(matches(matcher))
-            if groups.isEmpty {
-                EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy", message: emptyMessage,
-                               picture: IconCatalog.emojiName("🧭"))
-            } else {
-                // The day's title over its card, as on Giao dịch (review 2026-11-07).
-                ActivityDayList(groups: groups, headingOutside: true) { openedItem = $0 }
-            }
+            FlowSearchResults(query: searchedQuery, filter: filter, keys: keys) { openedItem = $0 }
+                .equatable()
         }
     }
 
@@ -175,9 +177,9 @@ struct TransactionSearchView: View {
     /// new loan's money by its person, kind and account; a repayment by "thu/trả nợ", "lãi", the
     /// person and the account. Every word has to be found, in any order, accents aside ("momo cafe").
     /// No words: everything the filters let through.
-    private func matches(_ matcher: TransactionSearchFilter.Matcher) -> [AccountDetailView.Activity] {
-        let words = trimmedQuery.searchKey.split(separator: " ")
-        let keys = keys
+    static func matches(_ matcher: TransactionSearchFilter.Matcher, query: String, keys: SearchKeys,
+                        store: FinanceStore) -> [AccountDetailView.Activity] {
+        let words = query.searchKey.split(separator: " ")
         func found(in text: String) -> Bool {
             guard !words.isEmpty else { return true }
             let key = keys.key(for: text)
@@ -221,9 +223,9 @@ struct TransactionSearchView: View {
     }
 
     /// Says what left nothing: the words, the filters, or both.
-    private var emptyMessage: String {
-        if trimmedQuery.isEmpty { return "Không có giao dịch nào khớp với bộ lọc." }
-        let words = "“\(trimmedQuery)”"
+    static func emptyMessage(query: String, filter: TransactionSearchFilter) -> String {
+        if query.isEmpty { return "Không có giao dịch nào khớp với bộ lọc." }
+        let words = "“\(query)”"
         return filter.isActive ? "Không có giao dịch nào khớp với \(words) và bộ lọc."
             : "Không có giao dịch nào khớp với \(words)."
     }
@@ -315,6 +317,32 @@ struct TransactionSearchView: View {
     private func forget(_ text: String) {
         withAnimation(Motion.gentle(.smooth(duration: 0.25))) {
             historyText = history.filter { $0 != text }.joined(separator: "\n")
+        }
+    }
+}
+
+/// What matches the words and the filters, worked out only when they, or the data, change: in the
+/// page's own body it ran again on every letter typed, over all the history (audit 2026-11-15).
+private struct FlowSearchResults: View, Equatable {
+    let query: String
+    let filter: TransactionSearchFilter
+    let keys: SearchKeys
+    let open: (AccountDetailView.Activity) -> Void
+
+    @Environment(FinanceStore.self) private var store
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.query == rhs.query && lhs.filter == rhs.filter }
+
+    var body: some View {
+        let found = TransactionSearchView.matches(filter.matcher(in: store), query: query, keys: keys, store: store)
+        let groups = ActivityDayList.byDay(found)
+        if groups.isEmpty {
+            EmptyStateCard(icon: "hugeicons-search-01", title: "Không tìm thấy",
+                           message: TransactionSearchView.emptyMessage(query: query, filter: filter),
+                           picture: IconCatalog.emojiName("🧭"))
+        } else {
+            // The day's title over its card, as on Giao dịch (review 2026-11-07).
+            ActivityDayList(groups: groups, headingOutside: true) { open($0) }
         }
     }
 }

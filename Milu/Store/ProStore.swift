@@ -122,9 +122,19 @@ final class ProStore {
     }
 
     /// "Khôi phục giao dịch mua": asks the App Store again for what this Apple ID owns.
+    /// Says no plan is owned only when the App Store answered: offline or cancelled, it said so
+    /// to a paying user (audit 2026-11-15).
     func restore() async {
         failure = nil
-        try? await AppStore.sync()
+        do {
+            try await AppStore.sync()
+        } catch StoreKitError.userCancelled {
+            return
+        } catch {
+            await refresh()
+            if !isPro { failure = "Chưa kết nối được App Store. Bạn thử lại sau nhé." }
+            return
+        }
         await refresh()
         if !isPro { failure = "Apple ID này chưa có gói Milu Pro nào." }
     }

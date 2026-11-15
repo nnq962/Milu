@@ -28,7 +28,10 @@ enum DataReset {
         // Lượt AI (đã dùng, thưởng, các bước đã nhận) giữ nguyên: xoá dữ liệu không được đổi lấy
         // lượt mới, rồi làm lại các bước để nhận thêm (người dùng chọn 2026-11-08).
         // The welcome stays seen too: erasing is not starting the app anew.
-        for key in defaults.dictionaryRepresentation().keys where !AIQuota.isOwnKey(key) && key != StorageKey.welcomeSeen {
+        // Milu Pro too: the App Store's answer, not the user's data (audit 2026-11-15: erased, a
+        // subscriber was free until the app came back to the front).
+        for key in defaults.dictionaryRepresentation().keys
+        where !AIQuota.isOwnKey(key) && key != StorageKey.welcomeSeen && key != StorageKey.proActive {
             defaults.removeObject(forKey: key)
         }
         // Trống thật: không dữ liệu mẫu, không hạn mức mẫu (các `@AppStorage` lấy hạn mức mẫu làm

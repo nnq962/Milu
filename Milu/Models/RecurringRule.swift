@@ -41,7 +41,11 @@ struct RecurringRule: Identifiable, Hashable {
     /// The `n`th day it falls due (0 is `startDate`'s), nil past `endDate`. Counted from the start
     /// each time, so the 31st falls on the 30th in a short month and is back on the 31st after.
     func occurrence(_ n: Int, calendar: Calendar = .current) -> Date? {
-        let start = calendar.startOfDay(for: startDate)
+        occurrence(n, start: calendar.startOfDay(for: startDate), end: endDate.map(calendar.startOfDay), calendar: calendar)
+    }
+
+    /// `occurrence(_:)` with the start and end days worked out once, for a walk over many.
+    private func occurrence(_ n: Int, start: Date, end: Date?, calendar: Calendar) -> Date? {
         let step = n * max(interval, 1)
         let day: Date? = switch frequency {
         case .daily: calendar.date(byAdding: .day, value: step, to: start)
@@ -50,8 +54,24 @@ struct RecurringRule: Identifiable, Hashable {
         case .yearly: calendar.date(byAdding: .year, value: step, to: start)
         }
         guard let day else { return nil }
-        if let endDate, day > calendar.startOfDay(for: endDate) { return nil }
+        if let end, day > end { return nil }
         return day
+    }
+
+    /// An `n` that falls no later than `day`, near it: a walk to `day` starts there, not at the
+    /// start (audit 2026-11-15: a daily rule two years old walked 730 days on every call, several
+    /// times on every draw of Tổng quan and inside the list's sort).
+    private func index(before day: Date, start: Date, calendar: Calendar) -> Int {
+        guard day > start else { return 0 }
+        let unit = max(interval, 1)
+        let count: Int = switch frequency {
+        case .daily: (calendar.dateComponents([.day], from: start, to: day).day ?? 0) / unit
+        case .weekly: (calendar.dateComponents([.day], from: start, to: day).day ?? 0) / (7 * unit)
+        case .monthly: (calendar.dateComponents([.month], from: start, to: day).month ?? 0) / unit
+        case .yearly: (calendar.dateComponents([.year], from: start, to: day).year ?? 0) / unit
+        }
+        // One back: a month's 31st falls on the 30th, and a count can land a day past.
+        return max(count - 1, 0)
     }
 
     /// The days it falls due after `after` (from the start when nil) up to `through`, at most
@@ -59,13 +79,15 @@ struct RecurringRule: Identifiable, Hashable {
     func occurrences(after: Date?, through: Date, limit: Int = 400, calendar: Calendar = .current) -> [Date] {
         let end = calendar.startOfDay(for: through)
         let floor = after.map { calendar.startOfDay(for: $0) }
+        let start = calendar.startOfDay(for: startDate)
+        let last = endDate.map(calendar.startOfDay)
         var days: [Date] = []
-        var n = 0
-        while days.count < limit, let day = occurrence(n, calendar: calendar), day <= end {
+        var n = floor.map { index(before: $0, start: start, calendar: calendar) } ?? 0
+        let first = n
+        while days.count < limit, let day = occurrence(n, start: start, end: last, calendar: calendar), day <= end {
             if floor.map({ day > $0 }) ?? true { days.append(day) }
             n += 1
-            // A daily rule years old: no need to walk every day already handled one by one.
-            if n > 50_000 { break }
+            if n - first > 50_000 { break }
         }
         return days
     }
@@ -73,11 +95,14 @@ struct RecurringRule: Identifiable, Hashable {
     /// The first day it falls due after `date` (the day itself excluded), if any.
     func nextOccurrence(after date: Date, calendar: Calendar = .current) -> Date? {
         let day = calendar.startOfDay(for: date)
-        var n = 0
-        while let next = occurrence(n, calendar: calendar) {
+        let start = calendar.startOfDay(for: startDate)
+        let last = endDate.map(calendar.startOfDay)
+        var n = index(before: day, start: start, calendar: calendar)
+        let first = n
+        while let next = occurrence(n, start: start, end: last, calendar: calendar) {
             if next > day { return next }
             n += 1
-            if n > 50_000 { return nil }
+            if n - first > 50_000 { return nil }
         }
         return nil
     }

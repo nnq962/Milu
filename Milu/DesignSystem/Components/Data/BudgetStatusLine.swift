@@ -25,7 +25,14 @@ struct BudgetStatusLine: View {
         }
         .textRole(.caption)
         .foregroundStyle(color)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        // "10.000.000 đồng", not "đ" spelled as a letter (audit 2026-11-15), as `MoneyText` says it.
+        .accessibilityLabel(Self.spoken(message))
+    }
+
+    /// Money in the line as words: "1.000.000đ" → "1.000.000 đồng".
+    static func spoken(_ message: String) -> String {
+        message.replacing(/(\d)đ/) { "\($0.1) đồng" }
     }
 
     private var color: Color {

@@ -91,7 +91,7 @@ struct SettingsView: View {
     /// Minutes after midnight as a time of day, for the wheels.
     private var reminderTime: Binding<Date> {
         Binding {
-            Calendar.current.date(byAdding: .minute, value: reminderMinutes, to: Calendar.current.startOfDay(for: .now)) ?? .now
+            Calendar.current.date(bySettingHour: reminderMinutes / 60, minute: reminderMinutes % 60, second: 0, of: .now) ?? .now
         } set: { date in
             let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
             reminderMinutes = (parts.hour ?? 21) * 60 + (parts.minute ?? 0)

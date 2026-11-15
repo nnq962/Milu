@@ -165,8 +165,10 @@ struct DailyReminderPlan {
     init(minutes: Int, now: Date, calendar: Calendar = .current) {
         let today = calendar.startOfDay(for: now)
         dates = (0..<Self.days).compactMap { offset -> Date? in
+            // The time on the clock, not minutes from midnight: on a day the clocks change those
+            // land an hour off (audit 2026-11-15, a device in a zone with summer time).
             guard let day = calendar.date(byAdding: .day, value: offset, to: today),
-                  let time = calendar.date(byAdding: .minute, value: minutes, to: day),
+                  let time = calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day),
                   time > now else { return nil }
             return time
         }
@@ -280,8 +282,9 @@ enum NotificationInvite {
         defaults.set(true, forKey: StorageKey.notificationInviteSeen)
     }
 
-    /// "Bật nhắc nhở": iOS's prompt. Allowed, the reminder comes on at its default 21:00, unless the
-    /// user had set it before (a reinstall gets Cài đặt back through iCloud: off stays off).
+    /// "Bật nhắc nhở": iOS's prompt. Allowed, the reminder comes on, at the time the page showed
+    /// (21:00, or one the user set before, back through iCloud). The tap is the newer choice: one
+    /// turned off before comes on too (audit 2026-11-15: it stayed off, and nothing said why).
     @MainActor
     static func accept(defaults: UserDefaults = .standard,
                        ask: () async -> Bool = {
@@ -289,9 +292,7 @@ enum NotificationInvite {
                            await AppLock.shared.whileSystemAsks { await Reminders.shared.requestPermission() }
                        }) async -> Bool {
         guard await ask() else { return false }
-        if defaults.object(forKey: StorageKey.dailyReminder) == nil {
-            defaults.set(true, forKey: StorageKey.dailyReminder)
-        }
+        defaults.set(true, forKey: StorageKey.dailyReminder)
         return true
     }
 }

@@ -33,8 +33,10 @@ struct RecurringListView: View {
                                     showsChevron: false) {
                                 RowIcon(name: store.categoryIcon(rule.categoryID))
                             } trailing: {
+                                // Money going out in ink with "−", as the rule's own sheet and every
+                                // other list of money out (audit 2026-11-15: every rule read red).
                                 ListRowAmount(amount: rule.amount,
-                                              tone: rule.isPaused ? .muted : rule.kind == .income ? .signedIncome : .signedExpense)
+                                              tone: rule.isPaused ? .muted : rule.kind == .income ? .signedIncome : .outflow)
                             }
                         }
                         .buttonStyle(.row)

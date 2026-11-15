@@ -67,6 +67,7 @@ struct ReportView: View {
         .navigationDestination(item: $openGroup) { groupID in
             CategoryReportView(groupID: groupID, period: period) { period = $0 }
         }
+        .detailSheets()
     }
 
     // MARK: - Tổng

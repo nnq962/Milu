@@ -51,7 +51,8 @@ struct IconPickerSheet: View {
     private func cell(_ icon: CatalogIcon) -> some View {
         Button {
             selection = icon.name
-            Haptics.selection()
+            // No tick here: the picker that opened the sheet ticks on the change (audit
+            // 2026-11-15: two ticks for one tap).
             dismiss()
         } label: {
             IconChoiceLabel(name: icon.name, isSelected: icon.name == selection, size: RowMetrics.iconChoice)

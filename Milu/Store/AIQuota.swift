@@ -163,9 +163,11 @@ final class AIQuota {
     }
 
     private func save() {
-        // Run-out bonuses go, so the list stays short.
+        // Expired bonuses go, so the list stays short. One used up stays until it expires: a
+        // question that took its last lượt and then is given it back (no answer, only recorded)
+        // finds it (audit 2026-11-15: the lượt was lost, and the bonus bar shrank).
         let moment = now()
-        grants.removeAll { $0.left <= 0 || $0.expires <= moment }
+        grants.removeAll { $0.expires <= moment }
         defaults.set(week, forKey: Keys.week)
         defaults.set(used, forKey: Keys.used)
         defaults.set(try? JSONEncoder().encode(grants), forKey: Keys.grants)

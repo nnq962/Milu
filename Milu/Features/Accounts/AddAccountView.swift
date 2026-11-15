@@ -218,7 +218,11 @@ struct AddAccountView: View {
         account.institutionID = hasInstitutions ? institutionID : nil
         account.openedAt = openedAt
         account.isLocked = isLocked
-        store.update(account, balance: isNegative ? -amount : amount)
+        // Only a balance the user changed moves it: left as it opened, the balance now stands
+        // (audit 2026-11-15: a spending synced in while the form was open was undone by a hidden
+        // "Điều chỉnh số dư" when only the name changed).
+        let typed = isNegative ? -amount : amount
+        store.update(account, balance: abs(typed - original.balance) < 1 ? account.balance : typed)
     }
 
     private func save() {

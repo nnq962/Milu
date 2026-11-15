@@ -93,6 +93,8 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
     /// a moment later, so a ✓ that kept the sheet open (a save that failed) works again.
     @State private var hasConfirmed = false
     @State private var isConfirmingDiscard = false
+    /// The content's height with its margins, for a sheet that fits its content.
+    @State private var contentHeight: CGFloat?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -109,8 +111,9 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
             .padding(.bottom, Spacing.xxl)
             .frame(maxWidth: .infinity)
             .keyboardDismissArea()
+            .modifier(ContentHeightReader(isOn: measuresHeight) { contentHeight = $0 })
         }
-        .modifier(HeightReport(isOn: measuresHeight))
+        .modifier(HeightReport(isOn: measuresHeight, contentHeight: contentHeight))
         .scrollBounceBehavior(measuresHeight ? .basedOnSize : .automatic)
         .dismissesKeyboardOnDrag()
         .pageBackground()
@@ -199,24 +202,38 @@ struct SheetHeightKey: PreferenceKey {
     static func reduce(value: inout CGFloat?, nextValue: () -> CGFloat?) { value = nextValue() ?? value }
 }
 
-/// Measures the scroll view's content and bar only on a sheet that fits its content, so other
-/// sheets never redraw on a change of height (review 2026-10-31: every keystroke in the amount
-/// field re-laid the whole form).
+/// Measures the content and the bar only on a sheet that fits its content, so other sheets never
+/// redraw on a change of height (review 2026-10-31: every keystroke in the amount field re-laid
+/// the whole form). The content is measured inside the scroll view, which works on iOS 17 too
+/// (audit 2026-11-15: measuring the scroll view needs iOS 18, and every such sheet was stuck at
+/// 300pt there, the calendar and the time wheel cut off).
 private struct HeightReport: ViewModifier {
     let isOn: Bool
+    let contentHeight: CGFloat?
 
-    @State private var contentHeight: CGFloat?
     @State private var barHeight: CGFloat?
 
     func body(content: Content) -> some View {
-        // Measuring the scroll view needs iOS 18; before it a fitted sheet keeps its fallback detent.
-        if isOn, #available(iOS 18.0, *) {
+        if isOn {
             content
-                // The content is the scroll view's one child; the bar is its top safe area.
-                .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, new in contentHeight = new }
+                // The bar is the scroll view's top safe area.
                 .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { barHeight = $0 }
                 .preference(key: SheetHeightKey.self,
                             value: contentHeight.map { $0 + (barHeight ?? ControlHeight.regular) })
+        } else {
+            content
+        }
+    }
+}
+
+/// The content's height inside the scroll view, for `HeightReport`.
+private struct ContentHeightReader: ViewModifier {
+    let isOn: Bool
+    let report: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if isOn {
+            content.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { report($0) }
         } else {
             content
         }

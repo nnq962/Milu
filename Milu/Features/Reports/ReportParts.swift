@@ -84,10 +84,12 @@ struct ReportPeriodBar: View {
             Haptics.selection()
             withAnimation(.snappy) { period = period.shifted(by: count) }
         } label: {
-            MiluIcon(icon, size: glyph)
+            MiluIcon(icon, size: RowMetrics.capped(glyph, base: RowMetrics.toolbarGlyph))
                 .foregroundStyle(Palette.primary)
         }
-        .flatCircleButton(diameter: diameter)
+        // No more than 1.6 times, as every row icon: uncapped, two of them took most of the row at
+        // the accessibility sizes and the period's name broke letter by letter (audit 2026-11-15).
+        .flatCircleButton(diameter: RowMetrics.capped(diameter, base: ControlHeight.regular))
         .accessibilityLabel(label)
     }
 

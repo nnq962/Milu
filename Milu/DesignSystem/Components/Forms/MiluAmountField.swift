@@ -43,6 +43,17 @@ struct MiluAmountField: View {
         return kind == .income ? "+" : "−"
     }
 
+    /// The figure as VoiceOver says it, with its sign: "trừ 60.000 đồng".
+    private var spokenValue: String {
+        guard amount > 0 else { return "0 đồng" }
+        let words = switch sign {
+        case "−": "trừ "
+        case "+": "cộng "
+        default: ""
+        }
+        return words + MoneyText.spoken(amount)
+    }
+
     private var color: Color {
         if isNegative { return Palette.negative }
         switch kind {
@@ -56,7 +67,7 @@ struct MiluAmountField: View {
     private static let clearWidth: CGFloat = 36
 
     /// The largest amount the field takes (12 digits, as `groupedVNDInput`).
-    private static let maxAmount: Double = 999_999_999_999
+    static let maxAmount: Double = 999_999_999_999
 
     /// What the typed digits most likely mean: 5 → 5.000đ, 50.000đ, 500.000đ; 25 → 25.000đ …
     /// 2.500.000đ. Three chips, written in full as a banking app does (user choice 2026-10-31:
@@ -75,6 +86,8 @@ struct MiluAmountField: View {
                     Text(sign)
                         .contentTransition(reduceMotion ? .identity : .numericText())
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
+                        // Said by the field, with the figure (`spokenValue`).
+                        .accessibilityHidden(true)
                 }
                 // The figure the user sees, changing at once (no rolling digits: too busy when a
                 // chip is picked, user request 2026-10-28). The TextField over it draws no text
@@ -84,6 +97,8 @@ struct MiluAmountField: View {
                 Text(text.isEmpty ? " " : text)
                     .opacity(text.isEmpty ? 0 : 1)
                     .frame(width: text.isEmpty ? 2 : nil)
+                    // The field over it says the figure: read once, not twice (audit 2026-11-15).
+                    .accessibilityHidden(true)
                     .overlay {
                         TextField("", text: $text)
                             .keyboardType(.numberPad)
@@ -92,6 +107,7 @@ struct MiluAmountField: View {
                             .tint(Palette.label)
                             .focused($isFocused)
                             .accessibilityLabel(accessibilityLabel)
+                            .accessibilityValue(spokenValue)
                     }
                 if text.isEmpty {
                     Text("0")
@@ -101,9 +117,16 @@ struct MiluAmountField: View {
                 // Greys out with the "0" placeholder until there is a figure.
                 Text("đ")
                     .foregroundStyle(text.isEmpty ? Color(.placeholderText) : color)
+                    .accessibilityHidden(true)
             }
             .font(Typography.font(TextRole.amountEntry.textStyle, size: heroSize, weight: TextRole.amountEntry.weight))
             .monospacedDigit()
+            // One line, at the size its steps were made for: 52pt is larger than any body text up
+            // to the accessibility sizes, and grown again by the text size it wrapped
+            // ("−500.00" / "0đ" at xxLarge on a 393pt iPhone, audit 2026-11-15). Its steps
+            // (`amountEntrySize`) already make a long figure smaller.
+            .lineLimit(1)
+            .dynamicTypeSize(...DynamicTypeSize.large)
             .foregroundStyle(color)
             // Still under Reduce Motion: the figure, sign and colour change at once.
             .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: heroSize)
@@ -186,7 +209,9 @@ struct MiluAmountField: View {
                     picks += 1
                 }
                 .fixedSize()
-                .accessibilityLabel(preset.title.isEmpty ? preset.value.vnd : "\(preset.title) \(preset.value.vnd)")
+                .accessibilityLabel(preset.title.isEmpty ? MoneyText.spoken(preset.value)
+                                                         : "\(preset.title) \(MoneyText.spoken(preset.value))")
+                .accessibilityAddTraits(preset.value == amount ? .isSelected : [])
             }
             // Kept by place, not by amount: typing 5 → 55 changes the figures in the same three
             // chips, which roll to them and widen, instead of three chips fading out while three
@@ -198,7 +223,9 @@ struct MiluAmountField: View {
                 }
                 .contentTransition(reduceMotion ? .identity : .numericText(value: value))
                 .fixedSize()
-                .accessibilityLabel(value.vnd)
+                // "50.000 đồng", not "đ" spelled as a letter (audit 2026-11-15).
+                .accessibilityLabel(MoneyText.spoken(value))
+                .accessibilityAddTraits(value == amount ? .isSelected : [])
             }
         }
     }

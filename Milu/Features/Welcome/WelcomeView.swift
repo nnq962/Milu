@@ -387,7 +387,7 @@ private struct WelcomeProfileForm: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Avatar Milu")
+        .accessibilityLabel("Milu \(look.title)")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

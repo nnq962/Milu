@@ -147,7 +147,11 @@ struct ListTransactions: AssistantTool {
         if let search = arguments["search"]?.string?.searchKey, !search.isEmpty {
             items = items.filter { "\($0.note) \(store.categoryName($0.categoryID))".searchKey.contains(search) }
         }
-        items.sort(by: arguments["sort"]?.string == "largest" ? { $0.amount > $1.amount } : { $0.date > $1.date })
+        let largest = arguments["sort"]?.string == "largest"
+        // "Khoản lớn nhất" as Báo cáo counts: not one kept out of reports, nor one on a locked
+        // account (audit 2026-11-15: a 20tr advance marked "Không tính" came first).
+        if largest { items = items.filter(store.isReportable) }
+        items.sort(by: largest ? { $0.amount > $1.amount } : { $0.date > $1.date })
         let limit = min(max(Int(arguments["limit"]?.number ?? 10), 1), 20)
         return ToolOutput(result: [
             "count": .number(Double(items.count)),
@@ -174,7 +178,8 @@ struct GetAccounts: AssistantTool {
             if account.isLocked { item["notCounted"] = true }
             return .object(item)
         }
-        let cardDebt = store.countedAccounts.filter { $0.balance < 0 }.reduce(0) { $0 - $1.balance }
+        // Credit cards only: a wallet below zero is not a card owed (audit 2026-11-15).
+        let cardDebt = store.countedAccounts.filter { $0.type == .credit && $0.balance < 0 }.reduce(0) { $0 - $1.balance }
         let owed = cardDebt + store.totalBorrowed
         return ToolOutput(result: [
             "accounts": .array(accounts),
@@ -217,7 +222,8 @@ struct GetLoans: AssistantTool {
             .sorted { $0.outstanding > $1.outstanding }
         let today = Calendar.current.startOfDay(for: .now)
         // Credit cards owed too: "nợ nần ra sao" came here and left the card out (2026-11-15).
-        let cards = store.countedAccounts.filter { $0.balance < 0 }
+        // Credit cards only: a wallet below zero is not a card owed (audit 2026-11-15).
+        let cards = store.countedAccounts.filter { $0.type == .credit && $0.balance < 0 }
         let cardDebt = cards.reduce(0) { $0 - $1.balance }
         let owed = store.totalBorrowed + cardDebt
         return ToolOutput(result: [
@@ -280,13 +286,23 @@ struct RecordTransaction: AssistantTool {
 
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
         guard let amount = arguments["amount"]?.number, amount >= 1 else { return .failure("Thiếu số tiền") }
+        // No more than the forms take: a larger one could not be edited, and past Int64 it stopped
+        // the app (audit 2026-11-15).
+        guard amount <= MiluAmountField.maxAmount else {
+            return .failure("Số tiền quá lớn, tối đa \(MiluAmountField.maxAmount.vnd). Hỏi lại người dùng, chưa ghi gì")
+        }
         let kind = TransactionKind(rawValue: arguments["kind"]?.string ?? "") ?? .expense
         let note = String((arguments["note"]?.string ?? "").prefix(200))
         let named = arguments["account"]?.string?.trimmingCharacters(in: .whitespaces) ?? ""
         let account: Account
         if named.isEmpty {
-            guard let main = store.paymentAccounts.first ?? store.accounts.first else {
-                return .failure("Chưa có tài khoản nào: người dùng cần thêm tài khoản trước")
+            // The one the add form would pick: the last used, else the first wallet or bank; never a
+            // locked one, kept out of every total (audit 2026-11-15: the spending vanished there).
+            let usable = store.usableAccounts
+            let last = UserDefaults.standard.string(forKey: StorageKey.lastAccountID).flatMap(UUID.init(uuidString:))
+            guard let main = usable.first(where: { $0.id == last })
+                ?? usable.first(where: { AccountType.paymentTypes.contains($0.type) }) ?? usable.first else {
+                return .failure("Chưa có tài khoản nào dùng được: người dùng cần thêm tài khoản trước")
             }
             account = main
         } else {
@@ -338,6 +354,10 @@ struct DeleteTransaction: AssistantTool {
               let transaction = store.transactions.first(where: { ToolTransactions.ref($0) == ref }) else {
             return .failure("Không tìm thấy giao dịch với ref này; hãy gọi list_transactions để tìm")
         }
+        // One the store would keep (a closed goal's, an archived account's): said, no card.
+        if let reason = store.readOnlyReason(transaction) {
+            return .failure("Không xoá được giao dịch này: \(reason)")
+        }
         return ToolOutput(result: ["ok": true, "awaitingConfirmation": true,
                                    "transaction": ToolTransactions.describe(transaction, in: store)],
                           action: .confirmDelete(transaction))
@@ -387,7 +407,7 @@ enum ToolTransactions {
     }
 
     static func describe(_ transaction: FinanceTransaction, in store: FinanceStore) -> JSONValue {
-        [
+        var item: [String: JSONValue] = [
             "ref": .string(ref(transaction)),
             "date": .string(ToolDates.text(transaction.date)),
             "kind": .string(transaction.kind.rawValue),
@@ -396,6 +416,9 @@ enum ToolTransactions {
             "account": .string(store.accounts.first { $0.id == transaction.accountID }?.name ?? ""),
             "note": .string(transaction.note.components(separatedBy: .newlines).first ?? ""),
         ]
+        // Kept out of Báo cáo and the limits ("Không tính", or on a locked account).
+        if !store.isReportable(transaction) { item["notCounted"] = true }
+        return .object(item)
     }
 }
 

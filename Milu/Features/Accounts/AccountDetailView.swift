@@ -153,10 +153,13 @@ struct AccountSheetLink<Label: View>: View {
     let accountID: Account.ID
     @ViewBuilder var label: Label
 
+    @Environment(\.openDetailSheet) private var openDetail
     @State private var isOpen = false
 
     var body: some View {
-        Button { isOpen = true } label: { label }
+        Button {
+            if let openDetail { openDetail(.account(accountID)) } else { isOpen = true }
+        } label: { label }
             .sheet(isPresented: $isOpen) { AccountDetailSheet(accountID: accountID) }
     }
 }
