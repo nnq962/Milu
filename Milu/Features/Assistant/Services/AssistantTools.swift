@@ -198,8 +198,9 @@ struct GetAccounts: AssistantTool {
 struct GetLoans: AssistantTool {
     let name = "get_loans"
     let description = """
-        Các khoản cho vay (người khác nợ mình) và đi vay (mình nợ người khác): còn lại bao nhiêu, đã trả bao \
-        nhiêu, vay từ ngày nào, hạn trả, lãi mỗi tháng, của ai. Mặc định chỉ các khoản chưa trả xong.
+        Nợ nần: các khoản cho vay (người khác nợ mình) và đi vay (mình nợ người khác), còn lại bao nhiêu, đã \
+        trả bao nhiêu, vay từ ngày nào, hạn trả, lãi mỗi tháng, của ai; kèm dư nợ thẻ tín dụng. Mặc định chỉ các \
+        khoản chưa trả xong.
         """
     let parameters: JSONValue = [
         "type": "object",
@@ -215,9 +216,19 @@ struct GetLoans: AssistantTool {
         let loans = store.loans.filter { (settledToo || !$0.isSettled) && (direction == nil || $0.direction == direction) }
             .sorted { $0.outstanding > $1.outstanding }
         let today = Calendar.current.startOfDay(for: .now)
+        // Credit cards owed too: "nợ nần ra sao" came here and left the card out (2026-11-15).
+        let cards = store.countedAccounts.filter { $0.balance < 0 }
+        let cardDebt = cards.reduce(0) { $0 - $1.balance }
+        let owed = store.totalBorrowed + cardDebt
         return ToolOutput(result: [
             "lentOutstanding": ToolMoney.value(store.totalLent),
             "borrowedOutstanding": ToolMoney.value(store.totalBorrowed),
+            "creditCardDebt": ToolMoney.value(cardDebt),
+            "creditCards": .array(cards.map { ["name": .string($0.name), "debt": ToolMoney.value(-$0.balance)] }),
+            "say": .string("""
+                Bạn còn nợ \(owed.vnd) (đi vay \(store.totalBorrowed.vnd), thẻ tín dụng \(cardDebt.vnd)); \
+                người khác còn nợ bạn \(store.totalLent.vnd).
+                """),
             "loans": .array(loans.prefix(20).map { loan -> JSONValue in
                 var item: [String: JSONValue] = [
                     "name": .string(loan.name),

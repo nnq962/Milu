@@ -214,6 +214,18 @@ struct FinanceToolsTests {
         #expect(all.count == 2)
     }
 
+    /// "Nợ nần ra sao": the loans and the credit card owed, in one sentence.
+    @Test func loansTellTheCardOwedToo() {
+        let card = Account(name: "Thẻ Visa", type: .credit, balance: -4_000_000)
+        let store = FinanceStore(accounts: [wallet, card], transactions: [],
+                                 loans: [Loan(name: "Tuấn", direction: .borrowed, principal: 1_000_000, outstanding: 1_000_000),
+                                         Loan(name: "Lan", direction: .lent, principal: 600_000, outstanding: 600_000)],
+                                 paymentReminders: [], savingsGoals: [], goalTransfers: [], contacts: [])
+        let result = GetLoans().run([:], in: store).result
+        #expect(result["creditCardDebt"] == 4_000_000)
+        #expect(result["say"]?.string == "Bạn còn nợ 5.000.000đ (đi vay 1.000.000đ, thẻ tín dụng 4.000.000đ); người khác còn nợ bạn 600.000đ.")
+    }
+
     @Test func summaryAddsADayAndTheGroupsItems() {
         let store = makeStore(transactions: [spend(300_000, "food.lunch"), spend(200_000, "food.coffee")])
         let from = ToolDates.text(day(-9))
