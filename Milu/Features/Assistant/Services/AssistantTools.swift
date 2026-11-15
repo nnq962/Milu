@@ -282,9 +282,24 @@ struct RecordTransaction: AssistantTool {
         guard let amount = arguments["amount"]?.number, amount >= 1 else { return .failure("Thiếu số tiền") }
         let kind = TransactionKind(rawValue: arguments["kind"]?.string ?? "") ?? .expense
         let note = String((arguments["note"]?.string ?? "").prefix(200))
-        guard let account = ToolNames.account(arguments["account"]?.string, in: store)
-            ?? store.paymentAccounts.first ?? store.accounts.first else {
-            return .failure("Chưa có tài khoản nào: người dùng cần thêm tài khoản trước")
+        let named = arguments["account"]?.string?.trimmingCharacters(in: .whitespaces) ?? ""
+        let account: Account
+        if named.isEmpty {
+            guard let main = store.paymentAccounts.first ?? store.accounts.first else {
+                return .failure("Chưa có tài khoản nào: người dùng cần thêm tài khoản trước")
+            }
+            account = main
+        } else {
+            // A named account that is not one, or could be several: asked, never put on another
+            // (audit 2026-11-15: it went on the first account, or the wrong one, unseen).
+            switch ToolNames.match(named, in: store.accounts) {
+            case .found(let match):
+                account = match
+            case .ambiguous(let options):
+                return .failure("Chưa rõ tài khoản \"\(named)\": có thể là \(options.map(\.name).joined(separator: ", ")). Hỏi lại người dùng muốn ghi vào tài khoản nào, chưa ghi gì")
+            case .none:
+                return .failure("Không có tài khoản nào tên \"\(named)\". Các tài khoản: \(store.accounts.map(\.name).joined(separator: ", ")). Hỏi lại người dùng muốn ghi vào tài khoản nào, chưa ghi gì")
+            }
         }
         let categoryID = ToolNames.category(arguments["category"]?.string, kind: kind, in: store)
             ?? Self.guessCategory(note: note, kind: kind)
@@ -384,14 +399,53 @@ enum ToolTransactions {
     }
 }
 
-/// Names the model wrote, matched to the phone's own: exact first, then one inside the other,
-/// all without accents or case.
+/// Names the model wrote, matched to the phone's own, all without accents or case.
 enum ToolNames {
+    /// An account the model named: one account, several it could be, or none.
+    enum AccountMatch: Equatable {
+        case found(Account)
+        case ambiguous([Account])
+        case none
+    }
+
+    /// The account a name means, from the surest match to the loosest, stopping at the first that
+    /// finds any: the exact name; the bank or wallet's own short name or keyword ("MB", "VCB");
+    /// the kind of account ("tiền mặt"); whole words ("ví" is "Ví tiền mặt", never "Vietcombank");
+    /// a part of a word ("vietcom"). Several at one step are told as such, never guessed (audit
+    /// 2026-11-15: "MB" went on Vietcombank, which holds "mb", as the first account containing it).
+    static func match(_ name: String?, in accounts: [Account]) -> AccountMatch {
+        guard let key = name?.searchKey.trimmingCharacters(in: .whitespaces), !key.isEmpty else { return .none }
+        let typed = words(key)
+        let steps: [(Account) -> Bool] = [
+            { $0.name.searchKey == key },
+            { account in
+                account.institution.map { institution in
+                    institution.shortName.searchKey == key || institution.keywords.contains { $0.searchKey == key }
+                } == true
+            },
+            { $0.type.title.searchKey == key },
+            { account in
+                let named = words(account.name.searchKey)
+                return typed.isSubset(of: named) || named.isSubset(of: typed)
+            },
+            { $0.name.searchKey.contains(key) || key.contains($0.name.searchKey) },
+        ]
+        for step in steps {
+            let found = accounts.filter(step)
+            if found.count == 1 { return .found(found[0]) }
+            if found.count > 1 { return .ambiguous(found) }
+        }
+        return .none
+    }
+
+    /// The one account a name means, or nil when it means none or several.
     static func account(_ name: String?, in store: FinanceStore) -> Account? {
-        guard let key = name?.searchKey, !key.isEmpty else { return nil }
-        return store.accounts.first { $0.name.searchKey == key }
-            ?? store.accounts.first { $0.name.searchKey.contains(key) || key.contains($0.name.searchKey) }
-            ?? store.accounts.first { $0.institution.map { $0.shortName.searchKey == key } == true }
+        if case .found(let account) = match(name, in: store.accounts) { return account }
+        return nil
+    }
+
+    private static func words(_ text: String) -> Set<String> {
+        Set(text.split { !$0.isLetter && !$0.isNumber }.map(String.init))
     }
 
     /// A category of `kind` by name: an item, or a group.

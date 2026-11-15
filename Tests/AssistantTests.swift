@@ -28,6 +28,32 @@ struct AssistantTests {
         chats.conversations[index].messages.append(ChatMessage(role: .user, text: question))
     }
 
+    /// Saved chats that cannot be read at launch (locked with the iPhone) are not written over, and
+    /// come back, with any chat started since, once they can be read (audit 2026-11-15).
+    @Test func lockedChatsAreNotWrittenOverAndComeBack() async throws {
+        let folder = URL.temporaryDirectory.appending(path: "chats-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appending(path: "AssistantChats.json")
+        let old = Conversation(messages: [ChatMessage(role: .user, text: "Tháng này tiêu bao nhiêu?")])
+        let saved = try JSONEncoder().encode([old])
+        try saved.write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+
+        let chats = AssistantChats(saving: true, fileURL: url)
+        #expect(chats.history.isEmpty)
+        ask(chats, "Ghi cà phê 35k")
+        try await Task.sleep(for: .seconds(1))
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+        #expect(try Data(contentsOf: url) == saved)
+
+        chats.readUnread()
+        #expect(Set(chats.history.map(\.title)) == ["Tháng này tiêu bao nhiêu?", "Ghi cà phê 35k"])
+        try await Task.sleep(for: .seconds(1))
+        let written = try JSONDecoder().decode([Conversation].self, from: Data(contentsOf: url))
+        #expect(written.count == 2)
+    }
+
     @Test func aNewChatOpensEmptyAndStaysOutOfTheHistory() {
         let chats = AssistantChats(saving: false)
         #expect(chats.conversations.count == 1)

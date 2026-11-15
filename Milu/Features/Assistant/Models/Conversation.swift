@@ -69,15 +69,31 @@ final class AssistantChats {
     /// The newest chats kept: an old chat is a few kilobytes, but the list should stay short.
     static let limit = 100
 
-    /// `saving: false` keeps it in memory only (previews, tests).
-    init(saving: Bool = true) {
+    /// `saving: false` keeps it in memory only (previews, tests). `fileURL`: where they are kept
+    /// (tests use their own).
+    init(saving: Bool = true, fileURL: URL = AssistantChats.fileURL) {
         isSaving = saving
-        let saved = saving ? Self.load() : []
+        url = fileURL
+        var saved: [Conversation] = []
+        if saving {
+            switch Self.load(from: fileURL) {
+            case .read(let chats): saved = chats
+            case .missing: break
+            case .unreadable: isUnread = true
+            }
+        }
         conversations = saved + [.new()]
         currentID = conversations.last?.id
+        if isUnread { readOnceUnlocked() }
     }
 
     @ObservationIgnored private let isSaving: Bool
+    @ObservationIgnored private let url: URL
+    /// The saved chats are there but could not be read: Milu was started in the background while
+    /// the iPhone was locked, and the file is locked with it. Nothing is written over them until
+    /// they are read (audit 2026-11-15: the first save replaced every chat with the new one).
+    @ObservationIgnored private var isUnread = false
+    @ObservationIgnored private var unlockObserver: NSObjectProtocol?
 
     /// Chats with a question, newest activity first.
     var history: [Conversation] {
@@ -116,7 +132,7 @@ final class AssistantChats {
     /// on it, sending a question held the screen for over 100ms as its bubble set off (measured
     /// frame by frame, 2026-11-10). A send and its answer come a second apart; each is saved.
     private func save() {
-        guard isSaving else { return }
+        guard isSaving, !isUnread else { return }
         pendingSave?.cancel()
         pendingSave = Task { [weak self] in
             try? await Task.sleep(for: .seconds(0.4))
@@ -128,12 +144,14 @@ final class AssistantChats {
     private func writeNow() {
         let kept = Array(history.prefix(Self.limit))
         guard let data = try? JSONEncoder().encode(kept) else { return }
-        let url = Self.fileURL
+        let url = url
         Task.detached(priority: .utility) {
             do {
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(),
                                                         withIntermediateDirectories: true)
-                try data.write(to: url, options: [.atomic, .completeFileProtection])
+                // Readable from the first unlock after the iPhone starts, so a launch in the
+                // background (an iCloud push) reads them too; `.complete` kept them from it.
+                try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             } catch {
                 Logger(subsystem: "com.quyetnguyen.Milu", category: "assistant")
                     .error("Cannot save the chats: \(error)")
@@ -141,16 +159,50 @@ final class AssistantChats {
         }
     }
 
-    private static func load() -> [Conversation] {
-        guard let data = try? Data(contentsOf: fileURL) else { return [] }
+    private enum Saved {
+        case read([Conversation])
+        /// No file: none kept yet, or erased.
+        case missing
+        /// A file that cannot be opened now (locked with the iPhone).
+        case unreadable
+    }
+
+    private static func load(from url: URL) -> Saved {
+        guard FileManager.default.fileExists(atPath: url.path) else { return .missing }
+        let data: Data
         do {
-            return try JSONDecoder().decode([Conversation].self, from: data)
+            data = try Data(contentsOf: url)
+        } catch {
+            log.error("Cannot open the chats: \(error)")
+            return .unreadable
+        }
+        do {
+            return .read(try JSONDecoder().decode([Conversation].self, from: data)
                 .filter(\.hasQuestions)
-                .sorted { $0.startedAt < $1.startedAt }
+                .sorted { $0.startedAt < $1.startedAt })
         } catch {
             log.error("Cannot read the chats: \(error)")
-            return []
+            return .read([])
         }
+    }
+
+    /// Read the saved chats once the iPhone is unlocked, before anything is saved over them.
+    private func readOnceUnlocked() {
+        unlockObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.readUnread() }
+        }
+    }
+
+    /// The saved chats first, then any started since; a no-op once they are read.
+    func readUnread() {
+        guard isUnread, case .read(let saved) = Self.load(from: url) else { return }
+        isUnread = false
+        if let unlockObserver { NotificationCenter.default.removeObserver(unlockObserver) }
+        unlockObserver = nil
+        let here = Set(conversations.map(\.id))
+        conversations = saved.filter { !here.contains($0.id) } + conversations
     }
 
     /// For "Xoá toàn bộ dữ liệu".

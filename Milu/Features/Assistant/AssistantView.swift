@@ -272,10 +272,27 @@ struct AssistantView: View {
         .accessibilityLabel(label)
     }
 
-    /// Milu's answer to a question asked with no lượt left, in its voice.
-    private var outOfQuestionsReply: String {
-        "Tuần này bạn hỏi Milu hết lượt rồi 😏 Lượt mới có từ **thứ Hai \(quota.renewsOn.shortDay)** nha.\n\n"
+    /// Milu's answer to a question asked with no lượt left, in its voice; first what it did all
+    /// the same, when it recorded or found a transaction to delete.
+    private func outOfQuestionsReply(after action: AssistantReply.Action?) -> String {
+        let renews = "Lượt mới có từ **thứ Hai \(quota.renewsOn.shortDay)** nha."
+        let first = switch action {
+        case .recorded: "Khoản bạn nhờ ghi thì Milu ghi rồi, ở bên dưới nhé. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
+        case .confirmDelete: "Khoản cần xoá ở bên dưới, bạn bấm xác nhận là xong. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
+        case nil: "Tuần này bạn hỏi Milu hết lượt rồi 😏 "
+        }
+        return first + renews + "\n\n"
             + "• Ghi hay xoá giao dịch thì vẫn thoải mái, không tốn lượt.\n• Muốn hỏi thả ga thì đợi Milu Pro nhé."
+    }
+
+    /// ■ came after Milu had recorded a transaction: said under "Bạn đã dừng", with its card.
+    private func showRecordedAfterStop(_ transaction: FinanceTransaction, in chatID: Conversation.ID) {
+        guard let index = chats.conversations.firstIndex(where: { $0.id == chatID }) else { return }
+        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
+            chats.conversations[index].messages.append(
+                ChatMessage(role: .assistant, text: "Trước khi bạn dừng, Milu đã ghi khoản này rồi. Sai thì bạn xoá nhé:",
+                            card: .recorded(transaction, removed: false)))
+        }
     }
 
     private var dictationMessage: String {
@@ -382,8 +399,13 @@ struct AssistantView: View {
                 let answer = try await service.reply(to: question, history: history) { step in
                     withAnimation(Motion.gentle(.spring(duration: 0.3, bounce: 0))) { progress.steps.append(step) }
                 }
-                // Stopped (■) while the answer was on its way: it is dropped.
-                try Task.checkCancellation()
+                // Stopped (■) while the answer was on its way: it is dropped, unless Milu had already
+                // recorded something, which stays in: its card shows under "Bạn đã dừng", to see or
+                // undo it (audit 2026-11-15: hidden, it looked unrecorded and was recorded again).
+                if Task.isCancelled {
+                    if case .recorded(let transaction) = answer.action { showRecordedAfterStop(transaction, in: chatID) }
+                    return
+                }
                 reply = answer
                 thought = ChatMessage.Thought(seconds: max(1, Int(Date.now.timeIntervalSince(askedAt).rounded())),
                                               steps: progress.steps.map(\.done))
@@ -401,7 +423,9 @@ struct AssistantView: View {
             case .free: if paid { quota.refund() }
             case .paid: break
             case .outOfQuestions:
-                reply = AssistantReply(text: outOfQuestionsReply)
+                // What it recorded, or the transaction to delete, still shows: the one is in
+                // already, the other waits for a yes (audit 2026-11-15: hidden, it was recorded again).
+                reply = AssistantReply(text: outOfQuestionsReply(after: reply.action), action: reply.action)
                 thought = nil
             }
             // Never before the question has landed: with no connection the error came back at

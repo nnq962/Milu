@@ -51,12 +51,13 @@ struct RemoteAssistant: AssistantService {
                 }
             }
             return AssistantReply(text: Self.emptyAnswer(action), action: action, counts: Self.counts(toolsRun))
-        } catch MiluAPI.Failure.busy {
-            throw AssistantServiceError.server("bạn đã hỏi nhiều quá trong giờ này")
         } catch where action != nil {
-            // A transaction was recorded or picked before the answer failed: its card shows.
+            // A transaction was recorded or picked before the answer failed, a "too many
+            // questions" too (audit 2026-11-15: that one hid the card): its card shows.
             return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action,
                                   counts: Self.counts(toolsRun))
+        } catch MiluAPI.Failure.busy {
+            throw AssistantServiceError.server("bạn đã hỏi nhiều quá trong giờ này")
         } catch is CancellationError {
             throw CancellationError()
         } catch MiluAPI.Failure.offline {

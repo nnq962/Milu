@@ -18,6 +18,54 @@ struct AssistantToolsTests {
         }
     }
 
+    // MARK: Tên tài khoản
+
+    private let cash = Account(name: "Ví tiền mặt", type: .cash, balance: 1_000_000)
+    private let vcb = Account(name: "Vietcombank", type: .bank, balance: 5_000_000)
+    private let tcb = Account(name: "Techcombank", type: .bank, balance: 2_000_000)
+    private let momo = Account(name: "MoMo", type: .eWallet, balance: 300_000)
+    private let mb = Account(name: "MB Bank", type: .bank, balance: 4_000_000)
+
+    private func store(_ accounts: [Account]) -> FinanceStore {
+        FinanceStore(accounts: accounts, transactions: [], loans: [], paymentReminders: [],
+                     savingsGoals: [], goalTransfers: [], contacts: [])
+    }
+
+    /// A short name is the account whose words it is, not the first one holding its letters
+    /// (audit 2026-11-15: "MB" and "ví" went on Vietcombank).
+    @Test func accountNamesMatchWholeWordsFirst() {
+        let accounts = [vcb, tcb, cash, momo, mb]
+        #expect(ToolNames.match("MB", in: accounts) == .found(mb))
+        #expect(ToolNames.match("ví", in: accounts) == .found(cash))
+        #expect(ToolNames.match("tiền mặt", in: accounts) == .found(cash))
+        #expect(ToolNames.match("Vietcombank", in: accounts) == .found(vcb))
+        #expect(ToolNames.match("vietcom", in: accounts) == .found(vcb))
+        #expect(ToolNames.match("ví momo", in: accounts) == .found(momo))
+        #expect(ToolNames.match("ACB", in: accounts) == .none)
+        // Two wallets: neither is guessed.
+        let wallets = [cash, Account(name: "Ví MoMo", type: .eWallet, balance: 0)]
+        guard case .ambiguous(let options) = ToolNames.match("ví", in: wallets) else {
+            Issue.record("expected ambiguous")
+            return
+        }
+        #expect(options.count == 2)
+    }
+
+    /// A named account that is not one, or could be several, is asked about: nothing recorded.
+    @Test func recordingOnAnUnclearAccountAsksInstead() {
+        let store = store([vcb, cash, mb])
+        let missing = RecordTransaction().run(["amount": 200_000, "account": "ACB", "note": "Ăn tối"], in: store)
+        #expect(missing.result["ok"] == false)
+        #expect(missing.action == nil)
+        let onMB = RecordTransaction().run(["amount": 200_000, "account": "MB", "note": "Ăn tối"], in: store)
+        #expect(onMB.result["ok"] == true)
+        #expect(store.transactions.count == 1)
+        #expect(store.transactions.first?.accountID == mb.id)
+        // None named: the main account, as before.
+        _ = RecordTransaction().run(["amount": 35_000, "note": "Cà phê"], in: store)
+        #expect(store.transactions.count == 2)
+    }
+
     // MARK: get_app_info
 
     /// Every topic answers from the app's own pages: none of the entries it quotes went missing

@@ -60,6 +60,8 @@ final class SpeechDictation {
     @ObservationIgnored private var generation = 0
     /// Which listening the microphone's news belongs to: a stopped one's is dropped.
     @ObservationIgnored private var session = 0
+    /// `start` is waiting for iOS's permission prompts.
+    @ObservationIgnored private var isStarting = false
     /// The stretches already finished, and the words of the one being heard.
     @ObservationIgnored private var committed = ""
     @ObservationIgnored private var partial = ""
@@ -92,11 +94,16 @@ final class SpeechDictation {
     }
 
     func start() async {
-        guard !isRecording else { return }
+        guard !isRecording, !isStarting else { return }
         // Already allowed: no hop off the main thread, so the wave shows the moment the mic is
         // tapped (seen in testing 2026-11-10: it came a beat late).
         // No Face ID cover over iOS's prompts for speech and the microphone (`AppLock.whileSystemAsks`).
+        // A second tap while iOS gets its prompt ready waits for nothing: two starts put two taps
+        // on the microphone, and AVAudioEngine stops the app (audit 2026-11-15).
+        isStarting = true
         let allowed = Self.alreadyAllowed ? true : await AppLock.shared.whileSystemAsks { await Self.requestPermissions() }
+        isStarting = false
+        guard !isRecording else { return }
         guard allowed else {
             failure = .denied
             return
