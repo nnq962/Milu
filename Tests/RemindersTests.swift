@@ -35,6 +35,64 @@ struct RemindersTests {
         #expect(messages.allSatisfy { $0.title.count <= 45 && $0.body.count <= 90 })
     }
 
+    // MARK: First launch
+
+    private func scratchDefaults() -> UserDefaults {
+        UserDefaults(suiteName: "RemindersTests.\(UUID().uuidString)")!
+    }
+
+    /// A new install: the invitation is due while iOS has never asked; shown once, never again.
+    @Test func theInvitationComesOnceWhileIOSNeverAsked() async {
+        let defaults = scratchDefaults()
+        #expect(await NotificationInvite.isDue(defaults: defaults, permission: { .notAsked }))
+        NotificationInvite.markShown(defaults: defaults)
+        #expect(await !NotificationInvite.isDue(defaults: defaults, permission: { .notAsked }))
+    }
+
+    /// iOS asked before, either answer (or Cài đặt asked it): no invitation.
+    @Test func noInvitationOnceIOSAsked() async {
+        for status in [Reminders.Permission.allowed, .denied] {
+            #expect(await !NotificationInvite.isDue(defaults: scratchDefaults(), permission: { status }))
+        }
+    }
+
+    /// "Bật nhắc nhở", allowed: "Nhắc ghi chi tiêu" comes on, at its default 21:00.
+    @Test func allowedTurnsTheReminderOnAt21() async {
+        let defaults = scratchDefaults()
+        #expect(await NotificationInvite.accept(defaults: defaults, ask: { true }))
+        #expect(defaults.object(forKey: StorageKey.dailyReminder) as? Bool == true)
+        #expect(defaults.object(forKey: StorageKey.dailyReminderMinutes) == nil)
+        #expect(DailyReminderPlan.defaultMinutes == 21 * 60)
+    }
+
+    /// Refused at iOS's prompt: the reminder stays off.
+    @Test func refusedLeavesItOff() async {
+        let defaults = scratchDefaults()
+        #expect(await !NotificationInvite.accept(defaults: defaults, ask: { false }))
+        #expect(defaults.object(forKey: StorageKey.dailyReminder) == nil)
+    }
+
+    /// A reinstall where the user had turned the reminder off (back through iCloud): allowed, it
+    /// stays off; one they had on stays on, at their own time.
+    @Test func aChoiceMadeBeforeIsKept() async {
+        let off = scratchDefaults()
+        off.set(false, forKey: StorageKey.dailyReminder)
+        _ = await NotificationInvite.accept(defaults: off, ask: { true })
+        #expect(off.object(forKey: StorageKey.dailyReminder) as? Bool == false)
+
+        let on = scratchDefaults()
+        on.set(true, forKey: StorageKey.dailyReminder)
+        on.set(7 * 60, forKey: StorageKey.dailyReminderMinutes)
+        _ = await NotificationInvite.accept(defaults: on, ask: { true })
+        #expect(on.bool(forKey: StorageKey.dailyReminder))
+        #expect(on.integer(forKey: StorageKey.dailyReminderMinutes) == 7 * 60)
+    }
+
+    /// Per iPhone: the invitation's mark is not among what iCloud carries to other devices.
+    @Test func theInvitationIsNotSynced() {
+        #expect(!CloudSettings.isSynced(StorageKey.notificationInviteSeen))
+    }
+
     // MARK: Limit alerts
 
     private func limit(spent: Double, limit: Double = 1_000_000, id: String = "food") -> BudgetAlertPlan.Limit {

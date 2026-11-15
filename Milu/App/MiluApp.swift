@@ -36,6 +36,8 @@ struct MiluApp: App {
     @State private var launchCover = false
     /// The welcome was finished: Tổng quan is built under it before it fades.
     @State private var homeUnderWelcome = false
+    /// Milu's invitation to the 21:00 reminder, over Tổng quan on a new install (`NotificationInvite`).
+    @State private var showsNotificationInvite = false
     /// The welcome on screen. Its own state, not `welcomeSeen`: a stored value changes after the
     /// animation's moment, and the welcome cut to Tổng quan instead of fading (2026-11-14).
     @State private var showsWelcome = false
@@ -197,6 +199,8 @@ struct MiluApp: App {
                         .zIndex(1)
                 }
             }
+                // Inside the modifiers below, so the sheet has the app's environment.
+                .sheet(isPresented: $showsNotificationInvite) { NotificationInviteView() }
                 .background { SavedAppearanceSetter().frame(width: 0, height: 0) }
                 // The body role (16 SemiBold), so a Text with no role still matches the scale
                 // (strict review 2026-10-31: 17 Regular sat outside it).
@@ -228,6 +232,17 @@ struct MiluApp: App {
                     } else if showsWelcome && !homeUnderWelcome {
                         showsWelcome = false
                     }
+                }
+                // A new install: Milu's invitation to the 21:00 reminder once the welcome and the
+                // splash (and the lock) are gone and Tổng quan is up (`NotificationInvite`, user
+                // requests 2026-11-15).
+                .task(id: showsWelcome || showsSplash) {
+                    guard !showsWelcome, !showsSplash else { return }
+                    // A moment on the page first, so the invitation comes over it, not its arrival.
+                    try? await Task.sleep(for: .seconds(0.8))
+                    guard !Task.isCancelled, await NotificationInvite.isDue() else { return }
+                    NotificationInvite.markShown()
+                    showsNotificationInvite = true
                 }
                 // What recurring rules that record by themselves owe since the app was last open.
                 .task(id: generation) { store.recordDueRecurring() }

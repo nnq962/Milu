@@ -261,6 +261,41 @@ struct BudgetAlertPlan {
     }
 }
 
+/// Milu's invitation to "Nhắc ghi chi tiêu" on a new install (`NotificationInviteView`, user
+/// requests 2026-11-15): Milu's own page first, as many apps do, and iOS's prompt only from its
+/// "Bật nhắc nhở". "Để sau" leaves iOS's one question unasked, so Cài đặt → Thông báo can still ask
+/// it later.
+enum NotificationInvite {
+    /// Once Tổng quan is up, after the welcome: only while iOS has never asked and the invitation
+    /// was not shown on this iPhone before.
+    @MainActor
+    static func isDue(defaults: UserDefaults = .standard,
+                      permission: () async -> Reminders.Permission = { await Reminders.shared.permission() }) async -> Bool {
+        guard !defaults.bool(forKey: StorageKey.notificationInviteSeen) else { return false }
+        return await permission() == .notAsked
+    }
+
+    /// Shown: not again, whatever the answer (a swipe down is "Để sau").
+    static func markShown(defaults: UserDefaults = .standard) {
+        defaults.set(true, forKey: StorageKey.notificationInviteSeen)
+    }
+
+    /// "Bật nhắc nhở": iOS's prompt. Allowed, the reminder comes on at its default 21:00, unless the
+    /// user had set it before (a reinstall gets Cài đặt back through iCloud: off stays off).
+    @MainActor
+    static func accept(defaults: UserDefaults = .standard,
+                       ask: () async -> Bool = {
+                           // No Face ID cover over iOS's prompt (`AppLock.whileSystemAsks`).
+                           await AppLock.shared.whileSystemAsks { await Reminders.shared.requestPermission() }
+                       }) async -> Bool {
+        guard await ask() else { return false }
+        if defaults.object(forKey: StorageKey.dailyReminder) == nil {
+            defaults.set(true, forKey: StorageKey.dailyReminder)
+        }
+        return true
+    }
+}
+
 /// When "Nhắc khoản định kỳ" comes: at 8:00 on the day, for the next two weeks.
 enum RecurringReminderPlan {
     static let hour = 8

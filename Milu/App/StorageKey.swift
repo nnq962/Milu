@@ -35,6 +35,9 @@ enum StorageKey {
     /// The welcome pages were seen (`WelcomeView`): never shown again, here or after a reinstall
     /// (synced through iCloud), and kept by "Xoá toàn bộ dữ liệu".
     static let welcomeSeen = "onboarding.welcomeSeen"
+    /// Milu's invitation to the reminder was shown (`NotificationInvite`): once per iPhone, never
+    /// synced, as the permission it leads to is the device's own.
+    static let notificationInviteSeen = "onboarding.notificationInvite"
     /// Ticks "Hỏi AI một câu hỏi" in Làm quen với Milu.
     static let askedAI = "onboarding.askedAI"
     /// True after "Xoá toàn bộ dữ liệu": an empty database stays empty, the sample data is not
