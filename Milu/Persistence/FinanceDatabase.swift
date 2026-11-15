@@ -19,6 +19,17 @@ final class FinanceDatabase {
     /// The iCloud container the database syncs through (made on the developer account, 2026-11-12).
     static let cloudContainerID = "iCloud.com.quyetnguyen.Milu"
 
+    /// False in Milu Dev (the Dev configuration, `MILU_DEV`): signed with a free personal team,
+    /// which cannot use iCloud, so its data stays on the phone, apart from the real Milu's
+    /// (2026-11-15).
+    static let hasICloud: Bool = {
+        #if MILU_DEV
+        false
+        #else
+        true
+        #endif
+    }()
+
     /// The on-device database, kept in sync with the user's private iCloud database when
     /// `syncsWithICloud` (the app with its iCloud entitlement; signed out of iCloud it simply stays
     /// on the phone). If it cannot be opened with iCloud it opens without; if it cannot be opened
@@ -26,7 +37,7 @@ final class FinanceDatabase {
     /// kept).
     /// `inMemory`: a database that lives only while the app runs, for tests (same schema and
     /// migration plan as the real one, never synced).
-    static func makeContainer(inMemory: Bool = false, syncsWithICloud: Bool = true) -> ModelContainer {
+    static func makeContainer(inMemory: Bool = false, syncsWithICloud: Bool = hasICloud) -> ModelContainer {
         let schema = Schema(versionedSchema: MiluSchemaV9.self)
         let log = Logger(subsystem: "com.quyetnguyen.Milu", category: "database")
         var configurations: [(ModelConfiguration, String)] = []

@@ -110,6 +110,12 @@ final class CloudSyncMonitor {
     }
 
     func checkAccount() {
+        // Milu Dev has no iCloud entitlement, and a CKContainer for a container it does not list
+        // stops the app.
+        guard FinanceDatabase.hasICloud else {
+            account = .unavailable
+            return
+        }
         Task {
             let status = try? await CKContainer(identifier: FinanceDatabase.cloudContainerID).accountStatus()
             account = switch status {
