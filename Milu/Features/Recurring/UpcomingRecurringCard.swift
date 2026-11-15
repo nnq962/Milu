@@ -59,7 +59,8 @@ struct UpcomingRecurringCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: Spacing.xs) {
-                MoneyText(amount: rule.amount, tone: rule.kind == .income ? .signedIncome : .signedExpense)
+                // Money out in ink with "−", as in Giao dịch định kỳ (audit round 2, 2026-11-15).
+                MoneyText(amount: rule.amount, tone: rule.kind == .income ? .signedIncome : .outflow)
                     .fixedSize()
                 if isWaiting {
                     MiluButton("Ghi", role: .primary, size: .compact) { onConfirm(occurrence) }
@@ -163,7 +164,7 @@ struct RecurringConfirmSheet: View {
                                   selection: Binding { accountID } set: { self.accountID = $0 },
                                   options: accountOptions,
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
-                        store.account(id: $0)?.name ?? "—"
+                        store.pickerName(of: $0) ?? "—"
                     }
                 } else {
                     FormInfoRow(title: "Tài khoản", value: "Chưa có tài khoản")

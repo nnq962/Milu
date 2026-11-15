@@ -317,11 +317,28 @@ struct AIQuotaTests {
         #expect(quota.bonus == AIQuota.stepBonus)
     }
 
+    /// The app closed while Milu answered: the next launch gives the lượt back; an answer that
+    /// came keeps it spent (audit round 2, 2026-11-15).
+    @Test func aQuestionCutOffByClosingTheAppIsGivenBack() {
+        let defaults = UserDefaults(suiteName: "AIQuotaTests.\(UUID().uuidString)")!
+        let clock = Clock()
+        let quota = makeQuota(clock, defaults: defaults)
+        quota.spend()
+        #expect(quota.usedThisWeek == 1)
+        let relaunched = makeQuota(clock, defaults: defaults)
+        #expect(relaunched.usedThisWeek == 0)
+        // Answered: kept, after a relaunch too.
+        relaunched.spend()
+        relaunched.settle()
+        #expect(makeQuota(clock, defaults: defaults).usedThisWeek == 1)
+    }
+
     @Test func theAllowanceIsSaved() {
         let defaults = UserDefaults(suiteName: "AIQuotaTests.\(UUID().uuidString)")!
         let clock = Clock()
         let quota = makeQuota(clock, defaults: defaults)
         quota.spend()
+        quota.settle()
         quota.claim("askAI")
         let reopened = makeQuota(clock, defaults: defaults)
         #expect(reopened.usedThisWeek == 1)

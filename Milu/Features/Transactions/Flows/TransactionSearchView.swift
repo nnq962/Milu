@@ -75,6 +75,14 @@ struct TransactionSearchView: View {
             .onSubmit(of: .search) { remember(query) }
             // The search runs a moment after the last letter, not on every one (audit 2026-11-15:
             // each letter searched all the history on the main thread). Emptied, at once.
+            // Every row's words folded off the main thread while the page opens.
+            .task {
+                guard segment == .flows else { return }
+                let everything = TransactionSearchFilter().matcher(in: store)
+                await keys.prewarm { keys in
+                    _ = Self.matches(everything, query: "·", keys: keys, store: store)
+                }
+            }
             .task(id: trimmedQuery) {
                 let words = trimmedQuery
                 if !words.isEmpty { try? await Task.sleep(for: .milliseconds(150)) }
@@ -352,11 +360,29 @@ private struct FlowSearchResults: View, Equatable {
 /// drawing changes nothing SwiftUI watches.
 final class SearchKeys {
     private var cache: [String: String] = [:]
+    /// While the keys are made ready (`prewarm`): the texts asked for, folded later, elsewhere.
+    private var collected: [String]?
 
     func key(for text: String) -> String {
         if let key = cache[text] { return key }
+        if collected != nil {
+            collected?.append(text)
+            return ""
+        }
         let key = text.searchKey
         cache[text] = key
         return key
+    }
+
+    /// Folds every text `ask` looks up, off the main thread, as the search opens: the first letter
+    /// typed folded the whole history there, on the main thread (audit round 2, 2026-11-15).
+    func prewarm(_ ask: (SearchKeys) -> Void) async {
+        collected = []
+        ask(self)
+        let texts = collected ?? []
+        collected = nil
+        guard !texts.isEmpty else { return }
+        let folded = await Task.detached(priority: .userInitiated) { texts.map { ($0, $0.searchKey) } }.value
+        for (text, key) in folded where cache[text] == nil { cache[text] = key }
     }
 }

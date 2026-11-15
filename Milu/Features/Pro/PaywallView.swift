@@ -225,7 +225,9 @@ struct PaywallView: View {
     private static func when(_ date: Date) -> String {
         let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
         if Calendar.current.isDateInToday(date) { return "hôm nay \(time)" }
-        return date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).year())
+        // Day first whatever the iPhone's region (audit round 2, 2026-11-15).
+        let calendar = Calendar.current
+        return "\(date.dayMonth)/\(calendar.component(.year, from: date))"
     }
 
     /// Owned already: the plan and when it renews (or, cancelled, until when it lasts) on one card,

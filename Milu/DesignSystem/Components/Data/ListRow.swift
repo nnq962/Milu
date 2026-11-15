@@ -101,6 +101,8 @@ struct ListRow<Leading: View, Trailing: View>: View {
                             .textRole(.caption)
                             .foregroundStyle(subtitleColor)
                             .lineLimit(isAccessibilitySize ? nil : 1)
+                            // "Hằng tháng · 15/12", "Gốc 5.000.000đ" said as words.
+                            .accessibilityLabel(SpokenText.of(subtitle))
                     }
                 }
                 if !isAccessibilitySize { Spacer(minLength: 0) }

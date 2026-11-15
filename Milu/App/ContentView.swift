@@ -27,6 +27,12 @@ struct ContentView: View {
     /// Gone with the app to the background.
     private func openFromReminder() {
         guard Reminders.shared.router.pending == .addTransaction, !appLock.isLocked else { return }
+        // The add form is the sheet up: the reminder is answered already (audit round 2,
+        // 2026-11-15: waited on, a second, empty form came up once it closed).
+        if adding != nil {
+            Reminders.shared.router.pending = nil
+            return
+        }
         if Presentation.isShowingSheet {
             guard waitingForSheet == nil else { return }
             waitingForSheet = Task {

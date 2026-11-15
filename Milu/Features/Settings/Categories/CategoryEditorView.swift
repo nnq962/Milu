@@ -30,6 +30,12 @@ struct CategoryEditorView: View {
     @State private var groupID: String?
     @State private var firstItem = ""
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 2, 2026-11-15: only the
+    /// transaction forms did).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [name, icon, groupID, firstItem] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     init(target: Target) {
         self.target = target
@@ -167,7 +173,7 @@ struct CategoryEditorView: View {
     }
 
     var body: some View {
-        SheetScaffold(title: title, validate: validate, onConfirm: save) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save, hasChanges: hasChanges) {
             // No footer on why "Nhóm" is locked: the greyed row says it (strict review 2026-10-31).
             FormGroup(title: "Thông tin", error: formError) {
                 FormTextRow(title: isGroup ? "Tên nhóm" : "Tên hạng mục", text: $name,
@@ -209,6 +215,7 @@ struct CategoryEditorView: View {
             }
         }
         .miluSheetStyle()
+        .task { if opened == nil { opened = draft } }
     }
 
     /// "Hiện lại" for a hidden one ("Xoá" then follows in its own card once nothing uses it: a

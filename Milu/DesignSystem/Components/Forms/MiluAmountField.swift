@@ -126,6 +126,9 @@ struct MiluAmountField: View {
             // ("−500.00" / "0đ" at xxLarge on a 393pt iPhone, audit 2026-11-15). Its steps
             // (`amountEntrySize`) already make a long figure smaller.
             .lineLimit(1)
+            // Too wide even so (a 320pt screen with Display Zoom): smaller, never cut with "…"
+            // (audit round 2, 2026-11-15).
+            .minimumScaleFactor(0.5)
             .dynamicTypeSize(...DynamicTypeSize.large)
             .foregroundStyle(color)
             // Still under Reduce Motion: the figure, sign and colour change at once.

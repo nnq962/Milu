@@ -84,7 +84,10 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
         center.removePendingNotificationRequests(withIdentifiers: pending)
         guard enabled, await permission() == .allowed else { return }
         let calendar = Calendar.current
-        for occurrence in occurrences {
+        // The soonest that fit beside the daily reminders: iOS keeps 64 an app, and dropped the
+        // latest ones, the daily reminder among them (audit round 2, 2026-11-15).
+        for occurrence in occurrences.prefix(RecurringReminderPlan.most) {
+            guard !Task.isCancelled else { return }
             guard let date = calendar.date(bySettingHour: RecurringReminderPlan.hour, minute: 0, second: 0, of: occurrence.day),
                   date > now else { continue }
             let rule = occurrence.rule
@@ -301,6 +304,9 @@ enum NotificationInvite {
 enum RecurringReminderPlan {
     static let hour = 8
     static let days = 14
+    /// At most this many planned: iOS keeps 64 an app, the daily reminders take theirs, and a
+    /// few are left for the limit alerts.
+    static let most = 64 - DailyReminderPlan.days - 4
 
     /// With the first recurring rule, "Nhắc khoản định kỳ" comes on by itself (review 2026-11-12:
     /// off and deep in Cài đặt, a rule that asks first was easy to miss). Only while the user has

@@ -23,6 +23,12 @@ struct GoalTransferSheet: View {
     @State private var date = Date.now
     @State private var note = ""
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 2, 2026-11-15: only the
+    /// transaction forms did).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [amountText, accountID, date, note] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     /// `account` is the one offered first. It and "Rút hết"'s amount are set here, not on appear,
     /// so the sheet opens as it stays: no row slid in, no amount changing under the eye
@@ -81,7 +87,7 @@ struct GoalTransferSheet: View {
     }
 
     var body: some View {
-        SheetScaffold(title: title, validate: validate, onConfirm: save) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save, hasChanges: hasChanges) {
             SheetAmountHeader(title: goal.name) {
                 // "Rút hết" takes everything: the amount is shown, not typed.
                 MiluAmountField(text: $amountText, showsSuggestions: !closesGoal,
@@ -102,7 +108,7 @@ struct GoalTransferSheet: View {
                                   selection: Binding { accountID } set: { self.accountID = $0 },
                                   options: accountOptions,
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
-                        store.account(id: $0)?.name ?? "—"
+                        store.pickerName(of: $0) ?? "—"
                     }
                     FormDivider(hasIcon: false)
                 }
@@ -133,6 +139,7 @@ struct GoalTransferSheet: View {
             }
         }
         .miluSheetStyle()
+        .task { if opened == nil { opened = draft } }
     }
 
     /// "Mỗi tháng 167.000đ" with a deadline, and "Còn thiếu 2.000.000đ" when it differs.

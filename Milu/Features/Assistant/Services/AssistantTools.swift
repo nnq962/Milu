@@ -148,7 +148,17 @@ struct ListTransactions: AssistantTool {
         if let failure = filters.failure { return failure }
         items = filters.apply(to: items)
         if let search = arguments["search"]?.string?.searchKey, !search.isEmpty {
-            items = items.filter { "\($0.note) \(store.categoryName($0.categoryID))".searchKey.contains(search) }
+            // Each category's name folded once, a note only when there is one: folding both for
+            // every transaction of years of history held the main thread (audit round 2, 2026-11-15).
+            var categoryKeys: [String: Bool] = [:]
+            items = items.filter { transaction in
+                let inCategory = categoryKeys[transaction.categoryID] ?? {
+                    let found = store.categoryName(transaction.categoryID).searchKey.contains(search)
+                    categoryKeys[transaction.categoryID] = found
+                    return found
+                }()
+                return inCategory || (!transaction.note.isEmpty && transaction.note.searchKey.contains(search))
+            }
         }
         let largest = arguments["sort"]?.string == "largest"
         // "Khoản lớn nhất" as Báo cáo counts: not one kept out of reports, nor one on a locked
@@ -323,6 +333,11 @@ struct RecordTransaction: AssistantTool {
         let categoryID = ToolNames.category(arguments["category"]?.string, kind: kind, in: store)
             ?? Self.guessCategory(note: note, kind: kind)
         let day = arguments["date"]?.string.flatMap(ToolDates.day) ?? .now
+        // No day ahead, as the add form allows none: the balance moved now, and no month list or
+        // report could show it (audit round 2, 2026-11-15).
+        if Calendar.current.startOfDay(for: day) > Calendar.current.startOfDay(for: .now) {
+            return .failure("Ngày \(ToolDates.text(day)) ở tương lai, Milu chỉ ghi khoản đã chi hoặc đã nhận. Chưa ghi gì; hỏi lại người dùng hoặc gợi ý tạo khoản định kỳ trong ứng dụng")
+        }
         let transaction = FinanceTransaction(amount: amount.rounded(), categoryID: categoryID, kind: kind,
                                              accountID: account.id, date: ToolDates.keepingTime(on: day),
                                              note: note == store.categoryName(categoryID) ? "" : note)
@@ -409,6 +424,16 @@ enum ToolTransactions {
         String(transaction.id.uuidString.prefix(8)).lowercased()
     }
 
+    /// Where the money was: the account (saying when it is archived), or the goal it was spent
+    /// from ("Mua ngay"). It was "" for those two (audit round 2, 2026-11-15).
+    static func accountName(of transaction: FinanceTransaction, in store: FinanceStore) -> String {
+        if let account = store.account(id: transaction.accountID) {
+            return account.isArchived ? "\(account.name) (đã lưu trữ)" : account.name
+        }
+        if let goal = store.goal(id: transaction.accountID) { return "hũ \(goal.name)" }
+        return "Hũ đã xoá"
+    }
+
     static func describe(_ transaction: FinanceTransaction, in store: FinanceStore) -> JSONValue {
         var item: [String: JSONValue] = [
             "ref": .string(ref(transaction)),
@@ -416,7 +441,7 @@ enum ToolTransactions {
             "kind": .string(transaction.kind.rawValue),
             "amount": ToolMoney.value(transaction.amount),
             "category": .string(store.categoryName(transaction.categoryID)),
-            "account": .string(store.accounts.first { $0.id == transaction.accountID }?.name ?? ""),
+            "account": .string(accountName(of: transaction, in: store)),
             "note": .string(transaction.note.components(separatedBy: .newlines).first ?? ""),
         ]
         // Kept out of Báo cáo and the limits ("Không tính", or on a locked account).

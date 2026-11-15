@@ -79,6 +79,22 @@ struct RecurringTests {
         #expect(reopened.recordDueRecurring(now: day(2027, 3, 20)).isEmpty)
     }
 
+    /// A category only a rule uses is hidden, not deleted: the rule goes on filing under it (audit
+    /// round 2, 2026-11-15: it recorded under "Hạng mục đã xoá").
+    @Test func aRulesCategoryIsHiddenNotDeleted() throws {
+        let (store, _, wallet) = storeWithWallet()
+        store.save(Category(id: "subs", kind: .expense, name: "Đăng ký", icon: "hugeicons-tag-01"))
+        store.save(Category(id: "subs.netflix", kind: .expense, parentID: "subs", name: "Netflix", icon: "hugeicons-tag-01"))
+        store.save(Category(id: "subs.spotify", kind: .expense, parentID: "subs", name: "Spotify", icon: "hugeicons-tag-01"))
+        var netflix = rule(start: day(2027, 1, 20), account: wallet.id)
+        netflix.categoryID = "subs.netflix"
+        store.save(netflix)
+        let item = try #require(store.category(id: "subs.netflix"))
+        #expect(store.hasHistory(item))
+        store.remove(item)
+        #expect(store.categories.contains { $0.id == "subs.netflix" })
+    }
+
     /// A trip abroad: the rent of the 15th, set at home, is recorded once, its day the same in Los
     /// Angeles as at home (audit round 2, 2026-11-15: there it fell on the 14th, a different
     /// transaction, and back home the 15th was recorded again).

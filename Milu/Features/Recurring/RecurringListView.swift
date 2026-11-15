@@ -256,7 +256,7 @@ struct RecurringEditorSheet: View {
                                   selection: Binding { accountID } set: { self.accountID = $0 },
                                   options: accountOptions,
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
-                        store.account(id: $0)?.name ?? "Tài khoản đã xoá"
+                        store.pickerName(of: $0) ?? "Tài khoản đã xoá"
                     }
                 }
             }

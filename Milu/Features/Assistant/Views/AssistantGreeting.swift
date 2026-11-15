@@ -44,7 +44,7 @@ struct AssistantGreeting: View {
                             .textRole(.display)
                             .multilineTextAlignment(.center)
                             .accessibilityAddTraits(.isHeader)
-                        Text("Hỏi mình về chi tiêu, khoản vay, hoặc nhờ mình ghi, sửa, xoá giao dịch.")
+                        Text("Hỏi mình về chi tiêu, khoản vay, hoặc nhờ mình ghi hay xoá giao dịch.")
                             .textRole(.body)
                             .foregroundStyle(Palette.secondaryLabel)
                             .multilineTextAlignment(.center)

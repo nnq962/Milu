@@ -31,7 +31,7 @@ final class AIQuota {
     /// Where the last question's lượt came from, for `refund`.
     @ObservationIgnored private var lastSpend: Spend?
 
-    private enum Spend {
+    private enum Spend: Codable {
         case week(String)
         case grant(expires: Date)
     }
@@ -58,6 +58,17 @@ final class AIQuota {
             .flatMap { try? JSONDecoder().decode([Grant].self, from: $0) } ?? []
         claimed = Set(defaults.stringArray(forKey: Keys.claimed) ?? [])
         migrateFromMonths(today: today)
+        refundUnanswered()
+    }
+
+    /// A question whose answer never came because the app was closed or stopped by iOS while it
+    /// waited: its lượt is given back at the next launch, as one with no answer is (audit round 2,
+    /// 2026-11-15: it was kept).
+    private func refundUnanswered() {
+        guard let data = defaults.data(forKey: Keys.pending),
+              let spend = try? JSONDecoder().decode(Spend.self, from: data) else { return }
+        lastSpend = spend
+        refund()
     }
 
     /// Reads the saved allowance again: another device used some, or a reinstall's came back from
@@ -120,7 +131,15 @@ final class AIQuota {
             return false
         }
         save()
+        // Kept until the answer comes (`settle`) or the lượt is given back (`refund`).
+        defaults.set(try? JSONEncoder().encode(lastSpend), forKey: Keys.pending)
         return true
+    }
+
+    /// The answer came and counts: the lượt stays spent.
+    func settle() {
+        lastSpend = nil
+        defaults.removeObject(forKey: Keys.pending)
     }
 
     /// Gives back the last question's lượt: Milu did not answer (no internet, the server down,
@@ -128,6 +147,7 @@ final class AIQuota {
     func refund() {
         guard !isUnlimited, let spend = lastSpend else { return }
         lastSpend = nil
+        defaults.removeObject(forKey: Keys.pending)
         switch spend {
         case .week(let key):
             // Last week's lượt is not given back into this one.
@@ -209,6 +229,9 @@ final class AIQuota {
         static let used = "ai.weekUsed"
         static let grants = "ai.bonusGrants"
         static let claimed = "ai.claimedSteps"
+        /// The lượt of a question still waiting for its answer. Not "ai.": this iPhone's own,
+        /// never synced (`CloudSettings`).
+        static let pending = "assistant.pendingSpend"
         // The monthly allowance's, read once to move over.
         static let oldMonth = "ai.month"
         static let oldUsed = "ai.used"

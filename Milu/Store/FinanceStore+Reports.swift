@@ -83,8 +83,10 @@ extension FinanceStore {
         Dictionary(grouping: items) { $0.accountID }
             .map { id, items in
                 AccountTotal(id: id,
-                             name: account(id: id)?.name ?? goal(id: id)?.name ?? "Tài khoản đã xoá",
-                             icon: account(id: id)?.iconName ?? goal(id: id)?.icon ?? "hugeicons-wallet-01",
+                             // An account with history is never deleted: one that is gone was a
+                             // hũ spent from ("Mua ngay"), as Giao dịch names it (audit round 2).
+                             name: account(id: id)?.name ?? goal(id: id)?.name ?? "Hũ đã xoá",
+                             icon: account(id: id)?.iconName ?? goal(id: id)?.icon ?? SavingsGoal.defaultIcon,
                              income: items.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount },
                              expense: items.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount })
             }

@@ -147,7 +147,7 @@ struct NotificationInviteView: View {
             Text("Để Milu nhắc bạn nha?")
                 .textRole(.pageTitle)
                 .accessibilityAddTraits(.isHeader)
-            Text("Mỗi tối lúc \(time), Milu nhắc bạn ghi lại chi tiêu trong ngày. Đổi giờ hay tắt lúc nào cũng được trong Cài đặt.")
+            Text("Mỗi ngày lúc \(time), Milu nhắc bạn ghi lại chi tiêu trong ngày. Đổi giờ hay tắt lúc nào cũng được trong Cài đặt.")
                 .textRole(.body)
                 .foregroundStyle(Palette.secondaryLabel)
         }

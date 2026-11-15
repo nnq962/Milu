@@ -230,6 +230,15 @@ extension FinanceStore {
         accounts.first { $0.id == id } ?? archivedAccounts.first { $0.id == id }
     }
 
+    /// An account's name in a picker, with its balance when another account in use has the same
+    /// name (two "Vietcombank", auto-named after the bank): told apart, as the goal's delete does
+    /// (audit round 2, 2026-11-15: the rows looked the same, and money went on the wrong one).
+    func pickerName(of id: Account.ID) -> String? {
+        guard let account = account(id: id) else { return nil }
+        let twins = accounts.filter { $0.name == account.name }.count
+        return twins > 1 ? "\(account.name) · \(account.balance.vnd)" : account.name
+    }
+
     func accountTransactions(_ account: Account) -> [FinanceTransaction] {
         transactions.filter { $0.accountID == account.id }
     }

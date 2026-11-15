@@ -27,6 +27,7 @@ struct WelcomeView: View {
     @State private var avatarChosen = false
     @FocusState private var nameFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The room the words take under the stage, as Figma's at the default text size: two lines
     /// of title and one of text; on the last page the title, the name and the avatars.
     @ScaledMetric(relativeTo: .body) private var wordsRoom: CGFloat = 122
@@ -40,17 +41,25 @@ struct WelcomeView: View {
             let scale = stageScale(in: proxy.size)
             VStack(spacing: 0) {
                 navigation
-                WelcomeStage(page: page, than: than, avatarFace: WelcomeThan.Face(avatar), scale: scale,
-                             finishing: finishing)
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        Haptics.selection()
-                        than.hop()
+                // At the accessibility text sizes the words do not fit under the stage: they
+                // scroll, and the button stays on screen under them (audit round 2, 2026-11-15:
+                // "Vào Milu" went below the screen, and the welcome could not be left).
+                if dynamicTypeSize.isAccessibilitySize {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            stage(scale: scale)
+                            words
+                                .padding(.top, 28 * min(scale, 1))
+                        }
+                        .padding(.bottom, Spacing.l)
                     }
-                words
-                    .padding(.top, 28 * min(scale, 1))
-                Spacer(minLength: Spacing.l)
+                    .scrollBounceBehavior(.basedOnSize)
+                } else {
+                    stage(scale: scale)
+                    words
+                        .padding(.top, 28 * min(scale, 1))
+                    Spacer(minLength: Spacing.l)
+                }
                 footer
             }
             .padding(.bottom, Spacing.m)
@@ -75,6 +84,18 @@ struct WelcomeView: View {
             name = savedName
             if case .milu(let look) = ProfileAvatar(raw: savedAvatar), Self.avatars.contains(look) { avatar = look }
         }
+    }
+
+    /// Than on the stage; a tap makes him hop.
+    private func stage(scale: CGFloat) -> some View {
+        WelcomeStage(page: page, than: than, avatarFace: WelcomeThan.Face(avatar), scale: scale,
+                     finishing: finishing)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Haptics.selection()
+                than.hop()
+            }
     }
 
     /// Figma's stage is 370 × 404 on a 402-point screen; smaller screens and larger text get a
@@ -129,7 +150,7 @@ struct WelcomeView: View {
                 switch page {
                 case .meet: copy("Chào bạn,\nmình là Milu!", "Bạn cứ vi vu, chi thu có Milu.")
                 case .record: copy("Ghi một chạm,\nrõ từng đồng.", "Số dư, hạng mục, báo cáo, Milu tự lo.")
-                case .assistant: copy("Cứ nói,\nMilu lo phần còn lại.", "Ghi, sửa hay hỏi số liệu bằng lời.")
+                case .assistant: copy("Cứ nói,\nMilu lo phần còn lại.", "Ghi chi tiêu hay hỏi số liệu bằng lời.")
                 case .profile:
                     WelcomeProfileForm(name: $name, avatar: $avatar, focused: $nameFocused) {
                         avatarChosen = true

@@ -66,6 +66,17 @@ struct AssistantToolsTests {
         #expect(store.transactions.count == 2)
     }
 
+    /// A day ahead is not recorded: the form allows none, and no list could show it (audit round
+    /// 2, 2026-11-15).
+    @Test func aDayAheadIsNotRecorded() {
+        let store = store([vcb, cash])
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
+        let result = RecordTransaction().run(["amount": 5_000_000, "note": "Tiền nhà",
+                                              "date": .string(ToolDates.text(tomorrow))], in: store)
+        #expect(result.result["ok"] == false)
+        #expect(store.transactions.isEmpty)
+    }
+
     // MARK: get_app_info
 
     /// Every topic answers from the app's own pages: none of the entries it quotes went missing

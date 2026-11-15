@@ -15,30 +15,43 @@ struct NotificationScheduling: ViewModifier {
     @AppStorage(StorageKey.categoryBudgets) private var categoryBudgets = CategoryBudgets()
 
     private let reminders = Reminders.shared
+    /// Planned again on coming back from the background only: every inactive moment (Control
+    /// Center, a Face ID prompt) took them all down and put them back (audit round 2, 2026-11-15).
+    @State private var wasInBackground = false
+    /// The pass under way: a new one stops it, so a stale one cannot put back a removed rule.
+    @State private var planning: Task<Void, Never>?
 
     func body(content: Content) -> some View {
         content
             .task { await refresh(checkingQuietly: false) }
             .onChange(of: store.transactions) { Task { await checkLimits(quietly: false) } }
+            // A transfer's fee, a loan's interest, an account locked or brought back move the
+            // month's spending too (audit round 2, 2026-11-15: no alert for those).
+            .onChange(of: store.total(.expense)) { Task { await checkLimits(quietly: false) } }
             .onChange(of: dailyReminder) { Task { await planReminder() } }
-            .onChange(of: recurringAlerts) { Task { await planRecurring() } }
-            .onChange(of: store.recurringRules) { Task { await planRecurring() } }
+            .onChange(of: recurringAlerts) { replanRecurring() }
+            .onChange(of: store.recurringRules) { replanRecurring() }
             // An account archived or brought back changes what the reminders say.
-            .onChange(of: store.accounts.map(\.id)) { Task { await planRecurring() } }
+            .onChange(of: store.accounts.map(\.id)) { replanRecurring() }
             .onChange(of: reminderMinutes) { Task { await planReminder() } }
             // Turned on, or a limit changed: note where things stand without announcing it.
             .onChange(of: budgetAlerts) { _, on in if on { Task { await checkLimits(quietly: true) } } }
             .onChange(of: monthlyBudget) { Task { await checkLimits(quietly: true) } }
             .onChange(of: categoryBudgets) { Task { await checkLimits(quietly: true) } }
             .onChange(of: scenePhase) { _, phase in
+                if phase == .background { wasInBackground = true }
                 // A new day since: plan from it.
-                if phase == .active {
-                    Task {
-                        await planReminder()
-                        await planRecurring()
-                    }
+                if phase == .active, wasInBackground {
+                    wasInBackground = false
+                    Task { await planReminder() }
+                    replanRecurring()
                 }
             }
+    }
+
+    private func replanRecurring() {
+        planning?.cancel()
+        planning = Task { await planRecurring() }
     }
 
     private func refresh(checkingQuietly quietly: Bool) async {

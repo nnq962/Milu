@@ -35,7 +35,8 @@ struct LegalDocument {
             ReadingEntry("Quyền truy cập trên iPhone",
                          "Micro và Nhận dạng giọng nói: chỉ dùng khi bạn chạm nút micro để nói.",
                          "Thông báo: để nhắc ghi chi tiêu, báo khoản định kỳ tới hạn và cảnh báo hạn mức. Các thông báo này được hẹn ngay trên iPhone, không đi qua máy chủ nào.",
-                         "Face ID (hoặc mật mã iPhone): khi bạn bật Khoá bằng Face ID. iOS tự kiểm tra, Milu chỉ nhận biết mở được hay không, không bao giờ thấy hay gửi đi khuôn mặt hay mật mã của bạn.",
+                         // Named as this iPhone names it: Touch ID reads a fingerprint (audit round 2, 2026-11-15).
+                         "\(AppLock.biometryName) (hoặc mật mã iPhone): khi bạn bật Khoá bằng \(AppLock.biometryName). iOS tự kiểm tra, Milu chỉ nhận biết mở được hay không, không bao giờ thấy hay gửi đi khuôn mặt, vân tay hay mật mã của bạn.",
                          "Milu không xin quyền vị trí, ảnh hay danh bạ của iPhone. Bạn có thể tắt các quyền trên bất cứ lúc nào trong Cài đặt của iPhone."),
             ReadingEntry("Quyền của bạn",
                          "Bạn xem, sửa hoặc xoá được từng mục ngay trong app.",

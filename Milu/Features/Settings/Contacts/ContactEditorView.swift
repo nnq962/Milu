@@ -33,6 +33,12 @@ struct ContactEditorView: View {
     @State private var openLoan: Loan?
     /// Set by the first ✓: from then on a missing name is shown in red.
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 2, 2026-11-15: only the
+    /// transaction forms did).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [name, relationshipID] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     init(target: Target, onSave: ((Contact) -> Void)? = nil) {
         self.target = target
@@ -77,7 +83,7 @@ struct ContactEditorView: View {
     var body: some View {
         let relationship = store.relationship(id: relationshipID)
         SheetScaffold(title: original == nil ? "Thêm vào danh bạ" : "Sửa liên hệ",
-                      validate: validate, onConfirm: save) {
+                      validate: validate, onConfirm: save, hasChanges: hasChanges) {
             FormGroup(title: "Thông tin", error: nameError) {
                 FormTextRow(title: "Tên", text: $name, prompt: "Nguyễn Văn A", isInvalid: nameError != nil,
                             maxLength: Contact.maxNameLength, focusesOnAppear: original == nil)
@@ -109,6 +115,7 @@ struct ContactEditorView: View {
             }
         }
         .miluSheetStyle()
+        .task { if opened == nil { opened = draft } }
         .sheet(item: $openLoan) { LoanDetailSheet(loanID: $0.id) }
         .sheet(isPresented: $isPickingRelationship) {
             RelationshipPickerSheet(selection: $relationshipID)

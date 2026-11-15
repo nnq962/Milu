@@ -331,7 +331,7 @@ struct AddTransactionView: View {
                                   selection: Binding { leftoverAccount } set: { self.leftoverAccount = $0 },
                                   options: leftoverOptions,
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
-                        store.account(id: $0)?.name ?? "—"
+                        store.pickerName(of: $0) ?? "—"
                     }
                 }
                 .transition(.opacity)
@@ -397,11 +397,11 @@ struct AddTransactionView: View {
         .task { if opened == nil { opened = draft } }
     }
 
-    /// The limit note: a counted spending only, not in a goal (its money was set aside already)
-    /// and not on a read-only one.
+    /// The limit note: a counted spending only, not on a read-only one. One from a goal ("Mua
+    /// ngay") too: it counts in the month's limit as every spending does, and the form kept quiet
+    /// about it, then the tile turned red (audit round 2, 2026-11-15).
     private var budgetNotice: BudgetNotice? {
-        guard mode == .expense, !isReadOnly, !keepsSystemCategory, buyingGoal == nil,
-              accountID.flatMap(store.goal(id:)) == nil else { return nil }
+        guard mode == .expense, !isReadOnly, !keepsSystemCategory else { return nil }
         return store.budgetNotice(amount: amount, categoryID: categoryID, accountID: accountID, date: date,
                                   isExcluded: isExcluded, replacing: editing, monthLimit: monthlyBudget,
                                   groupLimits: categoryBudgets.keeping(store.budgetGroupIDs))
@@ -509,7 +509,7 @@ struct AddTransactionView: View {
                       options: mode == .transfer ? accountOptions.filter { store.account(id: $0) != nil } : accountOptions,
                       optionIcon: { store.account(id: $0)?.iconName ?? store.goal(id: $0)?.icon ?? "hugeicons-wallet-01" }) {
             // A goal when the money was spent from one ("Mua ngay").
-            store.account(id: $0)?.name ?? store.goal(id: $0)?.name ?? "Hũ đã xoá"
+            store.pickerName(of: $0) ?? store.goal(id: $0)?.name ?? "Hũ đã xoá"
         }
     }
 
@@ -674,19 +674,19 @@ private struct OptionalAccountRow: View {
     var body: some View {
         Button { isPicking = true } label: {
             FormValueRowContent(title: title, icon: nil,
-                           value: selection.flatMap { store.account(id: $0)?.name } ?? "Chọn",
+                           value: selection.flatMap { store.pickerName(of: $0) } ?? "Chọn",
                            valueIcon: selection.flatMap { store.account(id: $0)?.iconName },
                            isInvalid: isInvalid)
         }
         .buttonStyle(.row)
         .accessibilityLabel(title)
-        .accessibilityValue(selection.flatMap { store.account(id: $0)?.name } ?? "Chưa chọn")
+        .accessibilityValue(selection.flatMap { store.pickerName(of: $0) }.map(SpokenText.money) ?? "Chưa chọn")
         .sheet(isPresented: $isPicking) {
             ChoiceSheet(title: title,
                         selection: Binding<Account.ID?> { selection } set: { if let new = $0 { set(new) } },
                         options: options.map(Optional.some),
                         optionIcon: { $0.flatMap { store.account(id: $0)?.iconName } ?? "hugeicons-wallet-01" },
-                        optionTitle: { $0.flatMap { store.account(id: $0)?.name } ?? "—" })
+                        optionTitle: { $0.flatMap { store.pickerName(of: $0) } ?? "—" })
         }
     }
 }

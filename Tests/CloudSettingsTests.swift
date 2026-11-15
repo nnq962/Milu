@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 import Testing
 @testable import Milu
@@ -172,6 +173,27 @@ struct CloudSettingsTests {
         monitor.handle(.init(id: next, isImport: true, ended: false))
         monitor.handle(.init(id: next, isImport: true, ended: true))
         #expect(!monitor.takeNewData())
+    }
+
+    /// iCloud full: a send that failed stays said until one succeeds; a download that went fine
+    /// does not clear it, nor say "Đã đồng bộ" (audit round 2, 2026-11-15).
+    @Test func aFailedSendStaysUntilASendSucceeds() {
+        let monitor = CloudSyncMonitor(defaults: makeDefaults())
+        let send = UUID()
+        monitor.handle(.init(id: send, isImport: false, ended: false))
+        monitor.handle(.init(id: send, isImport: false, ended: true, succeeded: false, error: CKError(.quotaExceeded)))
+        #expect(monitor.problem == "iCloud đã đầy, dữ liệu mới chưa được sao lưu")
+        let synced = monitor.lastSynced
+        let download = UUID()
+        monitor.handle(.init(id: download, isImport: true, ended: false))
+        monitor.handle(.init(id: download, isImport: true, ended: true))
+        #expect(monitor.problem != nil)
+        #expect(monitor.lastSynced == synced)
+        let sendAgain = UUID()
+        monitor.handle(.init(id: sendAgain, isImport: false, ended: false))
+        monitor.handle(.init(id: sendAgain, isImport: false, ended: true))
+        #expect(monitor.problem == nil)
+        #expect(monitor.lastSynced != synced)
     }
 
     @Test func theMonitorShowsOnlyDataComingDown() {

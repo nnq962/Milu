@@ -54,8 +54,9 @@ struct RemoteAssistant: AssistantService {
         } catch where action != nil {
             // A transaction was recorded or picked before the answer failed, a "too many
             // questions" too (audit 2026-11-15: that one hid the card): its card shows.
-            return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action,
-                                  counts: Self.counts(toolsRun))
+            // Not counted: the answer did not come, and recording and deleting are free (audit
+            // round 2, 2026-11-15: a question that also read something kept its lượt).
+            return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action, counts: false)
         } catch MiluAPI.Failure.busy {
             throw AssistantServiceError.server("bạn đã hỏi nhiều quá trong giờ này")
         } catch is CancellationError {

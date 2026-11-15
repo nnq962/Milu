@@ -109,7 +109,7 @@ struct LoanPaymentSheet: View {
                                   selection: Binding { chosen } set: { accountID = $0 },
                                   options: accountOptions,
                                   optionIcon: { store.account(id: $0)?.iconName ?? "hugeicons-wallet-01" }) {
-                        store.account(id: $0)?.name ?? "Tài khoản đã xoá"
+                        store.pickerName(of: $0) ?? "Tài khoản đã xoá"
                     }
                     FormDivider(hasIcon: false)
                 }

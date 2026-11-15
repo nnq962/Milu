@@ -42,13 +42,16 @@ struct GetBudget: AssistantTool {
             ])
         }
         let progress = BudgetProgress(limit: limit, spent: spent)
+        // A month that is over has money left over, not money still to spend, and is never "near"
+        // its limit (audit round 2, 2026-11-15), as Hạn mức chi tiêu says it.
+        let isOver = month.end <= .now
         var result: [String: JSONValue] = [
             "month": .string(label),
             "hasLimit": true,
             "limit": ToolMoney.value(limit),
             "spent": ToolMoney.value(spent),
             "used": .string(progress.percentText),
-            "status": .string(Self.status(progress)),
+            "status": .string(Self.status(progress, monthOver: isOver)),
         ]
         // What went out a day so far, beside what may go out a day from now: asked "mỗi ngày tiêu
         // trung bình bao nhiêu", the model picked this tool (eval 2026-11-15).
@@ -61,6 +64,9 @@ struct GetBudget: AssistantTool {
         if progress.isOver {
             result["over"] = ToolMoney.value(-progress.left)
             say += "vượt \((-progress.left).vnd)."
+        } else if isOver {
+            result["left"] = ToolMoney.value(progress.left)
+            say += "còn dư \(progress.left.vnd)."
         } else {
             result["left"] = ToolMoney.value(progress.left)
             say += "còn tiêu được \(progress.left.vnd)"
@@ -86,7 +92,7 @@ struct GetBudget: AssistantTool {
                     "spent": ToolMoney.value(progress.spent),
                     progress.isOver ? "over" : "left": ToolMoney.value(abs(progress.left)),
                     "used": .string(progress.percentText),
-                    "status": .string(Self.status(progress)),
+                    "status": .string(Self.status(progress, monthOver: isOver)),
                 ]
             })
         }
@@ -94,8 +100,10 @@ struct GetBudget: AssistantTool {
     }
 
     /// As Hạn mức chi tiêu colours it: amber from 80%, red over.
-    private static func status(_ progress: BudgetProgress) -> String {
-        progress.isOver ? "đã vượt" : progress.isNearing ? "sắp chạm (từ 80%)" : "ổn"
+    private static func status(_ progress: BudgetProgress, monthOver: Bool) -> String {
+        if progress.isOver { return "đã vượt" }
+        if monthOver { return "trong hạn mức" }
+        return progress.isNearing ? "sắp chạm (từ 80%)" : "ổn"
     }
 }
 

@@ -152,7 +152,10 @@ struct FormInfoRow: View {
 
     var body: some View {
         FormValueRowContent(title: title, icon: nil, value: value, valueIcon: valueIcon, showsChevron: false)
-            .accessibilityElement(children: .combine)
+            // "Hạn trả, 6 tháng 11", not "06/11" read as a fraction (audit round 2, 2026-11-15).
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(title)
+            .accessibilityValue(SpokenText.of(value))
     }
 }
 

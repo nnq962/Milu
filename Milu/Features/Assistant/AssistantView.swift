@@ -218,7 +218,9 @@ struct AssistantView: View {
     ///
     /// While Milu thinks it is ■ on the disc: the answer stops coming (user request 2026-11-11).
     private func actionButton(isDictating: Bool) -> some View {
-        let stops = isThinkingHere && !isDictating
+        // ■ in every chat while an answer is out: in another one, nothing could be asked and
+        // nothing said why (audit round 2, 2026-11-15). "Đang nghĩ…" stays in its own chat.
+        let stops = isThinking && !isDictating
         let sends = !stops && (isDictating || canSend)
         let disc = sends || stops
         let enabled = stops || (sends ? (dictation.isRecording || (!isDictating && canSend)) : true)
@@ -298,8 +300,10 @@ struct AssistantView: View {
         case .confirmDelete: "Khoản cần xoá ở bên dưới, bạn bấm xác nhận là xong. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
         case nil: "Tuần này bạn hỏi Milu hết lượt rồi 😏 "
         }
-        return first + renews + "\n\n"
-            + "• Ghi hay xoá giao dịch thì vẫn thoải mái, không tốn lượt.\n• Muốn hỏi thả ga thì đợi Milu Pro nhé."
+        // Pro is on sale: a free user is pointed to it; a subscriber already has it (audit round 2,
+        // 2026-11-15: both were told to "wait for Milu Pro").
+        let more = MiluPlan.isPro ? "" : "\n• Muốn hỏi nhiều hơn thì nâng cấp Milu Pro nhé."
+        return first + renews + "\n\n" + "• Ghi hay xoá giao dịch thì vẫn thoải mái, không tốn lượt." + more
     }
 
     /// ■ came after Milu had recorded a transaction: said under "Bạn đã dừng", with its card.
@@ -439,7 +443,7 @@ struct AssistantView: View {
             // 2026-11-12). A question asked with no lượt left is answered with when they come back.
             switch AnswerCharge(paid: paid, counts: reply.counts) {
             case .free: if paid { quota.refund() }
-            case .paid: break
+            case .paid: quota.settle()
             case .outOfQuestions:
                 // What it recorded, or the transaction to delete, still shows: the one is in
                 // already, the other waits for a yes (audit 2026-11-15: hidden, it was recorded again).
@@ -469,8 +473,10 @@ struct AssistantView: View {
             }
             answeringChatID = nil
             // VoiceOver says the answer as it comes, as it would read it in the chat (audit
-            // 2026-11-15: nothing was said, and the user had to look for it).
-            AccessibilityNotification.Announcement(Self.spoken(reply.text)).post()
+            // 2026-11-15: nothing was said, and the user had to look for it); only in that chat.
+            if chats.currentID == chatID {
+                AccessibilityNotification.Announcement(Self.spoken(reply.text)).post()
+            }
             answeredAt = .now
             answering = nil
         }

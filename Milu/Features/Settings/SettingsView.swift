@@ -541,7 +541,9 @@ private struct SyncRow: View {
         let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(.vietnam))
         if calendar.isDateInToday(date) { return "lúc \(time)" }
         if calendar.isDateInYesterday(date) { return "hôm qua lúc \(time)" }
-        return date.formatted(.dateTime.day().month(.defaultDigits)) + " lúc \(time)"
+        // dd/mm as every date of the app, whatever the iPhone's region (audit round 2,
+        // 2026-11-15: a US region read "11/12" for 12 November).
+        return date.shortDay + " lúc \(time)"
     }
 
     private var syncExplanation: String {

@@ -119,6 +119,6 @@ enum Change {
 
     /// A line with the arrows said as words, for VoiceOver: "↑ 15%" → "tăng 15%".
     static func spoken(_ text: String) -> String {
-        text.replacingOccurrences(of: "↑", with: "tăng").replacingOccurrences(of: "↓", with: "giảm")
+        SpokenText.money(text.replacingOccurrences(of: "↑", with: "tăng").replacingOccurrences(of: "↓", with: "giảm"))
     }
 }

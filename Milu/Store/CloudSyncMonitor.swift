@@ -34,6 +34,10 @@ final class CloudSyncMonitor {
     private(set) var quietImports = 0
 
     @ObservationIgnored private var receiving: Set<UUID> = []
+    /// The last sending up failed (iCloud full, say): only a send that succeeds clears it. A
+    /// download that went fine said "Đã đồng bộ" while nothing new was backed up (audit round 2,
+    /// 2026-11-15).
+    @ObservationIgnored private var sendingFails = false
     /// What the database's saves off the main thread said since the last download ended: the
     /// sync's own saves (the app writes on the main thread only). Filled as they happen, on their
     /// thread, so it is complete when the download's end comes in.
@@ -193,13 +197,19 @@ final class CloudSyncMonitor {
             receiving.remove(update.id)
             if update.isImport { lastImportEnded = .now }
             if update.isImport, update.succeeded, takeImportedRows() { hasNewData = true }
+            let isExport = !update.isImport && !update.isSetup
             if update.succeeded {
-                problem = nil
-                let now = Date.now
-                lastSynced = now
-                defaults.set(now, forKey: Self.lastSyncedKey)
+                if isExport { sendingFails = false }
+                if !sendingFails {
+                    problem = nil
+                    let now = Date.now
+                    lastSynced = now
+                    defaults.set(now, forKey: Self.lastSyncedKey)
+                }
             } else if let error = update.error {
-                problem = Self.describe(error)
+                let said = Self.describe(error)
+                if isExport { sendingFails = said != nil }
+                problem = said
             }
         }
         let receivingNow = !receiving.isEmpty

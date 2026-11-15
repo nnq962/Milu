@@ -30,6 +30,12 @@ struct AddAccountView: View {
     @State private var isPickingInstitution = false
     /// Set by the first ✓ tap; from then on missing fields show as errors and clear as they are fixed.
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 2, 2026-11-15: only the
+    /// transaction forms did).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [institutionID, name, note, balanceText, isNegative, openedAt, isLocked] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     init(type: AccountType = .bank) {
         self.type = type
@@ -95,7 +101,7 @@ struct AddAccountView: View {
     }
 
     var body: some View {
-        SheetScaffold(title: title, validate: validate, onConfirm: save) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save, hasChanges: hasChanges) {
             SheetAmountHeader(title: "Số dư hiện tại") {
                 // An archived account's history is frozen, its balance too, until it is restored.
                 MiluAmountField(text: $balanceText, showsSuggestions: original?.isArchived != true,
@@ -137,6 +143,7 @@ struct AddAccountView: View {
             }
         }
         .miluSheetStyle()
+        .task { if opened == nil { opened = draft } }
         .sheet(isPresented: $isPickingInstitution) {
             InstitutionPickerSheet(type: type, selection: $institutionID)
         }

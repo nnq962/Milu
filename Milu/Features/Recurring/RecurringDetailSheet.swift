@@ -151,7 +151,9 @@ private struct RecordedHistoryPage: View {
     var body: some View {
         let recorded = store.transactions.filter { $0.recurringRuleID == ruleID }.sorted { $0.date > $1.date }
         ScrollView {
-            VStack(spacing: 0) { RecordedRows(transactions: recorded) }
+            // Lazy: a daily rule of years has recorded a thousand and more, all drawn at once
+            // before the page could slide in (audit round 2, 2026-11-15).
+            LazyVStack(spacing: 0) { RecordedRows(transactions: recorded) }
                 .listCard()
         }
         .contentMargins(.horizontal, Spacing.page, for: .scrollContent)

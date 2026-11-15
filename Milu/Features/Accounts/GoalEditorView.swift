@@ -52,6 +52,12 @@ struct GoalEditorView: View {
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     /// Set when "Mở lại hũ" / "Đóng hũ" is tapped with no name: the group says so in red.
     @State private var showsNameError = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 2, 2026-11-15: only the
+    /// transaction forms did).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [name, icon, targetText, hasDueDate, dueDate] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     private func failClose() {
         withAnimation(Motion.gentle(.smooth(duration: 0.3))) { showsNameError = true }
@@ -88,7 +94,7 @@ struct GoalEditorView: View {
 
     var body: some View {
         SheetScaffold(title: original == nil ? "Thêm hũ tiết kiệm" : "Sửa hũ tiết kiệm",
-                      validate: validate, onConfirm: save) {
+                      validate: validate, onConfirm: save, hasChanges: hasChanges) {
             SheetAmountHeader(title: "Mục tiêu") {
                 // A closed goal keeps the target it met; reopening it makes the target editable again.
                 MiluAmountField(text: $targetText, showsSuggestions: original?.isClosed != true,
@@ -151,6 +157,7 @@ struct GoalEditorView: View {
             }
         }
         .miluSheetStyle()
+        .task { if opened == nil { opened = draft } }
     }
 
     /// A goal with money in it asks which account gets the money back, one button per account; an

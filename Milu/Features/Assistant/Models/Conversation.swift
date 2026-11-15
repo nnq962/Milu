@@ -82,9 +82,18 @@ final class AssistantChats {
             case .unreadable: isUnread = true
             }
         }
-        conversations = saved + [.new()]
+        conversations = saved.map(Self.closingUnanswered) + [.new()]
         currentID = conversations.last?.id
         if isUnread { readOnceUnlocked() }
+    }
+
+    /// A chat that ends on a question: the app was closed while Milu answered. Said so under it,
+    /// so it does not seem still awaited (its lượt is given back, `AIQuota`).
+    private static func closingUnanswered(_ chat: Conversation) -> Conversation {
+        guard chat.messages.last?.role == .user else { return chat }
+        var chat = chat
+        chat.messages.append(ChatMessage(role: .notice, text: "Milu chưa kịp trả lời câu này"))
+        return chat
     }
 
     @ObservationIgnored private let isSaving: Bool

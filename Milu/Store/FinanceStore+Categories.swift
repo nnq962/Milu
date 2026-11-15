@@ -68,7 +68,10 @@ extension FinanceStore {
     func hasHistory(_ category: Category) -> Bool {
         if category.isGroup, TransactionCategory(rawValue: category.id) != nil { return true }
         let ids = Set([category.id] + categories.filter { $0.parentID == category.id }.map(\.id))
+        // A recurring rule's category counts too: deleted, the rule went on recording under a
+        // category that no longer was (audit round 2, 2026-11-15). Hidden, it still files them.
         return transactions.contains { ids.contains($0.categoryID) }
+            || recurringRules.contains { ids.contains($0.categoryID) }
     }
 
     /// Adds or changes a category. A new group comes with its first item (a transaction is always

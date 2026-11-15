@@ -31,9 +31,7 @@ struct BudgetStatusLine: View {
     }
 
     /// Money in the line as words: "1.000.000đ" → "1.000.000 đồng".
-    static func spoken(_ message: String) -> String {
-        message.replacing(/(\d)đ/) { "\($0.1) đồng" }
-    }
+    static func spoken(_ message: String) -> String { SpokenText.money(message) }
 
     private var color: Color {
         switch level {

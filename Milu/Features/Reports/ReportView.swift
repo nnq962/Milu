@@ -387,14 +387,19 @@ struct ReportView: View {
                     let label = BreakdownRowLabel(icon: account.icon, title: account.name,
                                                   detail: account.income > 0 ? "Thu +\(account.income.vnd)" : "Không có khoản thu",
                                                   amount: account.expense,
-                                                  tone: account.expense > 0 ? .signedExpense : .neutral,
+                                                  // Ink, as the categories over it (audit round 2).
+                                                  tone: account.expense > 0 ? .outflow : .neutral,
                                                   isAccount: true)
                     // A hũ or an account in a sheet, as from every list (user choices 2026-11-01).
                     Group {
                         if store.goal(id: account.id) != nil {
                             GoalSheetLink(goalID: account.id) { label }
-                        } else {
+                        } else if store.account(id: account.id) != nil {
                             AccountSheetLink(accountID: account.id) { label }
+                        } else {
+                            // A hũ deleted after its "Mua ngay": nothing left to open (audit
+                            // round 2, 2026-11-15: it opened "Không tìm thấy tài khoản").
+                            label
                         }
                     }
                     .buttonStyle(.row)
