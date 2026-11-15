@@ -23,10 +23,19 @@ final class CloudSettings {
     /// Called after values from another device were written down (the AI allowance reads again).
     var onChangeFromCloud: () -> Void = {}
     private var observers: [NSObjectProtocol] = []
+    /// The synced keys this device held when it last exchanged with iCloud. One gone from the
+    /// device since was erased here, and is erased in iCloud too; one only iCloud has has not come
+    /// down yet and is left alone (audit 2026-11-15: taken for erased here, a reinstall's first
+    /// sync erased every setting in iCloud, on every device).
+    private var exchangedKeys: Set<String> = []
+    /// Inside `pull`: its writes come from iCloud, they are not changes to send back up (audit
+    /// 2026-11-15: each write pushed the keys not yet written, old or missing, back up mid-loop).
+    private var isPulling = false
 
     init(defaults: UserDefaults = .standard, cloud: KeyValueStore = NSUbiquitousKeyValueStore.default) {
         self.defaults = defaults
         self.cloud = cloud
+        exchangedKeys = localKeys()
     }
 
     /// Copies iCloud's values down, then keeps both in step. Call once, before anything reads them.
@@ -51,6 +60,11 @@ final class CloudSettings {
     /// iCloud → this device, for `keys` (all of them when nil). A key iCloud no longer has
     /// (erased on another device) goes here too.
     func pull(keys: [String]?) {
+        isPulling = true
+        defer {
+            isPulling = false
+            exchangedKeys = localKeys()
+        }
         let names = keys ?? Array(cloud.dictionaryRepresentation.keys)
         for key in names where Self.isSynced(key) {
             let value = cloud.object(forKey: key)
@@ -60,15 +74,23 @@ final class CloudSettings {
         }
     }
 
-    /// This device → iCloud: every synced key whose value differs, set or removed.
+    /// This device → iCloud: every synced key whose value differs, and every one erased here since
+    /// the last exchange.
     func push() {
-        let local = defaults.dictionaryRepresentation().keys.filter(Self.isSynced)
-        let remote = cloud.dictionaryRepresentation.keys.filter(Self.isSynced)
-        for key in Set(local).union(remote) {
+        guard !isPulling else { return }
+        let local = localKeys()
+        for key in local {
             let value = defaults.object(forKey: key)
-            guard !Self.same(value, cloud.object(forKey: key)) else { continue }
-            if let value { cloud.set(value, forKey: key) } else { cloud.removeObject(forKey: key) }
+            if !Self.same(value, cloud.object(forKey: key)) { cloud.set(value, forKey: key) }
         }
+        for key in exchangedKeys.subtracting(local) where cloud.object(forKey: key) != nil {
+            cloud.removeObject(forKey: key)
+        }
+        exchangedKeys = local
+    }
+
+    private func localKeys() -> Set<String> {
+        Set(defaults.dictionaryRepresentation().keys.filter(Self.isSynced))
     }
 
     private static func same(_ a: Any?, _ b: Any?) -> Bool {

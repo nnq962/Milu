@@ -31,6 +31,29 @@ struct AppLockTests {
         #expect(appLock.isLocked)
     }
 
+    /// The plan lapsing, or seeming to (the iPhone's date moved past its end), never opens a lock
+    /// that is up: only Face ID does (audit 2026-11-15). Locks after that stop.
+    @Test func aLapsedPlanDoesNotOpenTheLock() {
+        defer { UserDefaults.standard.removeObject(forKey: StorageKey.debugPro) }
+        let (appLock, defaults) = lock(on: true, pro: true, delay: .immediately)
+        #expect(appLock.isLocked)
+        UserDefaults.standard.set(false, forKey: StorageKey.debugPro)
+        appLock.refresh()
+        #expect(appLock.isLocked)
+        // Opened with Face ID: on the free plan it does not lock again.
+        appLock.didReturnForTest(unlocked: true)
+        appLock.didLeave(now: .now)
+        appLock.didReturn(now: .now + .seconds(5))
+        #expect(!appLock.isLocked)
+        // The switch itself turned off: open at once.
+        UserDefaults.standard.set(true, forKey: StorageKey.debugPro)
+        let other = AppLock(defaults: defaults)
+        #expect(other.isLocked)
+        defaults.set(false, forKey: StorageKey.appLock)
+        other.refresh()
+        #expect(!other.isLocked)
+    }
+
     /// A Face ID prompt makes the app inactive for a moment, never backgrounded: no lock.
     @Test func comingBackWithoutLeavingDoesNotLock() {
         defer { UserDefaults.standard.removeObject(forKey: StorageKey.debugPro) }

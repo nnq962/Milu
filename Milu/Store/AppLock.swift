@@ -128,9 +128,11 @@ final class AppLock {
         if isJustAsked { isJustAsked = false }
     }
 
-    /// Turned off (or the plan lapsed): open at once.
+    /// Turned off: open at once. A plan that lapsed, or seems to (the iPhone's date set past its
+    /// end, which needs no passcode), only stops the next locks: a lock that is up stays until
+    /// Face ID opens it (audit 2026-11-15: moving the date forward took the lock away unasked).
     func refresh() {
-        if !isOn { isLocked = false }
+        if !defaults.bool(forKey: StorageKey.appLock) { isLocked = false }
     }
 
     #if DEBUG

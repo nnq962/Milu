@@ -51,6 +51,37 @@ struct FinanceStoreTests {
         #expect(balance(store, bank) == 4_700_000)
     }
 
+    /// A chat card keeps the transaction as it was recorded; deleting from it after an edit takes
+    /// back what the transaction is now, from where it is now (audit 2026-11-15).
+    @Test func deletingAnOldCopyUndoesTheTransactionAsItIsNow() {
+        let store = makeStore()
+        let card = expense(60_000, on: wallet)
+        store.add(card)
+        var edited = card
+        edited.amount = 600_000
+        edited.accountID = bank.id
+        store.update(edited)
+        store.delete(card)
+        #expect(store.transactions.isEmpty)
+        #expect(balance(store, wallet) == 1_000_000)
+        #expect(balance(store, bank) == 5_000_000)
+    }
+
+    /// The same for a transfer edited since the copy was taken.
+    @Test func deletingAnOldCopyOfATransferUndoesItAsItIsNow() {
+        let store = makeStore()
+        let copy = AccountTransfer(fromAccountID: bank.id, toAccountID: wallet.id, amount: 1_000_000, fee: 5_000, date: .now)
+        store.add(copy)
+        var edited = copy
+        edited.amount = 2_000_000
+        edited.fee = 0
+        store.update(edited)
+        store.delete(copy)
+        #expect(store.accountTransfers.isEmpty)
+        #expect(balance(store, wallet) == 1_000_000)
+        #expect(balance(store, bank) == 5_000_000)
+    }
+
     @Test func excludedTransactionsStayOutOfTotals() {
         let store = makeStore()
         var gift = expense(500_000, on: wallet)

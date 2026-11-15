@@ -60,10 +60,13 @@ extension FinanceStore {
 
     func delete(_ transfer: AccountTransfer) {
         persist {
-            guard accountTransfers.contains(where: { $0.id == transfer.id }), readOnlyReason(transfer) == nil else { return }
-            accountTransfers.removeAll { $0.id == transfer.id }
-            apply(transfer, sign: -1)
-            database?.deleteTransaction(id: transfer.id)
+            // The transfer as it is now, not a copy made before an edit (as `delete(_:)` of a
+            // transaction).
+            guard let stored = accountTransfers.first(where: { $0.id == transfer.id }), readOnlyReason(stored) == nil
+            else { return }
+            accountTransfers.removeAll { $0.id == stored.id }
+            apply(stored, sign: -1)
+            database?.deleteTransaction(id: stored.id)
         }
     }
 

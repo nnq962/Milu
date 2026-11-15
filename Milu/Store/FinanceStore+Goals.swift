@@ -175,12 +175,14 @@ extension FinanceStore {
     /// Undoes a deposit or withdrawal on both sides.
     func delete(_ transfer: GoalTransfer) {
         persist {
-            guard goalTransfers.contains(where: { $0.id == transfer.id }), isEditable(transfer),
-                  (goal(id: transfer.goalID)?.saved ?? 0) - transfer.goalDelta >= 0 else { return }
-            goalTransfers.removeAll { $0.id == transfer.id }
-            adjustBalance(of: transfer.goalID, by: -transfer.goalDelta)
-            adjustBalance(of: transfer.accountID, by: transfer.goalDelta)
-            database?.deleteTransaction(id: transfer.id)
+            // The deposit or withdrawal as it is now, not a copy made before an edit (as
+            // `delete(_:)` of a transaction).
+            guard let stored = goalTransfers.first(where: { $0.id == transfer.id }), isEditable(stored),
+                  (goal(id: stored.goalID)?.saved ?? 0) - stored.goalDelta >= 0 else { return }
+            goalTransfers.removeAll { $0.id == stored.id }
+            adjustBalance(of: stored.goalID, by: -stored.goalDelta)
+            adjustBalance(of: stored.accountID, by: stored.goalDelta)
+            database?.deleteTransaction(id: stored.id)
         }
     }
 

@@ -42,10 +42,13 @@ extension FinanceStore {
     func delete(_ transaction: FinanceTransaction) {
         persist {
             // Chat cards can ask twice; only reverse the balance for a transaction that still exists.
-            guard transactions.contains(where: { $0.id == transaction.id }), isEditable(transaction) else { return }
-            transactions.removeAll { $0.id == transaction.id }
-            adjustBalance(of: transaction.accountID, by: -transaction.signedAmount)
-            database?.deleteTransaction(id: transaction.id)
+            // The row as it is now, not the copy passed in: a chat card keeps the one it was drawn
+            // with, and an edit since may have changed its amount or account (audit 2026-11-15:
+            // the old amount went back to the old account, both balances wrong).
+            guard let stored = self.transaction(id: transaction.id), isEditable(stored) else { return }
+            transactions.removeAll { $0.id == stored.id }
+            adjustBalance(of: stored.accountID, by: -stored.signedAmount)
+            database?.deleteTransaction(id: stored.id)
         }
     }
 

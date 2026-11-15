@@ -37,15 +37,66 @@ struct CloudSettingsTests {
     /// A change here goes up; one erased here is erased in iCloud too; per-device keys stay here.
     @Test func changesGoUpAndErasingGoesUpToo() {
         let defaults = makeDefaults()
+        defaults.set("Cũ", forKey: StorageKey.profileName)
         let cloud = FakeCloud()
         cloud.values = [StorageKey.profileName: "Cũ"]
         let settings = CloudSettings(defaults: defaults, cloud: cloud)
         defaults.set(5_000_000.0, forKey: StorageKey.monthlyBudget)
         defaults.set("dark", forKey: StorageKey.appearance)
+        defaults.removeObject(forKey: StorageKey.profileName)
         settings.push()
         #expect(cloud.values[StorageKey.monthlyBudget] as? Double == 5_000_000)
         #expect(cloud.values[StorageKey.profileName] == nil)
         #expect(cloud.values[StorageKey.appearance] == nil)
+    }
+
+    /// A key only iCloud has has not come down yet: a change here leaves it there (audit
+    /// 2026-11-15: taken for erased here, it was erased in iCloud).
+    @Test func aKeyNotYetDownIsNotErased() {
+        let defaults = makeDefaults()
+        let cloud = FakeCloud()
+        let settings = CloudSettings(defaults: defaults, cloud: cloud)
+        settings.start()
+        cloud.values[StorageKey.profileName] = "Quyết"
+        defaults.set(5_000_000.0, forKey: StorageKey.monthlyBudget)
+        settings.push()
+        #expect(cloud.values[StorageKey.profileName] as? String == "Quyết")
+        #expect(cloud.values[StorageKey.monthlyBudget] as? Double == 5_000_000)
+    }
+
+    /// A reinstall's first sync: everything comes down after launch, all of it, and stays in
+    /// iCloud (audit 2026-11-15: writing the first key sent "erase" for the rest, on every device).
+    @Test func theFirstSyncAfterAReinstallKeepsEverything() {
+        let defaults = makeDefaults()
+        let cloud = FakeCloud()
+        let settings = CloudSettings(defaults: defaults, cloud: cloud)
+        settings.start()
+        let synced: [String: Any] = [StorageKey.monthlyBudget: 8_000_000.0, StorageKey.profileName: "Quyết",
+                                     StorageKey.dailyReminder: true, "ai.weekUsed": 7, StorageKey.welcomeSeen: true]
+        cloud.values = synced
+        settings.pull(keys: Array(synced.keys))
+        for (key, value) in synced {
+            #expect((defaults.object(forKey: key) as AnyObject).isEqual(value), "\(key) on the device")
+            #expect((cloud.values[key] as AnyObject).isEqual(value), "\(key) in iCloud")
+        }
+    }
+
+    /// Two settings changed together on another device ("Bỏ hạn mức": the month's limit and the
+    /// groups'): both come down, and neither old value goes back up (audit 2026-11-15).
+    @Test func twoKeysChangedElsewhereBothComeDown() {
+        let defaults = makeDefaults()
+        defaults.set(5_000_000.0, forKey: StorageKey.monthlyBudget)
+        defaults.set("{\"food\":1000000}", forKey: StorageKey.categoryBudgets)
+        let cloud = FakeCloud()
+        cloud.values = [StorageKey.monthlyBudget: 5_000_000.0, StorageKey.categoryBudgets: "{\"food\":1000000}"]
+        let settings = CloudSettings(defaults: defaults, cloud: cloud)
+        settings.start()
+        cloud.values = [StorageKey.monthlyBudget: 0.0]
+        settings.pull(keys: [StorageKey.monthlyBudget, StorageKey.categoryBudgets])
+        #expect(defaults.double(forKey: StorageKey.monthlyBudget) == 0)
+        #expect(defaults.object(forKey: StorageKey.categoryBudgets) == nil)
+        #expect(cloud.values[StorageKey.monthlyBudget] as? Double == 0)
+        #expect(cloud.values[StorageKey.categoryBudgets] == nil)
     }
 
     /// Another device changed the name and erased the limit: both come down.
