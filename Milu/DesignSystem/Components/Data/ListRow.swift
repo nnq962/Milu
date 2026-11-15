@@ -80,12 +80,15 @@ struct ListRow<Leading: View, Trailing: View>: View {
         // At the accessibility sizes the right side goes under the words, so the picture stays by
         // the name rather than floating in the middle of a tall block (review 2026-11-08).
         let oneLine = isAccessibilitySize || ((subtitle?.isEmpty ?? true) && !hasTrailingNote)
+        // A figure alone beside the name and the line under it: on the middle of the two, as the
+        // rows of Sổ ví (user request 2026-11-15: on the title's line it looked pushed up). With a
+        // note under the figure too, each line beside its own: the figure on the title's baseline.
+        let figureCentered = !oneLine && !hasTrailingNote
         HStack(alignment: oneLine ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             leading
                 .centeredOnTextLine()
-            // Title and amount on one baseline; stacked, the words take the row's width so every
-            // row starts at the same edge.
-            AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+            // Stacked, the words take the row's width so every row starts at the same edge.
+            AdaptiveStack(alignment: figureCentered ? .center : .firstTextBaseline, spacing: Spacing.s) {
                 VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                     // Whole at the accessibility sizes, where one line cut "Cho vay" to "Ch…".
                     // 16 ExtraBold, as the names of Sổ ví's rows (Milu: `bodyStrong` is a row's name;
