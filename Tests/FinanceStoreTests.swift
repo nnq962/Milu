@@ -181,6 +181,29 @@ struct FinanceStoreTests {
         #expect(history[0].value == 6_000_000)
     }
 
+    /// An archived account counts as if it had never been there: its past income is not taken back
+    /// from the others (audit 2026-11-15: earlier points sat 10tr low, below zero once all were archived).
+    @Test func anArchivedAccountLeavesTheHistoryAsIfItNeverCounted() {
+        let lastMonth = Calendar.current.date(byAdding: .month, value: -1, to: .now)!
+        let store = makeStore()
+        store.add(FinanceTransaction(amount: 10_000_000, category: .salary, accountID: wallet.id, date: lastMonth))
+        store.archive(store.account(id: wallet.id)!)
+        #expect(store.netWorthHistory(months: 3).map(\.value) == [5_000_000, 5_000_000, 5_000_000])
+    }
+
+    /// Money moved to an account later locked leaves what counts on the day it moved, not before.
+    @Test func aTransferToALockedAccountShowsWhenItMoved() {
+        let savings = Account(name: "Tiết kiệm", type: .bank, balance: 0)
+        let store = makeStore([wallet, bank, savings])
+        store.add(AccountTransfer(fromAccountID: bank.id, toAccountID: savings.id, amount: 2_000_000, date: .now))
+        var locked = store.account(id: savings.id)!
+        locked.isLocked = true
+        store.update(locked, balance: locked.balance)
+        let history = store.netWorthHistory(months: 2)
+        #expect(history[1].value == 4_000_000)
+        #expect(history[0].value == 6_000_000)
+    }
+
     @Test func transfersAndExistingLoansDoNotMoveTheHistory() {
         let store = makeStore()
         store.add(AccountTransfer(fromAccountID: bank.id, toAccountID: wallet.id, amount: 1_000_000, date: .now))
@@ -374,6 +397,19 @@ struct BudgetTests {
         let inUse = groups.keeping(["food"])
         #expect(inUse.total == 6_000_000)
         #expect(BudgetRules.room(for: "shopping", month: 30_000_000, groups: inUse) == 24_000_000)
+    }
+
+    /// A group going gives back its own limit only; a group not here yet (one of the user's own,
+    /// still on its way from iCloud) keeps its limit (audit 2026-11-15).
+    @Test func aGroupGoingDropsOnlyItsOwnLimit() {
+        let defaults = UserDefaults.standard
+        let saved = defaults.object(forKey: StorageKey.categoryBudgets)
+        defer { defaults.set(saved, forKey: StorageKey.categoryBudgets) }
+        let custom = UUID().uuidString
+        defaults.set(CategoryBudgets(limits: ["food": 6_000_000, custom: 2_000_000]).rawValue, forKey: StorageKey.categoryBudgets)
+        CategoryBudgets.dropLimit(of: "food")
+        let left = defaults.string(forKey: StorageKey.categoryBudgets).flatMap(CategoryBudgets.init(rawValue:))
+        #expect(left?.limits == [custom: 2_000_000])
     }
 
     @Test func theNoticeSaysWhatIsLeftAndPicksTheWorse() {

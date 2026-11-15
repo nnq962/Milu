@@ -83,6 +83,8 @@ final class FinanceStore {
         } else if !database.defaultCategoriesAdded {
             // A database from V1: its 12 categories became groups; add their items once.
             database.addMissingDefaultCategories()
+        } else {
+            database.markDeletedDefaults()
         }
         database.replaceRetiredIcons()
         if UserDefaults.standard.bool(forKey: MiluMigrationPlan.needsRebaseKey) {

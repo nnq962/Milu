@@ -21,13 +21,34 @@ extension FinanceStore {
         }
     }
 
-    /// Money in less money out on counted accounts from `date` on.
+    /// Money in less money out on counted accounts from `date` on, and money that crossed between
+    /// a counted account and one that is not.
+    ///
+    /// Counted is what `netWorth` sums today: an archived or locked account counts as if it had
+    /// never been there, as an added one counts as if it had always been (audit 2026-11-15: an
+    /// archived account's past income was still taken back, so every earlier point sat below
+    /// anything the app had shown, and below zero once every account was archived).
     func netWorthChange(since date: Date) -> Double {
         let after = DateInterval(start: date, end: .distantFuture)
-        let locked = lockedAccountIDs
-        return (transactions.filter { after.holds($0.date) } + feeExpenses(in: after) + interestTransactions(in: after))
-            .filter { !locked.contains($0.accountID) }
+        let uncounted = lockedAccountIDs.union(archivedAccounts.map(\.id))
+        var change = (transactions.filter { after.holds($0.date) } + feeExpenses(in: after) + interestTransactions(in: after))
+            .filter { !uncounted.contains($0.accountID) }
             .reduce(0) { $0 + ($1.kind == .income ? $1.amount : -$1.amount) }
+        // Its fee is already among the fees, from a counted source.
+        for transfer in accountTransfers where after.holds(transfer.date) {
+            let fromOut = uncounted.contains(transfer.fromAccountID), toOut = uncounted.contains(transfer.toAccountID)
+            if fromOut != toOut { change += toOut ? -transfer.amount : transfer.amount }
+        }
+        // A goal always counts: into it from an account that does not, or out of it to one.
+        for transfer in goalTransfers where after.holds(transfer.date) && uncounted.contains(transfer.accountID) {
+            change += transfer.goalDelta
+        }
+        // A repayment through an account that does not count: only the loan's side moved.
+        for payment in loanPayments where after.holds(payment.date) && uncounted.contains(payment.accountID) {
+            guard let loan = loan(id: payment.loanID) else { continue }
+            change += loan.direction == .lent ? -payment.principal : payment.principal
+        }
+        return change
     }
 }
 

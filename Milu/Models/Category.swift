@@ -23,6 +23,12 @@ struct Category: Identifiable, Hashable {
     static let maxNameLength = 30
     var isHidden: Bool { hiddenAt != nil }
 
+    /// A built-in category the user deleted keeps its row, hidden at this date (no hide is ever
+    /// this old), so it stays deleted: every new install adds the built-in ones, and the older row
+    /// wins once iCloud brings both (audit 2026-11-15: deleted outright, they came back after a
+    /// reinstall, and synced back to every device). Such rows are never read into the app.
+    static let deletedMark = Date(timeIntervalSince1970: 0)
+
     /// The balance adjustments are categories of the system, never listed in "Hạng mục".
     static let systemIDs: Set<String> = Set(TransactionCategory.allCases.filter(\.isSystem).map(\.rawValue))
 

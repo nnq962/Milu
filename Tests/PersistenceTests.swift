@@ -60,6 +60,71 @@ struct PersistenceTests {
         #expect(reopened.transactions.filter { $0.accountID == wallet.id || $0.accountID == bank.id }.count == 1)
     }
 
+    /// Two devices each recorded a repayment before they synced; the loan row kept one device's
+    /// figure. What is owed is worked out again from both repayments (audit 2026-11-15).
+    @Test func aLoanOwesItsPrincipalLessEveryRepayment() throws {
+        let (store, container, wallet, _, _) = makeStore()
+        let loan = Loan(name: "An", direction: .lent, principal: 10_000_000, outstanding: 10_000_000, dueDate: nil,
+                        accountID: wallet.id, date: day)
+        store.save(loan)
+        store.save(LoanPayment(loanID: loan.id, principal: 3_000_000, accountID: wallet.id, date: day.addingTimeInterval(3600)))
+        store.save(LoanPayment(loanID: loan.id, principal: 2_000_000, accountID: wallet.id, date: day.addingTimeInterval(7200)))
+        // The other device's write won: 10tr − 3tr only.
+        let context = ModelContext(container)
+        let row = try #require(try context.fetch(FetchDescriptor<LoanRecord>()).first { $0.id == loan.id })
+        row.outstanding = 7_000_000
+        try context.save()
+
+        let reopened = open(container)
+        #expect(reopened.loan(id: loan.id)?.outstanding == 5_000_000)
+        // One from before Milu: never more than the principal less what came back through Milu.
+        let old = Loan(name: "Bình", direction: .lent, principal: 8_000_000, outstanding: 6_000_000, dueDate: nil,
+                       isExisting: true)
+        reopened.save(old)
+        reopened.save(LoanPayment(loanID: old.id, principal: 1_000_000, accountID: wallet.id, date: day))
+        #expect(open(container).loan(id: old.id)?.outstanding == 5_000_000)
+    }
+
+    /// A built-in category the user deleted stays deleted after a reinstall: the new install adds
+    /// the built-in ones again, and the deleted one's older row, brought by iCloud, wins (audit 2026-11-15).
+    @Test func aDeletedBuiltInCategoryStaysDeletedAfterAReinstall() throws {
+        let phone = FinanceDatabase.makeContainer(inMemory: true)
+        FinanceDatabase(context: ModelContext(phone)).addMissingDefaultCategories()
+        let store = FinanceStore(database: FinanceDatabase(context: ModelContext(phone)), seedsSampleData: false)
+        let milkTea = try #require(store.category(id: "food.milktea"))
+        store.remove(milkTea)
+        #expect(store.category(id: "food.milktea") == nil)
+        #expect(FinanceStore(database: FinanceDatabase(context: ModelContext(phone)), seedsSampleData: false)
+            .category(id: "food.milktea") == nil)
+        let mark = try #require(try ModelContext(phone).fetch(FetchDescriptor<CategoryRecord>()).first { $0.id == "food.milktea" })
+        #expect(mark.archivedAt == Category.deletedMark)
+
+        // The new install: every built-in one, made now; then the phone's row comes down.
+        let newPhone = FinanceDatabase.makeContainer(inMemory: true)
+        FinanceDatabase(context: ModelContext(newPhone)).addMissingDefaultCategories()
+        let context = ModelContext(newPhone)
+        let synced = CategoryRecord(id: mark.id, kind: mark.kind, parentID: mark.parentID, name: mark.name,
+                                    icon: mark.icon, isBuiltIn: true, sortOrder: mark.sortOrder)
+        synced.archivedAt = mark.archivedAt
+        synced.createdAt = mark.createdAt.addingTimeInterval(-60)
+        context.insert(synced)
+        try context.save()
+        let reinstalled = FinanceStore(database: FinanceDatabase(context: ModelContext(newPhone)), seedsSampleData: false)
+        #expect(reinstalled.category(id: "food.milktea") == nil)
+        #expect(reinstalled.category(id: "food.coffee") != nil)
+
+        // One deleted outright by an older version: marked at the next launch, as old as can be.
+        let gone = ModelContext(newPhone)
+        let coffee = try #require(try gone.fetch(FetchDescriptor<CategoryRecord>()).first { $0.id == "food.coffee" })
+        gone.delete(coffee)
+        try gone.save()
+        let relaunched = FinanceStore(database: FinanceDatabase(context: ModelContext(newPhone)), seedsSampleData: false)
+        #expect(relaunched.category(id: "food.coffee") == nil)
+        let coffeeMark = try ModelContext(newPhone).fetch(FetchDescriptor<CategoryRecord>()).first { $0.id == "food.coffee" }
+        #expect(coffeeMark?.archivedAt == Category.deletedMark)
+        #expect(coffeeMark?.createdAt == MiluSchemaV8.epoch)
+    }
+
     @Test func changesAndDeletionsComeBackAfterARelaunch() {
         let (store, container, wallet, bank, _) = makeStore()
         var lunch = FinanceTransaction(amount: 200_000, category: .food, accountID: wallet.id, date: day)

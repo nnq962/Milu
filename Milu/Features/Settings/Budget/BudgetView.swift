@@ -128,8 +128,9 @@ struct BudgetView: View {
         .navigationDestination(item: $reportGroup) {
             CategoryReportView(groupID: $0.id, period: ReportPeriod(.month, containing: month))
         }
-        // A group hidden or deleted since gives its limit back to "Chưa phân bổ".
-        .onAppear { categoryBudgets = categoryBudgets.keeping(store.budgetGroupIDs) }
+        // A group hidden or deleted gives its limit back as it goes (`CategoryBudgets.dropLimit`),
+        // not here: opened before iCloud brought the user's own groups, this dropped their limits,
+        // on every device (audit 2026-11-15). Only the groups in use are shown and counted.
     }
 
     // MARK: - Tháng

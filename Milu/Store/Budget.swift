@@ -63,10 +63,19 @@ struct CategoryBudgets: RawRepresentable, Equatable {
 
     var total: Double { limits.values.reduce(0, +) }
 
-    /// Only the limits of `groupIDs`: a group hidden or deleted since takes its limit with it, so
-    /// it no longer holds part of the month's (review fix 2026-10-30).
+    /// Only the limits of `groupIDs`, the groups in use: what is shown and counted (review fix
+    /// 2026-10-30). Never written back as it is: a group not here yet keeps its limit.
     func keeping(_ groupIDs: Set<String>) -> CategoryBudgets {
         CategoryBudgets(limits: limits.filter { groupIDs.contains($0.key) })
+    }
+
+    /// A group hidden or deleted gives its limit back to "Chưa phân bổ", as it goes, so it no
+    /// longer holds part of the month's.
+    static func dropLimit(of groupID: String, defaults: UserDefaults = .standard) {
+        guard let raw = defaults.string(forKey: StorageKey.categoryBudgets),
+              var budgets = CategoryBudgets(rawValue: raw), budgets.limits[groupID] != nil else { return }
+        budgets[groupID] = 0
+        defaults.set(budgets.rawValue, forKey: StorageKey.categoryBudgets)
     }
 }
 

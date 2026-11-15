@@ -209,9 +209,10 @@ struct GroupBudgetEditor: View {
         let groups = categoryBudgets.keeping(store.budgetGroupIDs)
         let month = monthlyBudget
         let room = BudgetRules.room(for: groupID, month: month, groups: groups)
-        // Saving also drops the limits of groups no longer in use.
+        // Only this group's limit changes: one not here yet (a group of the user's own, still on
+        // its way from iCloud) keeps its own (audit 2026-11-15).
         let amount = Binding(get: { groups[groupID] }, set: { value in
-            var kept = groups
+            var kept = categoryBudgets
             kept[groupID] = value
             categoryBudgets = kept
         })

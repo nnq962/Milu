@@ -101,6 +101,7 @@ extension FinanceStore {
     /// them back as they were; a group without history is deleted with its items.
     func remove(_ category: Category) {
         guard canRemove(category) else { return }
+        if category.isGroup { CategoryBudgets.dropLimit(of: category.id) }
         persist {
             if category.isGroup {
                 let members = categories.filter { $0.parentID == category.id }

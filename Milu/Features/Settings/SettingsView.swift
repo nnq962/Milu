@@ -26,6 +26,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     /// Notifications are off for Milu in the iPhone's Settings.
     @State private var notificationsDenied = false
+    /// iOS has never asked on this iPhone: a switch that came on from another device through iCloud
+    /// sends nothing here until it does (audit 2026-11-15: it showed on, and nothing came).
+    @State private var notificationsNotAsked = false
     @State private var isAskingForNotifications = false
 
     @State private var note: Note?
@@ -54,7 +57,10 @@ struct SettingsView: View {
     /// (`FormConfirmedToggleRow`, as the Face ID switch).
     private func allowNotifications(_ on: Bool) async -> Bool {
         guard on else { return true }
-        if await appLock.whileSystemAsks({ await Reminders.shared.requestPermission() }) {
+        let allowed = await appLock.whileSystemAsks({ await Reminders.shared.requestPermission() })
+        // Asked now, whatever the answer.
+        notificationsNotAsked = false
+        if allowed {
             notificationsDenied = false
             return true
         }
@@ -64,7 +70,22 @@ struct SettingsView: View {
     }
 
     private func checkNotificationPermission() async {
-        notificationsDenied = await Reminders.shared.permission() == .denied
+        let permission = await Reminders.shared.permission()
+        notificationsDenied = permission == .denied
+        notificationsNotAsked = permission == .notAsked
+    }
+
+    /// A switch is on and this iPhone was never asked: one row offers it.
+    private var needsPermissionHere: Bool {
+        notificationsNotAsked && (dailyReminder || budgetAlerts || recurringAlerts)
+    }
+
+    /// Why a switch that is on sends nothing, if it does not.
+    private func blockedSubtitle(_ isOn: Bool) -> String? {
+        guard isOn else { return nil }
+        if notificationsDenied { return "Thông báo đang tắt trong Cài đặt iPhone" }
+        if notificationsNotAsked { return "Chưa cho phép trên iPhone này" }
+        return nil
     }
 
     /// Minutes after midnight as a time of day, for the wheels.
@@ -78,12 +99,11 @@ struct SettingsView: View {
     }
 
     private var reminderSubtitle: String {
-        if dailyReminder, notificationsDenied { return "Thông báo đang tắt trong Cài đặt iPhone" }
-        return "Mỗi ngày vào giờ bạn chọn"
+        blockedSubtitle(dailyReminder) ?? "Mỗi ngày vào giờ bạn chọn"
     }
 
     private var budgetAlertSubtitle: String {
-        if budgetAlerts, notificationsDenied { return "Thông báo đang tắt trong Cài đặt iPhone" }
+        if let blocked = blockedSubtitle(budgetAlerts) { return blocked }
         if monthlyBudget <= 0 { return "Đặt hạn mức chi tiêu để nhận cảnh báo" }
         return "Khi chi tới 80% và khi hết hạn mức"
     }
@@ -188,6 +208,15 @@ struct SettingsView: View {
                     // on asks for notifications then, not at launch; refused, it stays off and offers
                     // the iPhone's Settings.
                     FormGroup(title: "Thông báo") {
+                        if needsPermissionHere {
+                            FormActionRow(title: "Cho phép thông báo trên iPhone này", icon: "hugeicons-alert-02") {
+                                Task {
+                                    _ = await allowNotifications(true)
+                                    await checkNotificationPermission()
+                                }
+                            }
+                            FormDivider()
+                        }
                         FormConfirmedToggleRow(title: "Nhắc ghi chi tiêu", subtitle: reminderSubtitle,
                                                icon: "hugeicons-notification-01", isOn: $dailyReminder,
                                                confirm: allowNotifications)
@@ -204,12 +233,12 @@ struct SettingsView: View {
                                                confirm: allowNotifications)
                         FormDivider()
                         FormConfirmedToggleRow(title: "Nhắc khoản định kỳ",
-                                               subtitle: recurringAlerts && notificationsDenied
-                                                   ? "Thông báo đang tắt trong Cài đặt iPhone" : "8:00 sáng ngày tới hạn",
+                                               subtitle: blockedSubtitle(recurringAlerts) ?? "8:00 sáng ngày tới hạn",
                                                icon: "hugeicons-calendar-03", isOn: $recurringAlerts,
                                                confirm: allowNotifications)
                     }
                     .animation(Motion.gentle(.smooth(duration: 0.25)), value: dailyReminder)
+                    .animation(Motion.gentle(.smooth(duration: 0.25)), value: needsPermissionHere)
                     .task { await checkNotificationPermission() }
                     .systemAlert("Milu chưa được gửi thông báo", isPresented: $isAskingForNotifications) {
                         Button("Để sau", role: .cancel) {}

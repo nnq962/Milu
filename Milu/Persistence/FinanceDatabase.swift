@@ -135,7 +135,34 @@ final class FinanceDatabase {
         for index in snapshot.savingsGoals.indices {
             snapshot.savingsGoals[index].saved = balances[snapshot.savingsGoals[index].id] ?? snapshot.savingsGoals[index].saved
         }
+        settleLoans(&snapshot)
         return snapshot
+    }
+
+    /// What each loan still has to be repaid, from its repayments, as balances are from their
+    /// history: the figure stored is only the last device's to write it (audit 2026-11-15: two
+    /// repayments recorded apart on two devices left the loan owing one of them, and stuck there).
+    /// A new loan owes its principal less what came back; one from before Milu owes what was typed
+    /// less what came back through Milu, which is never more than that.
+    private func settleLoans(_ snapshot: inout Snapshot) {
+        let repaid = Dictionary(grouping: snapshot.loanPayments, by: \.loanID)
+            .mapValues { $0.reduce(0) { $0 + $1.principal } }
+        var fixed: [UUID: Double] = [:]
+        for index in snapshot.loans.indices {
+            let loan = snapshot.loans[index]
+            let left = max(loan.principal - (repaid[loan.id] ?? 0), 0)
+            let outstanding = loan.isExisting ? min(loan.outstanding, left) : left
+            guard abs(outstanding - loan.outstanding) >= 1 else { continue }
+            snapshot.loans[index].outstanding = outstanding
+            fixed[loan.id] = outstanding
+        }
+        guard !fixed.isEmpty else { return }
+        for row in fetch(FetchDescriptor<LoanRecord>()) {
+            guard let outstanding = fixed[row.id] else { continue }
+            row.outstanding = Int64(dong: outstanding)
+            row.settledAt = outstanding <= 0 ? (row.settledAt ?? .now) : nil
+        }
+        commit()
     }
 
     /// Every row as stored, and the account rows (goals too) the balances live on.
@@ -179,7 +206,7 @@ final class FinanceDatabase {
             loanPayments: paymentRows.map(LoanPayment.init),
             paymentReminders: reminderRows.map(PaymentReminder.init),
             categories: categoryRows
-                .filter { !Category.systemIDs.contains($0.id) }
+                .filter { !Category.systemIDs.contains($0.id) && $0.archivedAt != Category.deletedMark }
                 .map(Category.init),
             contacts: contactRows.map(Contact.init),
             relationships: relationshipRows.map(Relationship.init),
@@ -312,8 +339,34 @@ final class FinanceDatabase {
         commit()
     }
 
+    /// A built-in one is only marked deleted (`Category.deletedMark`); one the user made goes.
     func deleteCategory(id: String) {
-        if let row = categoryRecord(id) { context.delete(row) }
+        if let row = categoryRecord(id) {
+            if row.isBuiltIn {
+                row.archivedAt = Category.deletedMark
+                row.updatedAt = .now
+            } else {
+                context.delete(row)
+            }
+        }
+        commit()
+    }
+
+    /// Built-in categories deleted outright before they were only marked: once the defaults were
+    /// added here, one missing was deleted, and gets its mark, as old as can be, so it wins over
+    /// the one a new install adds.
+    func markDeletedDefaults() {
+        let existing = Set(fetch(FetchDescriptor<CategoryRecord>()).map(\.id))
+        let missing = DefaultCategories.all.filter { !existing.contains($0.id) }
+        guard !missing.isEmpty else { return }
+        for category in missing {
+            let row = CategoryRecord(id: category.id, kind: category.kind.rawValue, name: category.name,
+                                     icon: category.icon, isBuiltIn: true, sortOrder: category.sortOrder)
+            row.apply(category)
+            row.archivedAt = Category.deletedMark
+            row.createdAt = MiluSchemaV8.epoch
+            context.insert(row)
+        }
         commit()
     }
 
