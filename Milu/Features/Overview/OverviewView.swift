@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 /// Home tab: under Milu's hill, sections each with its heading on the page (2026-11-08): the first
@@ -37,6 +38,11 @@ struct OverviewView: View {
     private let than = MiluRiveCharacter.overview
     @Environment(AIQuota.self) private var quota
     @AppStorage(StorageKey.monthlyBudget) private var monthlyBudget = 0.0
+    /// The day the cards were drawn for: left open overnight, or back on a new day, they move on
+    /// with it (audit round 2, 2026-11-15: "Hôm nay đã chi", "Còn tiêu được" and Tuần này kept
+    /// yesterday's or last month's figures until some record changed), as Giao dịch does.
+    @State private var today = Calendar.current.startOfDay(for: .now)
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Milu's face for the month so far (trial 2026-11-09): sleepy late with nothing written
     /// today, sad past the month's limit, worried near it, all smiles well under it.
@@ -130,6 +136,8 @@ struct OverviewView: View {
                             ProUpgradeCard { isShowingPaywall = true }
                         }
                     }
+                    // Drawn anew on a new day: every card reads the date as it draws.
+                    .id(today)
                     // The first steps fade away and the page closes up smoothly once the last is
                     // done, rather than everything under them jumping up (review 2026-11-08).
                     .animation(Motion.gentle(.smooth),
@@ -199,6 +207,16 @@ struct OverviewView: View {
             .sheet(isPresented: $isAddingGoal) { GoalEditorView(goal: nil) }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
         }
+        // Posted off the main thread; the page changes on the main one.
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
+            followToday()
+        }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { followToday() } }
+    }
+
+    private func followToday() {
+        let day = Calendar.current.startOfDay(for: .now)
+        if day != today { today = day }
     }
 
     // Native navigation-bar items: iOS owns their glass and the scroll-edge backdrop.

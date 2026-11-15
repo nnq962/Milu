@@ -93,7 +93,7 @@ struct UpcomingRecurringCard: View {
     }
 
     private func leaf(_ day: Date) -> some View {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         return VStack(spacing: 0) {
             Text("\(calendar.component(.day, from: day))")
                 .textRole(.body)
@@ -219,7 +219,7 @@ struct RecurringConfirmSheet: View {
     /// if due, is recorded either way; review 2026-11-12: the count said one too many).
     private var otherWaitingBeforeToday: Int {
         guard rule.autoRecords else { return 0 }
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: .now)) else { return 0 }
         return rule.occurrences(after: occurrence.day, through: yesterday).count
     }
@@ -264,7 +264,7 @@ struct RecurringConfirmSheet: View {
             moved?.accountID = accountID
             if otherWaitingBeforeToday > 0, !recordsTheRest {
                 // Nothing before today is filled in; today's, if due, still is.
-                let calendar = Calendar.current
+                let calendar = RecurringRule.calendar
                 let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: .now)) ?? .now
                 moved?.lastHandled = max(rule.lastHandled ?? .distantPast, yesterday)
             }

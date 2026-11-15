@@ -439,14 +439,15 @@ struct ListTransfers: AssistantTool {
         // The account or goal named, matched as recording matches names (exact first): "ví" is the
         // wallet, not Vietcombank.
         let name = arguments["account"]?.string ?? ""
-        let account = ToolNames.account(name, in: store)
+        // Every account the name may mean, archived too ("Vietcombank" for two of them).
+        let accounts = name.isEmpty ? [] : ToolNames.readableAccountIDs(name, in: store)
         let goal = ToolNames.goal(name, in: store)
-        if !name.isEmpty, account == nil, goal == nil {
+        if !name.isEmpty, accounts.isEmpty, goal == nil {
             return .failure("Không có tài khoản hay hũ nào tên \(name)")
         }
         func matches(_ accountIDs: Account.ID..., goal goalID: SavingsGoal.ID? = nil) -> Bool {
             guard !name.isEmpty else { return true }
-            return accountIDs.contains { $0 == account?.id } || (goalID != nil && goalID == goal?.id)
+            return accountIDs.contains { accounts.contains($0) } || (goalID != nil && goalID == goal?.id)
         }
         func accountName(_ id: Account.ID) -> String { store.account(id: id)?.name ?? "Tài khoản đã xoá" }
 

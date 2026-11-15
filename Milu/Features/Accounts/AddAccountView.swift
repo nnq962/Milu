@@ -43,10 +43,15 @@ struct AddAccountView: View {
         _institutionID = State(initialValue: account.institutionID)
         _name = State(initialValue: account.name)
         _note = State(initialValue: account.detail)
-        _balanceText = State(initialValue: account.balance == 0 ? "" : String(Int(abs(account.balance))).groupedVNDInput)
+        _balanceText = State(initialValue: Self.balanceText(account.balance))
         _isNegative = State(initialValue: account.balance < 0)
         _openedAt = State(initialValue: account.openedAt)
         _isLocked = State(initialValue: account.isLocked)
+    }
+
+    /// The balance as the field shows it on opening: at most 12 digits, so a larger one is cut.
+    private static func balanceText(_ balance: Double) -> String {
+        balance == 0 ? "" : String(Int(abs(balance))).groupedVNDInput
     }
 
     private var institution: Institution? { Institution.find(institutionID) }
@@ -218,11 +223,14 @@ struct AddAccountView: View {
         account.institutionID = hasInstitutions ? institutionID : nil
         account.openedAt = openedAt
         account.isLocked = isLocked
-        // Only a balance the user changed moves it: left as it opened, the balance now stands
-        // (audit 2026-11-15: a spending synced in while the form was open was undone by a hidden
-        // "Điều chỉnh số dư" when only the name changed).
+        // Only a balance the user changed moves it: the field left as it opened, the balance now
+        // stands (audit 2026-11-15: a spending synced in while the form was open was undone by a
+        // hidden "Điều chỉnh số dư" when only the name changed). Compared with the field as it
+        // opened, not with the balance: one of 13 digits opened cut to 12, and saving a new name
+        // took 90% of it away (audit round 2, 2026-11-15).
         let typed = isNegative ? -amount : amount
-        store.update(account, balance: abs(typed - original.balance) < 1 ? account.balance : typed)
+        let untouched = balanceText == Self.balanceText(original.balance) && isNegative == (original.balance < 0)
+        store.update(account, balance: untouched ? account.balance : typed)
     }
 
     private func save() {

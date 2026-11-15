@@ -211,7 +211,7 @@ struct RecurringEditorSheet: View {
     private var waitingToFill: [Date] {
         guard let original, autoRecords, !isPaused, !startsAnew, let accountID, store.canRecord(onto: accountID),
               !original.autoRecords || !store.canRecord(onto: original.accountID) else { return [] }
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: .now)) else { return [] }
         return original.occurrences(after: original.lastHandled, through: yesterday)
     }
@@ -330,7 +330,7 @@ struct RecurringEditorSheet: View {
         // A new schedule, or resumed after a pause: what fell due before today is not owed (no
         // catch-up of the paused weeks). Nor are the days waiting that "Ghi luôn các lần còn chờ"
         // turned down.
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         if let old = original, startsAnew || (!waitingToFill.isEmpty && !recordsWaiting) {
             rule.lastHandled = max(old.lastHandled ?? .distantPast,
                                    calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: .now)) ?? .now)

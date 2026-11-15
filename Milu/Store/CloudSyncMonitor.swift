@@ -3,6 +3,7 @@ import CoreData
 import Foundation
 import Network
 import Observation
+import os
 
 /// What the iCloud sync is doing, for the screens (user request 2026-11-12: opening the app said
 /// nothing about syncing). It listens to the sync's own events (setup, import, export) and asks
@@ -33,6 +34,10 @@ final class CloudSyncMonitor {
     private(set) var quietImports = 0
 
     @ObservationIgnored private var receiving: Set<UUID> = []
+    /// What the database's saves off the main thread said since the last download ended: the
+    /// sync's own saves (the app writes on the main thread only). Filled as they happen, on their
+    /// thread, so it is complete when the download's end comes in.
+    private let saves = OSAllocatedUnfairLock(initialState: SyncSaves())
     /// Data came down since the screens last read the database (`takeNewData`).
     @ObservationIgnored private var hasNewData = false
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
@@ -63,6 +68,19 @@ final class CloudSyncMonitor {
                     as? NSPersistentCloudKitContainer.Event else { return }
             let update = EventUpdate(event)
             MainActor.assumeIsolated { self?.handle(update) }
+        })
+        // The sync's saves, heard on their own thread: whether a download wrote any of the app's
+        // rows (`takeImportedRows`).
+        let saves = self.saves
+        observers.append(center.addObserver(forName: .NSManagedObjectContextDidSaveObjectIDs, object: nil,
+                                            queue: nil) { note in
+            guard !Thread.isMainThread else { return }
+            let changed = [NSInsertedObjectIDsKey, NSUpdatedObjectIDsKey, NSDeletedObjectIDsKey].contains { key in
+                (note.userInfo?[key] as? Set<NSManagedObjectID>)?.contains { id in
+                    Self.appEntities.contains(id.entity.name ?? "")
+                } == true
+            }
+            saves.withLock { $0.heard(changingRows: changed) }
         })
         observers.append(center.addObserver(forName: .CKAccountChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkAccount() }
@@ -174,7 +192,7 @@ final class CloudSyncMonitor {
         } else {
             receiving.remove(update.id)
             if update.isImport { lastImportEnded = .now }
-            if update.isImport, update.succeeded { hasNewData = true }
+            if update.isImport, update.succeeded, takeImportedRows() { hasNewData = true }
             if update.succeeded {
                 problem = nil
                 let now = Date.now
@@ -213,6 +231,29 @@ final class CloudSyncMonitor {
         return account == .available || account == .checking
     }
 
+    /// The app's own tables, as the database names them: a sync save touching none of them (its
+    /// own bookkeeping) brought nothing to read.
+    nonisolated private static let appEntities: Set<String> = [
+        "AccountRecord", "CategoryRecord", "TransactionRecord", "LoanRecord", "ReminderRecord", "ContactRecord",
+        "RelationshipRecord", "LoanPaymentRecord", "RecurringRuleRecord",
+    ]
+
+    /// Whether the download that just ended wrote any of the app's rows, and so whether the
+    /// database is read again (audit round 2, 2026-11-15: every download, even one that brought
+    /// nothing, read years of data again on the main thread, twice a launch). Where no sync save
+    /// was ever heard, every download counts, as before.
+    private func takeImportedRows() -> Bool {
+        saves.withLock { state in
+            defer { state.rowsChanged = false }
+            return state.rowsChanged || !state.everHeard
+        }
+    }
+
+    /// Tests: a sync save heard, which did or did not change the app's rows.
+    func heardSyncSave(changingRows: Bool) {
+        saves.withLock { $0.heard(changingRows: changingRows) }
+    }
+
     /// Whether data came down since the last call: the app reads the database again once the sync
     /// has gone quiet, and only then. Reading it on every change notice (sending up included) took
     /// 15–30 ms on the main thread each time and made the pill stutter (iPhone 2026-11-12: a 63 ms
@@ -234,5 +275,17 @@ final class CloudSyncMonitor {
             if (error as NSError).code == 134400 { return nil } // No iCloud account (CoreData).
             return "Chưa đồng bộ được, Milu sẽ thử lại"
         }
+    }
+}
+
+/// The sync's saves since the last download ended (`CloudSyncMonitor.takeImportedRows`).
+nonisolated struct SyncSaves {
+    /// One was heard at all: the signal works on this iPhone.
+    var everHeard = false
+    var rowsChanged = false
+
+    mutating func heard(changingRows: Bool) {
+        everHeard = true
+        if changingRows { rowsChanged = true }
     }
 }

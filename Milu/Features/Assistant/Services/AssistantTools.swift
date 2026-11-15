@@ -81,8 +81,9 @@ struct SummarizeTransactions: AssistantTool {
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
         guard let interval = ToolDates.interval(arguments) else { return .failure("Ngày không hợp lệ, cần YYYY-MM-DD") }
         let kind = TransactionKind(rawValue: arguments["kind"]?.string ?? "") ?? .expense
-        let items = ToolFilters(arguments, store: store)
-            .apply(to: store.reportableTransactions(in: interval).filter { $0.kind == kind })
+        let filters = ToolFilters(arguments, store: store)
+        if let failure = filters.failure { return failure }
+        let items = filters.apply(to: store.reportableTransactions(in: interval).filter { $0.kind == kind })
         let total = store.total(kind, of: items)
         let byCategory = (kind == .expense ? store.expensesByCategory(of: items) : store.incomesByCategory(of: items))
             .prefix(8).map { ["name": .string($0.name), "amount": ToolMoney.value($0.amount)] as JSONValue }
@@ -143,7 +144,9 @@ struct ListTransactions: AssistantTool {
         if let kind = arguments["kind"]?.string.flatMap(TransactionKind.init(rawValue:)) {
             items = items.filter { $0.kind == kind }
         }
-        items = ToolFilters(arguments, store: store).apply(to: items)
+        let filters = ToolFilters(arguments, store: store)
+        if let failure = filters.failure { return failure }
+        items = filters.apply(to: items)
         if let search = arguments["search"]?.string?.searchKey, !search.isEmpty {
             items = items.filter { "\($0.note) \(store.categoryName($0.categoryID))".searchKey.contains(search) }
         }
@@ -467,6 +470,18 @@ enum ToolNames {
         return nil
     }
 
+    /// Every account a name may mean, for reading, not writing: the one it names, or all those it
+    /// could be ("Vietcombank" for two of them), archived ones too, as Báo cáo still lists them.
+    /// Empty when it means none (audit round 2, 2026-11-15: a name meaning two accounts, or an
+    /// archived one, filtered everything out, and Milu said nothing was spent).
+    static func readableAccountIDs(_ name: String?, in store: FinanceStore) -> Set<Account.ID> {
+        switch match(name, in: store.accounts + store.archivedAccounts) {
+        case .found(let account): [account.id]
+        case .ambiguous(let accounts): Set(accounts.map(\.id))
+        case .none: []
+        }
+    }
+
     private static func words(_ text: String) -> Set<String> {
         Set(text.split { !$0.isLetter && !$0.isNumber }.map(String.init))
     }
@@ -497,14 +512,39 @@ enum ToolNames {
 struct ToolFilters {
     let categoryIDs: Set<String>?
     let accountIDs: Set<Account.ID>?
+    /// Names given that mean no category or no account: told back to the model, not read as
+    /// "nothing there" (`failure`).
+    let unknownCategories: [String]
+    let unknownAccounts: [String]
     let store: FinanceStore
 
     init(_ arguments: JSONValue, store: FinanceStore) {
         self.store = store
         let categories = arguments["categories"]?.strings ?? []
         categoryIDs = categories.isEmpty ? nil : ToolNames.categoryIDs(categories, in: store)
+        unknownCategories = categories.filter { ToolNames.categoryIDs([$0], in: store).isEmpty }
         let accounts = arguments["accounts"]?.strings ?? []
-        accountIDs = accounts.isEmpty ? nil : Set(accounts.compactMap { ToolNames.account($0, in: store)?.id })
+        var ids = Set<Account.ID>()
+        var unknown: [String] = []
+        for name in accounts {
+            let found = ToolNames.readableAccountIDs(name, in: store)
+            if found.isEmpty { unknown.append(name) } else { ids.formUnion(found) }
+        }
+        accountIDs = accounts.isEmpty ? nil : ids
+        unknownAccounts = unknown
+    }
+
+    /// A name that means nothing, said as such: filtered by it, every total came out 0, and Milu
+    /// told the user nothing was spent.
+    var failure: ToolOutput? {
+        if !unknownAccounts.isEmpty {
+            let names = (store.accounts + store.archivedAccounts).map(\.name).joined(separator: ", ")
+            return .failure("Không có tài khoản nào tên \(unknownAccounts.map { "\"\($0)\"" }.joined(separator: ", ")). Các tài khoản: \(names)")
+        }
+        if !unknownCategories.isEmpty {
+            return .failure("Không có danh mục nào tên \(unknownCategories.map { "\"\($0)\"" }.joined(separator: ", "))")
+        }
+        return nil
     }
 
     func apply(to items: [FinanceTransaction]) -> [FinanceTransaction] {

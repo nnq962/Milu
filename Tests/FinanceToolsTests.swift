@@ -236,6 +236,30 @@ struct FinanceToolsTests {
         #expect(items.map { $0["name"]?.string } == ["Ăn trưa", "Cà phê"])
     }
 
+    /// A name meaning two accounts reads both; one meaning none is said, not taken for 0đ (audit
+    /// round 2, 2026-11-15: "chi bao nhiêu bằng Vietcombank" with two of them came out 0đ).
+    @Test func aNameForSeveralAccountsReadsThemAll() {
+        let salary = Account(name: "Vietcombank lương", type: .bank, balance: 0)
+        let savings = Account(name: "Vietcombank tiết kiệm", type: .bank, balance: 0)
+        let date = calendar.date(byAdding: .day, value: -1, to: .now) ?? .now
+        let store = FinanceStore(accounts: [wallet, salary, savings], transactions: [
+            FinanceTransaction(amount: 300_000, categoryID: "food.lunch", kind: .expense, accountID: salary.id, date: date),
+            FinanceTransaction(amount: 200_000, categoryID: "food.lunch", kind: .expense, accountID: savings.id, date: date),
+            FinanceTransaction(amount: 50_000, categoryID: "food.lunch", kind: .expense, accountID: wallet.id, date: date),
+        ], loans: [], paymentReminders: [], savingsGoals: [], goalTransfers: [], contacts: [])
+        let from = ToolDates.text(day(-9)), to = ToolDates.text(.now)
+        let both = SummarizeTransactions().run(["from": .string(from), "to": .string(to), "kind": "expense",
+                                                "accounts": ["Vietcombank"]], in: store).result
+        #expect(both["total"] == 500_000)
+        let none = SummarizeTransactions().run(["from": .string(from), "to": .string(to), "kind": "expense",
+                                                "accounts": ["ACB"]], in: store).result
+        #expect(none["ok"] == false)
+        let listed = ListTransactions().run(["from": .string(from), "to": .string(to), "accounts": ["Vietcombank"]],
+                                            in: store).result
+        guard case .array(let rows)? = listed["transactions"] else { Issue.record("no rows"); return }
+        #expect(rows.count == 2)
+    }
+
     // MARK: Words
 
     @Test func monthsAreReadAndNamed() {

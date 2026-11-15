@@ -79,6 +79,35 @@ struct RecurringTests {
         #expect(reopened.recordDueRecurring(now: day(2027, 3, 20)).isEmpty)
     }
 
+    /// A trip abroad: the rent of the 15th, set at home, is recorded once, its day the same in Los
+    /// Angeles as at home (audit round 2, 2026-11-15: there it fell on the 14th, a different
+    /// transaction, and back home the 15th was recorded again).
+    @Test func aTripAbroadRecordsTheSameDayOnce() {
+        let home = TimeZone(identifier: "Asia/Ho_Chi_Minh")!
+        var vietnam = Calendar(identifier: .gregorian)
+        vietnam.timeZone = home
+        func at(_ month: Int, _ day: Int, _ hour: Int) -> Date {
+            vietnam.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour))!
+        }
+        let saved = NSTimeZone.default
+        defer { NSTimeZone.default = saved }
+        NSTimeZone.default = home
+        let (store, _, wallet) = storeWithWallet()
+        var rent = rule(start: at(10, 15, 9), auto: true, account: wallet.id)
+        rent.lastHandled = vietnam.startOfDay(for: at(10, 15, 9))
+        store.save(rent)
+        #expect(store.recordDueRecurring(now: at(11, 16, 8)).count == 1)
+
+        // In Los Angeles on the evening of the 14th, already the 15th at home.
+        NSTimeZone.default = TimeZone(identifier: "America/Los_Angeles")!
+        #expect(store.recordDueRecurring(now: at(12, 15, 11)).count == 1)
+        // Home again on the 18th: nothing more.
+        NSTimeZone.default = home
+        #expect(store.recordDueRecurring(now: at(12, 18, 8)).isEmpty)
+        let days = store.transactions.map { vietnam.component(.day, from: $0.date) }
+        #expect(days == [15, 15])
+    }
+
     /// "Không tính vào báo cáo" on a repeating transaction: every time it records stays out, after
     /// a relaunch too (audit 2026-11-15: only the first did).
     @Test func anExcludedRuleKeepsEveryTimeOut() throws {

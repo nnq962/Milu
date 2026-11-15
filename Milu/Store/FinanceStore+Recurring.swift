@@ -27,7 +27,7 @@ extension FinanceStore {
     /// 2026-11-12: "Tiền nhà" dated 5/9 filled in 5/10 and 5/11 by itself).
     func add(_ transaction: FinanceTransaction, repeating schedule: (frequency: RecurringRule.Frequency, interval: Int),
              autoRecords: Bool, now: Date = .now) {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         let rule = RecurringRule(kind: transaction.kind, amount: transaction.amount, categoryID: transaction.categoryID,
                                  accountID: transaction.accountID, note: transaction.note,
                                  frequency: schedule.frequency, interval: schedule.interval,
@@ -48,7 +48,7 @@ extension FinanceStore {
     /// a balance never moves by itself when a past transaction is made to repeat.
     func update(_ transaction: FinanceTransaction, startRepeating schedule: (frequency: RecurringRule.Frequency, interval: Int),
                 autoRecords: Bool, now: Date = .now) {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         let handled = max(calendar.startOfDay(for: transaction.date), calendar.startOfDay(for: now))
         let rule = RecurringRule(kind: transaction.kind, amount: transaction.amount, categoryID: transaction.categoryID,
                                  accountID: transaction.accountID, note: transaction.note,
@@ -66,7 +66,7 @@ extension FinanceStore {
     /// A rule made in Cài đặt: like one made from a transaction, nothing before today is recorded
     /// for it (user choice 2026-11-12); a start in the past only sets its day of the month.
     static func firstHandled(forNewRuleStarting start: Date, now: Date = .now) -> Date? {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         let today = calendar.startOfDay(for: now)
         guard calendar.startOfDay(for: start) < today else { return nil }
         return calendar.date(byAdding: .day, value: -1, to: today)
@@ -113,7 +113,7 @@ extension FinanceStore {
 
     /// What falls due after today within `days`, soonest first: one per rule, its next day.
     func upcomingRecurring(days: Int = 7, now: Date = .now) -> [RecurringOccurrence] {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         guard let horizon = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: now)) else { return [] }
         return recurringRules.compactMap { rule -> RecurringOccurrence? in
             guard !rule.isPaused, let next = rule.nextOccurrence(after: now), next <= horizon else { return nil }
@@ -125,7 +125,7 @@ extension FinanceStore {
     /// Every day a running rule falls due from today through `days` ahead, still to do: what the
     /// due-day notifications are planned from.
     func dueRecurring(days: Int, now: Date = .now) -> [RecurringOccurrence] {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         guard let horizon = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: now)) else { return [] }
         return recurringRules.filter { !$0.isPaused }.flatMap { rule in
             let after = max(rule.lastHandled ?? dayBefore(rule.startDate), dayBefore(now))
@@ -195,7 +195,7 @@ extension FinanceStore {
     }
 
     private func dayBefore(_ date: Date) -> Date {
-        let calendar = Calendar.current
+        let calendar = RecurringRule.calendar
         return calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: date)) ?? date
     }
 }

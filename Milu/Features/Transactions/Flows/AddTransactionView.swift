@@ -472,17 +472,25 @@ struct AddTransactionView: View {
         // each side buzzed its own).
         optionalAccountRow(title: "Từ", selection: accountID, keeping: editingTransfer?.fromAccountID) { new in
             if new != accountID { Haptics.selection() }
-            if new == toAccountID { toAccountID = self.accountID }
+            if new == toAccountID { toAccountID = swapped(self.accountID, keeping: editingTransfer?.toAccountID) }
             self.accountID = new
         }
         FormDivider(hasIcon: false)
         optionalAccountRow(title: "Đến", selection: toAccountID, keeping: editingTransfer?.toAccountID) { new in
             if new != toAccountID { Haptics.selection() }
-            if new == accountID { accountID = self.toAccountID }
+            if new == accountID { accountID = swapped(self.toAccountID, keeping: editingTransfer?.fromAccountID) }
             self.toAccountID = new
         }
         FormDivider(hasIcon: false)
         FormAmountRow(title: "Phí", text: $feeText)
+    }
+
+    /// The account a swap moves to the other side, if it may go there: a locked one only keeps
+    /// the side it had (`kept`), so that side shows "Chọn" instead (audit round 2, 2026-11-15:
+    /// the swap still carried a locked account across, and ✓ saved nothing).
+    private func swapped(_ id: Account.ID?, keeping kept: Account.ID?) -> Account.ID? {
+        guard let id, let account = store.account(id: id) else { return nil }
+        return !account.isLocked || id == kept ? id : nil
     }
 
     /// A transfer's side, "Chọn" (red after ✓) until an account is picked. No locked account but

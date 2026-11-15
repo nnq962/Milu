@@ -153,6 +153,27 @@ struct CloudSettingsTests {
         #expect(ContinuousClock.now - began >= .milliseconds(600))
     }
 
+    /// A download that wrote none of the app's rows is not read again; one that did is (audit
+    /// round 2, 2026-11-15: every download read the whole database again).
+    @Test func onlyADownloadThatBroughtRowsIsRead() {
+        let monitor = CloudSyncMonitor(defaults: makeDefaults())
+        let empty = UUID()
+        monitor.handle(.init(id: empty, isImport: true, ended: false))
+        monitor.heardSyncSave(changingRows: false)
+        monitor.handle(.init(id: empty, isImport: true, ended: true))
+        #expect(!monitor.takeNewData())
+        let full = UUID()
+        monitor.handle(.init(id: full, isImport: true, ended: false))
+        monitor.heardSyncSave(changingRows: true)
+        monitor.handle(.init(id: full, isImport: true, ended: true))
+        #expect(monitor.takeNewData())
+        // The next one, with nothing written, is not.
+        let next = UUID()
+        monitor.handle(.init(id: next, isImport: true, ended: false))
+        monitor.handle(.init(id: next, isImport: true, ended: true))
+        #expect(!monitor.takeNewData())
+    }
+
     @Test func theMonitorShowsOnlyDataComingDown() {
         let monitor = CloudSyncMonitor(defaults: makeDefaults())
         let upload = UUID()

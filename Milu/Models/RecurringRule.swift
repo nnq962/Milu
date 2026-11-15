@@ -41,9 +41,21 @@ struct RecurringRule: Identifiable, Hashable {
 
     // MARK: Lịch
 
+    /// A rule's days are Vietnam's, wherever the iPhone is: "the 15th" stays the 15th, the same
+    /// day on every device, and so the same transaction (`transactionID`). In the iPhone's own
+    /// time zone, a trip abroad moved the day, and the payment was recorded twice (audit round 2,
+    /// 2026-11-15). At home it is the iPhone's own calendar, as before.
+    static var calendar: Calendar {
+        var calendar = Calendar.current
+        calendar.timeZone = home
+        return calendar
+    }
+
+    private static let home = TimeZone(identifier: "Asia/Ho_Chi_Minh") ?? .current
+
     /// The `n`th day it falls due (0 is `startDate`'s), nil past `endDate`. Counted from the start
     /// each time, so the 31st falls on the 30th in a short month and is back on the 31st after.
-    func occurrence(_ n: Int, calendar: Calendar = .current) -> Date? {
+    func occurrence(_ n: Int, calendar: Calendar = Self.calendar) -> Date? {
         occurrence(n, start: calendar.startOfDay(for: startDate), end: endDate.map(calendar.startOfDay), calendar: calendar)
     }
 
@@ -79,7 +91,7 @@ struct RecurringRule: Identifiable, Hashable {
 
     /// The days it falls due after `after` (from the start when nil) up to `through`, at most
     /// `limit` of them.
-    func occurrences(after: Date?, through: Date, limit: Int = 400, calendar: Calendar = .current) -> [Date] {
+    func occurrences(after: Date?, through: Date, limit: Int = 400, calendar: Calendar = Self.calendar) -> [Date] {
         let end = calendar.startOfDay(for: through)
         let floor = after.map { calendar.startOfDay(for: $0) }
         let start = calendar.startOfDay(for: startDate)
@@ -96,7 +108,7 @@ struct RecurringRule: Identifiable, Hashable {
     }
 
     /// The first day it falls due after `date` (the day itself excluded), if any.
-    func nextOccurrence(after date: Date, calendar: Calendar = .current) -> Date? {
+    func nextOccurrence(after date: Date, calendar: Calendar = Self.calendar) -> Date? {
         let day = calendar.startOfDay(for: date)
         let start = calendar.startOfDay(for: startDate)
         let last = endDate.map(calendar.startOfDay)
@@ -112,14 +124,14 @@ struct RecurringRule: Identifiable, Hashable {
 
     /// When the transaction of `day` happened: that day at the start's time of day, never later
     /// than now.
-    func transactionDate(on day: Date, now: Date = .now, calendar: Calendar = .current) -> Date {
+    func transactionDate(on day: Date, now: Date = .now, calendar: Calendar = Self.calendar) -> Date {
         let time = calendar.dateComponents([.hour, .minute], from: startDate)
         let date = calendar.date(bySettingHour: time.hour ?? 9, minute: time.minute ?? 0, second: 0, of: day) ?? day
         return min(date, now)
     }
 
     /// The same id for the same rule and day on every device.
-    static func transactionID(rule: UUID, day: Date, calendar: Calendar = .current) -> UUID {
+    static func transactionID(rule: UUID, day: Date, calendar: Calendar = Self.calendar) -> UUID {
         let parts = calendar.dateComponents([.year, .month, .day], from: day)
         let key = "\(rule.uuidString)|\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
         var bytes = Array(SHA256.hash(data: Data(key.utf8)).prefix(16))
@@ -135,7 +147,7 @@ struct RecurringRule: Identifiable, Hashable {
 
     /// With the day it comes back on: "Hằng tháng · ngày 15", "Hằng tuần · Thứ Hai", "Hằng năm ·
     /// 05/09"; a daily one is only "Hằng ngày".
-    func scheduleDetail(calendar: Calendar = .current) -> String {
+    func scheduleDetail(calendar: Calendar = Self.calendar) -> String {
         let day: String? = switch frequency {
         case .daily: nil
         case .weekly: Self.weekdayName(calendar.component(.weekday, from: startDate))
