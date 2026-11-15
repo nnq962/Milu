@@ -38,7 +38,7 @@ final class FinanceDatabase {
     /// `inMemory`: a database that lives only while the app runs, for tests (same schema and
     /// migration plan as the real one, never synced).
     static func makeContainer(inMemory: Bool = false, syncsWithICloud: Bool = hasICloud) -> ModelContainer {
-        let schema = Schema(versionedSchema: MiluSchemaV9.self)
+        let schema = Schema(versionedSchema: MiluSchemaV10.self)
         let log = Logger(subsystem: "com.quyetnguyen.Milu", category: "database")
         var configurations: [(ModelConfiguration, String)] = []
         if inMemory {
@@ -142,25 +142,33 @@ final class FinanceDatabase {
     /// What each loan still has to be repaid, from its repayments, as balances are from their
     /// history: the figure stored is only the last device's to write it (audit 2026-11-15: two
     /// repayments recorded apart on two devices left the loan owing one of them, and stuck there).
-    /// A new loan owes its principal less what came back; one from before Milu owes what was typed
-    /// less what came back through Milu, which is never more than that.
+    /// A new loan owes its principal less what came back; one from before Milu owes what it owed
+    /// when entered (`openingOutstanding`) less what came back through Milu (audit round 2: the
+    /// typed figure was not kept, and such a loan still kept one device's figure). One stored
+    /// before that figure existed gets it once, from what it says now and its repayments.
     private func settleLoans(_ snapshot: inout Snapshot) {
         let repaid = Dictionary(grouping: snapshot.loanPayments, by: \.loanID)
             .mapValues { $0.reduce(0) { $0 + $1.principal } }
-        var fixed: [UUID: Double] = [:]
+        var fixed: [UUID: (outstanding: Double, opening: Double?)] = [:]
         for index in snapshot.loans.indices {
             let loan = snapshot.loans[index]
-            let left = max(loan.principal - (repaid[loan.id] ?? 0), 0)
-            let outstanding = loan.isExisting ? min(loan.outstanding, left) : left
-            guard abs(outstanding - loan.outstanding) >= 1 else { continue }
+            let back = repaid[loan.id] ?? 0
+            var opening = loan.openingOutstanding
+            if loan.isExisting, opening == nil { opening = min(loan.outstanding + back, loan.principal) }
+            let owed = loan.isExisting ? min(opening ?? loan.principal, loan.principal) : loan.principal
+            let outstanding = max(owed - back, 0)
+            let filled = loan.isExisting && loan.openingOutstanding == nil
+            guard abs(outstanding - loan.outstanding) >= 1 || filled else { continue }
             snapshot.loans[index].outstanding = outstanding
-            fixed[loan.id] = outstanding
+            snapshot.loans[index].openingOutstanding = loan.isExisting ? opening : nil
+            fixed[loan.id] = (outstanding, loan.isExisting ? opening : nil)
         }
         guard !fixed.isEmpty else { return }
         for row in fetch(FetchDescriptor<LoanRecord>()) {
-            guard let outstanding = fixed[row.id] else { continue }
-            row.outstanding = Int64(dong: outstanding)
-            row.settledAt = outstanding <= 0 ? (row.settledAt ?? .now) : nil
+            guard let figures = fixed[row.id] else { continue }
+            row.outstanding = Int64(dong: figures.outstanding)
+            row.openingOutstanding = figures.opening.map { Int64(dong: $0) }
+            row.settledAt = figures.outstanding <= 0 ? (row.settledAt ?? .now) : nil
         }
         commit()
     }
@@ -355,8 +363,19 @@ final class FinanceDatabase {
     /// Built-in categories deleted outright before they were only marked: once the defaults were
     /// added here, one missing was deleted, and gets its mark, as old as can be, so it wins over
     /// the one a new install adds.
+    ///
+    /// Once, at the first launch that has this, as the move it is (audit round 2, 2026-11-15: run
+    /// at every launch, a table iCloud had emptied, signed out or on another Apple ID, got a mark
+    /// for every built-in category, and the marks then won over the real rows on every device).
+    /// Not on a table that looks emptied: the user always keeps a group of each kind (`canRemove`).
     func markDeletedDefaults() {
-        let existing = Set(fetch(FetchDescriptor<CategoryRecord>()).map(\.id))
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.deletedDefaultsMarkedKey) else { return }
+        defaults.set(true, forKey: Self.deletedDefaultsMarkedKey)
+        let rows = fetch(FetchDescriptor<CategoryRecord>())
+        let kinds = Set(rows.filter { $0.parentID == nil && $0.archivedAt != Category.deletedMark }.map(\.kind))
+        guard kinds.contains(TransactionKind.expense.rawValue), kinds.contains(TransactionKind.income.rawValue) else { return }
+        let existing = Set(rows.map(\.id))
         let missing = DefaultCategories.all.filter { !existing.contains($0.id) }
         guard !missing.isEmpty else { return }
         for category in missing {
@@ -386,7 +405,9 @@ final class FinanceDatabase {
         return hasItems
     }
 
-    private static let defaultsAddedKey = "categories.defaultsAdded"
+    static let defaultsAddedKey = "categories.defaultsAdded"
+    /// `markDeletedDefaults` has run on this install.
+    static let deletedDefaultsMarkedKey = "categories.deletedDefaultsMarked"
 
     /// Adds the default groups and items that are not there yet: a new install gets them all, a
     /// database from V1 (12 flat categories, now groups) gets the items and the new groups. Rows

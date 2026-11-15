@@ -32,7 +32,8 @@ extension FinanceStore {
                                  accountID: transaction.accountID, note: transaction.note,
                                  frequency: schedule.frequency, interval: schedule.interval,
                                  startDate: transaction.date, autoRecords: autoRecords,
-                                 lastHandled: max(calendar.startOfDay(for: transaction.date), calendar.startOfDay(for: now)))
+                                 lastHandled: max(calendar.startOfDay(for: transaction.date), calendar.startOfDay(for: now)),
+                                 isExcluded: transaction.isExcluded)
         var first = transaction
         first.id = RecurringRule.transactionID(rule: rule.id, day: transaction.date)
         first.recurringRuleID = rule.id
@@ -52,7 +53,8 @@ extension FinanceStore {
         let rule = RecurringRule(kind: transaction.kind, amount: transaction.amount, categoryID: transaction.categoryID,
                                  accountID: transaction.accountID, note: transaction.note,
                                  frequency: schedule.frequency, interval: schedule.interval,
-                                 startDate: transaction.date, autoRecords: autoRecords, lastHandled: handled)
+                                 startDate: transaction.date, autoRecords: autoRecords, lastHandled: handled,
+                                 isExcluded: transaction.isExcluded)
         var linked = transaction
         linked.recurringRuleID = rule.id
         persist {
@@ -183,6 +185,7 @@ extension FinanceStore {
                                              accountID: accountID, date: rule.transactionDate(on: day, now: now),
                                              note: rule.note)
         transaction.recurringRuleID = rule.id
+        transaction.isExcluded = rule.isExcluded
         let before = transactions.count
         // Recorded by Milu, not by the user: no "Làm quen" step is paid for it.
         let creation = lastCreated

@@ -353,15 +353,11 @@ struct AddTransactionView: View {
                         }
                         FormDivider(hasIcon: false)
                     }
-                    // Not for a repeating one: a rule keeps no such mark, so every later time would
-                    // count (audit 2026-11-15: only the first stayed out of Báo cáo and the limits).
-                    FormToggleRow(title: "Không tính vào báo cáo",
-                                  subtitle: repeats ? "Chưa dùng được cho khoản lặp lại" : nil,
-                                  isOn: $isExcluded)
-                        .disabled(repeats)
+                    // A repeating one's rule keeps it too, so every later time stays out
+                    // (`RecurringRule.isExcluded`, audit 2026-11-15).
+                    FormToggleRow(title: "Không tính vào báo cáo", isOn: $isExcluded)
                 }
                 .animation(Motion.gentle(.smooth(duration: 0.25)), value: repeatChoice == .none)
-                .onChange(of: repeats) { _, on in if on { isExcluded = false } }
                 .disabled(isReadOnly)
             }
             FormGroup(title: "Ghi chú") {
@@ -574,7 +570,7 @@ struct AddTransactionView: View {
             var transaction = editing ?? FinanceTransaction(amount: 0, categoryID: categoryID, kind: kind,
                                                             accountID: accountID, date: date)
             transaction.amount = amount
-            transaction.isExcluded = isExcluded && !keepsSystemCategory && !repeats
+            transaction.isExcluded = isExcluded && !keepsSystemCategory
             transaction.categoryID = categoryID
             transaction.kind = kind
             transaction.accountID = accountID

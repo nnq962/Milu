@@ -32,6 +32,9 @@ struct RecurringRule: Identifiable, Hashable {
     var lastHandled: Date?
     /// Paused: nothing falls due, nothing is asked, until it is resumed.
     var pausedAt: Date?
+    /// "Không tính vào báo cáo": every transaction it records stays out of Báo cáo and the limits
+    /// (audit 2026-11-15: a rule kept no such mark, so only the first one did).
+    var isExcluded = false
     var createdAt = Date.now
 
     var isPaused: Bool { pausedAt != nil }

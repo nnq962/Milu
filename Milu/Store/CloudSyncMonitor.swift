@@ -38,16 +38,24 @@ final class CloudSyncMonitor {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var network: NWPathMonitor?
     @ObservationIgnored private let defaults: UserDefaults
+    /// Whether this build syncs at all (Milu Dev does not).
+    @ObservationIgnored private let syncs: Bool
+    /// When the last download ended, whatever it brought (`waitForFreshData`).
+    @ObservationIgnored private(set) var lastImportEnded: ContinuousClock.Instant?
+    /// When listening started: this launch's first download ends after it.
+    @ObservationIgnored private(set) var startedAt = ContinuousClock.now
     private static let lastSyncedKey = "sync.lastSynced"
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, syncs: Bool = FinanceDatabase.hasICloud) {
         self.defaults = defaults
+        self.syncs = syncs
         lastSynced = defaults.object(forKey: Self.lastSyncedKey) as? Date
     }
 
     /// Starts listening; the app calls it once.
     func start() {
         guard observers.isEmpty else { return }
+        startedAt = .now
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification,
                                             object: nil, queue: .main) { [weak self] note in
@@ -165,6 +173,7 @@ final class CloudSyncMonitor {
             if shows, !isOffline { receiving.insert(update.id) }
         } else {
             receiving.remove(update.id)
+            if update.isImport { lastImportEnded = .now }
             if update.isImport, update.succeeded { hasNewData = true }
             if update.succeeded {
                 problem = nil
@@ -181,6 +190,27 @@ final class CloudSyncMonitor {
         } else if update.ended, update.isImport, update.succeeded, !receivingNow {
             quietImports += 1
         }
+    }
+
+    /// Waits until a download from iCloud has ended after `since` (this device then has what the
+    /// others wrote), or `timeout` has passed; at once where none will come (no iCloud, signed
+    /// out, offline). What the app writes on its own, the recurring rules that record by
+    /// themselves, waits for it: written from an old copy (an iPad not opened for weeks), a
+    /// payment deleted or skipped on the iPhone came back on every device (audit round 2,
+    /// 2026-11-15).
+    func waitForFreshData(since: ContinuousClock.Instant, timeout: Duration = .seconds(15)) async {
+        let deadline = ContinuousClock.now + timeout
+        while !Task.isCancelled, ContinuousClock.now < deadline, expectsDownload {
+            if let ended = lastImportEnded, ended >= since { return }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+    }
+
+    /// iCloud may still send something down: a build that syncs, signed in (or not yet known),
+    /// with a network.
+    private var expectsDownload: Bool {
+        guard syncs, !isOffline else { return false }
+        return account == .available || account == .checking
     }
 
     /// Whether data came down since the last call: the app reads the database again once the sync

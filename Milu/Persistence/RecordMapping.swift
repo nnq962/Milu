@@ -184,7 +184,8 @@ extension Loan {
             isExisting: record.isExisting,
             accountID: record.accountID,
             date: record.loanDate ?? record.createdAt,
-            monthlyInterestRate: record.monthlyInterestRate
+            monthlyInterestRate: record.monthlyInterestRate,
+            openingOutstanding: record.openingOutstanding.map { Double(dong: $0) }
         )
     }
 }
@@ -201,6 +202,7 @@ extension LoanRecord {
         accountID = loan.isExisting ? nil : loan.accountID
         loanDate = loan.date
         monthlyInterestRate = loan.monthlyInterestRate
+        openingOutstanding = loan.isExisting ? loan.openingOutstanding.map { Int64(dong: $0) } : nil
         settledAt = loan.isSettled ? (settledAt ?? .now) : nil
         updatedAt = .now
     }
@@ -384,6 +386,7 @@ extension RecurringRule {
                   autoRecords: record.autoRecords,
                   lastHandled: record.lastHandled,
                   pausedAt: record.pausedAt,
+                  isExcluded: record.excluded,
                   createdAt: record.createdAt)
     }
 }
@@ -402,6 +405,7 @@ extension RecurringRuleRecord {
         autoRecords = rule.autoRecords
         lastHandled = rule.lastHandled
         pausedAt = rule.pausedAt
+        excluded = rule.isExcluded
         createdAt = rule.createdAt
         updatedAt = .now
     }

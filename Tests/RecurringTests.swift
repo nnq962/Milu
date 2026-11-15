@@ -79,6 +79,24 @@ struct RecurringTests {
         #expect(reopened.recordDueRecurring(now: day(2027, 3, 20)).isEmpty)
     }
 
+    /// "Không tính vào báo cáo" on a repeating transaction: every time it records stays out, after
+    /// a relaunch too (audit 2026-11-15: only the first did).
+    @Test func anExcludedRuleKeepsEveryTimeOut() throws {
+        let (store, container, wallet) = storeWithWallet()
+        var first = FinanceTransaction(amount: 260_000, categoryID: "housing.rent", kind: .expense,
+                                       accountID: wallet.id, date: day(2027, 1, 5))
+        first.isExcluded = true
+        store.add(first, repeating: (.monthly, 1), autoRecords: true)
+        #expect(store.recurringRules.first?.isExcluded == true)
+        let recorded = store.recordDueRecurring(now: day(2027, 3, 20))
+        #expect(recorded.count == 2)
+        #expect(store.transactions.allSatisfy { $0.isExcluded })
+        let reopened = open(container)
+        #expect(reopened.recurringRules.first?.isExcluded == true)
+        #expect(reopened.transactions.count == 3)
+        #expect(reopened.transactions.allSatisfy { $0.isExcluded })
+    }
+
     /// A rule that asks: the earliest day waits with how many more behind it; "Ghi" records it for
     /// the amount typed, "Bỏ qua" records nothing; both move it on.
     @Test func askingFirstWaitsThenRecordsOrSkips() {

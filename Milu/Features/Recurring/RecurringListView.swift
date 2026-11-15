@@ -102,6 +102,8 @@ struct RecurringEditorSheet: View {
     @State private var endDate: Date
     @State private var autoRecords: Bool
     @State private var isPaused: Bool
+    /// "Không tính vào báo cáo" for every transaction it records.
+    @State private var isExcluded: Bool
     @State private var note: String
     @State private var showsErrors = false
     /// "Ghi luôn các lần còn chờ", when saving would have Milu record them by itself.
@@ -110,7 +112,8 @@ struct RecurringEditorSheet: View {
     /// a swipe down keeps (`SheetScaffold.hasChanges`, audit 2026-11-15).
     @State private var opened: [AnyHashable]?
     private var draft: [AnyHashable] {
-        [kind, amountText, categoryID, accountID, repeatChoice, startDate, hasEnd, endDate, autoRecords, isPaused, note, recordsWaiting]
+        [kind, amountText, categoryID, accountID, repeatChoice, startDate, hasEnd, endDate, autoRecords, isPaused,
+         isExcluded, note, recordsWaiting]
     }
     private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
@@ -132,6 +135,7 @@ struct RecurringEditorSheet: View {
         _endDate = State(initialValue: rule?.endDate ?? defaultEnd)
         _autoRecords = State(initialValue: rule?.autoRecords ?? false)
         _isPaused = State(initialValue: rule?.isPaused ?? false)
+        _isExcluded = State(initialValue: rule?.isExcluded ?? false)
         _note = State(initialValue: rule?.note ?? "")
     }
 
@@ -285,6 +289,8 @@ struct RecurringEditorSheet: View {
                                       : "Bỏ qua các lần trước hôm nay",
                                   isOn: $recordsWaiting)
                 }
+                FormDivider(hasIcon: false)
+                FormToggleRow(title: "Không tính vào báo cáo", isOn: $isExcluded)
                 if original != nil {
                     FormDivider(hasIcon: false)
                     FormToggleRow(title: "Tạm dừng", subtitle: "Không nhắc, không ghi cho tới khi tắt",
@@ -339,6 +345,7 @@ struct RecurringEditorSheet: View {
         rule.endDate = hasEnd ? endDate : nil
         rule.autoRecords = autoRecords
         rule.pausedAt = isPaused ? (original?.pausedAt ?? .now) : nil
+        rule.isExcluded = isExcluded
         rule.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let isNew = original == nil
         store.save(rule)

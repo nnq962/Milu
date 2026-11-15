@@ -11,6 +11,10 @@ extension FinanceStore {
         if let old, readOnlyReason(old) != nil,
            old.principal != loan.principal || old.direction != loan.direction
             || old.movedAccountID != loan.movedAccountID || old.outstanding != loan.outstanding { return }
+        // From before the app: what it owed when entered is what it owes now plus what came back
+        // through Milu since, kept apart from the figure repayments change (`openingOutstanding`).
+        var loan = loan
+        loan.openingOutstanding = loan.isExisting ? min(loan.outstanding + repaidPrincipal(of: loan), loan.principal) : nil
         persist {
             let loan = link(loan)
             if let old { moveMoney(of: old, sign: -1) }

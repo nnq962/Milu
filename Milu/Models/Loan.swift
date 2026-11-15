@@ -38,6 +38,12 @@ struct Loan: Identifiable, Hashable {
     /// Percent of the principal due each month, the same every month (not on what is left,
     /// user choice 2026-10-29): 25tr at 1,5% is 375.000đ a month. 0 means none.
     var monthlyInterestRate: Double = 0
+    /// A loan from before the app: what was left to repay when it was entered (or last changed in
+    /// its form), before any repayment through Milu. What is left now is worked out from it and
+    /// the repayments (`FinanceDatabase.settleLoans`), as a new loan's is from its principal: the
+    /// figure stored alone is only the last device's to write it (audit round 2, 2026-11-15).
+    /// Nil on a new loan; the store fills it in for one from before the app (`save`).
+    var openingOutstanding: Double? = nil
 
     var isSettled: Bool { outstanding <= 0 }
 

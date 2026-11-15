@@ -128,6 +128,31 @@ struct CloudSettingsTests {
         #expect(monitor.takeNewData())
     }
 
+    /// What records by itself waits for this launch's download (audit round 2, 2026-11-15: an
+    /// old iPad recorded from its own copy, bringing back a payment deleted on the iPhone); not
+    /// where none comes, and not past the time limit.
+    @Test func autoRecordingWaitsForTheDownload() async {
+        let monitor = CloudSyncMonitor(defaults: makeDefaults(), syncs: true)
+        let since = ContinuousClock.now
+        let waiting = Task { await monitor.waitForFreshData(since: since, timeout: .seconds(5)) }
+        try? await Task.sleep(for: .milliseconds(300))
+        let download = UUID()
+        monitor.handle(.init(id: download, isImport: true, ended: false))
+        monitor.handle(.init(id: download, isImport: true, ended: true))
+        await waiting.value
+        #expect(ContinuousClock.now - since < .seconds(2))
+
+        let noICloud = CloudSyncMonitor(defaults: makeDefaults(), syncs: false)
+        let asked = ContinuousClock.now
+        await noICloud.waitForFreshData(since: asked, timeout: .seconds(5))
+        #expect(ContinuousClock.now - asked < .milliseconds(200))
+
+        let nothingComes = CloudSyncMonitor(defaults: makeDefaults(), syncs: true)
+        let began = ContinuousClock.now
+        await nothingComes.waitForFreshData(since: began, timeout: .milliseconds(600))
+        #expect(ContinuousClock.now - began >= .milliseconds(600))
+    }
+
     @Test func theMonitorShowsOnlyDataComingDown() {
         let monitor = CloudSyncMonitor(defaults: makeDefaults())
         let upload = UUID()

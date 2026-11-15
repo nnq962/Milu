@@ -79,4 +79,3 @@ enum MiluSchemaV9: VersionedSchema {
 }
 
 typealias TransactionRecord = MiluSchemaV9.TransactionRecord
-typealias RecurringRuleRecord = MiluSchemaV9.RecurringRuleRecord

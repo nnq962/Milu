@@ -245,8 +245,13 @@ struct MiluApp: App {
                     guard !Task.isCancelled, await NotificationInvite.isDue(), !Presentation.isShowingSheet else { return }
                     showsNotificationInvite = true
                 }
-                // What recurring rules that record by themselves owe since the app was last open.
-                .task(id: generation) { store.recordDueRecurring() }
+                // What recurring rules that record by themselves owe since the app was last open,
+                // once this launch's download from iCloud is in (`waitForFreshData`).
+                .task(id: generation) {
+                    await sync.waitForFreshData(since: sync.startedAt)
+                    guard !Task.isCancelled else { return }
+                    store.recordDueRecurring()
+                }
                 // Past midnight with the app open: today's are due now.
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
                     store.recordDueRecurring()
@@ -271,8 +276,13 @@ struct MiluApp: App {
                 // Read again only when iCloud brought something meanwhile: every return read the
                 // whole database on the main thread, years of it, for nothing (audit 2026-11-15).
                 if sync.takeNewData() { store.reload() }
-                store.recordDueRecurring()
                 sync.checkAccount()
+                // What came due while away, once iCloud has sent what changed meanwhile.
+                let back = ContinuousClock.now
+                Task {
+                    await sync.waitForFreshData(since: back)
+                    store.recordDueRecurring()
+                }
             }
         }
     }

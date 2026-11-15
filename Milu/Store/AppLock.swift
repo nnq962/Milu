@@ -77,8 +77,11 @@ final class AppLock {
         isLocked = isOn
     }
 
-    /// Turned on, and the plan allows it: a free plan opens freely even if it was on.
-    var isOn: Bool { MiluPlan.isPro && defaults.bool(forKey: StorageKey.appLock) }
+    /// The switch is on. Not the plan: it is read from the App Store's last answer, which moving
+    /// the iPhone's date past the plan's end (no passcode needed) turns to "free", and a lock
+    /// that followed the plan then opened on the next launch with no Face ID (audit round 2,
+    /// 2026-11-15). A plan that lapsed turns the switch off at the next unlock (`opened`).
+    var isOn: Bool { defaults.bool(forKey: StorageKey.appLock) }
 
     var delay: Delay {
         Delay(rawValue: defaults.integer(forKey: StorageKey.appLockDelay)) ?? .immediately
@@ -129,15 +132,22 @@ final class AppLock {
     }
 
     /// Turned off: open at once. A plan that lapsed, or seems to (the iPhone's date set past its
-    /// end, which needs no passcode), only stops the next locks: a lock that is up stays until
-    /// Face ID opens it (audit 2026-11-15: moving the date forward took the lock away unasked).
+    /// end, which needs no passcode), opens nothing: the lock stays until Face ID opens it, and
+    /// at launch too (audit 2026-11-15: moving the date forward took the lock away unasked).
     func refresh() {
         if !defaults.bool(forKey: StorageKey.appLock) { isLocked = false }
     }
 
+    /// The owner opened the lock. On the free plan (Pro lapsed) the switch goes off with it: this
+    /// was the last lock, and Cài đặt no longer offers the switch to turn it off.
+    private func opened() {
+        isLocked = false
+        if !MiluPlan.isPro { defaults.set(false, forKey: StorageKey.appLock) }
+    }
+
     #if DEBUG
     /// Tests: as if Face ID had said yes.
-    func didReturnForTest(unlocked: Bool) { if unlocked { isLocked = false } }
+    func didReturnForTest(unlocked: Bool) { if unlocked { opened() } }
     /// Tests: as if Face ID had just answered with the app not yet back in front.
     func markJustAskedForTest() { isJustAsked = true }
     #endif
@@ -151,14 +161,14 @@ final class AppLock {
         // nothing can say who holds it, and asking would keep the owner out of Milu for good
         // (review 2026-11-14). The phone itself is open, so Milu opens too.
         guard Self.isAvailable else {
-            isLocked = false
+            opened()
             return
         }
         isAuthenticating = true
         defer { isAuthenticating = false }
         let yes = await Self.authenticate(reason: "Mở khoá Milu")
         markJustAsked()
-        if yes { isLocked = false }
+        if yes { opened() }
     }
 
     /// Asked as the switch is turned on, so a face that is not set up, or a "no" to Face ID,

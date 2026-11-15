@@ -85,6 +85,55 @@ struct PersistenceTests {
         #expect(open(container).loan(id: old.id)?.outstanding == 5_000_000)
     }
 
+    /// A loan from before Milu, partly repaid before it: two devices each record a repayment before
+    /// they sync, and the row keeps one device's figure. What it owed when entered is kept apart,
+    /// so what is left comes out right on both (audit round 2, 2026-11-15: it stayed at one
+    /// device's figure, 2tr too high).
+    @Test func aLoanFromBeforeMiluOwesWhatItOwedLessEveryRepayment() throws {
+        let (store, container, wallet, _, _) = makeStore()
+        let old = Loan(name: "Cường", direction: .lent, principal: 10_000_000, outstanding: 6_000_000, dueDate: nil,
+                       isExisting: true)
+        store.save(old)
+        #expect(store.loan(id: old.id)?.openingOutstanding == 6_000_000)
+        store.save(LoanPayment(loanID: old.id, principal: 2_000_000, accountID: wallet.id, date: day))
+        store.save(LoanPayment(loanID: old.id, principal: 1_000_000, accountID: wallet.id, date: day.addingTimeInterval(60)))
+        // The iPad's write won: 6tr − 1tr only.
+        let context = ModelContext(container)
+        let row = try #require(try context.fetch(FetchDescriptor<LoanRecord>()).first { $0.id == old.id })
+        row.outstanding = 5_000_000
+        try context.save()
+        let reopened = open(container)
+        let loan = try #require(reopened.loan(id: old.id))
+        #expect(loan.outstanding == 3_000_000)
+        #expect(LoanDetailSheet.repaidBeforeMilu(loan, payments: reopened.payments(of: loan)) == 4_000_000)
+
+        // Changed in its form to 2,5tr left: it owed 5,5tr when entered.
+        var edited = loan
+        edited.outstanding = 2_500_000
+        reopened.save(edited)
+        #expect(open(container).loan(id: old.id)?.outstanding == 2_500_000)
+        #expect(open(container).loan(id: old.id)?.openingOutstanding == 5_500_000)
+    }
+
+    /// One stored before the opening figure was kept gets it at the next launch, from what it says
+    /// now and its repayments, and owes the same as before.
+    @Test func aLoanStoredBeforeTheOpeningFigureGetsIt() throws {
+        let (store, container, wallet, _, _) = makeStore()
+        let old = Loan(name: "Dũng", direction: .borrowed, principal: 8_000_000, outstanding: 5_000_000, dueDate: nil,
+                       isExisting: true)
+        store.save(old)
+        store.save(LoanPayment(loanID: old.id, principal: 1_000_000, accountID: wallet.id, date: day))
+        let context = ModelContext(container)
+        let row = try #require(try context.fetch(FetchDescriptor<LoanRecord>()).first { $0.id == old.id })
+        row.openingOutstanding = nil
+        try context.save()
+        let reopened = open(container)
+        #expect(reopened.loan(id: old.id)?.outstanding == 4_000_000)
+        #expect(reopened.loan(id: old.id)?.openingOutstanding == 5_000_000)
+        let stored = try ModelContext(container).fetch(FetchDescriptor<LoanRecord>()).first { $0.id == old.id }
+        #expect(stored?.openingOutstanding == 5_000_000)
+    }
+
     /// A built-in category the user deleted stays deleted after a reinstall: the new install adds
     /// the built-in ones again, and the deleted one's older row, brought by iCloud, wins (audit 2026-11-15).
     @Test func aDeletedBuiltInCategoryStaysDeletedAfterAReinstall() throws {
@@ -113,7 +162,9 @@ struct PersistenceTests {
         #expect(reinstalled.category(id: "food.milktea") == nil)
         #expect(reinstalled.category(id: "food.coffee") != nil)
 
-        // One deleted outright by an older version: marked at the next launch, as old as can be.
+        // One deleted outright by an older version: marked at the first launch of this one, as
+        // old as can be.
+        UserDefaults.standard.removeObject(forKey: FinanceDatabase.deletedDefaultsMarkedKey)
         let gone = ModelContext(newPhone)
         let coffee = try #require(try gone.fetch(FetchDescriptor<CategoryRecord>()).first { $0.id == "food.coffee" })
         gone.delete(coffee)
@@ -123,6 +174,31 @@ struct PersistenceTests {
         let coffeeMark = try ModelContext(newPhone).fetch(FetchDescriptor<CategoryRecord>()).first { $0.id == "food.coffee" }
         #expect(coffeeMark?.archivedAt == Category.deletedMark)
         #expect(coffeeMark?.createdAt == MiluSchemaV8.epoch)
+    }
+
+    /// A category table iCloud emptied (signed out, another Apple ID) gets no deletion marks, nor
+    /// does it later as the account's data comes down in parts (audit round 2, 2026-11-15: marks
+    /// for every built-in category won over the real rows on every device).
+    @Test func anEmptiedCategoryTableIsNotMarkedDeleted() throws {
+        UserDefaults.standard.set(true, forKey: FinanceDatabase.defaultsAddedKey)
+        UserDefaults.standard.removeObject(forKey: FinanceDatabase.deletedDefaultsMarkedKey)
+        let emptied = FinanceDatabase.makeContainer(inMemory: true)
+        _ = FinanceStore(database: FinanceDatabase(context: ModelContext(emptied)), seedsSampleData: false)
+        #expect(try ModelContext(emptied).fetch(FetchDescriptor<CategoryRecord>()).isEmpty)
+
+        // The first rows come down: a group of each kind, none of their items yet.
+        let context = ModelContext(emptied)
+        for group in DefaultCategories.all.filter({ $0.parentID == nil }).prefix(30) {
+            context.insert(CategoryRecord(id: group.id, kind: group.kind.rawValue, name: group.name,
+                                          icon: group.icon, isBuiltIn: true, sortOrder: group.sortOrder))
+        }
+        try context.save()
+        let before = try ModelContext(emptied).fetchCount(FetchDescriptor<CategoryRecord>())
+        _ = FinanceStore(database: FinanceDatabase(context: ModelContext(emptied)), seedsSampleData: false)
+        let marks = try ModelContext(emptied).fetch(FetchDescriptor<CategoryRecord>())
+            .filter { $0.archivedAt == Category.deletedMark }
+        #expect(marks.isEmpty)
+        #expect(try ModelContext(emptied).fetchCount(FetchDescriptor<CategoryRecord>()) == before)
     }
 
     @Test func changesAndDeletionsComeBackAfterARelaunch() {

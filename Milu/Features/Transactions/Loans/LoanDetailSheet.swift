@@ -213,9 +213,11 @@ struct LoanDetailSheet: View {
     }
 
     /// What of an existing loan's principal was repaid before it was recorded: the principal less
-    /// what is still owed and less the repayments recorded since.
+    /// what it owed when entered (or, stored before that was kept, less what is still owed and
+    /// the repayments recorded since).
     static func repaidBeforeMilu(_ loan: Loan, payments: [LoanPayment]) -> Double {
         guard loan.isExisting else { return 0 }
+        if let opening = loan.openingOutstanding { return max(loan.principal - opening, 0) }
         return max(loan.principal - loan.outstanding - payments.reduce(0) { $0 + $1.principal }, 0)
     }
 
