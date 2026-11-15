@@ -2,16 +2,23 @@ import SwiftUI
 
 /// ✕ in a sheet's navigation bar: Apple's own close button.
 struct SheetCloseButton: View {
+    /// Instead of closing: a sheet with unsaved input asks first (`SheetPage`).
+    var onClose: (() -> Void)? = nil
+
     @Environment(\.dismiss) private var dismiss
+
+    private func close() {
+        if let onClose { onClose() } else { dismiss() }
+    }
 
     var body: some View {
         Group {
             if #available(iOS 26.0, *) {
-                Button(role: .close) { dismiss() }
+                Button(role: .close) { close() }
             } else {
                 // Before iOS 26 there is no close role: iOS 17's own sheet ✕, small and bold on a
                 // grey disc (user choice 2026-11-09), as in Music and Weather.
-                Button { dismiss() } label: {
+                Button { close() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(Palette.secondaryLabel)

@@ -102,6 +102,15 @@ struct RecurringEditorSheet: View {
     @State private var isPaused: Bool
     @State private var note: String
     @State private var showsErrors = false
+    /// "Ghi luôn các lần còn chờ", when saving would have Milu record them by itself.
+    @State private var recordsWaiting = true
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`, audit 2026-11-15).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] {
+        [kind, amountText, categoryID, accountID, repeatChoice, startDate, hasEnd, endDate, autoRecords, isPaused, note, recordsWaiting]
+    }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     init(target: Target) {
         self.target = target
@@ -182,6 +191,25 @@ struct RecurringEditorSheet: View {
         amount > 0 && !missesCategory && accountID != nil && (!accountGone || isPaused) && scheduleError == nil
     }
 
+    /// A new start, frequency or interval, or resumed after a pause: what fell due before today
+    /// is not owed then (no catch-up of the paused weeks).
+    private var startsAnew: Bool {
+        guard let original, let schedule = repeatChoice.schedule else { return false }
+        return !Calendar.current.isDate(original.startDate, inSameDayAs: startDate) || original.frequency != schedule.frequency
+            || original.interval != schedule.interval || (original.isPaused && !isPaused)
+    }
+
+    /// The days before today still waiting that saving would have Milu record at once, by itself:
+    /// it asked first until now, or its account was archived and another is picked (audit
+    /// 2026-11-15: they were all recorded on ✓, unasked). Today's, if due, is recorded either way.
+    private var waitingToFill: [Date] {
+        guard let original, autoRecords, !isPaused, !startsAnew, let accountID, store.canRecord(onto: accountID),
+              !original.autoRecords || !store.canRecord(onto: original.accountID) else { return [] }
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: .now)) else { return [] }
+        return original.occurrences(after: original.lastHandled, through: yesterday)
+    }
+
     /// A new rule starting in the past: when it first comes, as nothing before today is recorded.
     private var noBackfillNote: String? {
         guard original == nil, let schedule = repeatChoice.schedule,
@@ -202,7 +230,7 @@ struct RecurringEditorSheet: View {
 
     var body: some View {
         SheetScaffold(title: original == nil ? "Thêm khoản định kỳ" : "Sửa khoản định kỳ",
-                      validate: validate, onConfirm: save) {
+                      validate: validate, onConfirm: save, hasChanges: hasChanges) {
             ScaledSegmentedPicker(title: "Loại giao dịch", selection: $kind, options: TransactionKind.allCases) { $0.title }
                 .controlSize(.large)
             VStack(spacing: Spacing.s) {
@@ -246,6 +274,15 @@ struct RecurringEditorSheet: View {
                 FormToggleRow(title: "Tự ghi khi tới hạn",
                               subtitle: autoRecords ? "Milu tự ghi mỗi lần tới hạn" : "Milu hỏi bạn trước khi ghi",
                               isOn: $autoRecords)
+                let waiting = waitingToFill
+                if let first = waiting.first {
+                    FormDivider(hasIcon: false)
+                    FormToggleRow(title: "Ghi luôn \(waiting.count) lần còn chờ",
+                                  subtitle: recordsWaiting
+                                      ? "Từ \(first.shortDay), tổng \((amount * Double(waiting.count)).vnd)"
+                                      : "Bỏ qua các lần trước hôm nay",
+                                  isOn: $recordsWaiting)
+                }
                 if original != nil {
                     FormDivider(hasIcon: false)
                     FormToggleRow(title: "Tạm dừng", subtitle: "Không nhắc, không ghi cho tới khi tắt",
@@ -271,6 +308,7 @@ struct RecurringEditorSheet: View {
         .onAppear {
             if accountID == nil { accountID = store.usableAccounts.first?.id }
         }
+        .task { if opened == nil { opened = draft } }
         .onChange(of: kind) { _, new in
             if !CategoryPickerRow.isPickable(categoryID, kind: new, in: store) { categoryID = "" }
         }
@@ -282,10 +320,10 @@ struct RecurringEditorSheet: View {
                                              accountID: accountID, startDate: startDate,
                                              lastHandled: FinanceStore.firstHandled(forNewRuleStarting: startDate))
         // A new schedule, or resumed after a pause: what fell due before today is not owed (no
-        // catch-up of the paused weeks).
+        // catch-up of the paused weeks). Nor are the days waiting that "Ghi luôn các lần còn chờ"
+        // turned down.
         let calendar = Calendar.current
-        if let old = original, !calendar.isDate(old.startDate, inSameDayAs: startDate) || old.frequency != schedule.frequency
-            || old.interval != schedule.interval || (old.isPaused && !isPaused) {
+        if let old = original, startsAnew || (!waitingToFill.isEmpty && !recordsWaiting) {
             rule.lastHandled = max(old.lastHandled ?? .distantPast,
                                    calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: .now)) ?? .now)
         }

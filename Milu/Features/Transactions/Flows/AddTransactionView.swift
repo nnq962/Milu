@@ -71,6 +71,13 @@ struct AddTransactionView: View {
     /// records it by itself each time or asks first (the default).
     @State private var repeatChoice = RepeatChoice.none
     @State private var autoRecords = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`, audit 2026-11-15).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] {
+        [mode, amountText, categoryID, isExcluded, accountID, toAccountID, feeText, date, note, repeatChoice, autoRecords, leftoverAccount]
+    }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
     /// The rule opened from "Lặp lại" on a transaction it recorded.
     @State private var viewingRule: RecurringRule?
 
@@ -261,7 +268,8 @@ struct AddTransactionView: View {
         // Worked out once a draw: each scans the month's spending, and it was asked twice (the
         // note and its animation) on every keystroke of the amount (review 2026-11-09).
         let budgetNotice = self.budgetNotice
-        SheetScaffold(title: title(for: isEditing), validate: validate, onConfirm: confirmAction) {
+        SheetScaffold(title: title(for: isEditing), validate: validate, onConfirm: confirmAction,
+                      hasChanges: hasChanges) {
             if !modes.isEmpty {
                 // Its words at the user's text size (strict review 2026-10-31).
                 ScaledSegmentedPicker(title: "Loại giao dịch", selection: $mode, options: modes) { $0.title }
@@ -345,9 +353,15 @@ struct AddTransactionView: View {
                         }
                         FormDivider(hasIcon: false)
                     }
-                    FormToggleRow(title: "Không tính vào báo cáo", isOn: $isExcluded)
+                    // Not for a repeating one: a rule keeps no such mark, so every later time would
+                    // count (audit 2026-11-15: only the first stayed out of Báo cáo and the limits).
+                    FormToggleRow(title: "Không tính vào báo cáo",
+                                  subtitle: repeats ? "Chưa dùng được cho khoản lặp lại" : nil,
+                                  isOn: $isExcluded)
+                        .disabled(repeats)
                 }
                 .animation(Motion.gentle(.smooth(duration: 0.25)), value: repeatChoice == .none)
+                .onChange(of: repeats) { _, on in if on { isExcluded = false } }
                 .disabled(isReadOnly)
             }
             FormGroup(title: "Ghi chú") {
@@ -384,6 +398,7 @@ struct AddTransactionView: View {
         .animation(Motion.gentle(.smooth(duration: 0.3)), value: leftover >= 1)
         .animation(Motion.gentle(.smooth(duration: 0.3)), value: budgetNotice == nil)
         .onAppear(perform: fillDefaults)
+        .task { if opened == nil { opened = draft } }
     }
 
     /// The limit note: a counted spending only, not in a goal (its money was set aside already)
@@ -411,6 +426,9 @@ struct AddTransactionView: View {
     /// account in all (strict review 2026-10-31: the sentence explaining the fee went).
     /// Under "Tuỳ chọn": an old transaction made to repeat says when it first comes back (nothing
     /// is recorded for the past).
+    /// "Lặp lại" set: what is saved is a rule.
+    private var repeats: Bool { canRepeat && repeatChoice != .none }
+
     private var repeatFooter: String? {
         guard isEditing, canRepeat, let schedule = repeatChoice.schedule else { return nil }
         let calendar = Calendar.current
@@ -554,7 +572,7 @@ struct AddTransactionView: View {
             var transaction = editing ?? FinanceTransaction(amount: 0, categoryID: categoryID, kind: kind,
                                                             accountID: accountID, date: date)
             transaction.amount = amount
-            transaction.isExcluded = isExcluded && !keepsSystemCategory
+            transaction.isExcluded = isExcluded && !keepsSystemCategory && !repeats
             transaction.categoryID = categoryID
             transaction.kind = kind
             transaction.accountID = accountID

@@ -26,7 +26,7 @@ struct SavingsGoal: Identifiable, Hashable {
 
     var progress: Double { target > 0 ? min(saved / target, 1) : 0 }
     /// "99%": rounded down, so a goal only reads "100%" once it is reached.
-    var progressText: String { (floor(progress * 100) / 100).percentText }
+    var progressText: String { (progress.wholePercentDown / 100).percentText }
     var remaining: Double { max(target - saved, 0) }
     /// Saved as much as the target: the goal then offers to use the money, take it out, or aim higher.
     var isReached: Bool { target > 0 && saved >= target }

@@ -45,7 +45,7 @@ struct Loan: Identifiable, Hashable {
     var paidText: String {
         if isSettled { return "Đã trả đủ" }
         guard paidRatio > 0 else { return "Chưa trả" }
-        let percent = min(max((paidRatio * 100).rounded(.down), 1), 99)
+        let percent = min(max(paidRatio.wholePercentDown, 1), 99)
         return "Đã trả \(Int(percent))%"
     }
     /// Interest each month, on the principal.

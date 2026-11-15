@@ -271,7 +271,7 @@ struct GoalJar: View {
 
     /// "Du lịch Đà Nẵng, đã góp tám triệu đồng trên hai mươi triệu đồng, 40 phần trăm".
     private func spoken(done: Bool) -> String {
-        let percent = Int((goal.progress * 100).rounded(.down))
+        let percent = Int(goal.progress.wholePercentDown)
         return [goal.name,
                 "đã góp \(MoneyText.spoken(goal.saved)) trên \(MoneyText.spoken(goal.target))",
                 done ? "đã đạt" : "\(percent) phần trăm",

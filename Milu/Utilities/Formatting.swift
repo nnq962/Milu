@@ -32,6 +32,12 @@ extension Double {
     nonisolated var percentText: String {
         formatted(.percent.precision(.fractionLength(0)).locale(.vietnam))
     }
+
+    /// A share as whole percent, rounded down: 0.58 → 58. Cleared of float noise first: 0.58 × 100
+    /// is 57.999…, which floored to 57 (audit 2026-11-15: 5,8tr of 10tr read "57%").
+    nonisolated var wholePercentDown: Double {
+        ((self * 100 * 1_000_000).rounded() / 1_000_000).rounded(.down)
+    }
 }
 
 extension String {

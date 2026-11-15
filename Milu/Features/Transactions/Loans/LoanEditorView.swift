@@ -27,6 +27,13 @@ struct LoanEditorView: View {
     @State private var isPickingPerson = false
     /// Set by the first ✓: from then on what is missing shows in red.
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`, audit 2026-11-15).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] {
+        [direction, contactID, principalText, isExisting, accountID, date, outstandingText, rateText, hasDueDate, dueDate]
+    }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
     /// Repaid so far on a new loan: through "Thu nợ" / "Trả nợ", or (saved before that rule) what
     /// the loan already said.
     @State private var repaid: Double
@@ -129,7 +136,8 @@ struct LoanEditorView: View {
     // MARK: - Form
 
     var body: some View {
-        SheetScaffold(title: original == nil ? "Thêm khoản vay" : "Sửa khoản vay", validate: validate, onConfirm: save) {
+        SheetScaffold(title: original == nil ? "Thêm khoản vay" : "Sửa khoản vay", validate: validate, onConfirm: save,
+                      hasChanges: hasChanges) {
             // Its words at the user's text size, as every other segmented control (re-review 2026-10-31).
             ScaledSegmentedPicker(title: "Loại khoản vay", selection: $direction,
                                   options: LoanDirection.allCases) { $0.title }
@@ -224,6 +232,7 @@ struct LoanEditorView: View {
                 outstandingText = ""
             }
         }
+        .task { if opened == nil { opened = draft } }
         .sheet(isPresented: $isPickingPerson) {
             ContactPickerSheet(title: lentLabel, selection: $contactID)
         }

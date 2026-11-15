@@ -21,6 +21,10 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
     /// As tall as the content (a choice, a note, the calendar); callers then set no detents of
     /// their own.
     var fitsContent = false
+    /// Something typed or picked is not saved yet: ✕ asks before it goes, and a swipe down does
+    /// not close it (audit 2026-11-15: a drag to put the keyboard away closed the form, and
+    /// everything typed was lost; Milu: "Tiếp tục chỉnh sửa" / "Bỏ thay đổi").
+    var hasChanges = false
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
     @ViewBuilder var trailing: Trailing
@@ -31,8 +35,10 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
     var body: some View {
         NavigationStack {
             SheetPage(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
-                      measuresHeight: fitsContent, header: { header }, content: { content }, trailing: { trailing })
+                      measuresHeight: fitsContent, hasChanges: hasChanges,
+                      header: { header }, content: { content }, trailing: { trailing })
         }
+        .interactiveDismissDisabled(hasChanges)
         .onPreferenceChange(SheetHeightKey.self) { if fitsContent { fittedHeight = $0 } }
         .modifier(FittedDetent(isOn: fitsContent, height: fittedHeight))
         // The sheet's own chrome, so no caller has to remember it (review 2026-10-31: five short
@@ -47,17 +53,20 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
 
 extension SheetScaffold where Trailing == EmptyView {
     init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
-         fitsContent: Bool = false, @ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) {
+         fitsContent: Bool = false, hasChanges: Bool = false,
+         @ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) {
         self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
-                  fitsContent: fitsContent, header: header, content: content, trailing: { EmptyView() })
+                  fitsContent: fitsContent, hasChanges: hasChanges, header: header, content: content,
+                  trailing: { EmptyView() })
     }
 }
 
 extension SheetScaffold where Header == EmptyView, Trailing == EmptyView {
     init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
-         fitsContent: Bool = false, @ViewBuilder content: () -> Content) {
+         fitsContent: Bool = false, hasChanges: Bool = false, @ViewBuilder content: () -> Content) {
         self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
-                  fitsContent: fitsContent, header: { EmptyView() }, content: content, trailing: { EmptyView() })
+                  fitsContent: fitsContent, hasChanges: hasChanges, header: { EmptyView() }, content: content,
+                  trailing: { EmptyView() })
     }
 }
 
@@ -74,6 +83,8 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
     /// Builds only what scrolls into view: a detail screen whose history can run to years of
     /// days (an account's), where every day at once froze the opening (review 2026-11-09).
     var isLazy = false
+    /// Unsaved input: ✕ asks first (`SheetScaffold.hasChanges`).
+    var hasChanges = false
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
     @ViewBuilder var trailing: Trailing
@@ -81,6 +92,8 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
     /// Set by the first ✓: a second tap while the sheet slides away saves nothing twice. Cleared
     /// a moment later, so a ✓ that kept the sheet open (a save that failed) works again.
     @State private var hasConfirmed = false
+    @State private var isConfirmingDiscard = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
@@ -104,9 +117,17 @@ struct SheetPage<Header: View, Content: View, Trailing: View>: View {
         .foregroundStyle(Palette.label)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .systemAlert("Bỏ thay đổi?", isPresented: $isConfirmingDiscard) {
+            Button("Bỏ thay đổi", role: .destructive) { dismiss() }
+            Button("Tiếp tục chỉnh sửa", role: .cancel) {}
+        } message: {
+            Text("Những gì bạn vừa nhập sẽ không được lưu.")
+        }
         .toolbar {
             if showsClose {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton(onClose: hasChanges ? { isConfirmingDiscard = true } : nil)
+                }
             }
             if let onConfirm {
                 ToolbarItem(placement: .confirmationAction) { confirmButton(onConfirm) }

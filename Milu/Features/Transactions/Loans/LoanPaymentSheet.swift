@@ -15,6 +15,13 @@ struct LoanPaymentSheet: View {
     @State private var accountID: Account.ID?
     @State private var date: Date
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`, audit 2026-11-15).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] {
+        [principalText, interestText, accountID, date]
+    }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
     /// What was left as the sheet opened: saving changes the loan, and the sheet must not redraw
     /// "không được lớn hơn số còn lại (0 đ)" on that while it slides away.
     @State private var openedLeft: Double?
@@ -77,7 +84,7 @@ struct LoanPaymentSheet: View {
     }
 
     var body: some View {
-        SheetScaffold(title: title, validate: validate, onConfirm: save) {
+        SheetScaffold(title: title, validate: validate, onConfirm: save, hasChanges: hasChanges) {
             SheetAmountHeader(title: "Tiền gốc", fieldSaysCaption: true) {
                 MiluAmountField(text: $principalText, showsSuggestions: !interestOnly,
                                 focusesOnAppear: original == nil && !interestOnly, presets: presets, accessibilityLabel: "Tiền gốc")
@@ -122,6 +129,7 @@ struct LoanPaymentSheet: View {
         }
         .miluSheetStyle()
         .onAppear { if openedLeft == nil { openedLeft = liveLeft } }
+        .task { if opened == nil { opened = draft } }
     }
 
     /// What is left after this one, a figure worked out as it is typed. No note on where the

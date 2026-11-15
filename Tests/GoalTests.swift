@@ -24,6 +24,18 @@ struct GoalTests {
     private func balance(_ store: FinanceStore, _ account: Account) -> Double? { store.account(id: account.id)?.balance }
     private func saved(_ store: FinanceStore) -> Double? { store.goal(id: goal.id)?.saved }
 
+    /// Shares whose × 100 lands just under a whole number read as that number (audit 2026-11-15:
+    /// 5,8tr of 10tr read "57%"), and still round down otherwise.
+    @Test func percentagesAreNotTakenDownByFloatNoise() {
+        for (saved, shown) in [(5_800_000.0, "58%"), (2_900_000.0, "29%"), (5_700_000.0, "57%"), (5_789_000.0, "57%")] {
+            var jar = goal
+            jar.saved = saved
+            #expect(jar.progressText == shown, "\(saved)")
+        }
+        let loan = Loan(name: "Minh", direction: .lent, principal: 10_000_000, outstanding: 4_200_000, dueDate: nil)
+        #expect(loan.paidText == "Đã trả 58%")
+    }
+
     // MARK: - Nạp, rút
 
     @Test func aDepositMovesMoneyFromTheAccountIntoTheGoal() {
