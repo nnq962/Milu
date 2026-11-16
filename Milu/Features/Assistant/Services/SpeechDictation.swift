@@ -6,6 +6,7 @@
 import AVFoundation
 import Observation
 import Speech
+import UIKit
 
 /// Vietnamese speech-to-text for the chat field: the app's server first (its Zipformer model,
 /// which knows the banks' names), the iPhone's recognizer when the server cannot be had (user
@@ -21,7 +22,13 @@ import Speech
 final class SpeechDictation {
     enum Failure: Equatable {
         case denied, unavailable, audio
+        /// Listening ended by itself (the network went, the recognizer kept failing, a call or
+        /// another app took the sound); what was heard is in `heardWhenStopped`.
+        case stopped
     }
+
+    /// What was heard when listening ended by itself, for the field; taken once.
+    private(set) var heardWhenStopped: String?
 
     private(set) var isRecording = false
     /// After ■ or ↑: the microphone is off and what was said is being turned into words, which
@@ -75,6 +82,47 @@ final class SpeechDictation {
     @ObservationIgnored private var finishCancelled = false
     /// Names the server's recognizer should favour: the user's accounts, the banks and wallets.
     @ObservationIgnored var hotwords: [String] = []
+    @ObservationIgnored private var observers: [NSObjectProtocol] = []
+
+    /// While listening: a call, Siri or another app taking the sound, or Milu going to the
+    /// background, ends it as if by itself (audit round 4, 2026-11-16: the wave stayed, hearing
+    /// nothing). Watched only while listening, and let go after.
+    private func watchInterruptions() {
+        guard observers.isEmpty else { return }
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil,
+                                            queue: .main) { [weak self] note in
+            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            guard raw.flatMap(AVAudioSession.InterruptionType.init(rawValue:)) == .began else { return }
+            MainActor.assumeIsolated { self?.endOnItsOwn() }
+        })
+        observers.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil,
+                                            queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.endOnItsOwn() }
+        })
+    }
+
+    private func stopWatchingInterruptions() {
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers = []
+    }
+
+    /// The words heard when listening ended by itself, once.
+    func takeHeardWhenStopped() -> String? {
+        defer { heardWhenStopped = nil }
+        return heardWhenStopped
+    }
+
+    /// Listening ended without ■ or ✕: the words heard so far go to the field and the page says
+    /// why, rather than everything going silently (audit round 4, 2026-11-16).
+    private func endOnItsOwn() {
+        guard isRecording else { return }
+        commitPartial()
+        let heard = transcript
+        stop()
+        if !heard.isEmpty { heardWhenStopped = heard }
+        failure = .stopped
+    }
     /// How long the server has for the words before the iPhone's are taken.
     static let serverTimeout: TimeInterval = 5
 
@@ -120,6 +168,7 @@ final class SpeechDictation {
         peak = 0
         levels = [Float](repeating: 0, count: Self.levelCount)
         isRecording = true
+        watchInterruptions()
         session += 1
         let session = session
         startStretch(with: recognizer)
@@ -145,6 +194,7 @@ final class SpeechDictation {
         }
         isRecording = false
         isTranscribing = false
+        stopWatchingInterruptions()
         session += 1
         microphone.stop { url in url.map { try? FileManager.default.removeItem(at: $0) } }
     }
@@ -155,6 +205,7 @@ final class SpeechDictation {
         timer?.invalidate()
         timer = nil
         isRecording = false
+        stopWatchingInterruptions()
         isTranscribing = true
         session += 1
         let began = Date.now
@@ -251,7 +302,7 @@ final class SpeechDictation {
     private func continueAfterStretch() {
         commitPartial()
         endStretch()
-        guard isRecording, let recognizer, recognizer.isAvailable else { return stop() }
+        guard isRecording, let recognizer, recognizer.isAvailable else { return endOnItsOwn() }
         startStretch(with: recognizer)
     }
 
@@ -273,8 +324,7 @@ final class SpeechDictation {
         } else if failed {
             failedStretches += 1
             if failedStretches > 3 {
-                commitPartial()
-                stop()
+                endOnItsOwn()
             } else {
                 continueAfterStretch()
             }

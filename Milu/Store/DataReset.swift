@@ -30,8 +30,11 @@ enum DataReset {
         // The welcome stays seen too: erasing is not starting the app anew.
         // Milu Pro too: the App Store's answer, not the user's data (audit 2026-11-15: erased, a
         // subscriber was free until the app came back to the front).
+        // The lock too: only its owner erases with it on (Cài đặt asks Face ID first), and it is
+        // this iPhone's own (audit round 4, 2026-11-16: erasing took it off unasked).
+        let kept: Set<String> = [StorageKey.welcomeSeen, StorageKey.proActive, StorageKey.appLock, StorageKey.appLockDelay]
         for key in defaults.dictionaryRepresentation().keys
-        where !AIQuota.isOwnKey(key) && key != StorageKey.welcomeSeen && key != StorageKey.proActive {
+        where !AIQuota.isOwnKey(key) && !kept.contains(key) {
             defaults.removeObject(forKey: key)
         }
         // Trống thật: không dữ liệu mẫu, không hạn mức mẫu (các `@AppStorage` lấy hạn mức mẫu làm

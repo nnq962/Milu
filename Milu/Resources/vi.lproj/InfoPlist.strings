@@ -1,6 +1,6 @@
 /* The app's language is Vietnamese (`CFBundleLocalizations`): this folder is what tells iOS and the
-   App Store so. The texts iOS shows when it asks for a permission, as in the build settings. */
-"CFBundleDisplayName" = "Milu";
+   App Store so. The texts iOS shows when it asks for a permission, as in the build settings. No
+   name here: the build setting gives it, "Milu Dev" for the Dev build (audit round 4, 2026-11-16). */
 "NSFaceIDUsageDescription" = "Milu dùng Face ID để chỉ bạn mới mở được app.";
 "NSMicrophoneUsageDescription" = "Milu dùng micro để bạn hỏi trợ lý hoặc ghi giao dịch bằng giọng nói.";
 "NSSpeechRecognitionUsageDescription" = "Milu chuyển giọng nói của bạn thành chữ trong ô chat với trợ lý.";

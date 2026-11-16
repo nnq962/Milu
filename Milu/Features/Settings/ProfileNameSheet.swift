@@ -11,13 +11,19 @@ struct ProfileNameSheet: View {
     @State private var avatar = ProfileAvatar.initial
     /// Return and ✓ close the sheet once: a ✓ tapped while it slides away saves nothing twice.
     @State private var didSave = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 4, 2026-11-16: this form
+    /// still lost it).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [name, avatar.raw] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     static let maxLength = 30
     private static let previewSize: CGFloat = 96
     private static let choiceSize: CGFloat = 56
 
     var body: some View {
-        SheetScaffold(title: "Hồ sơ của bạn", onConfirm: save) {
+        SheetScaffold(title: "Hồ sơ của bạn", onConfirm: save, hasChanges: hasChanges) {
             ProfileAvatarView(avatar: avatar, name: name, size: Self.previewSize)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Spacing.s)
@@ -42,6 +48,7 @@ struct ProfileNameSheet: View {
         .onAppear {
             name = savedName
             avatar = ProfileAvatar(raw: savedAvatar)
+            if opened == nil { opened = draft }
         }
     }
 

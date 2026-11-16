@@ -21,6 +21,8 @@ struct SummaryCard<Content: View>: View {
                     Text(title)
                         .textRole(.captionStrong)
                         .foregroundStyle(Palette.secondaryLabel)
+                        // "Đã chi tuần 27 tháng 10 – 2 tháng 11" (audit round 4, 2026-11-16).
+                        .accessibilityLabel(SpokenText.of(title))
                     MoneyText(amount: amount, size: .display, tone: tone)
                 }
                 Spacer(minLength: 0)

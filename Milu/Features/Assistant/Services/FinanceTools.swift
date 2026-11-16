@@ -280,13 +280,20 @@ struct GetUpcoming: AssistantTool {
         // Recurring days left unconfirmed, then those to come, each on the rule's date as it
         // counts it, in any time zone (audit round 4, 2026-11-16: abroad, one day early).
         let ruleDay = { (day: Date) in RecurringRule.localDate(of: day, hour: 12) ?? day }
+        // Every time still waiting, not one: three months of rent unconfirmed are three (audit
+        // round 4, 2026-11-16: told as one, and left out of what is to pay).
         for occurrence in store.waitingRecurring() where RecurringRule.daysFromToday(occurrence.day) < 0 {
             let rule = occurrence.rule
+            let times = occurrence.moreWaiting + 1
+            let total = rule.amount * Double(times)
+            if rule.kind == .expense { toPay += total } else { toReceive += total }
             entries.append((ruleDay(occurrence.day), [
                 "type": "định kỳ chưa xác nhận",
                 "name": .string(GetRecurring.title(rule, in: store)),
                 "kind": .string(rule.kind.rawValue),
                 "amount": ToolMoney.value(rule.amount),
+                "times": .number(Double(times)),
+                "total": ToolMoney.value(total),
                 "late": true,
             ]))
         }
@@ -336,7 +343,10 @@ struct GetUpcoming: AssistantTool {
         let late = entries.filter { $0.item["late"] == true }
         if !late.isEmpty {
             say += " Đã quá hạn: " + late.map { entry in
-                "\(entry.item["name"]?.string ?? "") (từ \(ToolDates.shortDay(entry.date)))"
+                let name = entry.item["name"]?.string ?? ""
+                let times = entry.item["times"]?.number ?? 1
+                let what = times > 1 ? "\(name): \(Int(times)) lần, \((entry.item["total"]?.number ?? 0).vnd)" : name
+                return "\(what) (từ \(ToolDates.shortDay(entry.date)))"
             }.joined(separator: ", ") + "."
         }
         return ToolOutput(result: [
@@ -396,18 +406,24 @@ struct GetMonthlyTrend: AssistantTool {
         var result: [String: JSONValue] = ["months": .array(months)]
         // Averages and extremes over whole months; this month is not over yet.
         let whole = rows.filter { !$0.partial }
+        // Spending averaged over the months that had some, as Báo cáo's "chi trung bình" does: a
+        // first month with only a salary pulled it down, and the two disagreed (audit round 4,
+        // 2026-11-16).
+        let spending = whole.filter { $0.expense > 0 }
         if !whole.isEmpty {
             let averageIncome = whole.reduce(0) { $0 + $1.income } / Double(whole.count)
-            let averageExpense = whole.reduce(0) { $0 + $1.expense } / Double(whole.count)
+            let averageExpense = spending.isEmpty ? 0 : spending.reduce(0) { $0 + $1.expense } / Double(spending.count)
             result["averageOfWholeMonths"] = [
                 "months": .number(Double(whole.count)),
+                "monthsWithSpending": .number(Double(spending.count)),
                 "income": ToolMoney.value(averageIncome),
                 "expense": ToolMoney.value(averageExpense),
             ]
             // Over how many months, said: "trung bình 6 tháng" was told of two (eval 2026-11-15).
             result["sayAverage"] = .string("""
-                Trung bình \(whole.count) tháng trọn gần đây (không tính tháng này): chi \(averageExpense.rounded().vnd), \
-                thu \(averageIncome.rounded().vnd) mỗi tháng.
+                Trung bình \(spending.count) tháng trọn gần đây có chi tiêu (không tính tháng này): chi \
+                \(averageExpense.rounded().vnd) mỗi tháng; thu trung bình \(averageIncome.rounded().vnd) mỗi tháng \
+                qua \(whole.count) tháng.
                 """)
             if let most = whole.max(by: { $0.expense < $1.expense }), let least = whole.min(by: { $0.expense < $1.expense }) {
                 result["mostSpent"] = ["month": .string(most.label), "expense": ToolMoney.value(most.expense)]

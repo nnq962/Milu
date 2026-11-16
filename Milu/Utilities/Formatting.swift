@@ -28,9 +28,10 @@ extension Double {
         }
     }
 
-    /// 0.35 → "35%"
+    /// 0.35 → "35%". A half goes up, as people round, not to the even digit: 12,5% read "12%"
+    /// beside a 17,5% that read "18%" (audit round 4, 2026-11-16).
     nonisolated var percentText: String {
-        formatted(.percent.precision(.fractionLength(0)).locale(.vietnam))
+        formatted(.percent.precision(.fractionLength(0)).rounded(rule: .toNearestOrAwayFromZero).locale(.vietnam))
     }
 
     /// A share as whole percent, rounded down: 0.58 → 58. Cleared of float noise first: 0.58 × 100

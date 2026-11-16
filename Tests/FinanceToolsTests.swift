@@ -160,7 +160,7 @@ struct FinanceToolsTests {
         #expect(months[1]["note"] != nil)
         #expect(result["averageOfWholeMonths"]?["expense"] == 8_000_000)
         #expect(result["mostSpent"]?["expense"] == 8_000_000)
-        #expect(result["sayAverage"]?.string?.hasPrefix("Trung bình 1 tháng trọn gần đây") == true)
+        #expect(result["sayAverage"]?.string?.hasPrefix("Trung bình 1 tháng trọn gần đây có chi tiêu") == true)
     }
 
     // MARK: Chuyển tiền

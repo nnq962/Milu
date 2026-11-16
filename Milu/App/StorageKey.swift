@@ -35,6 +35,10 @@ enum StorageKey {
     /// The welcome pages were seen (`WelcomeView`): never shown again, here or after a reinstall
     /// (synced through iCloud), and kept by "Xoá toàn bộ dữ liệu".
     static let welcomeSeen = "onboarding.welcomeSeen"
+    /// The welcome shown again on this iPhone only (Cài đặt › Nhà phát triển, Debug): not by
+    /// clearing `welcomeSeen`, which iCloud took to every device on the Apple ID, pulling them back
+    /// into the welcome mid-use (audit round 4, 2026-11-16). Never synced.
+    static let replayWelcome = "debug.replayWelcome"
     /// Milu's invitation to the reminder was shown (`NotificationInvite`): once per iPhone, never
     /// synced, as the permission it leads to is the device's own.
     static let notificationInviteSeen = "onboarding.notificationInvite"

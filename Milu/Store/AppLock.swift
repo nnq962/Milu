@@ -177,9 +177,13 @@ final class AppLock {
     /// unlock: the prompt's inactive moment, and the one after it, show no cover (user report
     /// 2026-11-14: the cover came up behind Cài đặt as the switch went on).
     func confirmOwner(turningOn: Bool) async -> Bool {
+        await confirmOwner(reason: turningOn ? "Bật khoá Milu bằng \(Self.biometryName)" : "Tắt khoá Milu")
+    }
+
+    /// Face ID (or the passcode) says it is the owner, for something only they may do.
+    func confirmOwner(reason: String) async -> Bool {
         isAuthenticating = true
         defer { isAuthenticating = false }
-        let reason = turningOn ? "Bật khoá Milu bằng \(Self.biometryName)" : "Tắt khoá Milu"
         let yes = await Self.authenticate(reason: reason)
         markJustAsked()
         return yes

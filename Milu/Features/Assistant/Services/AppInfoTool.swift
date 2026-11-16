@@ -261,9 +261,10 @@ struct GetAppInfo: AssistantTool {
         }
     }
 
+    /// As the lock is: its switch alone decides, whatever the plan (audit round 4, 2026-11-16:
+    /// "off" was said while it kept locking on a plan that only looked lapsed).
     private var lockNow: String {
-        guard facts.isPro else { return "Đang tắt (cần Milu Pro)" }
-        guard facts.lockOn else { return "Đang tắt" }
+        guard facts.lockOn else { return facts.isPro ? "Đang tắt" : "Đang tắt (cần Milu Pro để bật)" }
         return "Đang bật" + (facts.lockDelay.map { ", khoá lại: \($0.lowercased())" } ?? "")
     }
 

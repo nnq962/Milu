@@ -93,7 +93,11 @@ struct ContactEditorView: View {
                                    valueIcon: relationship.icon)
                 }
                 .buttonStyle(.row)
+                // The row's name as its label, the value once (audit round 4: it read it twice).
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Mối quan hệ")
                 .accessibilityValue(relationship.name)
+                .accessibilityAddTraits(.isButton)
             }
 
             if let original {

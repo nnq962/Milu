@@ -328,7 +328,7 @@ struct ReportView: View {
                         .foregroundStyle(row.kind == "Thu" ? Palette.positive : Palette.negative)
                         // Lit: the one looked at; all alike when it is older than the six.
                         .opacity(row.period == period || !periods.contains(period) ? 1 : 0.35)
-                        .accessibilityLabel("\(row.kind) \(row.period.title)")
+                        .accessibilityLabel(SpokenText.of("\(row.kind) \(row.period.title)"))
                         // The real figure in words, as every amount (the bar may be drawn taller).
                         .accessibilityValue(MoneyText.spoken(row.amount))
                 }

@@ -25,6 +25,12 @@ struct RelationshipEditorView: View {
     @State private var name: String
     @State private var icon: String
     @State private var showsErrors = false
+    /// What the form held as it opened: anything else is unsaved input, which ✕ asks about and
+    /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 4, 2026-11-16: this form
+    /// still lost it).
+    @State private var opened: [AnyHashable]?
+    private var draft: [AnyHashable] { [name, icon] }
+    private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
     init(target: Target, onSave: ((Relationship) -> Void)? = nil) {
         self.target = target
@@ -68,7 +74,8 @@ struct RelationshipEditorView: View {
         .map(IconCatalog.emojiName)
 
     var body: some View {
-        SheetScaffold(title: original == nil ? "Thêm loại" : "Sửa loại", validate: validate, onConfirm: save) {
+        SheetScaffold(title: original == nil ? "Thêm loại" : "Sửa loại", validate: validate, onConfirm: save,
+                      hasChanges: hasChanges) {
             FormGroup(title: "Thông tin", error: nameError) {
                 FormTextRow(title: "Tên loại", text: $name, prompt: "Hàng xóm", isInvalid: nameError != nil,
                             maxLength: Relationship.maxNameLength, focusesOnAppear: original == nil)
@@ -92,6 +99,7 @@ struct RelationshipEditorView: View {
             }
         }
         .miluSheetStyle()
+        .task { if opened == nil { opened = draft } }
     }
 
     private func save() {

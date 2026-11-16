@@ -53,9 +53,11 @@ struct PaywallView: View {
             appLock.isShowingSystemSheet = open
             if !open { Task { await store.refresh() } }
         }
+        // The offer code sheet too (audit round 4, 2026-11-16: the cover came up behind it).
+        .onChange(of: isRedeeming) { _, open in appLock.isShowingSystemSheet = open }
         // Closed with the App Store's sheet still counted as up: the switcher would never be
         // covered again until Milu was quit.
-        .onDisappear { if isManaging { appLock.isShowingSystemSheet = false } }
+        .onDisappear { if isManaging || isRedeeming { appLock.isShowingSystemSheet = false } }
         .sheet(item: $legal) { page in
             NavigationStack { LegalDocumentView(document: page.document) }
                 .miluSheetStyle()
@@ -200,9 +202,17 @@ struct PaywallView: View {
 
     private var buyButton: some View {
         let price = store.price(plan)
-        let ready = price != nil && !isBuying
+        // With no prices yet (offline at first) it tries again, rather than waiting greyed until
+        // the page is closed and opened (audit round 4, 2026-11-16).
+        let ready = !isBuying && !store.isLoading
         return MiluButton(role: .primary, fullWidth: true) {
-            if store.isMocking { isConfirmingMock = true } else { Task { await buy() } }
+            if price == nil {
+                Task { await store.loadProducts() }
+            } else if store.isMocking {
+                isConfirmingMock = true
+            } else {
+                Task { await buy() }
+            }
         } label: {
             if isBuying || store.isLoading {
                 ProgressView().tint(Palette.onAccent)
@@ -210,7 +220,7 @@ struct PaywallView: View {
                 Text("Đăng ký · \(price)/\(plan == .yearly ? "năm" : "tháng")")
                     .accessibilityLabel(Self.spoken("Đăng ký, \(price) mỗi \(plan == .yearly ? "năm" : "tháng")"))
             } else {
-                Text("Chưa tải được gói")
+                Text("Chưa tải được gói · Thử lại")
             }
         }
         .disabled(!ready)
@@ -224,7 +234,10 @@ struct PaywallView: View {
 
     private func buy() async {
         isBuying = true
-        if await store.buy(plan) {
+        // Apple's purchase sheet leaves Milu inactive: no lock cover behind it, nor as it goes
+        // (audit round 4, 2026-11-16, as for Quản lý gói).
+        let plan = plan
+        if await appLock.whileSystemAsks({ await store.buy(plan) }) {
             Haptics.milestone()
             dismiss()
         }
@@ -307,7 +320,8 @@ struct PaywallView: View {
         FinePrintLink(title: isRestoring ? "Đang khôi phục…" : "Khôi phục") {
             Task {
                 isRestoring = true
-                await store.restore()
+                // Apple may ask for the Apple ID: no lock cover behind it.
+                await appLock.whileSystemAsks { await store.restore() }
                 isRestoring = false
                 if store.isPro { Haptics.milestone() }
             }

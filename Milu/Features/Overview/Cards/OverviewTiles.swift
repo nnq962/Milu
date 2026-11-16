@@ -457,6 +457,10 @@ struct CalendarRoute: Hashable {}
 struct MoneyCalendarPage: View {
     @State private var month = Date.now
     @State private var selectedDay: Day?
+    /// The day the calendar was drawn for: left open overnight, it moves on, as Tổng quan does
+    /// (audit round 4, 2026-11-16: yesterday stayed "Hôm nay", and today could not be tapped).
+    @State private var today = Calendar.current.startOfDay(for: .now)
+    @Environment(\.scenePhase) private var scenePhase
 
     private struct Day: Identifiable {
         let date: Date
@@ -470,6 +474,7 @@ struct MoneyCalendarPage: View {
                 MonthPickerButton(month: $month, compact: true)
             } content: {
                 MoneyCalendarCard(displayedMonth: $month) { selectedDay = Day(date: $0) }
+                    .id(today)
                     .card()
             }
             .padding(.horizontal, Spacing.page)
@@ -481,5 +486,14 @@ struct MoneyCalendarPage: View {
         .navigationTitle("Lịch thu chi")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+            Task { @MainActor in followToday() }
+        }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { followToday() } }
+    }
+
+    private func followToday() {
+        let day = Calendar.current.startOfDay(for: .now)
+        if day != today { today = day }
     }
 }

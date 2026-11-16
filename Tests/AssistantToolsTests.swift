@@ -102,6 +102,27 @@ struct AssistantToolsTests {
         #expect(accounts.contains("Thẻ VIB"))
     }
 
+    /// What the model sends, read as meant or asked again: thousands only in groups of three, a
+    /// kind or a date that cannot be read is not guessed (audit round 4, 2026-11-16).
+    @Test func amountsKindsAndDatesAreReadAsMeant() {
+        #expect(JSONValue.string("60.000").number == 60_000)
+        #expect(JSONValue.string("60,000").number == 60_000)
+        #expect(JSONValue.string("35000.0").number == 35_000)
+        #expect(JSONValue.string("1,5").number == 1.5)
+        let store = store([vcb, cash])
+        let income = RecordTransaction().run(["amount": 25_000_000, "kind": "Income", "note": "Lương"], in: store)
+        #expect(income.result["ok"] != false)
+        #expect(store.transactions.first?.kind == .income)
+        let odd = RecordTransaction().run(["amount": 50_000, "kind": "transfer", "note": "Gửi xe"], in: store)
+        #expect(odd.result["ok"] == false)
+        let badDate = RecordTransaction().run(["amount": 50_000, "note": "Gửi xe", "date": "15/11/2026"], in: store)
+        #expect(badDate.result["ok"] == false)
+        #expect(store.transactions.count == 1)
+        // No kind, an income item named: income.
+        _ = RecordTransaction().run(["amount": 2_000_000, "category": "Lương chính", "note": "Lương tháng"], in: store)
+        #expect(store.transactions.filter { $0.kind == .income }.count == 2)
+    }
+
     // MARK: get_app_info
 
     /// Every topic answers from the app's own pages: none of the entries it quotes went missing

@@ -241,6 +241,11 @@ struct SettingsView: View {
                     .animation(Motion.gentle(.smooth(duration: 0.25)), value: dailyReminder)
                     .animation(Motion.gentle(.smooth(duration: 0.25)), value: needsPermissionHere)
                     .task { await checkNotificationPermission() }
+                    // Changed in the iPhone's Settings meanwhile: said as it is now (audit round
+                    // 4, 2026-11-16: "đang tắt" stayed after it was turned on there).
+                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                        Task { await checkNotificationPermission() }
+                    }
                     .systemAlert("Milu chưa được gửi thông báo", isPresented: $isAskingForNotifications) {
                         Button("Để sau", role: .cancel) {}
                         Button("Mở Cài đặt") {
@@ -311,7 +316,7 @@ struct SettingsView: View {
                         FormDivider()
                         FormNavigationRow(title: "Xem lại màn chào mừng", icon: "hugeicons-star", accessory: .none) {
                             dismiss()
-                            UserDefaults.standard.set(false, forKey: StorageKey.welcomeSeen)
+                            UserDefaults.standard.set(true, forKey: StorageKey.replayWelcome)
                         }
                         FormDivider()
                         FormDestructiveRow(title: "Đặt lại dữ liệu mẫu", question: "Đặt lại dữ liệu mẫu?",
@@ -329,7 +334,8 @@ struct SettingsView: View {
                     // Asked twice: it cannot be undone and there is no backup (review 2026-11-09).
                     FormGroup {
                         FormDestructiveRow(title: "Xoá toàn bộ dữ liệu", question: "Xoá toàn bộ dữ liệu?",
-                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, hạng mục, danh bạ, hạn mức và cài đặt sẽ bị xoá. Lượt AI còn lại và các bước Làm quen đã xong vẫn được giữ. Không thể hoàn tác.",
+                                           // Everything it erases named (audit round 4, 2026-11-16: the chats and the recurring ones were not).
+                                           message: "Mọi tài khoản, giao dịch, hũ, khoản vay, khoản định kỳ, hạng mục, danh bạ, hạn mức, cài đặt và lịch sử trò chuyện với Milu AI sẽ bị xoá. Lượt AI còn lại và các bước Làm quen đã xong vẫn được giữ. Không thể hoàn tác.",
                                            warns: false) {
                             // Once the first alert has gone: raised while it was closing, the
                             // second could be dropped and the tap would do nothing (review 2026-11-09).
@@ -343,7 +349,15 @@ struct SettingsView: View {
                         Button("Huỷ", role: .cancel) {}
                         Button("Xoá hết", role: .destructive) {
                             Haptics.warning()
-                            eraseAllData()
+                            Task { @MainActor in
+                                // With the lock on, only its owner erases: turning the lock off
+                                // asks Face ID, and erasing everything is more (audit round 4,
+                                // 2026-11-16: anyone holding the open phone could).
+                                if appLock.isOn, AppLock.isAvailable {
+                                    guard await appLock.confirmOwner(reason: "Xoá toàn bộ dữ liệu Milu") else { return }
+                                }
+                                eraseAllData()
+                            }
                         }
                     } message: {
                         Text("Dữ liệu cũng bị xoá khỏi iCloud và các thiết bị khác dùng chung Apple ID, không thể lấy lại.")
@@ -609,7 +623,8 @@ private struct QuotaLine: View {
         }
         .accessibilityElement(children: .ignore)
         // "Thưởng, còn 15 trên 20, hết hạn Thứ Năm 15:20": no slash read aloud.
-        .accessibilityLabel([title, "còn \(left) trên \(of)", when].compactMap { $0 }.joined(separator: ", "))
+        // The day as words, not "23/11" read as a fraction (audit round 4, 2026-11-16).
+        .accessibilityLabel(SpokenText.of([title, "còn \(left) trên \(of)", when].compactMap { $0 }.joined(separator: ", ")))
     }
 
     private var name: some View {

@@ -30,6 +30,8 @@ struct MiluApp: App {
     @State private var appLock = AppLock.shared
     @State private var lockCurtain = LockCurtain()
     @AppStorage(StorageKey.welcomeSeen) private var welcomeSeen = false
+    /// Cài đặt › Nhà phát triển › "Xem lại màn chào mừng": this iPhone only (`StorageKey.replayWelcome`).
+    @AppStorage(StorageKey.replayWelcome) private var replayWelcome = false
     /// Tổng quan's Than is loaded: the first page waits for it, so it opens with Than there.
     @State private var heroReady = false
     /// The splash still over the first page; it fades off once the page is drawn under it.
@@ -107,14 +109,14 @@ struct MiluApp: App {
         }
         // The welcome again, launched with `-showWelcome` (Xcode, devicectl): in Release too, to
         // see it on the phone, where Cài đặt's "Xem lại màn chào mừng" is Debug only. No one but
-        // a developer's tools passes launch arguments.
-        if ProcessInfo.processInfo.arguments.contains("-showWelcome") {
-            UserDefaults.standard.set(false, forKey: StorageKey.welcomeSeen)
-        }
-        _launchCover = State(initialValue: !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen))
-        _showsWelcome = State(initialValue: !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen))
+        // a developer's tools passes launch arguments. This launch only: `welcomeSeen` cleared
+        // went to every device on the Apple ID through iCloud (audit round 4, 2026-11-16).
+        let welcomes = ProcessInfo.processInfo.arguments.contains("-showWelcome")
+            || !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen)
+        _launchCover = State(initialValue: welcomes)
+        _showsWelcome = State(initialValue: welcomes)
         // The welcome's Than, loaded while iOS's launch picture shows.
-        if !UserDefaults.standard.bool(forKey: StorageKey.welcomeSeen) { WelcomeThan.preload() }
+        if welcomes { WelcomeThan.preload() }
         #if DEBUG
         // Recurring rules overdue, on an archived account, coming soon (`RecurringDemo`).
         if ProcessInfo.processInfo.arguments.contains("-demoRecurring") { store.seedRecurringDemo() }
@@ -230,6 +232,11 @@ struct MiluApp: App {
                 // The mark changed while the app runs: cleared by "Xem lại màn chào mừng" (Cài
                 // đặt, Debug), or set by iCloud on a reinstall (`CloudSettings`), when the welcome
                 // gives way to the splash and Tổng quan, as at a launch.
+                .onChange(of: replayWelcome) { _, replay in
+                    guard replay else { return }
+                    replayWelcome = false
+                    showsWelcome = true
+                }
                 .onChange(of: welcomeSeen) { _, seen in
                     if !seen {
                         showsWelcome = true

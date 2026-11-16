@@ -113,7 +113,7 @@ struct AssistantView: View {
         } message: {
             Text(cannotDelete.flatMap { store.readOnlyReason($0) } ?? "Giao dịch này không xoá được nữa.")
         }
-        .systemAlert("Không dùng được micro", isPresented: Binding(
+        .systemAlert(dictation.failure == .stopped ? "Milu ngừng nghe" : "Không dùng được micro", isPresented: Binding(
             get: { dictation.failure != nil },
             set: { if !$0 { dictation.failure = nil } }
         )) {
@@ -122,6 +122,13 @@ struct AssistantView: View {
             Text(dictationMessage)
         }
         .onAppear { dictation.prepare() }
+        // Listening ended by itself: what was heard goes after what was typed, as ■ puts it.
+        .onChange(of: dictation.heardWhenStopped) {
+            guard let heard = dictation.takeHeardWhenStopped() else { return }
+            draft = [draft.trimmingCharacters(in: .whitespacesAndNewlines), heard]
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+        }
         .onDisappear {
             dictation.stop()
             // Closed while Milu answers: the answer stops, said in the chat, its lượt given back
@@ -330,6 +337,7 @@ struct AssistantView: View {
         case .denied: "Hãy cho phép Milu dùng micro và nhận dạng giọng nói trong Cài đặt."
         case .unavailable: "Nhận dạng giọng nói tiếng Việt hiện chưa sẵn sàng trên thiết bị này."
         case .audio, nil: "Không mở được micro. Bạn thử lại sau nhé."
+        case .stopped: "Milu ngừng nghe giữa chừng (mất mạng hoặc có cuộc gọi). Những gì đã nghe được đã ở trong ô nhập."
         }
     }
 

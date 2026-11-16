@@ -32,6 +32,10 @@ struct BudgetEditorSheet: View {
     @State private var input: String
     @State private var error: String?
     @State private var isConfirmingRemove = false
+    /// The amount as it opened: another is unsaved input, which ✕ asks about and a swipe down
+    /// keeps (`SheetScaffold.hasChanges`; audit round 4, 2026-11-16).
+    @State private var openedInput: String?
+    private var hasChanges: Bool { openedInput.map { $0 != input } ?? false }
 
     init(amount: Binding<Double>, title: String? = nil, caption: String? = nil, note: String? = nil,
          presets: [AmountPreset] = [], removeWarning: String = "", onRemove: (() -> Void)? = nil,
@@ -55,7 +59,7 @@ struct BudgetEditorSheet: View {
     private var isValid: Bool { value.isFinite && value <= BudgetRules.cap }
 
     var body: some View {
-        SheetScaffold(title: title, canConfirm: isValid, validate: validate, onConfirm: save) {
+        SheetScaffold(title: title, canConfirm: isValid, validate: validate, onConfirm: save, hasChanges: hasChanges) {
             VStack(spacing: Spacing.xs) {
                 Text(caption)
                     .textRole(.caption)
@@ -121,6 +125,7 @@ struct BudgetEditorSheet: View {
         }
         // Large like every form sheet: the keyboard opens at once and the chips need room.
         .miluSheetStyle()
+        .task { if openedInput == nil { openedInput = input } }
     }
 
     /// An emptied field on a limit already set is "Bỏ hạn mức": asked here, before ✓ counts as a

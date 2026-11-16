@@ -13,7 +13,7 @@ struct LegalDocument {
 
     static let privacy = LegalDocument(
         title: "Chính sách quyền riêng tư",
-        updated: "15/11/2026",
+        updated: "16/11/2026",
         entries: [
             ReadingEntry("Tóm tắt",
                          "Số liệu bạn ghi trong Milu được lưu trên iPhone này và trong iCloud của chính bạn. Chỉ khi bạn hỏi Milu AI hoặc nói bằng giọng, phần dữ liệu cần thiết mới được gửi tới máy chủ riêng của Milu, xử lý xong là bỏ, không lưu lại.",
@@ -51,7 +51,7 @@ struct LegalDocument {
 
     static let terms = LegalDocument(
         title: "Điều khoản sử dụng",
-        updated: "15/11/2026",
+        updated: "16/11/2026",
         entries: [
             ReadingEntry("Đồng ý điều khoản",
                          "Khi dùng Milu, bạn đồng ý với các điều khoản dưới đây. Nếu không đồng ý, bạn có thể ngừng dùng và xoá app bất cứ lúc nào."),
@@ -73,7 +73,7 @@ struct LegalDocument {
             ReadingEntry("Milu Pro",
                          "Milu Pro là gói đăng ký theo tháng hoặc theo năm, mua qua App Store. Giá và quyền lợi của từng gói hiện trên màn Milu Pro trước khi bạn mua; việc thanh toán do App Store xử lý theo điều khoản của Apple và được trừ vào Apple ID khi bạn xác nhận mua.",
                          "Gói tự gia hạn khi hết kỳ, trừ khi bạn huỷ ít nhất 24 giờ trước khi kỳ hiện tại kết thúc. Bạn quản lý hoặc huỷ gói bất cứ lúc nào trong Cài đặt › Apple ID › Đăng ký; huỷ thì vẫn dùng Milu Pro tới hết kỳ đã trả.",
-                         "Khi Milu Pro hết hạn, dữ liệu của bạn vẫn giữ nguyên; chỉ các quyền lợi của Pro (thêm lượt Milu AI, khoá bằng \(AppLock.biometryName)) ngừng lại."),
+                         "Khi Milu Pro hết hạn, dữ liệu của bạn vẫn giữ nguyên; thêm lượt Milu AI ngừng lại. Khoá bằng \(AppLock.biometryName) đang bật vẫn giữ cho tới khi bạn tắt; tắt rồi thì cần Pro để bật lại."),
             ReadingEntry("Sở hữu trí tuệ",
                          "Tên, giao diện, hình ảnh và mã nguồn của Milu thuộc về nhà phát triển Milu. Bạn được dùng app cho mục đích cá nhân, không được sao chép, bán lại hay dịch ngược app.",
                          "Một số thành phần (biểu tượng, phông chữ, hình emoji) thuộc bên thứ ba và dùng theo giấy phép riêng, liệt kê ở Giấy phép mã nguồn mở."),

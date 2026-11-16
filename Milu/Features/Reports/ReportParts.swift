@@ -43,7 +43,8 @@ struct ReportPeriodBar: View {
                     .contentShape(Rectangle().inset(by: -Spacing.m))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Chọn \(period.unit.title.lowercased()), \(period.title)")
+                // A week's days as words, not "27/10" read as a fraction (audit round 4, 2026-11-16).
+                .accessibilityLabel(SpokenText.of("Chọn \(period.unit.title.lowercased()), \(period.title)"))
                 Spacer(minLength: Spacing.s)
                 step(1, icon: "hugeicons-arrow-right-01", label: "\(period.unit.title) sau")
                     .disabled(period.isCurrent())
@@ -132,6 +133,7 @@ struct WeekPickerSheet: View {
                         .tint(Palette.primary)
                     // Which week the day stands for.
                     Text("Tuần \(picked.title)")
+                        .accessibilityLabel(SpokenText.of("Tuần \(picked.title)"))
                         .textRole(.caption)
                         .foregroundStyle(Palette.secondaryLabel)
                         .monospacedDigit()
@@ -215,6 +217,8 @@ struct ReportSection<Content: View>: View {
             }
             if let footer {
                 FormFooter(message: footer)
+                    // Money said as words (audit round 4, 2026-11-16: "đ" was a letter).
+                    .accessibilityLabel(SpokenText.of(footer))
             }
         }
     }

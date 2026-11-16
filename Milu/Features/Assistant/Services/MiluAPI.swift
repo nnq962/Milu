@@ -89,12 +89,17 @@ nonisolated struct MiluAPI: Sendable {
 
     // MARK: Speech
 
+    /// RFC 3986's unreserved characters, the only ones left as they are in a header.
+    private static let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+
     /// The words in a recording (M4A), favouring `names` (accounts, banks, wallets).
     func transcribe(_ audio: Data, names: [String], timeout: TimeInterval) async throws -> String {
         struct Answer: Decodable { var text: String }
         var request = request("v1/transcribe", timeout: timeout)
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
-        let hotwords = names.compactMap { $0.addingPercentEncoding(withAllowedCharacters: .alphanumerics) }
+        // ASCII only, the rest percent-encoded as UTF-8: `.alphanumerics` let "ề" and "ặ" through
+        // raw, which a header may not carry (audit round 4, 2026-11-16).
+        let hotwords = names.compactMap { $0.addingPercentEncoding(withAllowedCharacters: Self.unreserved) }
         request.setValue(hotwords.joined(separator: "/"), forHTTPHeaderField: "X-Hotwords")
         request.httpBody = audio
         let data = try await send(request)
@@ -200,15 +205,22 @@ nonisolated enum JSONValue: Codable, Hashable, Sendable, ExpressibleByStringLite
         }
     }
 
-    /// A number, or a string holding one ("60.000", "60000").
+    /// A number, or a string holding one ("60.000", "60,000", "60000", "35000.0", "1,5"). Dots or
+    /// commas are thousands only in groups of three; otherwise a decimal point (audit round 4,
+    /// 2026-11-16: "35000.0" read as 350.000đ).
     var number: Double? {
         switch self {
         case .number(let value): value
         case .string(let value):
-            Double(value.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: "")
-                .trimmingCharacters(in: .whitespaces))
+            Self.number(in: value.trimmingCharacters(in: .whitespaces))
         default: nil
         }
+    }
+
+    static func number(in text: String) -> Double? {
+        if text.wholeMatch(of: /\d{1,3}(\.\d{3})+/) != nil { return Double(text.replacingOccurrences(of: ".", with: "")) }
+        if text.wholeMatch(of: /\d{1,3}(,\d{3})+/) != nil { return Double(text.replacingOccurrences(of: ",", with: "")) }
+        return Double(text.replacingOccurrences(of: ",", with: "."))
     }
 
     /// Strings, from an array or one string alone.

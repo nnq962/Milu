@@ -340,8 +340,15 @@ struct RecordTransaction: AssistantTool {
         guard amount <= MiluAmountField.maxAmount else {
             return .failure("Số tiền quá lớn, tối đa \(MiluAmountField.maxAmount.vnd). Hỏi lại người dùng, chưa ghi gì")
         }
-        let kind = TransactionKind(rawValue: arguments["kind"]?.string ?? "") ?? .expense
         let note = String((arguments["note"]?.string ?? "").prefix(200))
+        // A kind that is not one, or a date that cannot be read, is asked again, never guessed:
+        // "Income" went down as a spending, and "15/11/2026" as today (audit round 4, 2026-11-16).
+        guard let kind = Self.kind(arguments["kind"]?.string, category: arguments["category"]?.string, in: store) else {
+            return .failure("Không rõ là khoản chi hay thu (kind phải là expense hoặc income). Chưa ghi gì")
+        }
+        if let text = arguments["date"]?.string, !text.isEmpty, ToolDates.day(text) == nil {
+            return .failure("Ngày \"\(text)\" không đọc được, cần YYYY-MM-DD. Chưa ghi gì")
+        }
         let named = arguments["account"]?.string?.trimmingCharacters(in: .whitespaces) ?? ""
         let account: Account
         if named.isEmpty {
@@ -382,6 +389,21 @@ struct RecordTransaction: AssistantTool {
     }
 
     /// The category the note's words point to, as the offline assistant reads them.
+    /// The kind given ("expense", "income", or in Vietnamese); none given, the kind of the category
+    /// named (an income item or group means income), else spending; nil for one that is not a kind.
+    static func kind(_ text: String?, category: String?, in store: FinanceStore) -> TransactionKind? {
+        guard let key = text?.searchKey.trimmingCharacters(in: .whitespaces), !key.isEmpty else {
+            let isIncome = ToolNames.category(category, kind: .income, in: store) != nil
+                && ToolNames.category(category, kind: .expense, in: store) == nil
+            return isIncome ? .income : .expense
+        }
+        switch key {
+        case "expense", "spending", "chi", "chi tieu", "khoan chi": return .expense
+        case "income", "thu", "thu nhap", "khoan thu": return .income
+        default: return nil
+        }
+    }
+
     /// An item a new transaction can be filed under, as the add form allows: never a group (audit
     /// round 4, 2026-11-16: "ăn trưa 60k" went on the group "Ăn uống", and its form then would not
     /// save until an item was picked). The item named; else one the note names ("ăn trưa"); else

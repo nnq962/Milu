@@ -2,6 +2,27 @@ import Foundation
 import Testing
 @testable import Milu
 
+/// What VoiceOver says for text the rows show (audit round 4, 2026-11-16).
+@MainActor
+struct SpokenTextTests {
+    /// The app's days and months as words; a user's "1/2", "50/50" or "24/7" as typed.
+    @Test func onlyTheAppsDatesBecomeWords() {
+        #expect(SpokenText.days("Hôm nay, 06/11") == "Hôm nay, 6 tháng 11")
+        #expect(SpokenText.days("27/10 – 02/11") == "27 tháng 10 – 2 tháng 11")
+        #expect(SpokenText.days("06/11/2025") == "6 tháng 11, 2025")
+        #expect(SpokenText.days("Tháng 10/2025") == "Tháng 10 năm 2025")
+        #expect(SpokenText.days("Trả 1/2 tiền nhà") == "Trả 1/2 tiền nhà")
+        #expect(SpokenText.days("Quỹ 50/50") == "Quỹ 50/50")
+        #expect(SpokenText.days("Gym 24/7") == "Gym 24/7")
+    }
+
+    /// A half rounds up, as people round (12,5% is 13%, not 12%).
+    @Test func halfPercentsRoundUp() {
+        #expect(0.125.percentText == "13%")
+        #expect(0.175.percentText == "18%")
+    }
+}
+
 /// How money is written: in full ("1.250.000đ"), short where room is tight ("1,3tr"), and as it is
 /// typed into an amount field.
 struct FormattingTests {
