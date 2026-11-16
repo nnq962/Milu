@@ -267,7 +267,7 @@ struct GetUpcoming: AssistantTool {
     ]
 
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
-        let days = min(max(Int(arguments["days"]?.number ?? 14), 1), 90)
+        let days = ToolArgs.int(arguments["days"], default: 14, in: 1...90)
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let horizon = calendar.date(byAdding: .day, value: days, to: today) ?? today
@@ -366,7 +366,7 @@ struct GetMonthlyTrend: AssistantTool {
     ]
 
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
-        let count = min(max(Int(arguments["months"]?.number ?? 6), 2), 24)
+        let count = ToolArgs.int(arguments["months"], default: 6, in: 2...24)
         // Months before the first transaction are left out: their nothing is no month of spending.
         let first = store.transactions.map(\.date).min().map { DateInterval.month(of: $0).start }
         let points = store.netWorthHistory(months: count).filter { point in first.map { point.month >= $0 } ?? true }
@@ -494,7 +494,7 @@ struct ListTransfers: AssistantTool {
             }
         }
         entries.sort { $0.date > $1.date }
-        let limit = min(max(Int(arguments["limit"]?.number ?? 10), 1), 20)
+        let limit = ToolArgs.int(arguments["limit"], default: 10, in: 1...20)
         return ToolOutput(result: [
             "count": .number(Double(entries.count)),
             "betweenAccounts": ToolMoney.value(moved),

@@ -30,7 +30,7 @@ struct ContentView: View {
         // The add form is the sheet up: the reminder is answered already (audit round 2,
         // 2026-11-15: waited on, a second, empty form came up once it closed). The loan form is
         // not: it is waited on, as any other sheet.
-        if adding == .transaction {
+        if adding == .transaction || Reminders.shared.router.openAddForms > 0 {
             Reminders.shared.router.pending = nil
             return
         }

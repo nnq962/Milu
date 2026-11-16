@@ -242,7 +242,10 @@ struct OverviewView: View {
 
     private var notificationButton: some View {
         Button {
-            information = Information(title: "Thông báo", message: "Bạn chưa có thông báo mới. Nhắc hạn thanh toán sẽ xuất hiện ở đây khi tính năng được bổ sung.")
+            // What Milu sends and where to set it; no "coming later": the reminders exist (audit
+            // round 3, 2026-11-16: it said they did not, and App Review turns placeholders down).
+            information = Information(title: "Thông báo",
+                                      message: "Milu nhắc bạn qua thông báo của iPhone: nhắc ghi chi tiêu mỗi ngày, khoản định kỳ tới hạn và cảnh báo hạn mức. Bật, tắt hay đổi giờ trong Cài đặt → Thông báo.")
         } label: {
             BarSymbol("bell")
         }

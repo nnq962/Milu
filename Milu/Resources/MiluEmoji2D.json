@@ -61,7 +61,7 @@
         },
         {
           "name": "milu-emoji-1f9fe",
-          "title": "Hóa đơn",
+          "title": "Hoá đơn",
           "keywords": "biên lai, chi phí, thanh toán"
         },
         {
@@ -121,7 +121,7 @@
         },
         {
           "name": "milu-emoji-1f512",
-          "title": "Ổ khóa",
+          "title": "Ổ khoá",
           "keywords": "quỹ dự phòng, an toàn, bảo mật"
         },
         {
@@ -533,7 +533,7 @@
         },
         {
           "name": "milu-emoji-1f686",
-          "title": "Tàu hỏa",
+          "title": "Tàu hoả",
           "keywords": "vé tàu, đường sắt, về quê"
         },
         {
@@ -1006,12 +1006,12 @@
         },
         {
           "name": "milu-emoji-1f5dd",
-          "title": "Chìa khóa cổ",
+          "title": "Chìa khoá cổ",
           "keywords": "mua nhà, thuê nhà, bàn giao"
         },
         {
           "name": "milu-emoji-1f511",
-          "title": "Chìa khóa",
+          "title": "Chìa khoá",
           "keywords": "tiền thuê, gửi cọc, nhà mới"
         },
         {
@@ -1058,7 +1058,7 @@
     },
     {
       "id": "suc-khoe",
-      "title": "Sức khỏe",
+      "title": "Sức khoẻ",
       "icons": [
         {
           "name": "milu-emoji-1f3e5",

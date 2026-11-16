@@ -43,6 +43,24 @@ struct ReportTransactionList: View {
     }
 }
 
+extension EnvironmentValues {
+    /// Opens a report row's sheet from its page, outside the list: on the list, editing its only
+    /// transaction out of it (another item, another month) took the list away, and its sheet with
+    /// it (audit round 3, 2026-11-16).
+    @Entry var openReportActivity: ((AccountDetailView.Activity) -> Void)? = nil
+}
+
+/// A report page's open row and its sheet (`openReportActivity`).
+struct ReportActivitySheet: ViewModifier {
+    @State private var opened: AccountDetailView.Activity?
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.openReportActivity) { opened = $0 }
+            .sheet(item: $opened) { ActivityEditor(item: $0) }
+    }
+}
+
 /// Every transaction of the list, in one card.
 private struct AllReportTransactionsView: View {
     let title: String
@@ -63,6 +81,8 @@ private struct AllReportTransactionsView: View {
         .foregroundStyle(Palette.label)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        // Its own sheets: the page under it, pushed over, is not the one on screen.
+        .environment(\.openReportActivity, nil)
     }
 }
 
@@ -72,6 +92,7 @@ private struct TransactionRows: View {
     var isLazy = false
 
     @Environment(FinanceStore.self) private var store
+    @Environment(\.openReportActivity) private var openFromPage
     @State private var opened: AccountDetailView.Activity?
 
     var body: some View {
@@ -87,7 +108,10 @@ private struct TransactionRows: View {
 
     private var rows: some View {
         ForEach(Array(transactions.enumerated()), id: \.element.id) { index, transaction in
-            Button { opened = activity(for: transaction) } label: {
+            Button {
+                let item = activity(for: transaction)
+                if let openFromPage { openFromPage(item) } else { opened = item }
+            } label: {
                 TransactionListRow(transaction: transaction, detail: .day)
             }
             .buttonStyle(.row)

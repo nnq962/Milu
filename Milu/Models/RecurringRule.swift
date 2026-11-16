@@ -53,6 +53,26 @@ struct RecurringRule: Identifiable, Hashable {
 
     private static let home = TimeZone(identifier: "Asia/Ho_Chi_Minh") ?? .current
 
+    /// "15/12" for a rule's day, the day the rule counts, in any time zone (audit round 3,
+    /// 2026-11-16: abroad, the iPhone's calendar named the day before).
+    static func shortDay(_ day: Date, now: Date = .now) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: day)
+        let text = String(format: "%02d/%02d", parts.day ?? 0, parts.month ?? 0)
+        return parts.year == calendar.component(.year, from: now) ? text : "\(text)/\(parts.year ?? 0)"
+    }
+
+    /// Whole days from today to a rule's day, both as the rule counts them: 0 today.
+    static func daysFromToday(_ day: Date, now: Date = .now) -> Int {
+        calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: day)).day ?? 0
+    }
+
+    /// A rule's day at `hour` on the iPhone's clock: the same date wherever the iPhone is.
+    static func localDate(of day: Date, hour: Int) -> Date? {
+        var parts = calendar.dateComponents([.year, .month, .day], from: day)
+        parts.hour = hour
+        return Calendar.current.date(from: parts)
+    }
+
     /// The `n`th day it falls due (0 is `startDate`'s), nil past `endDate`. Counted from the start
     /// each time, so the 31st falls on the 30th in a short month and is back on the 31st after.
     func occurrence(_ n: Int, calendar: Calendar = Self.calendar) -> Date? {

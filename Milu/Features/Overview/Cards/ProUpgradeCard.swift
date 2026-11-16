@@ -30,7 +30,9 @@ struct ProUpgradeCard: View {
                         Text("Dùng Milu trọn vẹn")
                             .textRole(.title)
                             .foregroundStyle(Palette.label)
-                        Text("Không lo hết lượt AI.")
+                        // What Pro gives, not "never run out": it has a weekly allowance too
+                        // (audit round 3, 2026-11-16).
+                        Text("\(AIQuota.weeklyPro) lượt AI mỗi tuần.")
                             .textRole(.caption)
                             .foregroundStyle(Palette.secondaryLabel)
                             .fixedSize(horizontal: false, vertical: true)
@@ -56,7 +58,7 @@ struct ProUpgradeCard: View {
         .buttonStyle(.card)
         .accessibilityElement(children: .ignore)
         // The heading above already says "Milu Pro"; Voice Control answers to the button's words.
-        .accessibilityLabel("Dùng Milu trọn vẹn, không lo hết lượt AI")
+        .accessibilityLabel("Dùng Milu trọn vẹn, \(AIQuota.weeklyPro) lượt AI mỗi tuần")
         .accessibilityInputLabels(["Xem các gói", "Milu Pro"])
         .accessibilityAddTraits(.isButton)
         .accessibilityHint("Xem các gói Milu Pro")

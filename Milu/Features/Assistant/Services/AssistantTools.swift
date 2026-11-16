@@ -165,7 +165,7 @@ struct ListTransactions: AssistantTool {
         // account (audit 2026-11-15: a 20tr advance marked "Không tính" came first).
         if largest { items = items.filter(store.isReportable) }
         items.sort(by: largest ? { $0.amount > $1.amount } : { $0.date > $1.date })
-        let limit = min(max(Int(arguments["limit"]?.number ?? 10), 1), 20)
+        let limit = ToolArgs.int(arguments["limit"], default: 10, in: 1...20)
         return ToolOutput(result: [
             "count": .number(Double(items.count)),
             "transactions": .array(items.prefix(limit).map { ToolTransactions.describe($0, in: store) }),
@@ -410,6 +410,15 @@ enum ToolDates {
         let calendar = Calendar.current
         let time = calendar.dateComponents([.hour, .minute], from: .now)
         return calendar.date(bySettingHour: time.hour ?? 12, minute: time.minute ?? 0, second: 0, of: day) ?? day
+    }
+}
+
+enum ToolArgs {
+    /// A whole number the model gave, kept within `range`; `fallback` when it gave none or no
+    /// number. `Int()` of a huge one (1e20) or of NaN stopped the app (audit round 3, 2026-11-16).
+    static func int(_ value: JSONValue?, default fallback: Int, in range: ClosedRange<Int>) -> Int {
+        guard let number = value?.number, number.isFinite else { return fallback }
+        return Int(min(max(number.rounded(), Double(range.lowerBound)), Double(range.upperBound)))
     }
 }
 

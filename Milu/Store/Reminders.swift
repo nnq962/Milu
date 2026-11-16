@@ -88,7 +88,9 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
         // latest ones, the daily reminder among them (audit round 2, 2026-11-15).
         for occurrence in occurrences.prefix(RecurringReminderPlan.most) {
             guard !Task.isCancelled else { return }
-            guard let date = calendar.date(bySettingHour: RecurringReminderPlan.hour, minute: 0, second: 0, of: occurrence.day),
+            // At 08:00 of the rule's date on the iPhone's clock: abroad, the day came a day early
+            // (audit round 3, 2026-11-16).
+            guard let date = RecurringRule.localDate(of: occurrence.day, hour: RecurringReminderPlan.hour),
                   date > now else { continue }
             let rule = occurrence.rule
             let name = titles[rule.id] ?? "Khoản định kỳ"
@@ -154,6 +156,8 @@ final class NotificationRouter {
     enum Action: String { case addTransaction }
     static let actionKey = "action"
     var pending: Action?
+    /// New-transaction forms on screen, from anywhere (Làm quen, "Mua ngay", the +).
+    var openAddForms = 0
 }
 
 /// When the reminder comes: at `minutes` after midnight on each of the next days, today too if

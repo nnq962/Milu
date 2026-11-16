@@ -38,6 +38,9 @@ struct LoanEditorView: View {
     /// the loan already said.
     @State private var repaid: Double
 
+    /// "Còn lại" as the form opened, to tell whether the user changed it.
+    private let openedOutstandingText: String
+
     init(loan: Loan?) {
         original = loan
         _direction = State(initialValue: loan?.direction ?? .lent)
@@ -47,8 +50,9 @@ struct LoanEditorView: View {
         _accountID = State(initialValue: loan?.accountID)
         _date = State(initialValue: loan?.date ?? .now)
         // Only a loan from before the app shows what is left; empty means nothing repaid.
-        _outstandingText = State(initialValue: loan.flatMap { $0.outstanding < $0.principal
-            ? String(Int($0.outstanding)).groupedVNDInput : nil } ?? "")
+        let left = loan.flatMap { $0.outstanding < $0.principal ? String(Int($0.outstanding)).groupedVNDInput : nil } ?? ""
+        _outstandingText = State(initialValue: left)
+        openedOutstandingText = left
         _rateText = State(initialValue: loan.map { $0.monthlyInterestRate > 0 ? Self.percent($0.monthlyInterestRate) : "" } ?? "")
         _hasDueDate = State(initialValue: loan?.dueDate != nil)
         _dueDate = State(initialValue: loan?.dueDate ?? Calendar.current.date(byAdding: .month, value: 1, to: .now) ?? .now)
@@ -328,6 +332,12 @@ struct LoanEditorView: View {
         loan.direction = direction
         loan.principal = principal
         loan.outstanding = outstanding
+        // What it owed when entered stays, unless "Còn lại" or the principal changed: worked out
+        // again from the figure shown on opening, a repayment synced in meanwhile was undone
+        // (audit round 3, 2026-11-16). Nil: the store works it out from what was typed.
+        let unchanged = original?.isExisting == true && isExisting && outstandingText == openedOutstandingText
+            && original?.principal == principal
+        loan.openingOutstanding = unchanged ? original?.openingOutstanding : nil
         loan.isExisting = isExisting
         loan.accountID = isExisting ? nil : chosenAccount
         loan.date = date

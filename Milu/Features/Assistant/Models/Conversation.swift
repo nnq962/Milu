@@ -92,7 +92,10 @@ final class AssistantChats {
     private static func closingUnanswered(_ chat: Conversation) -> Conversation {
         guard chat.messages.last?.role == .user else { return chat }
         var chat = chat
-        chat.messages.append(ChatMessage(role: .notice, text: "Milu chưa kịp trả lời câu này"))
+        // Dated at the question, so the chat keeps its place in Lịch sử (audit round 3,
+        // 2026-11-16: dated at the launch, an old chat jumped to the top under "Hôm nay").
+        chat.messages.append(ChatMessage(role: .notice, text: "Milu chưa kịp trả lời câu này",
+                                         date: chat.messages.last?.date ?? chat.startedAt))
         return chat
     }
 
@@ -211,7 +214,7 @@ final class AssistantChats {
         if let unlockObserver { NotificationCenter.default.removeObserver(unlockObserver) }
         unlockObserver = nil
         let here = Set(conversations.map(\.id))
-        conversations = saved.filter { !here.contains($0.id) } + conversations
+        conversations = saved.filter { !here.contains($0.id) }.map(Self.closingUnanswered) + conversations
     }
 
     /// For "Xoá toàn bộ dữ liệu".

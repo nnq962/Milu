@@ -394,6 +394,10 @@ struct AddTransactionView: View {
         .animation(Motion.gentle(.smooth(duration: 0.3)), value: leftover >= 1)
         .animation(Motion.gentle(.smooth(duration: 0.3)), value: budgetNotice == nil)
         .onAppear(perform: fillDefaults)
+        // A new one on screen answers "Nhắc ghi chi tiêu", wherever it was opened from
+        // (`ContentView.openFromReminder`).
+        .onAppear { if !isEditing { Reminders.shared.router.openAddForms += 1 } }
+        .onDisappear { if !isEditing { Reminders.shared.router.openAddForms -= 1 } }
         .task { if opened == nil { opened = draft } }
     }
 

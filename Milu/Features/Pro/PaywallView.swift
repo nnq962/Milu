@@ -190,7 +190,10 @@ struct PaywallView: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel([option.title, price, perMonth.map { "khoảng \($0)" }, saving].compactMap { $0 }.joined(separator: ", "))
+        // Money said as words, "/tháng" as "mỗi tháng" (audit round 3, 2026-11-16: "đ" was a
+        // letter and "/" a slash, on the screen where the user decides to pay).
+        .accessibilityLabel(Self.spoken([option.title, price, perMonth.map { "khoảng \($0)" }, saving]
+            .compactMap { $0 }.joined(separator: ", ")))
         .accessibilityAddTraits(selected ? .isSelected : [])
         .animation(Motion.gentle(.easeOut(duration: 0.15)), value: selected)
     }
@@ -205,11 +208,18 @@ struct PaywallView: View {
                 ProgressView().tint(Palette.onAccent)
             } else if let price {
                 Text("Đăng ký · \(price)/\(plan == .yearly ? "năm" : "tháng")")
+                    .accessibilityLabel(Self.spoken("Đăng ký, \(price) mỗi \(plan == .yearly ? "năm" : "tháng")"))
             } else {
                 Text("Chưa tải được gói")
             }
         }
         .disabled(!ready)
+    }
+
+    /// "399.000 đồng mỗi năm" for "399.000đ/năm".
+    static func spoken(_ text: String) -> String {
+        SpokenText.money(text.replacingOccurrences(of: "/tháng", with: " mỗi tháng")
+            .replacingOccurrences(of: "/năm", with: " mỗi năm"))
     }
 
     private func buy() async {

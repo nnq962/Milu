@@ -91,6 +91,8 @@ struct RecurringEditorSheet: View {
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    /// The rule's own sheet under this form, when opened from it: closed with it on deleting.
+    @Environment(\.recordSheetDismiss) private var recordSheetDismiss
 
     @State private var kind: TransactionKind
     @State private var amountText: String
@@ -306,7 +308,7 @@ struct RecurringEditorSheet: View {
                 FormGroup(footer: "Các giao dịch đã ghi vẫn giữ nguyên.") {
                     FormDestructiveRow(title: "Xoá khoản định kỳ", question: "Xoá khoản định kỳ này?",
                                        message: "Milu sẽ không nhắc hay ghi nữa. Các giao dịch đã ghi vẫn giữ nguyên.") {
-                        dismiss()
+                        (recordSheetDismiss ?? dismiss)()
                         AfterDismiss.run { store.delete(original) }
                     }
                 }

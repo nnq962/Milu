@@ -68,7 +68,9 @@ struct WelcomeView: View {
         }
         // The keyboard covers the page's lower part rather than squeezing the stage: the field
         // stays where it is, above it (iPhone 16 Pro, SE).
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        // At the accessibility sizes the words scroll, and the keyboard's room lets the name field
+        // come up above it (audit round 3, 2026-11-16: it sat under the keyboard).
+        .ignoresSafeArea(.keyboard, edges: dynamicTypeSize.isAccessibilitySize ? [] : .bottom)
         .background(Palette.background.ignoresSafeArea())
         .foregroundStyle(Palette.label)
         .simultaneousGesture(swipe)
@@ -123,7 +125,8 @@ struct WelcomeView: View {
                     .transition(.opacity)
             }
         }
-        .frame(height: 46, alignment: .top)
+        // At least as tall as Figma's: "Bỏ qua" grows with the text (audit round 3, 2026-11-16).
+        .frame(minHeight: 46, alignment: .top)
         .padding(.horizontal, Spacing.l)
     }
 
@@ -203,7 +206,9 @@ struct WelcomeView: View {
                     .id(page)
                     .transition(.opacity)
             }
-            .frame(height: 19)
+            // Its line's height, at least Figma's 19: a larger text was cut and overlapped the
+            // button (audit round 3, 2026-11-16).
+            .frame(minHeight: 19)
             .padding(.top, 14)
         }
     }
@@ -235,8 +240,10 @@ struct WelcomeView: View {
         }
         .textRole(.caption)
         .foregroundStyle(Palette.tertiaryLabel)
-        .lineLimit(1)
+        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
         .minimumScaleFactor(0.8)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Where the user is: the page in view a longer dash.

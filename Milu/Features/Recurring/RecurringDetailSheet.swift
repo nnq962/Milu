@@ -28,7 +28,9 @@ struct RecurringDetailSheet: View {
             }
         }
         .miluSheetStyle()
-        .sheet(item: $editing) { RecurringEditorSheet(target: $0) }
+        // Deleting from the form closes this sheet with it, not after: it showed an empty page
+        // as it went (audit round 3, 2026-11-16).
+        .sheet(item: $editing) { RecurringEditorSheet(target: $0).environment(\.recordSheetDismiss, dismiss) }
         // Deleted from its form: this sheet goes too.
         .onChange(of: store.recurringRule(id: ruleID) == nil) { _, gone in if gone { dismiss() } }
     }

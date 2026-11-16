@@ -161,7 +161,7 @@ struct GetAppInfo: AssistantTool {
             return [
                 "lockNow": .string(lockNow),
                 "lock": .string("""
-                    Khoá bằng \(facts.biometry) là tính năng Milu Pro: Milu mở sau khi \(facts.biometry), Touch ID \
+                    Khoá bằng \(facts.biometry) là tính năng Milu Pro: Milu mở sau khi \(facts.biometry) \
                     hoặc mật mã iPhone xác nhận, mỗi lần mở app và khi quay lại sau thời gian chọn ở "Khoá lại" \
                     (ngay lập tức, sau 1 phút, sau 5 phút). Khi app không ở trước, nội dung được che nên màn chuyển \
                     app không lộ số dư. Bật ở Cài đặt → Bảo mật.
@@ -178,7 +178,9 @@ struct GetAppInfo: AssistantTool {
             return [
                 "tabs": [
                     "Tổng quan: số dư, tài sản ròng, thu chi trong tháng, hạn mức, lịch thu chi, báo cáo",
-                    "Tài khoản: tiền mặt, ngân hàng, ví điện tử, thẻ tín dụng, hũ tiết kiệm",
+                    // No credit card kind to pick: one is a bank account with a balance below
+                    // zero (audit round 3, 2026-11-16: Milu sent users to add a card).
+                    "Tài khoản: tiền mặt, ngân hàng, ví điện tử, hũ tiết kiệm (thẻ tín dụng thì thêm như tài khoản ngân hàng, số dư âm)",
                     "Giao dịch: các khoản thu chi và khoản vay",
                     "Nút + ở thanh dưới: thêm giao dịch (hoặc khoản vay)",
                     "✨ Hỏi Milu ở góc trên bên phải: trợ lý AI, gõ hoặc chạm micro để nói",
@@ -188,7 +190,7 @@ struct GetAppInfo: AssistantTool {
                     "Hạn mức AI, Nâng cấp Milu Pro",
                     "Quản lý tài chính: Hạn mức chi tiêu, Hạng mục, Giao dịch định kỳ, Danh bạ, Báo cáo",
                     "Sao lưu & đồng bộ: Đồng bộ iCloud",
-                    "Bảo mật: Khoá bằng Face ID (Pro)",
+                    .string("Bảo mật: Khoá bằng \(facts.biometry) (Pro)"),
                     "Giao diện: Hệ thống, Sáng, Tối",
                     "Thông báo: Nhắc ghi chi tiêu, Cảnh báo hạn mức, Nhắc khoản định kỳ",
                     "Hỗ trợ: Câu hỏi thường gặp, Góp ý và hỗ trợ",

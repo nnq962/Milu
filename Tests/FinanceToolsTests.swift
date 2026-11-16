@@ -236,6 +236,20 @@ struct FinanceToolsTests {
         #expect(items.map { $0["name"]?.string } == ["Ăn trưa", "Cà phê"])
     }
 
+    /// A number too large for an Int, or not a number, from the model: kept in range, no crash
+    /// (audit round 3, 2026-11-16: `Int(1e20)` stopped the app).
+    @Test func hugeNumbersFromTheModelAreKeptInRange() {
+        #expect(ToolArgs.int(.number(1e20), default: 10, in: 1...20) == 20)
+        #expect(ToolArgs.int(.number(-1e20), default: 10, in: 1...20) == 1)
+        #expect(ToolArgs.int(.number(.nan), default: 10, in: 1...20) == 10)
+        #expect(ToolArgs.int(nil, default: 10, in: 1...20) == 10)
+        #expect(JSONValue.number(1e20).string == "1e+20")
+        let store = makeStore(transactions: [spend(100_000, "food.lunch")])
+        let result = ListTransactions().run(["from": .string(ToolDates.text(day(-9))), "to": .string(ToolDates.text(.now)),
+                                             "limit": .number(1e20)], in: store).result
+        #expect(result["ok"] != false)
+    }
+
     /// A name meaning two accounts reads both; one meaning none is said, not taken for 0đ (audit
     /// round 2, 2026-11-15: "chi bao nhiêu bằng Vietcombank" with two of them came out 0đ).
     @Test func aNameForSeveralAccountsReadsThemAll() {

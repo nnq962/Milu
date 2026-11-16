@@ -389,6 +389,9 @@ struct ReportView: View {
                                                   amount: account.expense,
                                                   // Ink, as the categories over it (audit round 2).
                                                   tone: account.expense > 0 ? .outflow : .neutral,
+                                                  // No › on a deleted hũ's row: nothing opens.
+                                                  opensMore: store.goal(id: account.id) != nil
+                                                      || store.account(id: account.id) != nil,
                                                   isAccount: true)
                     // A hũ or an account in a sheet, as from every list (user choices 2026-11-01).
                     Group {

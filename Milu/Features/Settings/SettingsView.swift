@@ -137,7 +137,8 @@ struct SettingsView: View {
                             BudgetView()
                         } label: {
                             NavigationRowContent(title: "Hạn mức chi tiêu", icon: "hugeicons-chart-increase",
-                                               value: monthlyBudget > 0 ? monthlyBudget.vnd : "Chưa đặt")
+                                               value: monthlyBudget > 0 ? monthlyBudget.vnd : "Chưa đặt",
+                                               spokenValue: monthlyBudget > 0 ? MoneyText.spoken(monthlyBudget) : nil)
                         }
                         .buttonStyle(.row)
                         FormDivider()
@@ -576,9 +577,10 @@ private struct QuotaLine: View {
         return "\(day(date)) \(time)"
     }
 
-    /// "Thứ Hai".
+    /// "Thứ Hai 23/11": with the date, or a moment a week off read as today's (audit round 3,
+    /// 2026-11-16: a bonus earned on Monday showed "Hết hạn Thứ Hai", as if now).
     static func day(_ date: Date) -> String {
-        date.formatted(.dateTime.weekday(.wide).locale(.vietnam)).capitalized(with: .vietnam)
+        date.formatted(.dateTime.weekday(.wide).locale(.vietnam)).capitalized(with: .vietnam) + " " + date.dayMonth
     }
 
     var body: some View {

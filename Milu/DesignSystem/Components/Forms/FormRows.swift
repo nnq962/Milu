@@ -22,7 +22,8 @@ struct FormPickerRow<Value: Hashable>: View {
         // The row's name as its label, the value once as its value: the label's words already
         // held the value, so VoiceOver read it twice (review 2026-11-07).
         .accessibilityLabel(title)
-        .accessibilityValue(optionTitle(selection))
+        // "Vietcombank · 5.000.000 đồng" for same-named accounts, a day as words (audit round 3).
+        .accessibilityValue(SpokenText.of(optionTitle(selection)))
         .sensoryFeedback(.selection, trigger: selection)
         .sheet(isPresented: $isPicking) {
             ChoiceSheet(title: title, selection: $selection, options: options, optionIcon: optionIcon, optionTitle: optionTitle)

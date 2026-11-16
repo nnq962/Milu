@@ -274,10 +274,13 @@ struct AssistantView: View {
         if answerPaid { quota.refund() }
         answerPaid = false
         // Said in the chat where the answer would have been (user request 2026-11-12: the dots
-        // only went, as if nothing had been asked).
-        let index = chats.conversations.firstIndex { $0.id == answeringChatID } ?? currentIndex
+        // only went, as if nothing had been asked); nowhere when that chat was deleted meanwhile
+        // (audit round 3, 2026-11-16: it went into the open chat, which had asked nothing).
+        let index = chats.conversations.firstIndex { $0.id == answeringChatID }
         withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
-            chats.conversations[index].messages.append(ChatMessage(role: .notice, text: "Bạn đã dừng câu trả lời"))
+            if let index {
+                chats.conversations[index].messages.append(ChatMessage(role: .notice, text: "Bạn đã dừng câu trả lời"))
+            }
             isThinking = false
         }
         answeringChatID = nil
@@ -522,7 +525,12 @@ struct AssistantView: View {
         else { return }
         store.delete(snapshot)
         guard store.transaction(id: snapshot.id) == nil else {
-            cannotDelete = snapshot
+            // Once the "Xoá giao dịch?" alert has gone: raised from its own button, the second
+            // could be dropped, and the tap did nothing (audit round 3, 2026-11-16).
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                cannotDelete = snapshot
+            }
             return
         }
         chats.conversations[index].messages[row].card = .recorded(snapshot, removed: true)

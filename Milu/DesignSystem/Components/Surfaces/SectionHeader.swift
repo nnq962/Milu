@@ -21,6 +21,8 @@ struct SectionHeader<Trailing: View>: View {
         AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             heading
                 .accessibilityAddTraits(.isHeader)
+                // "Hôm nay, 28 tháng 10", not "28/10" read as a fraction (audit round 3, 2026-11-16).
+                .accessibilityLabel(SpokenText.of(title))
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
             trailing
         }

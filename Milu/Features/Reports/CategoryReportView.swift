@@ -79,6 +79,7 @@ struct CategoryReportView: View {
         .foregroundStyle(Palette.label)
         .navigationTitle(store.categoryName(groupID))
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ReportActivitySheet())
         .onChange(of: period) { _, new in onPeriodChange?(new) }
         .navigationDestination(item: $openItem) { itemID in
             ItemTransactionsView(groupID: groupID, itemID: itemID, period: period)
@@ -215,5 +216,6 @@ struct ItemTransactionsView: View {
         .foregroundStyle(Palette.label)
         .navigationTitle(store.categoryName(itemID))
         .navigationBarTitleDisplayMode(.inline)
+        .modifier(ReportActivitySheet())
     }
 }

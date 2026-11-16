@@ -160,6 +160,31 @@ struct CloudSyncTests {
         #expect(rows.first?.amount == 1_150_000)
     }
 
+    /// Two devices' deletion marks for one built-in category: every device keeps the same one, in
+    /// whatever order the rows come (audit round 3, 2026-11-16: each kept its own, deleting the
+    /// other's, and both went).
+    @Test func twoDeletionMarksKeepTheSameOneEverywhere() throws {
+        for reversed in [false, true] {
+            let container = FinanceDatabase.makeContainer(inMemory: true)
+            let context = ModelContext(container)
+            var marks: [CategoryRecord] = []
+            for offset in [0.0, 60.0] {
+                let mark = CategoryRecord(id: "food.coffee", kind: "expense", parentID: "food", name: "Cà phê",
+                                          icon: "x", isBuiltIn: true, sortOrder: 0)
+                mark.archivedAt = Category.deletedMark
+                mark.createdAt = MiluSchemaV8.epoch
+                mark.updatedAt = day.addingTimeInterval(offset)
+                marks.append(mark)
+            }
+            for mark in (reversed ? marks.reversed() : marks) { context.insert(mark) }
+            try context.save()
+            FinanceDatabase(context: context).removeDuplicates()
+            let left = try context.fetch(FetchDescriptor<CategoryRecord>()).filter { $0.id == "food.coffee" }
+            #expect(left.count == 1)
+            #expect(left.first?.updatedAt == day.addingTimeInterval(60))
+        }
+    }
+
     /// A system category (hidden from the lists) twice: still found and made one, though the
     /// snapshot never shows it (review 2026-11-13: the check read the lists, not the rows).
     @Test func aHiddenDuplicateIsStillCleared() throws {

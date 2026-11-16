@@ -25,6 +25,7 @@ struct ChoiceSheet<Value: Hashable>: View {
                                          isSelected: option == selection)
                     }
                     .buttonStyle(.row)
+                    .accessibilityLabel(SpokenText.of(optionTitle(option)))
                     .accessibilityAddTraits(option == selection ? .isSelected : [])
                     .separatorAbove(index > 0, order: index) { FormDivider(hasIcon: optionIcon != nil) }
                 }

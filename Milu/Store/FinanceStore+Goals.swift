@@ -34,11 +34,28 @@ extension FinanceStore {
         savingsGoals.filter(\.isClosed).sorted { ($0.closedAt ?? .distantPast) > ($1.closedAt ?? .distantPast) }
     }
 
-    /// "Đóng hũ" on a reopened goal that holds nothing: back to "Hũ đã hoàn thành" with the note it
-    /// ended with before (kept while it was open).
+    /// "Đóng hũ" on a reopened goal that holds nothing: back to "Hũ đã hoàn thành", the note said
+    /// again from its history as it is now, as "Mua ngay" and "Rút hết" say it. The note it ended
+    /// with before may no longer be true: its purchase or withdrawal changed or gone while it was
+    /// open (audit round 3, 2026-11-16).
     func closeEmpty(_ goalID: SavingsGoal.ID) {
         guard let goal = goal(id: goalID), !goal.isClosed, goal.saved < 1 else { return }
-        close(goalID, note: goal.closingNote.isEmpty ? "Đã hoàn thành" : goal.closingNote)
+        close(goalID, note: closingNote(for: goal))
+    }
+
+    private func closingNote(for goal: SavingsGoal) -> String {
+        let purchase = goalTransactions(goal).filter { $0.kind == .expense }.max { $0.date < $1.date }
+        let withdrawal = transfers(of: goal).filter { $0.direction == .withdrawal }.max { $0.date < $1.date }
+        let accountName = { (id: Account.ID) in self.account(id: id)?.name ?? "tài khoản" }
+        if let purchase {
+            var note = "Đã dùng: \(categoryName(purchase.categoryID))"
+            if let withdrawal, withdrawal.date >= purchase.date {
+                note += " · \(withdrawal.amount.vnd) về \(accountName(withdrawal.accountID))"
+            }
+            return note
+        }
+        if let withdrawal { return "Đã rút về \(accountName(withdrawal.accountID))" }
+        return "Đã hoàn thành"
     }
 
     /// Ends a goal: it leaves the cards and totals for "Hũ đã hoàn thành", saying how it ended.

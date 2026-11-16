@@ -45,7 +45,7 @@ struct UpcomingRecurringCard: View {
 
     private func row(_ occurrence: RecurringOccurrence, isWaiting: Bool) -> some View {
         let rule = occurrence.rule
-        let days = occurrence.day.daysFromToday
+        let days = RecurringRule.daysFromToday(occurrence.day)
         return HStack(spacing: RowMetrics.gap) {
             leaf(occurrence.day)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
@@ -77,15 +77,15 @@ struct UpcomingRecurringCard: View {
 
     /// "Tới hạn hôm nay", "4 lần chờ ghi · từ 12/08", "Cần chọn tài khoản · 4 lần", "Còn 3 ngày · Tự ghi".
     private func when(_ occurrence: RecurringOccurrence, isWaiting: Bool) -> String {
-        let days = occurrence.day.daysFromToday
+        let days = RecurringRule.daysFromToday(occurrence.day)
         if isWaiting {
             // Short enough for one line (Simulator test 2026-11-12: "Tới hạn 12/08 · thêm 3 lầ…").
             let count = occurrence.moreWaiting + 1
             if !store.canRecord(onto: occurrence.rule.accountID) {
                 return count > 1 ? "Cần chọn tài khoản · \(count) lần" : "Cần chọn tài khoản"
             }
-            if count > 1 { return "\(count) lần chờ ghi · từ \(occurrence.day.shortDay)" }
-            return days == 0 ? "Tới hạn hôm nay" : "Tới hạn \(occurrence.day.shortDay)"
+            if count > 1 { return "\(count) lần chờ ghi · từ \(RecurringRule.shortDay(occurrence.day))" }
+            return days == 0 ? "Tới hạn hôm nay" : "Tới hạn \(RecurringRule.shortDay(occurrence.day))"
         }
         let countdown = days == 1 ? "Ngày mai" : "Còn \(days) ngày"
         let how = !store.canRecord(onto: occurrence.rule.accountID) ? "Cần chọn tài khoản"
@@ -170,7 +170,7 @@ struct RecurringConfirmSheet: View {
                     FormInfoRow(title: "Tài khoản", value: "Chưa có tài khoản")
                 }
                 FormDivider(hasIcon: false)
-                FormInfoRow(title: "Ngày", value: occurrence.day.shortDay)
+                FormInfoRow(title: "Ngày", value: RecurringRule.shortDay(occurrence.day))
                 FormDivider(hasIcon: false)
                 FormInfoRow(title: "Lặp lại", value: rule.scheduleDetail())
             }
@@ -192,7 +192,7 @@ struct RecurringConfirmSheet: View {
             }
             FormGroup {
                 FormActionRow(title: "Bỏ qua lần này", icon: "hugeicons-cancel-01",
-                              question: "Bỏ qua lần \(occurrence.day.shortDay)?",
+                              question: "Bỏ qua lần \(RecurringRule.shortDay(occurrence.day))?",
                               message: "Milu không ghi lần này, lần sau vẫn nhắc như thường.") {
                     store.skip(occurrence)
                     dismiss()

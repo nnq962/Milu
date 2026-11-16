@@ -96,6 +96,8 @@ struct ListRow<Leading: View, Trailing: View>: View {
                     Text(title)
                         .textRole(.bodyStrong)
                         .lineLimit(isAccessibilitySize ? nil : 1)
+                        // A day as a title ("Thứ Hai, 12/05") said as words (audit round 3).
+                        .accessibilityLabel(SpokenText.of(title))
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
                             .textRole(.caption)

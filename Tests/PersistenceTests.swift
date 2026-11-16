@@ -110,9 +110,26 @@ struct PersistenceTests {
         // Changed in its form to 2,5tr left: it owed 5,5tr when entered.
         var edited = loan
         edited.outstanding = 2_500_000
+        edited.openingOutstanding = nil
         reopened.save(edited)
         #expect(open(container).loan(id: old.id)?.outstanding == 2_500_000)
         #expect(open(container).loan(id: old.id)?.openingOutstanding == 5_500_000)
+    }
+
+    /// The loan's form saved with "Còn lại" as it opened, after a repayment came in meanwhile: what
+    /// it owed when entered stays, and the repayment still counts (audit round 3, 2026-11-16).
+    @Test func savingAnOpenFormKeepsARepaymentThatCameIn() throws {
+        let (store, _, wallet, _, _) = makeStore()
+        let old = Loan(name: "Giang", direction: .lent, principal: 10_000_000, outstanding: 6_000_000, dueDate: nil,
+                       isExisting: true)
+        store.save(old)
+        let opened = try #require(store.loan(id: old.id))
+        store.save(LoanPayment(loanID: old.id, principal: 2_000_000, accountID: wallet.id, date: day))
+        var fromForm = opened
+        fromForm.dueDate = day
+        store.save(fromForm)
+        #expect(store.loan(id: old.id)?.outstanding == 4_000_000)
+        #expect(store.loan(id: old.id)?.openingOutstanding == 6_000_000)
     }
 
     /// One stored before the opening figure was kept gets it at the next launch, from what it says

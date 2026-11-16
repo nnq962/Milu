@@ -187,7 +187,9 @@ nonisolated enum JSONValue: Codable, Hashable, Sendable, ExpressibleByStringLite
     var string: String? {
         switch self {
         case .string(let value): value.trimmingCharacters(in: .whitespacesAndNewlines)
-        case .number(let value): value.rounded() == value ? String(Int(value)) : String(value)
+        // `Int(exactly:)`: a number too large for an Int (1e20), or NaN, stopped the app (audit
+        // round 3, 2026-11-16).
+        case .number(let value): Int(exactly: value).map(String.init) ?? String(value)
         default: nil
         }
     }

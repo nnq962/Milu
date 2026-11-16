@@ -20,7 +20,7 @@ struct LegalDocument {
                          "Milu không hiện quảng cáo, không dùng công cụ theo dõi hay phân tích, và không bán hay chia sẻ dữ liệu của bạn cho ai."),
             ReadingEntry("Dữ liệu bạn ghi trong Milu",
                          "Tài khoản, giao dịch, hũ tiết kiệm, khoản vay, hạng mục và danh bạ được lưu trên iPhone này. Khi iPhone đăng nhập iCloud, chúng được đồng bộ vào iCloud riêng của bạn (do Apple giữ, tính vào dung lượng iCloud của bạn), để các thiết bị dùng chung Apple ID có cùng dữ liệu và dữ liệu tự về khi bạn cài lại app hay đổi máy. Milu không có máy chủ lưu dữ liệu này và không xem được iCloud của bạn.",
-                         "Một vài cài đặt cũng đi theo bạn qua iCloud theo cách đó: hạn mức chi tiêu, tên hiển thị và hình đại diện, các lựa chọn thông báo, cùng lượt AI còn lại. Giao diện, khoá Face ID và lịch sử trò chuyện với Milu AI chỉ lưu trên iPhone này.",
+                         "Một vài cài đặt cũng đi theo bạn qua iCloud theo cách đó: hạn mức chi tiêu, tên hiển thị và hình đại diện, các lựa chọn thông báo, cùng lượt AI còn lại. Giao diện, khoá bằng \(AppLock.biometryName) và lịch sử trò chuyện với Milu AI chỉ lưu trên iPhone này.",
                          "Nếu bạn bật sao lưu iCloud hoặc sao lưu iPhone vào máy tính, dữ liệu cũng có thể nằm trong bản sao lưu đó, do Apple và bạn quản lý."),
             ReadingEntry("Khi bạn hỏi Milu AI",
                          "Để trả lời, app gửi tới máy chủ của Milu câu hỏi của bạn cùng tối đa 6 tin nhắn gần nhất trong cuộc trò chuyện, tên hạng mục và tài khoản, tên hiển thị của bạn (nếu có đặt) và ngày hôm nay.",
