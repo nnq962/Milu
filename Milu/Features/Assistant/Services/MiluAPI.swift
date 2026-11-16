@@ -28,6 +28,8 @@ nonisolated struct MiluAPI: Sendable {
         case unauthorized
         /// Too many requests this hour.
         case busy
+        /// The connection dropped mid-way: the app went to the background, say, not no internet.
+        case interrupted
         case server(Int)
     }
 
@@ -103,7 +105,7 @@ nonisolated struct MiluAPI: Sendable {
 
     /// What URLSession says when the phone itself has no internet.
     private static let offlineCodes: Set<URLError.Code> = [
-        .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff,
+        .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff,
     ]
 
     private func request(_ path: String, timeout: TimeInterval) -> URLRequest {
@@ -124,6 +126,10 @@ nonisolated struct MiluAPI: Sendable {
             throw CancellationError()
         } catch let error as URLError where Self.offlineCodes.contains(error.code) {
             throw Failure.offline
+        } catch let error as URLError where error.code == .networkConnectionLost {
+            // Lost mid-way, mostly by Milu going to the background while it waited: the phone is
+            // online (audit round 4, 2026-11-16: it was told to turn on Wi-Fi).
+            throw Failure.interrupted
         } catch {
             throw Failure.unreachable
         }

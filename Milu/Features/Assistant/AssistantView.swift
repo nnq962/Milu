@@ -422,7 +422,11 @@ struct AssistantView: View {
 
         let askedAt = Date.now
         let progress = progress
+        // A short trip to another app (to check a figure) does not cut the answer off: iOS gives
+        // it a little time in the background (audit round 4, 2026-11-16).
+        let backgroundTime = BackgroundTime(name: "milu.answer")
         answering = Task {
+            defer { backgroundTime.end() }
             var reply: AssistantReply
             /// How long it thought and what it did, for the line over the answer.
             var thought: ChatMessage.Thought?
@@ -434,7 +438,7 @@ struct AssistantView: View {
                 // recorded something, which stays in: its card shows under "Bạn đã dừng", to see or
                 // undo it (audit 2026-11-15: hidden, it looked unrecorded and was recorded again).
                 if Task.isCancelled {
-                    if case .recorded(let transaction) = answer.action { showRecordedAfterStop(transaction, in: chatID) }
+                    for case .recorded(let transaction) in answer.actions { showRecordedAfterStop(transaction, in: chatID) }
                     return
                 }
                 reply = answer
@@ -456,7 +460,7 @@ struct AssistantView: View {
             case .outOfQuestions:
                 // What it recorded, or the transaction to delete, still shows: the one is in
                 // already, the other waits for a yes (audit 2026-11-15: hidden, it was recorded again).
-                reply = AssistantReply(text: outOfQuestionsReply(after: reply.action), action: reply.action)
+                reply = AssistantReply(text: outOfQuestionsReply(after: reply.action), actions: reply.actions)
                 thought = nil
             }
             // Never before the question has landed: with no connection the error came back at
@@ -467,16 +471,22 @@ struct AssistantView: View {
             // One tick as Milu's words show, an answer or an error alike (user report
             // 2026-11-12: an answer came silent and an error buzzed twice).
             Haptics.selection()
-            let card: ChatMessage.Card? = switch reply.action {
-            case .recorded(let transaction): .recorded(transaction, removed: false)
-            case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
-            case nil: nil
+            let cards: [ChatMessage.Card] = reply.actions.map { action in
+                switch action {
+                case .recorded(let transaction): .recorded(transaction, removed: false)
+                case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
+                }
             }
-            // Into the chat it was asked in, even if another is open by now.
+            // Into the chat it was asked in, even if another is open by now. The first card under
+            // the answer, each other under its own line (audit round 4, 2026-11-16).
             withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
                 if let index = chats.conversations.firstIndex(where: { $0.id == chatID }) {
                     chats.conversations[index].messages.append(
-                        ChatMessage(role: .assistant, text: reply.text, card: card, thought: thought))
+                        ChatMessage(role: .assistant, text: reply.text, card: cards.first, thought: thought))
+                    for card in cards.dropFirst() {
+                        let line = if case .confirmDelete = card { "Và khoản cần xoá này:" } else { "Và khoản này:" }
+                        chats.conversations[index].messages.append(ChatMessage(role: .assistant, text: line, card: card))
+                    }
                 }
                 isThinking = false
             }
@@ -566,4 +576,20 @@ enum AnswerCharge: Equatable {
         .environment(CloudSyncMonitor())
         .environment(\.locale, .vietnam)
         .textRole(.body)
+}
+
+/// A little time iOS gives the app in the background to finish something, ended once: when the
+/// work is done, or when iOS says the time is up.
+final class BackgroundTime {
+    private var id = UIBackgroundTaskIdentifier.invalid
+
+    init(name: String) {
+        id = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in self?.end() }
+    }
+
+    func end() {
+        guard id != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(id)
+        id = .invalid
+    }
 }

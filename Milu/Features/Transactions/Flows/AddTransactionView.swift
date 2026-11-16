@@ -436,7 +436,7 @@ struct AddTransactionView: View {
                                     frequency: schedule.frequency, interval: schedule.interval, startDate: date)
         preview.lastHandled = max(calendar.startOfDay(for: date), calendar.startOfDay(for: .now))
         guard let next = preview.nextOccurrence(after: preview.lastHandled ?? .now) else { return nil }
-        return "Lần tới: \(next.shortDay). Milu không ghi bù các lần đã qua."
+        return "Lần tới: \(RecurringRule.shortDay(next)). Milu không ghi bù các lần đã qua."
     }
 
     private var footer: String? {

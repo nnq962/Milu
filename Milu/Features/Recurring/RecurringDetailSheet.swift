@@ -92,12 +92,14 @@ struct RecurringDetailSheet: View {
         if rule.isPaused { return "Tạm dừng" }
         if let waiting = waiting(rule) {
             let count = waiting.moreWaiting + 1
-            if count > 1 { return "\(count) lần chờ ghi · từ \(waiting.day.shortDay)" }
-            if waiting.day.daysFromToday < 0 { return "Chờ ghi · \(waiting.day.shortDay)" }
+            // The rule's days as it counts them, in any time zone (audit round 4, 2026-11-16).
+            if count > 1 { return "\(count) lần chờ ghi · từ \(RecurringRule.shortDay(waiting.day))" }
+            if RecurringRule.daysFromToday(waiting.day) < 0 { return "Chờ ghi · \(RecurringRule.shortDay(waiting.day))" }
         }
         guard let next = store.nextDue(rule) else { return "Đã kết thúc" }
-        let days = next.daysFromToday
-        return days <= 0 ? "Hôm nay" : days == 1 ? "Ngày mai, \(next.shortDay)" : "\(next.shortDay) · còn \(days) ngày"
+        let days = RecurringRule.daysFromToday(next)
+        let day = RecurringRule.shortDay(next)
+        return days <= 0 ? "Hôm nay" : days == 1 ? "Ngày mai, \(day)" : "\(day) · còn \(days) ngày"
     }
 
     /// The last times it was recorded, newest first; "Xem tất cả" when there are more.

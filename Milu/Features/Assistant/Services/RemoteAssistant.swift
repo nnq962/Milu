@@ -27,7 +27,7 @@ struct RemoteAssistant: AssistantService {
         }
         messages.append(.user(question))
         let context = Self.context(for: store)
-        var action: AssistantReply.Action?
+        var actions: [AssistantReply.Action] = []
         /// The tools run: a question that only recorded or deleted takes no lượt.
         var toolsRun = Set<String>()
 
@@ -36,7 +36,7 @@ struct RemoteAssistant: AssistantService {
                 let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
-                    return AssistantReply(text: text.isEmpty ? Self.emptyAnswer(action) : text, action: action,
+                    return AssistantReply(text: text.isEmpty ? Self.emptyAnswer(actions.first) : text, actions: actions,
                                           counts: Self.counts(toolsRun))
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
@@ -45,18 +45,18 @@ struct RemoteAssistant: AssistantService {
                     if !Task.isCancelled { onStep(ThinkingStep.tool(call.name, arguments: call.arguments)) }
                     let output = AssistantTools.named(call.name, app: app)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
-                    if let next = output.action { action = next }
+                    if let next = output.action { actions.append(next) }
                     toolsRun.insert(call.name)
                     messages.append(.tool(call.name, result: output.result))
                 }
             }
-            return AssistantReply(text: Self.emptyAnswer(action), action: action, counts: Self.counts(toolsRun))
-        } catch where action != nil {
+            return AssistantReply(text: Self.emptyAnswer(actions.first), actions: actions, counts: Self.counts(toolsRun))
+        } catch where !actions.isEmpty {
             // A transaction was recorded or picked before the answer failed, a "too many
             // questions" too (audit 2026-11-15: that one hid the card): its card shows.
             // Not counted: the answer did not come, and recording and deleting are free (audit
             // round 2, 2026-11-15: a question that also read something kept its lượt).
-            return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action, counts: false)
+            return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", actions: actions, counts: false)
         } catch MiluAPI.Failure.busy {
             // The server's hourly limit is shared by everyone: busy, not "you asked too much" to
             // someone who asked once (audit round 3, 2026-11-16).
@@ -65,6 +65,8 @@ struct RemoteAssistant: AssistantService {
             throw CancellationError()
         } catch MiluAPI.Failure.offline {
             throw AssistantServiceError.noConnection
+        } catch MiluAPI.Failure.interrupted {
+            throw AssistantServiceError.interrupted
         } catch MiluAPI.Failure.unreachable {
             throw AssistantServiceError.unavailable
         } catch MiluAPI.Failure.unauthorized {

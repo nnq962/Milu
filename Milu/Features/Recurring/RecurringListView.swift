@@ -67,7 +67,8 @@ struct RecurringListView: View {
     private func subtitle(_ rule: RecurringRule) -> String {
         if rule.isPaused { return "\(rule.scheduleText) · Tạm dừng" }
         guard let next = store.nextDue(rule) else { return "\(rule.scheduleText) · Đã kết thúc" }
-        return "\(rule.scheduleText) · \(next.daysFromToday == 0 ? "Hôm nay" : next.shortDay)"
+        // The rule's day as it counts it, in any time zone (audit round 4, 2026-11-16).
+        return "\(rule.scheduleText) · \(RecurringRule.daysFromToday(next) == 0 ? "Hôm nay" : RecurringRule.shortDay(next))"
     }
 }
 
@@ -237,7 +238,7 @@ struct RecurringEditorSheet: View {
         preview.endDate = hasEnd ? endDate : nil
         // An end already past is the red line's to say.
         guard let next = preview.nextOccurrence(after: handled) else { return nil }
-        let when = next.daysFromToday == 0 ? "hôm nay" : next.shortDay
+        let when = RecurringRule.daysFromToday(next) == 0 ? "hôm nay" : RecurringRule.shortDay(next)
         return "Lần tới: \(when). Milu không ghi bù các lần đã qua."
     }
 
@@ -297,7 +298,7 @@ struct RecurringEditorSheet: View {
                     FormDivider(hasIcon: false)
                     FormToggleRow(title: "Ghi luôn \(waiting.count) lần còn chờ",
                                   subtitle: recordsWaiting
-                                      ? "Từ \(first.shortDay), tổng \((amount * Double(waiting.count)).vnd)"
+                                      ? "Từ \(RecurringRule.shortDay(first)), tổng \((amount * Double(waiting.count)).vnd)"
                                       : "Bỏ qua các lần trước hôm nay",
                                   isOn: $recordsWaiting)
                 }

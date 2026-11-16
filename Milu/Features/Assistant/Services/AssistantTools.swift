@@ -192,7 +192,8 @@ struct GetAccounts: AssistantTool {
             return .object(item)
         }
         // Credit cards only: a wallet below zero is not a card owed (audit 2026-11-15).
-        let cardDebt = store.countedAccounts.filter { $0.type == .credit && $0.balance < 0 }.reduce(0) { $0 - $1.balance }
+        let debts = ToolDebts(store)
+        let cardDebt = debts.cardDebt
         let owed = cardDebt + store.totalBorrowed
         return ToolOutput(result: [
             "accounts": .array(accounts),
@@ -203,12 +204,45 @@ struct GetAccounts: AssistantTool {
             "lent": ToolMoney.value(store.totalLent),
             "borrowed": ToolMoney.value(store.totalBorrowed),
             "netWorth": ToolMoney.value(store.netWorth),
+            "negativeAccounts": debts.negativeItems,
             "say": .string("""
                 Tài sản ròng \(store.netWorth.vnd): tiền đang có \(store.paymentBalance.vnd) (kể cả \(store.totalSaved.vnd) \
-                trong hũ), người khác còn nợ bạn \(store.totalLent.vnd), bạn còn nợ \(owed.vnd) (thẻ tín dụng \
-                \(cardDebt.vnd), đi vay \(store.totalBorrowed.vnd)).
+                trong hũ), người khác còn nợ bạn \(store.totalLent.vnd), bạn còn nợ \(owed.vnd) (\(debts.owedParts(borrowed: store.totalBorrowed))).\
+                \(debts.negativeSentence)
                 """),
         ])
+    }
+}
+
+/// What the user owes on cards: credit card accounts below zero, and other accounts below zero
+/// named apart. Milu tells users to keep a card as a bank account with a balance below zero (no
+/// card kind to pick), and "thẻ tín dụng 0đ" told them they owed nothing on it (audit round 4,
+/// 2026-11-16).
+struct ToolDebts {
+    let cards: [Account]
+    let negatives: [Account]
+
+    init(_ store: FinanceStore) {
+        cards = store.countedAccounts.filter { $0.type == .credit && $0.balance < 0 }
+        negatives = store.countedAccounts.filter { $0.type != .credit && $0.balance < 0 }
+    }
+
+    var cardDebt: Double { cards.reduce(0) { $0 - $1.balance } }
+
+    /// "đi vay 1tr, thẻ tín dụng 2tr": the card part only with a card account.
+    func owedParts(borrowed: Double) -> String {
+        ["đi vay \(borrowed.vnd)", cards.isEmpty ? nil : "thẻ tín dụng \(cardDebt.vnd)"].compactMap { $0 }.joined(separator: ", ")
+    }
+
+    var negativeItems: JSONValue {
+        .array(negatives.map { ["name": .string($0.name), "balance": ToolMoney.value($0.balance)] })
+    }
+
+    /// " Tài khoản đang âm (đã trừ vào tiền đang có): Thẻ VIB −8.000.000đ." or nothing.
+    var negativeSentence: String {
+        guard !negatives.isEmpty else { return "" }
+        return " Tài khoản đang âm (đã trừ vào tiền đang có): "
+            + negatives.map { "\($0.name) \($0.balance.vnd)" }.joined(separator: ", ") + "."
     }
 }
 
@@ -236,17 +270,19 @@ struct GetLoans: AssistantTool {
         let today = Calendar.current.startOfDay(for: .now)
         // Credit cards owed too: "nợ nần ra sao" came here and left the card out (2026-11-15).
         // Credit cards only: a wallet below zero is not a card owed (audit 2026-11-15).
-        let cards = store.countedAccounts.filter { $0.type == .credit && $0.balance < 0 }
-        let cardDebt = cards.reduce(0) { $0 - $1.balance }
+        let debts = ToolDebts(store)
+        let cards = debts.cards
+        let cardDebt = debts.cardDebt
         let owed = store.totalBorrowed + cardDebt
         return ToolOutput(result: [
             "lentOutstanding": ToolMoney.value(store.totalLent),
             "borrowedOutstanding": ToolMoney.value(store.totalBorrowed),
             "creditCardDebt": ToolMoney.value(cardDebt),
             "creditCards": .array(cards.map { ["name": .string($0.name), "debt": ToolMoney.value(-$0.balance)] }),
+            "negativeAccounts": debts.negativeItems,
             "say": .string("""
-                Bạn còn nợ \(owed.vnd) (đi vay \(store.totalBorrowed.vnd), thẻ tín dụng \(cardDebt.vnd)); \
-                người khác còn nợ bạn \(store.totalLent.vnd).
+                Bạn còn nợ \(owed.vnd) (\(debts.owedParts(borrowed: store.totalBorrowed))); \
+                người khác còn nợ bạn \(store.totalLent.vnd).\(debts.negativeSentence)
                 """),
             "loans": .array(loans.prefix(20).map { loan -> JSONValue in
                 var item: [String: JSONValue] = [
@@ -330,8 +366,7 @@ struct RecordTransaction: AssistantTool {
                 return .failure("Không có tài khoản nào tên \"\(named)\". Các tài khoản: \(store.accounts.map(\.name).joined(separator: ", ")). Hỏi lại người dùng muốn ghi vào tài khoản nào, chưa ghi gì")
             }
         }
-        let categoryID = ToolNames.category(arguments["category"]?.string, kind: kind, in: store)
-            ?? Self.guessCategory(note: note, kind: kind)
+        let categoryID = Self.item(named: arguments["category"]?.string, note: note, kind: kind, in: store)
         let day = arguments["date"]?.string.flatMap(ToolDates.day) ?? .now
         // No day ahead, as the add form allows none: the balance moved now, and no month list or
         // report could show it (audit round 2, 2026-11-15).
@@ -347,6 +382,29 @@ struct RecordTransaction: AssistantTool {
     }
 
     /// The category the note's words point to, as the offline assistant reads them.
+    /// An item a new transaction can be filed under, as the add form allows: never a group (audit
+    /// round 4, 2026-11-16: "ăn trưa 60k" went on the group "Ăn uống", and its form then would not
+    /// save until an item was picked). The item named; else one the note names ("ăn trưa"); else
+    /// the first item of the group named or guessed; else "Khác".
+    static func item(named name: String?, note: String, kind: TransactionKind, in store: FinanceStore) -> String {
+        let items = store.pickableItems(kind)
+        if let key = name?.searchKey, !key.isEmpty,
+           let item = items.first(where: { $0.name.searchKey == key })
+            ?? items.first(where: { $0.name.searchKey.contains(key) || key.contains($0.name.searchKey) }) {
+            return item.id
+        }
+        // Whole words of the note: "khách sạn" is not "Khác".
+        let words = " \(note.searchKey) "
+        if let item = items.first(where: { !$0.id.hasSuffix(".other") && words.contains(" \($0.name.searchKey) ") }) {
+            return item.id
+        }
+        let groupID = name.flatMap { ToolNames.category($0, kind: kind, in: store) }.map(store.groupID(of:))
+            ?? store.groupID(of: guessCategory(note: note, kind: kind))
+        if let group = store.category(id: groupID), let first = store.items(of: group).first { return first.id }
+        let other = kind == .expense ? "otherExpense.other" : "otherIncome.other"
+        return items.first { $0.id == other }?.id ?? items.first?.id ?? groupID
+    }
+
     private static func guessCategory(note: String, kind: TransactionKind) -> String {
         let guess = MockAssistant.category(for: note.searchKey)
         if guess.kind == kind { return guess.rawValue }

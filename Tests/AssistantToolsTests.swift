@@ -77,6 +77,31 @@ struct AssistantToolsTests {
         #expect(store.transactions.isEmpty)
     }
 
+    /// What Milu records goes on an item, as the add form needs: the item the note names, the
+    /// first item of a group named, "Khác" when nothing fits; never a group (audit round 4,
+    /// 2026-11-16: its form then would not save).
+    @Test func recordingFilesUnderAnItem() {
+        let store = store([vcb, cash])
+        _ = RecordTransaction().run(["amount": 60_000, "note": "ăn trưa"], in: store)
+        _ = RecordTransaction().run(["amount": 500_000, "note": "Siêu thị", "category": "Ăn uống"], in: store)
+        _ = RecordTransaction().run(["amount": 90_000, "note": "khách sạn lạ"], in: store)
+        let ids = store.transactions.map(\.categoryID)
+        #expect(ids.contains("food.lunch"))
+        #expect(ids.allSatisfy { store.category(id: $0)?.parentID != nil })
+    }
+
+    /// A card kept as a bank account below zero, as Milu advises, is named as such; no
+    /// "thẻ tín dụng 0đ" without a card account (audit round 4, 2026-11-16).
+    @Test func anAccountBelowZeroIsNamedNotACardAtZero() {
+        let card = Account(name: "Thẻ VIB", type: .bank, balance: -8_000_000)
+        let store = store([vcb, card])
+        let say = GetLoans().run([:], in: store).result["say"]?.string ?? ""
+        #expect(!say.contains("thẻ tín dụng"))
+        #expect(say.contains("Thẻ VIB"))
+        let accounts = GetAccounts().run([:], in: store).result["say"]?.string ?? ""
+        #expect(accounts.contains("Thẻ VIB"))
+    }
+
     // MARK: get_app_info
 
     /// Every topic answers from the app's own pages: none of the entries it quotes went missing

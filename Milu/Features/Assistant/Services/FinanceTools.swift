@@ -208,7 +208,9 @@ struct GetRecurring: AssistantTool {
                 "account": .string(store.account(id: rule.accountID)?.name ?? ""),
                 "state": .string(state),
             ]
-            if let next { item["next"] = .string(ToolDates.text(next)) }
+            // The rule's date as it counts it, in any time zone (audit round 4, 2026-11-16: abroad
+            // Milu named the day before).
+            if let next { item["next"] = .string(ToolDates.text(RecurringRule.localDate(of: next, hour: 12) ?? next)) }
             if rule.autoRecords { item["autoRecords"] = true }
             return (next, .object(item))
         }
@@ -275,10 +277,12 @@ struct GetUpcoming: AssistantTool {
         var toPay = 0.0
         var toReceive = 0.0
 
-        // Recurring days left unconfirmed, then those to come.
-        for occurrence in store.waitingRecurring() where occurrence.day < today {
+        // Recurring days left unconfirmed, then those to come, each on the rule's date as it
+        // counts it, in any time zone (audit round 4, 2026-11-16: abroad, one day early).
+        let ruleDay = { (day: Date) in RecurringRule.localDate(of: day, hour: 12) ?? day }
+        for occurrence in store.waitingRecurring() where RecurringRule.daysFromToday(occurrence.day) < 0 {
             let rule = occurrence.rule
-            entries.append((occurrence.day, [
+            entries.append((ruleDay(occurrence.day), [
                 "type": "định kỳ chưa xác nhận",
                 "name": .string(GetRecurring.title(rule, in: store)),
                 "kind": .string(rule.kind.rawValue),
@@ -296,7 +300,7 @@ struct GetUpcoming: AssistantTool {
                 "amount": ToolMoney.value(rule.amount),
             ]
             if rule.autoRecords { item["autoRecords"] = true }
-            entries.append((occurrence.day, item))
+            entries.append((ruleDay(occurrence.day), item))
         }
         for loan in store.loans where !loan.isSettled {
             guard let due = loan.dueDate, calendar.startOfDay(for: due) <= horizon else { continue }

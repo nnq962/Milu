@@ -15,10 +15,25 @@ struct AssistantReply {
     }
 
     var text: String
-    var action: Action? = nil
+    /// Every transaction recorded or found to delete, in order: each gets its card (audit round
+    /// 4, 2026-11-16: "ghi cà phê 35k và gửi xe 5k" recorded both, and only the last had one).
+    var actions: [Action] = []
     /// Takes a lượt (`AIQuota`): false when it only recorded or deleted a transaction, which is
     /// data entry and free (user choice 2026-11-12).
     var counts = true
+
+    /// The first, its card under the answer's words; the others follow it.
+    var action: Action? { actions.first }
+
+    init(text: String, action: Action? = nil, counts: Bool = true) {
+        self.init(text: text, actions: action.map { [$0] } ?? [], counts: counts)
+    }
+
+    init(text: String, actions: [Action], counts: Bool = true) {
+        self.text = text
+        self.actions = actions
+        self.counts = counts
+    }
 }
 
 /// Trợ lý AI "giả lập": nhận diện vài câu hỏi và lệnh phổ biến bằng từ khoá rồi trả lời

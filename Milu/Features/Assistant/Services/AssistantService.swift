@@ -123,6 +123,8 @@ enum AssistantServices {
 /// What can go wrong asking for an answer, in words for the chat.
 enum AssistantServiceError: LocalizedError {
     case noConnection
+    /// The connection dropped mid-way (Milu went to the background while it waited).
+    case interrupted
     /// The phone is online, the server is not.
     case unavailable
     case server(String)
@@ -130,6 +132,7 @@ enum AssistantServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noConnection: "Không có kết nối internet 📵 Bạn bật Wi-Fi hoặc 4G rồi hỏi lại Milu nha."
+        case .interrupted: "Kết nối bị ngắt giữa chừng, bạn hỏi lại Milu nhé."
         case .unavailable: "Milu đang tạm nghỉ một chút, bạn thử lại sau ít phút nhé."
         case .server(let detail): "Milu chưa trả lời được (\(detail)). Bạn thử lại sau nhé."
         }
