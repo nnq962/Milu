@@ -173,6 +173,21 @@ struct FinanceStoreTests {
         #expect(store.loan(id: loan.id)?.outstanding == 3_000_000)
     }
 
+    /// Groups of equal spending keep one order, by name, call after call: Báo cáo swapped two
+    /// groups of 100.000đ on every redraw (user report 2026-11-16).
+    @Test func equalGroupsKeepOneOrder() {
+        let store = makeStore()
+        for category in ["housing.rent", "family.gifts", "otherExpense.other", "shopping.clothes"] {
+            store.add(FinanceTransaction(amount: category == "housing.rent" ? 2_613_000 : 100_000, categoryID: category,
+                                         kind: .expense, accountID: bank.id, date: .now))
+        }
+        let first = store.expensesByCategory().map(\.name)
+        #expect(first == ["Nhà cửa", "Chi khác", "Gia đình", "Mua sắm"])
+        for _ in 0..<30 {
+            #expect(store.expensesByCategory().map(\.name) == first)
+        }
+    }
+
     /// "Số dư tính từ" can be no later than the account's first money in or out (audit round 5,
     /// 2026-11-16).
     @Test func firstActivityIsTheEarliestMove() {

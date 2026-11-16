@@ -90,7 +90,12 @@ extension FinanceStore {
                              income: items.filter { $0.kind == .income }.reduce(0) { $0 + $1.amount },
                              expense: items.filter { $0.kind == .expense }.reduce(0) { $0 + $1.amount })
             }
-            .sorted { ($0.expense, $0.income) > ($1.expense, $1.income) }
+            // Equal sums by name, then id: the grouping comes in no set order, so two accounts with
+            // the same sums swapped places on every redraw (user report 2026-11-16, as the groups).
+            .sorted { a, b in
+                if (a.expense, a.income) != (b.expense, b.income) { return (a.expense, a.income) > (b.expense, b.income) }
+                return Self.namedFirst(a.name, a.id.uuidString, before: b.name, b.id.uuidString)
+            }
     }
 
     /// The groups a spending limit can be set on: the expense groups in use. Not a system category
@@ -131,7 +136,23 @@ extension FinanceStore {
                 CategoryTotal(groupID: id, name: categoryName(id), icon: categoryIcon(id),
                               amount: items.reduce(0) { $0 + $1.amount })
             }
-            .sorted { $0.amount > $1.amount }
+            // Equal amounts by name, then id: `Dictionary(grouping:)` gives its groups in no set
+            // order, a new one on each call, so two groups of 100.000đ swapped places, and colours,
+            // on every redraw of Báo cáo (user report 2026-11-16).
+            .sorted { a, b in
+                if a.amount != b.amount { return a.amount > b.amount }
+                return Self.namedFirst(a.name, a.groupID, before: b.name, b.groupID)
+            }
+    }
+
+    /// The order of two rows with equal sums: by name as people read it, then by id, so it is the
+    /// same on every call.
+    nonisolated static func namedFirst(_ name: String, _ id: String, before otherName: String, _ otherID: String) -> Bool {
+        switch name.localizedStandardCompare(otherName) {
+        case .orderedAscending: true
+        case .orderedDescending: false
+        case .orderedSame: id < otherID
+        }
     }
 }
 
