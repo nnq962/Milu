@@ -73,7 +73,9 @@ struct MessageRow: View {
                 // The card pops up as the words are done: a "done" tap with it.
                 if case .recorded = message.card { Haptics.milestone() }
             }
-            .accessibilityLabel(String(formattedText.characters))
+            // Money and days said as words, as on every other screen (audit round 5, 2026-11-16:
+            // "đ" was read as a letter, "23/11" as a fraction).
+            .accessibilityLabel(SpokenText.of(String(formattedText.characters)))
             if let transaction = cardTransaction {
                 TransactionCard(transaction: transaction)
                     .modifier(PopsIn(hidden: revealing))

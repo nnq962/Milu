@@ -148,22 +148,29 @@ struct CategoryReportView: View {
     /// An item: name, share and amount, a bar of its share of the group under them, and › on the
     /// row's own edge, so the bar stops at the amount (strict review 2026-10-31).
     private func itemRow(_ item: CategoryTotal, share: Double) -> some View {
-        HStack(spacing: RowMetrics.gap) {
+        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
+        // At the accessibility sizes the share and the amount go under the name, the picture by
+        // the name (audit round 5, 2026-11-16: from AX2 the row ran past the card).
+        return HStack(alignment: isAccessibilitySize ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             RowIcon(name: item.icon)
+                .centeredOnTextLine()
             VStack(alignment: .leading, spacing: Spacing.s) {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
+                AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                     Text(item.name)
                         .textRole(.body)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                        .lineLimit(isAccessibilitySize ? nil : 1)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(share.percentText)
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .monospacedDigit()
-                        .fixedSize()
-                    // "−" in ink, as the transactions under it (review 2026-11-08).
-                    MoneyText(amount: item.amount, tone: .outflow)
-                        .fixedSize()
+                    // Each on its own line too, so the amount has room to show whole.
+                    AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s, stackedSpacing: RowMetrics.lineGap) {
+                        Text(share.percentText)
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.secondaryLabel)
+                            .monospacedDigit()
+                            .fixedSize()
+                        // "−" in ink, as the transactions under it (review 2026-11-08).
+                        MoneyText(amount: item.amount, tone: .outflow)
+                            .fixedSize(horizontal: !isAccessibilitySize, vertical: false)
+                    }
                 }
                 ProgressBar(value: share)
             }

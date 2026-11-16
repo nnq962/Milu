@@ -248,33 +248,40 @@ struct BreakdownRowLabel: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: RowMetrics.gap) {
+        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
+        // At the accessibility sizes the amount goes under the name, as on `ListRow`, and the
+        // picture stays by the name (audit round 5, 2026-11-16: beside a whole amount the name had
+        // about 30 points, "…", and from AX3 the row ran past the card).
+        HStack(alignment: isAccessibilitySize ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             RowIcon(name: icon, size: isAccount ? RowMetrics.listLogo : RowMetrics.iconColumn, tiled: isAccount)
-            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                // A second line at the accessibility sizes, where one cut the name short.
-                Text(title)
-                    .textRole(.body)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-                HStack(spacing: Spacing.xs) {
-                    if hollowDot {
-                        Circle().strokeBorder(Palette.tertiaryLabel, lineWidth: 1.5)
-                            .frame(width: RowMetrics.legendDot, height: RowMetrics.legendDot)
-                    } else if let dot {
-                        LegendDot(color: dot)
-                            .overlay { if edgedDot { Circle().strokeBorder(Palette.tertiaryLabel, lineWidth: 1) } }
+                .centeredOnTextLine()
+            AdaptiveStack(spacing: RowMetrics.gap) {
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    // Whole at the accessibility sizes, where one line cut the name short.
+                    Text(title)
+                        .textRole(.body)
+                        .lineLimit(isAccessibilitySize ? nil : 1)
+                    HStack(spacing: Spacing.xs) {
+                        if hollowDot {
+                            Circle().strokeBorder(Palette.tertiaryLabel, lineWidth: 1.5)
+                                .frame(width: RowMetrics.legendDot, height: RowMetrics.legendDot)
+                        } else if let dot {
+                            LegendDot(color: dot)
+                                .overlay { if edgedDot { Circle().strokeBorder(Palette.tertiaryLabel, lineWidth: 1) } }
+                        }
+                        Text(detail)
+                            .textRole(.caption)
+                            .foregroundStyle(Palette.secondaryLabel)
+                            .monospacedDigit()
+                            .lineLimit(isAccessibilitySize ? nil : 1)
+                            .accessibilityLabel(Change.spoken(detail))
                     }
-                    Text(detail)
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .accessibilityLabel(Change.spoken(detail))
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // Full size: the name gives way first. Stacked, the amount has the row's width.
+                MoneyText(amount: amount, tone: tone)
+                    .fixedSize(horizontal: !isAccessibilitySize, vertical: false)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // Full size: the name gives way first.
-            MoneyText(amount: amount, tone: tone)
-                .fixedSize()
             RowChevron()
                 .opacity(opensMore ? 1 : 0)
         }

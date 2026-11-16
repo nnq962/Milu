@@ -51,8 +51,11 @@ struct FormErrorText: View {
         .foregroundStyle(Palette.negative)
         .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
         .accessibilityAddTraits(.isStaticText)
-        .onAppear { AccessibilityNotification.Announcement(message).post() }
-        .onChange(of: message) { _, new in AccessibilityNotification.Announcement(new).post() }
+        // Money and days said as words, as on the rows (audit round 5, 2026-11-16: "đ" was read as
+        // a letter, "16/12" as a fraction).
+        .accessibilityLabel(SpokenText.of(message))
+        .onAppear { AccessibilityNotification.Announcement(SpokenText.of(message)).post() }
+        .onChange(of: message) { _, new in AccessibilityNotification.Announcement(SpokenText.of(new)).post() }
     }
 }
 
@@ -66,6 +69,7 @@ struct FormFooter: View {
             .textRole(.caption)
             .foregroundStyle(Palette.secondaryLabel)
             .padding(.horizontal, RowMetrics.horizontal)
+            .accessibilityLabel(SpokenText.of(message))
     }
 }
 

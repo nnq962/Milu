@@ -16,6 +16,13 @@ struct SpokenTextTests {
         #expect(SpokenText.days("Gym 24/7") == "Gym 24/7")
     }
 
+    /// Milu's answers as VoiceOver says them: no Markdown marks, money and days as words (audit
+    /// round 5, 2026-11-16: "đ" as a letter, "23/11" as a fraction).
+    @Test func answersAreSpokenAsWords() {
+        #expect(AssistantView.spoken("**Đã chi** 3.200.000đ\n• Lượt mới có từ thứ Hai 23/11")
+            == "Đã chi 3.200.000 đồng\nLượt mới có từ thứ Hai 23 tháng 11")
+    }
+
     /// A half rounds up, as people round (12,5% is 13%, not 12%).
     @Test func halfPercentsRoundUp() {
         #expect(0.125.percentText == "13%")

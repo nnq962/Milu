@@ -196,7 +196,10 @@ final class ChatViewController: UIViewController {
                 .margins(.vertical, 0)
             // The question in flight is drawn by its flyer until it lands (`fly`); set after the
             // configuration, which puts up its own content view.
-            cell.contentView.alpha = self.flyingID.map { item == .message($0) } == true ? 0 : 1
+            // So are the rows waiting for the answer above them to be written (`waitingIDs`).
+            let hidden = self.flyingID.map { item == .message($0) } == true
+                || self.waitingIDs.contains { item == .message($0) }
+            cell.contentView.alpha = hidden ? 0 : 1
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
             collectionView.dequeueConfiguredReusableCell(using: registration, for: indexPath, item: item)
@@ -502,8 +505,12 @@ final class ChatViewController: UIViewController {
         // A question just sent from this page (not one that came with a chat from the history).
         let asked = sameChat ? conversation.messages.last.flatMap { $0.role == .user && previous[$0.id] == nil ? $0.id : nil } : nil
         // Milu's answer just in: the three dots go at once and the words show from the top down
-        // in their place (no cross-fade of the two).
-        let answered = sameChat ? conversation.messages.last.flatMap { $0.role == .assistant && previous[$0.id] == nil ? $0.id : nil } : nil
+        // in their place (no cross-fade of the two). With several cards it comes as several rows:
+        // the answer is the first, the others ("Và khoản này:") come once its words are done
+        // (audit round 5, 2026-11-16: the answer showed whole, the last short line was written).
+        let isAnswer = sameChat && conversation.messages.last.map { $0.role == .assistant && previous[$0.id] == nil } == true
+        let newAnswers = isAnswer ? conversation.messages.filter { $0.role == .assistant && previous[$0.id] == nil }.map(\.id) : []
+        let answered = newAnswers.first
         shownConversation = conversation
         shownThinking = thinking
 
@@ -518,6 +525,7 @@ final class ChatViewController: UIViewController {
         // Its words show one after another: told to the row as it is configured, in the apply.
         if let answered, view.window != nil, !UIAccessibility.isReduceMotionEnabled {
             revealingID = answered
+            waitingIDs = Array(newAnswers.dropFirst())
         }
         dataSource.apply(snapshot, animatingDifferences: sameChat && view.window != nil && answered == nil)
         if !sameChat {
@@ -561,7 +569,7 @@ final class ChatViewController: UIViewController {
         }
         if let answered {
             collectionView.layoutIfNeeded()
-            reveal(answered)
+            reveal(answered, then: Array(newAnswers.dropFirst()))
         }
         if let dots { fadeOut(dots) }
         showGreeting(conversation.messages.isEmpty, animated: view.window != nil)
@@ -635,16 +643,20 @@ final class ChatViewController: UIViewController {
     /// The answer just in, whose words show one after another (`AnswerWords`, told through
     /// `revealsAnswer`); none once they have, so a row drawn again later shows them at once.
     private var revealingID: UUID?
+    /// The rows under the answer being written, each with one more card: hidden until its words
+    /// are done (`showWaiting`).
+    private var waitingIDs: [UUID] = []
 
     /// Milu's answer coming in: its words show one after another in the row itself (user design
-    /// 2026-11-15), the page following them down. Under Reduce Motion, a short fade.
-    private func reveal(_ id: UUID) {
+    /// 2026-11-15), the page following them down; then the rows under it (`rest`) fade in. Under
+    /// Reduce Motion, a short fade of them all.
+    private func reveal(_ id: UUID, then rest: [UUID]) {
         guard view.window != nil, let indexPath = dataSource.indexPath(for: .message(id)),
-              let cell = collectionView.cellForItem(at: indexPath) else { return }
+              let cell = collectionView.cellForItem(at: indexPath) else { return showWaiting() }
         guard revealingID == id, let message = messagesByID[id] else {
-            let content = cell.contentView
-            content.alpha = 0
-            UIView.animate(withDuration: 0.2) { content.alpha = 1 }
+            let contents = ([cell] + rest.compactMap(cell(for:))).map(\.contentView)
+            contents.forEach { $0.alpha = 0 }
+            UIView.animate(withDuration: 0.2) { contents.forEach { $0.alpha = 1 } }
             return
         }
         let words = AnswerReveal.words(in: String(MessageRow.formatted(message.text).characters)).count
@@ -653,7 +665,25 @@ final class ChatViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.5) { [weak self] in
             if self?.revealingID == id { self?.revealingID = nil }
         }
+        if !waitingIDs.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in self?.showWaiting() }
+        }
         follow(id, duration: duration)
+    }
+
+    /// The rows waiting under an answer, shown once its words are done, the page following the
+    /// last one down.
+    private func showWaiting() {
+        let ids = waitingIDs
+        waitingIDs = []
+        guard let last = ids.last else { return }
+        let contents = ids.compactMap(cell(for:)).map(\.contentView)
+        UIView.animate(withDuration: 0.25) { contents.forEach { $0.alpha = 1 } }
+        if view.window != nil { follow(last, duration: 0.3) }
+    }
+
+    private func cell(for id: UUID) -> UICollectionViewCell? {
+        dataSource.indexPath(for: .message(id)).flatMap { collectionView.cellForItem(at: $0) }
     }
 
     // MARK: Following the words

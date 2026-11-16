@@ -10,6 +10,7 @@ struct UpcomingRecurringCard: View {
     /// recording emptied it, and left its dimming behind, eating the next tap.
     let onConfirm: (RecurringOccurrence) -> Void
     @ScaledMetric(relativeTo: .body) private var leafSize: CGFloat = 44
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// A new day while the app is open: what falls due is worked out again.
     @State private var today = Calendar.current.startOfDay(for: .now)
 
@@ -46,25 +47,32 @@ struct UpcomingRecurringCard: View {
     private func row(_ occurrence: RecurringOccurrence, isWaiting: Bool) -> some View {
         let rule = occurrence.rule
         let days = RecurringRule.daysFromToday(occurrence.day)
-        return HStack(spacing: RowMetrics.gap) {
+        let isAccessibilitySize = dynamicTypeSize.isAccessibilitySize
+        // At the accessibility sizes the amount and "Ghi" go under the words, as on `ListRow`, the
+        // leaf by the name (audit round 5, 2026-11-16: "Tiền nhà" was cut to "T…" from AX1, and
+        // from AX3 the amount and "Ghi" ran off the card).
+        return HStack(alignment: isAccessibilitySize ? .firstTextBaseline : .center, spacing: RowMetrics.gap) {
             leaf(occurrence.day)
-            VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                Text(store.title(of: rule))
-                    .textRole(.bodyStrong)
-                    .lineLimit(1)
-                Text(when(occurrence, isWaiting: isWaiting))
-                    .textRole(.caption)
-                    .foregroundStyle(isWaiting && days < 0 ? Palette.warningLabel : Palette.secondaryLabel)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            VStack(alignment: .trailing, spacing: Spacing.xs) {
-                // Money out in ink with "−", as in Giao dịch định kỳ (audit round 2, 2026-11-15).
-                MoneyText(amount: rule.amount, tone: rule.kind == .income ? .signedIncome : .outflow)
-                    .fixedSize()
-                if isWaiting {
-                    MiluButton("Ghi", role: .primary, size: .compact) { onConfirm(occurrence) }
-                        .accessibilityHint("Xem lại số tiền rồi ghi")
+                .centeredOnTextLine()
+            AdaptiveStack(spacing: RowMetrics.gap) {
+                VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
+                    Text(store.title(of: rule))
+                        .textRole(.bodyStrong)
+                        .lineLimit(isAccessibilitySize ? nil : 1)
+                    Text(when(occurrence, isWaiting: isWaiting))
+                        .textRole(.caption)
+                        .foregroundStyle(isWaiting && days < 0 ? Palette.warningLabel : Palette.secondaryLabel)
+                        .lineLimit(isAccessibilitySize ? nil : 1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: isAccessibilitySize ? .leading : .trailing, spacing: Spacing.xs) {
+                    // Money out in ink with "−", as in Giao dịch định kỳ (audit round 2, 2026-11-15).
+                    MoneyText(amount: rule.amount, tone: rule.kind == .income ? .signedIncome : .outflow)
+                        .fixedSize(horizontal: !isAccessibilitySize, vertical: false)
+                    if isWaiting {
+                        MiluButton("Ghi", role: .primary, size: .compact) { onConfirm(occurrence) }
+                            .accessibilityHint("Xem lại số tiền rồi ghi")
+                    }
                 }
             }
         }
@@ -104,7 +112,10 @@ struct UpcomingRecurringCard: View {
                 .textRole(.footnote)
                 .foregroundStyle(Palette.secondaryLabel)
         }
-        .frame(minWidth: leafSize, minHeight: leafSize)
+        // Grown no further than the other rows' pictures, its words with it (audit round 5,
+        // 2026-11-16: about 104 points at AX3, a third of the row).
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .frame(minWidth: RowMetrics.capped(leafSize, base: 44), minHeight: RowMetrics.capped(leafSize, base: 44))
         .background(Palette.surfaceMuted, in: RoundedRectangle(cornerRadius: CardCorners.inner, style: .continuous))
         .accessibilityHidden(true)
     }

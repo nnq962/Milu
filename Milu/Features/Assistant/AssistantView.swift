@@ -554,9 +554,10 @@ struct AssistantView: View {
         chats.conversations[index].messages[row].card = .recorded(snapshot, removed: true)
     }
 
-    /// An answer as VoiceOver should say it: without the Markdown marks it is written with.
+    /// An answer as VoiceOver should say it: without the Markdown marks it is written with, its
+    /// money and days as words (`SpokenText`).
     static func spoken(_ text: String) -> String {
-        text.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "• ", with: "")
+        SpokenText.of(text.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "• ", with: ""))
     }
 }
 
