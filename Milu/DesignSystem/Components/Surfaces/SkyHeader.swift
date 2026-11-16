@@ -150,14 +150,15 @@ struct SkyHeader: View {
 }
 
 /// The head's shadow on the page: soft and low in light; a little deeper in dark, where a light
-/// shadow does not show (HIG: depth by elevation, never a hard line).
+/// shadow does not show (HIG: depth by elevation, never a hard line). Half as strong, smaller and
+/// closer than at first (user request 2026-11-16: too much shadow under the head).
 private struct HeadShadow: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         content
             .compositingGroup()
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.4 : 0.1), radius: 14, y: 6)
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.25 : 0.05), radius: 10, y: 4)
     }
 }
 

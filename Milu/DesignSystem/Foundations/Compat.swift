@@ -172,20 +172,6 @@ extension View {
                 .contentShape(Circle())
         }
     }
-
-    /// A 36 capsule with words in it: "Hỏi Milu".
-    @ViewBuilder
-    func legacyBarPill() -> some View {
-        if #available(iOS 26.0, *) {
-            self
-        } else {
-            padding(.horizontal, Spacing.m)
-                .frame(height: LegacyBar.size)
-                .background(.regularMaterial, in: Capsule())
-                .overlay(Capsule().strokeBorder(Palette.separator, lineWidth: 0.5))
-                .contentShape(Capsule())
-        }
-    }
 }
 
 enum LegacyBar {

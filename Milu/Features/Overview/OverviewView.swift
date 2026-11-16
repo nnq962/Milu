@@ -4,13 +4,13 @@ import SwiftUI
 /// Home tab: under Milu's hill, sections each with its heading on the page (2026-11-08): the first
 /// steps while any is left (`OnboardingCard`, a row to swipe), Tài sản ròng (`OverviewHeader`),
 /// Chi tiêu (`SpendingTiles`), Tuần này (`WeekCard`), Hũ và khoản vay (`SavingTiles`), Milu Pro;
-/// Q, "✨ Hỏi Milu" and the bell on the bar, no greeting (user request 2026-11-04). One file per card
+/// Q and ✨ (Hỏi Milu) on the bar, no greeting (user request 2026-11-04; the bell went 2026-11-16,
+/// it only told where the reminders are set). One file per card
 /// in `Cards/`, with the sheets they open.
 struct OverviewView: View {
     /// "Cần chú ý" on the page; off for now (user request 2026-10-30).
     private static let showsAttention = false
 
-    @State private var information: Information?
     @State private var isShowingPaywall = false
     @AppStorage(StorageKey.debugPro) private var debugPro = false
     @State private var isShowingSettings = false
@@ -82,11 +82,6 @@ struct OverviewView: View {
         }
     }
 
-    private struct Information: Identifiable {
-        let id = UUID()
-        let title: String
-        let message: String
-    }
     /// A goal or a loan opened from its tile.
     private struct OpenedID: Identifiable {
         let id: UUID
@@ -165,23 +160,16 @@ struct OverviewView: View {
             .pageBackground()
             .foregroundStyle(Palette.label)
             // No title and no greeting on the bar (user request 2026-11-04), as on Tài khoản: Q on
-            // the left, ✦ and the bell on the right. The title stays for the back button and VoiceOver.
-            // As Tài khoản and Giao dịch: the "Hỏi Milu" pill's width given, the empty slot hidden
-            // from VoiceOver (review 2026-11-08).
-            .modifier(HiddenTitleBar(title: "Tổng quan", leadingCircles: 1, trailingCircles: 2,
-                                     trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
+            // the left, ✨ on the right. The title stays for the back button and VoiceOver; the
+            // empty slot is hidden from VoiceOver (review 2026-11-08).
+            .modifier(HiddenTitleBar(title: "Tổng quan", leadingCircles: 1, trailingCircles: 1) {
                 Color.clear.frame(height: 1).accessibilityHidden(true)
             })
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 // Plain buttons: the bar draws their glass, which then takes part in push and pop.
-                // The spacer gives ✦ and the bell each its own glass.
                 ToolbarItem(placement: .topBarLeading) { profileButton }
                 ToolbarItem(placement: .topBarTrailing) { assistantButton }
-                if #available(iOS 26.0, *) {
-                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
-                }
-                ToolbarItem(placement: .topBarTrailing) { notificationButton }
             }
             .navigationDestination(for: NetWorthRoute.self) { _ in NetWorthView() }
             .fullScreenCover(isPresented: $isShowingAssistant) {
@@ -194,7 +182,6 @@ struct OverviewView: View {
             .navigationDestination(for: BudgetRoute.self) { _ in BudgetView() }
             .sheet(item: $confirmingRecurring) { RecurringConfirmSheet(occurrence: $0) }
             .sheet(isPresented: $isShowingPaywall) { PaywallView() }
-            .sheet(item: $information) { NoteSheet(title: $0.title, message: $0.message) }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }
             .sheet(item: $adding) { AddTransactionView(mode: $0) }
             // The form once the choice has gone, so one sheet follows the other.
@@ -238,20 +225,6 @@ struct OverviewView: View {
 
     private var assistantButton: some View {
         AssistantBarButton { isShowingAssistant = true }
-    }
-
-    private var notificationButton: some View {
-        Button {
-            // What Milu sends and where to set it; no "coming later": the reminders exist (audit
-            // round 3, 2026-11-16: it said they did not, and App Review turns placeholders down).
-            information = Information(title: "Thông báo",
-                                      message: "Milu nhắc bạn qua thông báo của iPhone: nhắc ghi chi tiêu mỗi ngày, khoản định kỳ tới hạn và cảnh báo hạn mức. Bật, tắt hay đổi giờ trong Cài đặt → Thông báo.")
-        } label: {
-            BarSymbol("bell")
-        }
-        .buttonBorderShape(.circle)
-        .tint(Palette.primary)
-        .accessibilityLabel("Thông báo")
     }
 }
 

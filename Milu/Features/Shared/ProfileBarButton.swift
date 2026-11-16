@@ -78,9 +78,6 @@ struct HiddenTitleBar<Leading: View>: ViewModifier {
     /// Circles on the bar's leading and trailing sides, so `leading` starts just after the first.
     let leadingCircles: Int
     let trailingCircles: Int
-    /// How wide the trailing items are when they are not all circles ("Hỏi Milu" is a pill);
-    /// nil counts `trailingCircles` circles.
-    var trailingWidth: CGFloat? = nil
     @ViewBuilder let leading: Leading
 
     /// The middle slot is centred between the bar's items and as wide as its content. Set to this
@@ -90,8 +87,7 @@ struct HiddenTitleBar<Leading: View>: ViewModifier {
         // With nothing on the leading side, the middle slot's room starts at the screen's edge,
         // not the margin (Simulator check 2026-11-04: the tabs sat 8 from the edge).
         let leadingEnd = leadingCircles > 0 ? margin + CGFloat(leadingCircles) * circle : 0
-        let trailing = trailingWidth
-            ?? CGFloat(trailingCircles) * circle + CGFloat(max(trailingCircles - 1, 0)) * spacer
+        let trailing = CGFloat(trailingCircles) * circle + CGFloat(max(trailingCircles - 1, 0)) * spacer
         let trailingStart = UIScreen.main.bounds.width - margin - trailing
         let start = leadingCircles > 0 ? leadingEnd + Spacing.l : margin
         let centre = (leadingEnd + trailingStart) / 2

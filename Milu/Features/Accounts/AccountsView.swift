@@ -63,8 +63,7 @@ struct AccountsView: View {
             .foregroundStyle(Palette.label)
             // No title on the bar: Q on the left opens Cài đặt; no wordmark (user request
             // 2026-11-07). The title stays for VoiceOver and the back button.
-            .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2,
-                                     trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
+            .modifier(HiddenTitleBar(title: "Tài khoản", leadingCircles: 1, trailingCircles: 2) {
                 // An empty slot, not EmptyView: with nothing there, iOS shows the title.
                 Color.clear.frame(height: 1).accessibilityHidden(true)
             })

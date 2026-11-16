@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// What shows as Milu opens (Figma 774:941, "C2 · Vườn nhà Milu · Xanh", 2026-11-14): "Milu" and
-/// its line over a blue morning sky (night blue in dark), the garden with the pink tree below,
+/// its line over a blue morning sky, in dark mode too, the garden with the pink tree below,
 /// and Than sticking out its tongue at the foot. Drawn on the 402 × 874 frame of the design and
 /// scaled to fill the screen, so every iPhone shows the same picture.
 ///
@@ -106,8 +106,9 @@ struct SplashScreen<Accessory: View>: View {
                 .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottom)
         }
         // Always the morning look, in the three places alike (user choice 2026-11-14): iOS's
-        // launch picture is that one even in dark mode, and the lock and the app switcher's
-        // picture now match it whatever Milu's "Giao diện" says.
+        // launch picture is that one even in dark mode (its night version went, user choice
+        // 2026-11-16: in dark mode the launch showed night, then this screen day), and the lock
+        // and the app switcher's picture match it whatever Milu's "Giao diện" says.
         .environment(\.colorScheme, .light)
         // The sky's top colour behind, as the launch picture has (`milu-launch-sky`).
         .background(Color("milu-launch-sky"))

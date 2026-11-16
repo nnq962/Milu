@@ -1,26 +1,25 @@
 import SwiftUI
 
-/// "✨ Hỏi Milu" on the bar of every tab, opening the assistant: a pill in the bar's glass, the
-/// sparkle and the words in Milu's deep blue (Milu "Hỏi Milu · Trợ lý", Figma 79:1372).
+/// "✨" on the bar of every tab, opening the assistant: the sparkle alone in the bar's glass
+/// circle, as the other bar buttons (user request 2026-11-16: no "Hỏi Milu" beside it; it was a
+/// pill, Milu "Hỏi Milu · Trợ lý", Figma 79:1372). VoiceOver still calls it "Hỏi Milu".
 ///
-/// The sparkle twinkles now and then (user pick "A" 2026-11-04: livelier): every `pause` seconds
-/// it grows a little and turns one way then the other, in about half a second, then stands still.
-/// Only while on screen (`.task` ends as the tab goes away: a hidden tab that kept moving held its
-/// bar's glass in the old look after a change of appearance, Simulator check 2026-11-03) and
-/// never with Reduce Motion.
+/// The sparkle twinkles now and then (user pick "A" 2026-11-04: livelier): every `pause` it grows a
+/// little and turns one way then the other, quickly, then stands still (user request 2026-11-16:
+/// more often and quicker than every 5 seconds). Only while on screen (`.task` ends as the tab goes
+/// away: a hidden tab that kept moving held its bar's glass in the old look after a change of
+/// appearance, Simulator check 2026-11-03) and never with Reduce Motion.
 struct AssistantBarButton: View {
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The ✨ grows with the words beside it (HIG review 2026-11-05), no further than 1.6 times.
-    @ScaledMetric(relativeTo: .subheadline) private var scaledSparkle: CGFloat = 20
-    private var sparkle: CGFloat { RowMetrics.capped(scaledSparkle, base: 20) }
     /// Counts the twinkles; each new count plays one.
     @State private var twinkles = 0
 
-    private static let pause: Duration = .seconds(5)
-    /// The pill's width at the default text size, for `HiddenTitleBar`.
-    static let width: CGFloat = 112
+    private static let pause: Duration = .seconds(2.5)
+    /// The sparkle in the circle: a little larger than a bar glyph (`IconSize.bar`), as a coloured
+    /// picture reads smaller than a line.
+    private static let sparkle: CGFloat = 22
 
     private struct Pose {
         var scale: CGFloat = 1
@@ -29,37 +28,33 @@ struct AssistantBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                // Fluent Flat's ✨ in its own colours (user request 2026-11-05): the bar tints an
-                // image unless told to keep its own.
-                Image(IconCatalog.emojiName("✨"))
-                    .resizable()
-                    .renderingMode(.original)
-                    .scaledToFit()
-                    .frame(width: sparkle, height: sparkle)
-                    .keyframeAnimator(initialValue: Pose(), trigger: twinkles) { sparkle, pose in
-                        sparkle
-                            .scaleEffect(pose.scale)
-                            .rotationEffect(.degrees(pose.angle))
-                    } keyframes: { _ in
-                        KeyframeTrack(\.scale) {
-                            SpringKeyframe(1.2, duration: 0.22, spring: .snappy)
-                            SpringKeyframe(1, duration: 0.4, spring: .bouncy)
-                        }
-                        KeyframeTrack(\.angle) {
-                            CubicKeyframe(-12, duration: 0.15)
-                            CubicKeyframe(8, duration: 0.2)
-                            CubicKeyframe(0, duration: 0.25)
-                        }
+            // Fluent Flat's ✨ in its own colours (user request 2026-11-05): the bar tints an image
+            // unless told to keep its own.
+            Image(IconCatalog.emojiName("✨"))
+                .resizable()
+                .renderingMode(.original)
+                .scaledToFit()
+                .frame(width: Self.sparkle, height: Self.sparkle)
+                .keyframeAnimator(initialValue: Pose(), trigger: twinkles) { sparkle, pose in
+                    sparkle
+                        .scaleEffect(pose.scale)
+                        .rotationEffect(.degrees(pose.angle))
+                } keyframes: { _ in
+                    KeyframeTrack(\.scale) {
+                        SpringKeyframe(1.25, duration: 0.15, spring: .snappy)
+                        SpringKeyframe(1, duration: 0.3, spring: .bouncy)
                     }
-                // Nunito SemiBold 15 (user pick 2026-11-05: Regular 13 read faint on the glass).
-                Text("Hỏi Milu")
-                    .font(Typography.font(.subheadline, size: 15, weight: .semibold))
-            }
-            .foregroundStyle(Palette.deep)
-            .legacyBarPill()
+                    KeyframeTrack(\.angle) {
+                        CubicKeyframe(-14, duration: 0.1)
+                        CubicKeyframe(10, duration: 0.14)
+                        CubicKeyframe(0, duration: 0.18)
+                    }
+                }
+                // The frame every bar glyph has, so the glass circle is the same as the others'.
+                .frame(width: IconSize.barFrame, height: IconSize.barFrame)
+                .legacyBarCircle()
         }
-        .tint(Palette.deep)
+        .buttonBorderShape(.circle)
         .accessibilityLabel("Hỏi Milu")
         .accessibilityHint("Mở trợ lý AI")
         .task(id: reduceMotion) {

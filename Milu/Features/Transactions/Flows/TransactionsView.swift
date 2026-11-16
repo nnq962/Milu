@@ -100,8 +100,7 @@ struct TransactionsView: View {
             // The bar of Tài khoản: Q, opening Cài đặt, on the left, ✦ Hỏi Milu and search on the
             // right; no wordmark (user request 2026-11-07). The title stays for VoiceOver and the
             // back button.
-            .modifier(HiddenTitleBar(title: "Giao dịch", leadingCircles: 1, trailingCircles: 2,
-                                     trailingWidth: AssistantBarButton.width + Spacing.s + ControlHeight.regular) {
+            .modifier(HiddenTitleBar(title: "Giao dịch", leadingCircles: 1, trailingCircles: 2) {
                 // An empty slot, not EmptyView: with nothing there, iOS shows the title.
                 Color.clear.frame(height: 1).accessibilityHidden(true)
             })

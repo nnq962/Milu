@@ -1,7 +1,6 @@
 {
   "images" : [
-    { "filename" : "milu-launch-garden@3x.png", "idiom" : "universal", "scale" : "3x" },
-    { "appearances" : [ { "appearance" : "luminosity", "value" : "dark" } ], "filename" : "milu-launch-garden-dark@3x.png", "idiom" : "universal", "scale" : "3x" }
+    { "filename" : "milu-launch-garden@3x.png", "idiom" : "universal", "scale" : "3x" }
   ],
   "info" : { "author" : "xcode", "version" : 1 },
   "properties" : { "preserves-vector-representation" : false }
