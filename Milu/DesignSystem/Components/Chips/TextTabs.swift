@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// A row of words that pick what a list shows ("Tất cả · Thu · Chi · Chuyển khoản", user pick "B"
-/// 2026-11-03; Giao dịch now uses `SegmentPills`, 2026-11-07), the chosen one in ink over a short
-/// line. One weight for every word, so choosing one does not shift the others. Scrolls when the
-/// words overflow. The page itself ("Thu chi", "Vay nợ") is picked from a menu on the
+/// A row of words that pick what a list shows: the filter of Giao dịch, "Tất cả · Thu · Chi ·
+/// Chuyển khoản" and "Tất cả · Cho vay · Đi vay" (user pick "B" 2026-11-03; the pills in a tray,
+/// `SegmentPills`, from 2026-11-07; these words again from 2026-11-16), the chosen one in ink over a
+/// short line. One weight for every word, so choosing one does not shift the others. Scrolls when
+/// the words overflow. The page itself ("Thu chi", "Vay nợ") is picked from a menu on the
 /// bar (2026-11-04), no longer with a larger style of these.
 struct TextTabs<Option: Hashable & Identifiable>: View {
     @Binding var selection: Option
@@ -24,6 +25,9 @@ struct TextTabs<Option: Hashable & Identifiable>: View {
             // Bleed to the screen edges: the page margin, in and out.
             .padding(.horizontal, -Spacing.page)
         }
+        // One group for VoiceOver, "Bộ lọc", with the chosen word marked as selected.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Bộ lọc")
         .sensoryFeedback(.selection, trigger: selection)
     }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// The filter row of Giao dịch (Figma 239:7381, "Giao dịch / Tab bộ lọc", 2026-11-07): words
+/// The filter row Giao dịch had from 2026-11-07 to 2026-11-16, now in Thư viện UI only (Giao dịch
+/// uses `TextTabs` again, user pick 2026-11-16). Figma 239:7381, "Giao dịch / Tab bộ lọc": words
 /// side by side in a capsule tray, the chosen one on a pill in the link colour (`primary`, as
 /// "Tháng 11" and "Báo cáo" above it) with its words in `onPrimary`. One weight for every word,
 /// so choosing one does not shift the others. The pill moves at once, no slide (user choice

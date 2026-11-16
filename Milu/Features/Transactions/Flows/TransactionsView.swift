@@ -71,7 +71,7 @@ struct TransactionsView: View {
                                         .equatable()
                                 }
                             case .loans:
-                                filterRow { SegmentPills(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
+                                filterRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
                                 listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                             }
                         }
@@ -140,7 +140,7 @@ struct TransactionsView: View {
             addContext?.loanDirection = loanFilter.direction
         }
         .onChange(of: segment) { _, new in addContext?.addsLoan = new == .loans }
-        // On the side the pills show (audit round 5, 2026-11-16).
+        // On the side the filter shows (audit round 5, 2026-11-16).
         .onChange(of: loanFilter) { _, new in addContext?.loanDirection = new.direction }
         .onDisappear {
             addContext?.addsLoan = false

@@ -30,8 +30,8 @@ struct TransactionFilterTabs: View {
     @Binding var selection: TransactionFilter
 
     var body: some View {
-        // Pills in a tray, as Milu draws Giao dịch (Figma 239:7381; user pick 2026-11-07 after
-        // trying iOS's segmented control).
-        SegmentPills(selection: $selection, options: TransactionFilter.allCases) { $0.title }
+        // Words with a line under the chosen one (user pick 2026-11-16, after the pills in a tray
+        // of Figma 239:7381).
+        TextTabs(selection: $selection, options: TransactionFilter.allCases) { $0.title }
     }
 }

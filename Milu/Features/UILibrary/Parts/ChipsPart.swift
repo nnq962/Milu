@@ -9,6 +9,9 @@ struct ChipsPart: View {
             SampleCard(label: "Lọc bằng chữ · TextTabs") {
                 TextTabs(selection: $filter, options: TransactionFilter.allCases) { $0.title }
             }
+            SampleCard(label: "Lọc bằng viên · SegmentPills") {
+                SegmentPills(selection: $filter, options: TransactionFilter.allCases) { $0.title }
+            }
             SampleCard(label: "Chip lọc · ChipRow") {
                 ChipRow(selection: $filter, options: TransactionFilter.allCases) { $0.title }
             }
