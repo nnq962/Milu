@@ -28,8 +28,9 @@ struct ContentView: View {
     private func openFromReminder() {
         guard Reminders.shared.router.pending == .addTransaction, !appLock.isLocked else { return }
         // The add form is the sheet up: the reminder is answered already (audit round 2,
-        // 2026-11-15: waited on, a second, empty form came up once it closed).
-        if adding != nil {
+        // 2026-11-15: waited on, a second, empty form came up once it closed). The loan form is
+        // not: it is waited on, as any other sheet.
+        if adding == .transaction {
             Reminders.shared.router.pending = nil
             return
         }
@@ -45,7 +46,9 @@ struct ContentView: View {
             return
         }
         Reminders.shared.router.pending = nil
-        if adding == nil { add() }
+        // A transaction, whatever the + would add on the page behind: left on "Vay nợ", it opened
+        // the loan form (audit round 3, 2026-11-16).
+        adding = .transaction
     }
 
     /// The +'s name for VoiceOver, as what it adds on the screen behind it.

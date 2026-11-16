@@ -25,10 +25,14 @@ struct SpendingTiles: View {
 struct SavingTiles: View {
     let onAddGoal: () -> Void
     let onAddLoan: () -> Void
+    /// The goal or the loan tapped: its sheet is Tổng quan's, outside the cards it redraws on a
+    /// new day (audit round 3, 2026-11-16: here, it closed at midnight with what was typed in it).
+    let onOpenGoal: (SavingsGoal.ID) -> Void
+    let onOpenLoan: (Loan.ID) -> Void
 
     var body: some View {
         OutsideHeaderSection(title: "Hũ và khoản vay") {
-            TilePair { GoalTile(onAdd: onAddGoal) } second: { LoanTile(onAdd: onAddLoan) }
+            TilePair { GoalTile(onAdd: onAddGoal, onOpen: onOpenGoal) } second: { LoanTile(onAdd: onAddLoan, onOpen: onOpenLoan) }
         }
     }
 }
@@ -314,9 +318,9 @@ private struct TodayTile: View {
 /// make the first.
 private struct GoalTile: View {
     let onAdd: () -> Void
+    let onOpen: (SavingsGoal.ID) -> Void
 
     @Environment(FinanceStore.self) private var store
-    @State private var openGoal: Opened?
 
     var body: some View {
         let goals = store.activeGoals
@@ -329,7 +333,7 @@ private struct GoalTile: View {
                              accessibility: goal.isReached
                                  ? "Hũ \(goal.name), đã đủ mục tiêu"
                                  : "Hũ \(goal.name), đã để dành \(goal.progressText), còn \(MoneyText.spoken(goal.remaining))",
-                             hint: "Xem hũ", action: { openGoal = Opened(id: goal.id) }) {
+                             hint: "Xem hũ", action: { onOpen(goal.id) }) {
                     picture(GoalArtwork.name(for: goal.icon))
                 }
             } else {
@@ -344,7 +348,6 @@ private struct GoalTile: View {
                 }
             }
         }
-        .sheet(item: $openGoal) { GoalDetailSheet(goalID: $0.id) }
     }
 }
 
@@ -354,9 +357,9 @@ private struct GoalTile: View {
 /// deadline in its urgency's colour. With no open loan, a way to note one.
 private struct LoanTile: View {
     let onAdd: () -> Void
+    let onOpen: (Loan.ID) -> Void
 
     @Environment(FinanceStore.self) private var store
-    @State private var openLoan: Opened?
 
     var body: some View {
         let loan = store.loans.filter { !$0.isSettled }.min { LoanUrgency($0) < LoanUrgency($1) }
@@ -371,7 +374,7 @@ private struct LoanTile: View {
                              detail: "\(loan.name) · \(urgency.text)",
                              detailColor: LoanRow.urgencyColor(urgency),
                              accessibility: "\(label), \(loan.name), còn \(MoneyText.spoken(loan.outstanding)), \(urgency.text)",
-                             hint: "Xem khoản vay", action: { openLoan = Opened(id: loan.id) }) {
+                             hint: "Xem khoản vay", action: { onOpen(loan.id) }) {
                     // The base size: the avatar grows with the text by itself.
                     InitialsAvatar(name: loan.name, size: OverviewTileMetrics.graphic)
                 }
@@ -385,13 +388,7 @@ private struct LoanTile: View {
                 }
             }
         }
-        .sheet(item: $openLoan) { LoanDetailSheet(loanID: $0.id) }
     }
-}
-
-/// What a block's sheet opens on.
-private struct Opened: Identifiable {
-    let id: UUID
 }
 
 /// A block's Fluent Flat picture, at the graphic's height.

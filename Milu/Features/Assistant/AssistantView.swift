@@ -122,7 +122,13 @@ struct AssistantView: View {
             Text(dictationMessage)
         }
         .onAppear { dictation.prepare() }
-        .onDisappear { dictation.stop() }
+        .onDisappear {
+            dictation.stop()
+            // Closed while Milu answers: the answer stops, said in the chat, its lượt given back
+            // (audit round 3, 2026-11-16: it ran on unseen, reopened with no "Đang nghĩ…" nor ■,
+            // and the question asked again was recorded twice).
+            if isThinking { stopAnswer() }
+        }
         // Milu Pro's prices, for "Pro giá bao nhiêu?" (`GetAppInfo`): loaded once, as its page does.
         .task { await ProStore.shared.loadProducts() }
     }

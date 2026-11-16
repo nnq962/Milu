@@ -58,7 +58,9 @@ struct RemoteAssistant: AssistantService {
             // round 2, 2026-11-15: a question that also read something kept its lượt).
             return AssistantReply(text: "Mình làm xong rồi, bạn xem bên dưới nhé:", action: action, counts: false)
         } catch MiluAPI.Failure.busy {
-            throw AssistantServiceError.server("bạn đã hỏi nhiều quá trong giờ này")
+            // The server's hourly limit is shared by everyone: busy, not "you asked too much" to
+            // someone who asked once (audit round 3, 2026-11-16).
+            throw AssistantServiceError.server("đang có nhiều người hỏi cùng lúc")
         } catch is CancellationError {
             throw CancellationError()
         } catch MiluAPI.Failure.offline {

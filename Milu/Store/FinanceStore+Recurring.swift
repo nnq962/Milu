@@ -153,8 +153,12 @@ extension FinanceStore {
                  now: Date = .now) -> Bool {
         var done = false
         persist {
-            let id = RecurringRule.transactionID(rule: occurrence.rule.id, day: occurrence.day)
-            record(occurrence.rule, on: occurrence.day, amount: amount, accountID: accountID, now: now, byUser: true)
+            // The rule as it is now: changed after the day was listed ("Sửa khoản định kỳ" from
+            // the "Ghi" sheet), it records as changed (audit round 3, 2026-11-16: the old item,
+            // note, "Không tính" and even kind went in).
+            let rule = recurringRule(id: occurrence.rule.id) ?? occurrence.rule
+            let id = RecurringRule.transactionID(rule: rule.id, day: occurrence.day)
+            record(rule, on: occurrence.day, amount: amount, accountID: accountID, now: now, byUser: true)
             guard transaction(id: id) != nil else { return }
             markHandled(occurrence)
             done = true

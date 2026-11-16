@@ -144,10 +144,10 @@
 				};
 			};
 			buildConfigurationList = 568C7C74308E036200F4B02D /* Build configuration list for PBXProject "Milu" */;
-			developmentRegion = en;
+			developmentRegion = vi;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
+				vi,
 				Base,
 			);
 			mainGroup = 568C7C70308E036200F4B02D;

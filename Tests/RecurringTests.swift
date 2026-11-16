@@ -79,6 +79,22 @@ struct RecurringTests {
         #expect(reopened.recordDueRecurring(now: day(2027, 3, 20)).isEmpty)
     }
 
+    /// "Ghi" after the rule was changed from its sheet: the transaction is the changed rule's
+    /// (audit round 3, 2026-11-16: it took the item and "Không tính" of the day it was listed).
+    @Test func confirmingRecordsTheRuleAsItIsNow() throws {
+        let (store, _, wallet) = storeWithWallet()
+        store.save(rule(start: day(2027, 1, 5), account: wallet.id))
+        let waiting = try #require(store.waitingRecurring(now: day(2027, 1, 6)).first)
+        var changed = try #require(store.recurringRules.first)
+        changed.categoryID = "bills.electricity"
+        changed.isExcluded = true
+        store.save(changed)
+        #expect(store.confirm(waiting, amount: 5_000_000, now: day(2027, 1, 6)))
+        let recorded = try #require(store.transactions.first)
+        #expect(recorded.categoryID == "bills.electricity")
+        #expect(recorded.isExcluded)
+    }
+
     /// Moving a rule on writes only its last day, on a row still there: a rule deleted on another
     /// device is not written back (audit round 3, 2026-11-16).
     @Test func movingOnDoesNotBringBackADeletedRule() throws {

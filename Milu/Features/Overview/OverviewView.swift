@@ -87,6 +87,13 @@ struct OverviewView: View {
         let title: String
         let message: String
     }
+    /// A goal or a loan opened from its tile.
+    private struct OpenedID: Identifiable {
+        let id: UUID
+    }
+    @State private var openedGoal: OpenedID?
+    @State private var openedLoan: OpenedID?
+
     private struct CalendarDay: Identifiable {
         let date: Date
         var id: Date { date }
@@ -126,7 +133,9 @@ struct OverviewView: View {
                         WeekCard(onOpenCalendar: { path.append(CalendarRoute()) },
                                  onSelectDay: { selectedDay = CalendarDay(date: $0) })
                         SavingTiles(onAddGoal: { isAddingGoal = true },
-                                    onAddLoan: { isAddingLoan = true })
+                                    onAddLoan: { isAddingLoan = true },
+                                    onOpenGoal: { openedGoal = OpenedID(id: $0) },
+                                    onOpenLoan: { openedLoan = OpenedID(id: $0) })
                         // Hidden for now, as if nothing needed a look (user request 2026-10-30). Set
                         // `showsAttention` back to true to bring it back.
                         if Self.showsAttention { AttentionCard() }
@@ -136,7 +145,8 @@ struct OverviewView: View {
                             ProUpgradeCard { isShowingPaywall = true }
                         }
                     }
-                    // Drawn anew on a new day: every card reads the date as it draws.
+                    // Drawn anew on a new day: every card reads the date as it draws. No sheet lives
+                    // in here: they are the page's (below), so a new day closes none.
                     .id(today)
                     // The first steps fade away and the page closes up smoothly once the last is
                     // done, rather than everything under them jumping up (review 2026-11-08).
@@ -206,6 +216,8 @@ struct OverviewView: View {
             .sheet(isPresented: $isAddingLoan) { LoanEditorView(loan: nil) }
             .sheet(isPresented: $isAddingGoal) { GoalEditorView(goal: nil) }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
+            .sheet(item: $openedGoal) { GoalDetailSheet(goalID: $0.id) }
+            .sheet(item: $openedLoan) { LoanDetailSheet(loanID: $0.id) }
         }
         // Posted off the main thread; the page changes on the main one.
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in

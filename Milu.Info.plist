@@ -14,5 +14,11 @@
 	<!-- Milu's splash (`SplashScene`), its sky and garden filling the screen at launch, light and dark. -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+	<!-- The app is in Vietnamese: iOS's own buttons and menus in it are too ("Huỷ", "Sao chép"),
+	     and the App Store lists Tiếng Việt (audit round 3, 2026-11-16: both were English). -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>vi</string>
+	</array>
 </dict>
 </plist>
