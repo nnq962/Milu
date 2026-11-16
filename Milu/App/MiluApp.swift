@@ -305,7 +305,8 @@ struct MiluApp: App {
     /// from iCloud that ended after `since` has gone quiet (or none can come), on the database as
     /// iCloud left it, what came down read first (audit round 3: recorded on the copy from before
     /// the download, a payment or rule deleted on another device came back). A new call replaces
-    /// one still waiting.
+    /// one still waiting. Apart from it, only the rule the user just saved or moved records at
+    /// once (`recordDueRecurring(only:)`).
     private func autoRecord(since: ContinuousClock.Instant) {
         autoRecording?.cancel()
         autoRecording = Task {

@@ -281,10 +281,15 @@ struct GetUpcoming: AssistantTool {
         // counts it, in any time zone (audit round 4, 2026-11-16: abroad, one day early).
         let ruleDay = { (day: Date) in RecurringRule.localDate(of: day, hour: 12) ?? day }
         // Every time still waiting, not one: three months of rent unconfirmed are three (audit
-        // round 4, 2026-11-16: told as one, and left out of what is to pay).
+        // round 4, 2026-11-16: told as one, and left out of what is to pay). Only those before
+        // today: today's comes with the days ahead (audit round 5, 2026-11-16: counted twice,
+        // and called late).
+        let ruleCalendar = RecurringRule.calendar
+        let yesterday = ruleCalendar.date(byAdding: .day, value: -1, to: ruleCalendar.startOfDay(for: .now)) ?? .now
         for occurrence in store.waitingRecurring() where RecurringRule.daysFromToday(occurrence.day) < 0 {
             let rule = occurrence.rule
-            let times = occurrence.moreWaiting + 1
+            let dueToday = !rule.occurrences(after: yesterday, through: .now).isEmpty
+            let times = occurrence.moreWaiting + 1 - (dueToday ? 1 : 0)
             let total = rule.amount * Double(times)
             if rule.kind == .expense { toPay += total } else { toReceive += total }
             entries.append((ruleDay(occurrence.day), [

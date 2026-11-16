@@ -156,6 +156,23 @@ struct FinanceStoreTests {
         #expect(store.loan(id: loan.id)?.outstanding == 3_000_000)
     }
 
+    /// "Sửa lần trả" saved after another device deleted that repayment: nothing comes back, no
+    /// money moves (audit round 5, 2026-11-16).
+    @Test func editingADeletedRepaymentAddsNothing() {
+        let store = makeStore()
+        let loan = Loan(name: "Hùng", direction: .borrowed, principal: 3_000_000, outstanding: 3_000_000,
+                        dueDate: nil, accountID: bank.id)
+        store.save(loan)
+        var payment = LoanPayment(loanID: loan.id, principal: 1_000_000, accountID: bank.id, date: .now)
+        store.save(payment)
+        store.delete(payment)
+        payment.principal = 1_200_000
+        store.save(payment, editing: true)
+        #expect(store.loanPayments.isEmpty)
+        #expect(balance(store, bank) == 8_000_000)
+        #expect(store.loan(id: loan.id)?.outstanding == 3_000_000)
+    }
+
     @Test func anExistingLoanMovesNoMoney() {
         let store = makeStore()
         store.save(Loan(name: "Lan", direction: .lent, principal: 4_000_000, outstanding: 4_000_000,

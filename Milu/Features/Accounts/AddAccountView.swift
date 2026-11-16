@@ -34,6 +34,12 @@ struct AddAccountView: View {
     /// a swipe down keeps (`SheetScaffold.hasChanges`; audit round 2, 2026-11-15: only the
     /// transaction forms did).
     @State private var opened: [AnyHashable]?
+    /// The balance field as it opened, kept as state: the detail screen builds this form again with
+    /// the live account whenever a balance changes, so `original` is not what the form opened with
+    /// (audit round 5, 2026-11-16: a rent recorded or a spending synced in while the form was open
+    /// was undone by a hidden "Điều chỉnh số dư" when only the name changed).
+    @State private var openedBalance = OpenedBalance(text: "", isNegative: false)
+    private struct OpenedBalance { var text: String; var isNegative: Bool }
     private var draft: [AnyHashable] { [institutionID, name, note, balanceText, isNegative, openedAt, isLocked] }
     private var hasChanges: Bool { opened.map { $0 != draft } ?? false }
 
@@ -51,6 +57,8 @@ struct AddAccountView: View {
         _note = State(initialValue: account.detail)
         _balanceText = State(initialValue: Self.balanceText(account.balance))
         _isNegative = State(initialValue: account.balance < 0)
+        _openedBalance = State(initialValue: OpenedBalance(text: Self.balanceText(account.balance),
+                                                           isNegative: account.balance < 0))
         _openedAt = State(initialValue: account.openedAt)
         _isLocked = State(initialValue: account.isLocked)
     }
@@ -234,9 +242,10 @@ struct AddAccountView: View {
         // stands (audit 2026-11-15: a spending synced in while the form was open was undone by a
         // hidden "Điều chỉnh số dư" when only the name changed). Compared with the field as it
         // opened, not with the balance: one of 13 digits opened cut to 12, and saving a new name
-        // took 90% of it away (audit round 2, 2026-11-15).
+        // took 90% of it away (audit round 2, 2026-11-15). As it opened, not as `original` now
+        // says (`openedBalance`).
         let typed = isNegative ? -amount : amount
-        let untouched = balanceText == Self.balanceText(original.balance) && isNegative == (original.balance < 0)
+        let untouched = balanceText == openedBalance.text && isNegative == openedBalance.isNegative
         store.update(account, balance: untouched ? account.balance : typed)
     }
 

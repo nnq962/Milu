@@ -77,13 +77,19 @@ extension FinanceStore {
     /// Records what has fallen due by today on the rules that record by themselves (all of it,
     /// when the app was not opened for a while), and returns what was recorded. Recording an
     /// occurrence another device already recorded makes nothing new: its id is the same.
+    ///
+    /// `only` limits it to one rule: the one the user just saved or moved to another account.
+    /// The others record only through `MiluApp.autoRecord`, which waits for iCloud first (audit
+    /// round 5, 2026-11-16: saving any rule during a download recorded a rule paused or deleted
+    /// on another device from the copy before it).
     @discardableResult
-    func recordDueRecurring(now: Date = .now) -> [FinanceTransaction] {
+    func recordDueRecurring(only ruleID: RecurringRule.ID? = nil, now: Date = .now) -> [FinanceTransaction] {
         var recorded: [FinanceTransaction] = []
         persist {
             // A rule whose account was archived or deleted records nothing and does not move on:
             // its days wait for the user, who picks another account (`waitingRecurring`).
-            for rule in recurringRules where rule.autoRecords && !rule.isPaused && canRecord(onto: rule.accountID) {
+            for rule in recurringRules where rule.autoRecords && !rule.isPaused && canRecord(onto: rule.accountID)
+                && (ruleID == nil || rule.id == ruleID) {
                 let days = rule.occurrences(after: rule.lastHandled ?? dayBefore(rule.startDate), through: now)
                 guard let last = days.last else { continue }
                 for day in days {

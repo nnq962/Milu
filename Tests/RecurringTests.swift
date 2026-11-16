@@ -192,6 +192,21 @@ struct RecurringTests {
         #expect(store.transactions.count == 1)
     }
 
+    /// A rule just saved records at once on its own: the others wait for iCloud (audit round 5,
+    /// 2026-11-16: saving one recorded them all, from the copy before the download).
+    @Test func recordingOneRuleLeavesTheOthers() {
+        let (store, _, wallet) = storeWithWallet()
+        let rent = rule(start: day(2027, 1, 10), auto: true, account: wallet.id)
+        let gym = rule(start: day(2027, 1, 12), auto: true, account: wallet.id)
+        store.save(rent)
+        store.save(gym)
+        let recorded = store.recordDueRecurring(only: rent.id, now: day(2027, 3, 15))
+        #expect(recorded.count == 3)
+        #expect(recorded.allSatisfy { $0.recurringRuleID == rent.id })
+        #expect(store.recordDueRecurring(now: day(2027, 3, 15)).allSatisfy { $0.recurringRuleID == gym.id })
+        #expect(store.transactions.count == 6)
+    }
+
     /// Paused: nothing waits and nothing is recorded.
     @Test func pausedDoesNothing() {
         let (store, _, wallet) = storeWithWallet()

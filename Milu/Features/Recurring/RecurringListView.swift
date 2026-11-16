@@ -205,12 +205,15 @@ struct RecurringEditorSheet: View {
     private var startsAnew: Bool {
         guard let original, let schedule = repeatChoice.schedule else { return false }
         return !Calendar.current.isDate(original.startDate, inSameDayAs: startDate) || original.frequency != schedule.frequency
-            || original.interval != schedule.interval || (original.isPaused && !isPaused) || extendsPastEnd
+            || original.interval != schedule.interval || (original.isPaused && !isPaused)
+            || (extendsPastEnd && autoRecords && !isPaused)
     }
 
-    /// An end already past, taken off or moved later: the rule comes back from today, as from a
-    /// pause, not with every time missed since (audit round 4, 2026-11-16: they were all
-    /// recorded at once, unasked).
+    /// An end already past, taken off or moved later: a rule that records by itself comes back
+    /// from today, as from a pause, not with every time missed since (audit round 4, 2026-11-16:
+    /// they were all recorded at once, unasked). One that asks first keeps its days waiting, to
+    /// record or skip: nothing goes in unasked (audit round 5, 2026-11-16: a rent still "Chờ
+    /// ghi" from before the end was dropped without a word).
     private var extendsPastEnd: Bool {
         guard let oldEnd = original?.endDate else { return false }
         let calendar = RecurringRule.calendar
@@ -363,7 +366,8 @@ struct RecurringEditorSheet: View {
         let isNew = original == nil
         store.save(rule)
         // One that records by itself and is due today is recorded now, not at the next opening.
-        store.recordDueRecurring()
+        // This rule only: the others wait for iCloud (`MiluApp.autoRecord`).
+        store.recordDueRecurring(only: rule.id)
         dismiss()
         if isNew { Task { await RecurringReminderPlan.turnOnIfNeverSet() } }
     }

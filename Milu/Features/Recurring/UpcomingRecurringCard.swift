@@ -275,7 +275,8 @@ struct RecurringConfirmSheet: View {
             if let moved { store.save(moved) }
             store.confirm(occurrence, amount: amount, accountID: accountID)
             // One that records by itself goes on, from here, onto its new account.
-            if moved != nil { store.recordDueRecurring() }
+            // This rule only: the others wait for iCloud (`MiluApp.autoRecord`).
+            if let moved { store.recordDueRecurring(only: moved.id) }
         }
     }
 }

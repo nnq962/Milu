@@ -130,6 +130,9 @@ struct LoanPaymentSheet: View {
         .miluSheetStyle()
         .onAppear { if openedLeft == nil { openedLeft = liveLeft } }
         .task { if opened == nil { opened = draft } }
+        // Gone some other way while open: close, as the transaction's sheet does. ("Xoá" here
+        // closes it first.)
+        .onChange(of: isGone) { _, gone in if gone { dismiss() } }
     }
 
     /// What is left after this one, a figure worked out as it is typed. No note on where the
@@ -149,6 +152,12 @@ struct LoanPaymentSheet: View {
         payment.accountID = account
         payment.date = date
         dismiss()
-        AfterDismiss.run { store.save(payment) }
+        let editing = original != nil
+        AfterDismiss.run { store.save(payment, editing: editing) }
+    }
+
+    /// The repayment being edited was deleted some other way (on another device) while open.
+    private var isGone: Bool {
+        original.map { original in !store.loanPayments.contains { $0.id == original.id } } ?? false
     }
 }

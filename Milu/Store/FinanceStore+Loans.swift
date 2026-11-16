@@ -70,10 +70,14 @@ extension FinanceStore {
 
     /// Adds or changes a repayment: the old one is undone first. Its principal comes off what is
     /// left of the loan; principal and interest both come into the account (lent) or leave it
-    /// (borrowed).
-    func save(_ payment: LoanPayment) {
+    /// (borrowed). An edit (`editing`) of one no longer there, deleted on another device while
+    /// the form was open, is not added back (audit round 5, 2026-11-16: the money moved again
+    /// and the deletion was undone everywhere).
+    func save(_ payment: LoanPayment, editing: Bool = false) {
+        let old = loanPayments.first(where: { $0.id == payment.id })
+        if editing, old == nil { return }
         // Money on an archived account stays as it is.
-        if let old = loanPayments.first(where: { $0.id == payment.id }), readOnlyReason(old) != nil { return }
+        if let old, readOnlyReason(old) != nil { return }
         guard account(id: payment.accountID)?.isArchived != true else { return }
         persist {
             if let index = loanPayments.firstIndex(where: { $0.id == payment.id }) {

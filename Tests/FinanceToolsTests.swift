@@ -142,6 +142,27 @@ struct FinanceToolsTests {
             ) == true)
     }
 
+    /// A rule left unconfirmed and due again today: today's counts once, with the days ahead, and
+    /// is not late (audit round 5, 2026-11-16: counted twice, and called late).
+    @Test func upcomingCountsTodayOnceNotAsLate() throws {
+        let vn = RecurringRule.calendar
+        let today = vn.startOfDay(for: .now)
+        let lunch = RecurringRule(kind: .expense, amount: 50_000, categoryID: "food", accountID: bank.id,
+                                  note: "Ăn trưa", frequency: .daily, interval: 1,
+                                  startDate: try #require(vn.date(byAdding: .day, value: -10, to: today)),
+                                  autoRecords: false,
+                                  lastHandled: try #require(vn.date(byAdding: .day, value: -3, to: today)))
+        let store = makeStore()
+        store.recurringRules = [lunch]
+        let result = GetUpcoming().run(["days": 1], in: store).result
+        // Late: the day before yesterday and yesterday. Then today and tomorrow.
+        #expect(result["toPay"] == 200_000)
+        guard case .array(let items)? = result["items"] else { Issue.record("no items"); return }
+        #expect(items.filter { $0["late"] == true }.count == 1)
+        #expect(items.first?["times"] == 2)
+        #expect(items.count == 3)
+    }
+
     // MARK: Các tháng
 
     @Test func monthlyTrendAveragesWholeMonthsOnly() {
