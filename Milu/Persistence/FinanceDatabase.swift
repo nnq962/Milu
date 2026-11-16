@@ -223,36 +223,51 @@ final class FinanceDatabase {
         return (snapshot, accountRows, hasDuplicates)
     }
 
-    /// Two devices can each make a row with the same `id` before they sync (the built-in
-    /// categories, which every install adds): the oldest stays, being the one the user may have
-    /// changed since, and the others go.
+    /// Two devices can each make a row with the same `id` before they sync. The built-in
+    /// categories and relationships, which every install adds: the oldest stays, being the one
+    /// the user may have changed since (a new install's is made fresh). Every other row: the one
+    /// changed last stays (audit round 3, 2026-11-16: a recurring payment recorded on two devices,
+    /// then changed on one, lost the change to the other's older, untouched copy).
     func removeDuplicates() {
         var removed = 0
-        removed += removeDuplicates(of: AccountRecord.self, id: \.id)
-        removed += removeDuplicates(of: CategoryRecord.self, id: \.id)
-        removed += removeDuplicates(of: TransactionRecord.self, id: \.id)
-        removed += removeDuplicates(of: LoanRecord.self, id: \.id)
-        removed += removeDuplicates(of: LoanPaymentRecord.self, id: \.id)
-        removed += removeDuplicates(of: ReminderRecord.self, id: \.id)
-        removed += removeDuplicates(of: ContactRecord.self, id: \.id)
-        removed += removeDuplicates(of: RelationshipRecord.self, id: \.id)
-        removed += removeDuplicates(of: RecurringRuleRecord.self, id: \.id)
+        removed += removeDuplicates(of: AccountRecord.self, id: \.id, keeping: .changedLast)
+        removed += removeDuplicates(of: CategoryRecord.self, id: \.id, keeping: .oldest)
+        removed += removeDuplicates(of: TransactionRecord.self, id: \.id, keeping: .changedLast)
+        removed += removeDuplicates(of: LoanRecord.self, id: \.id, keeping: .changedLast)
+        removed += removeDuplicates(of: LoanPaymentRecord.self, id: \.id, keeping: .changedLast)
+        removed += removeDuplicates(of: ReminderRecord.self, id: \.id, keeping: .changedLast)
+        removed += removeDuplicates(of: ContactRecord.self, id: \.id, keeping: .changedLast)
+        removed += removeDuplicates(of: RelationshipRecord.self, id: \.id, keeping: .oldest)
+        removed += removeDuplicates(of: RecurringRuleRecord.self, id: \.id, keeping: .changedLast)
         if removed > 0 {
             log.info("Removed \(removed) duplicate rows")
             commit()
         }
     }
 
-    private func removeDuplicates<T: PersistentModel & Dated, ID: Hashable>(of type: T.Type, id: KeyPath<T, ID>) -> Int {
+    enum DuplicateKept { case oldest, changedLast }
+
+    private func removeDuplicates<T: PersistentModel & Dated, ID: Hashable>(of type: T.Type, id: KeyPath<T, ID>,
+                                                                         keeping: DuplicateKept) -> Int {
         var seen: [ID: T] = [:]
         var removed = 0
+        // The same answer on every device, whatever order the rows come in: ties go to the
+        // oldest, then the latest change.
+        func wins(_ row: T, over kept: T) -> Bool {
+            switch keeping {
+            case .oldest:
+                row.createdAt != kept.createdAt ? row.createdAt < kept.createdAt : row.updatedAt > kept.updatedAt
+            case .changedLast:
+                row.updatedAt != kept.updatedAt ? row.updatedAt > kept.updatedAt : row.createdAt < kept.createdAt
+            }
+        }
         for row in fetch(FetchDescriptor<T>()) {
             let key = row[keyPath: id]
             guard let kept = seen[key] else {
                 seen[key] = row
                 continue
             }
-            if row.createdAt < kept.createdAt {
+            if wins(row, over: kept) {
                 seen[key] = row
                 context.delete(kept)
             } else {
@@ -478,6 +493,17 @@ final class FinanceDatabase {
         commit()
     }
 
+    /// A rule moved on after recording or skipping: its `lastHandled` only, on a row still there.
+    /// Saved whole, a rule deleted, paused or changed on another device came back as this device
+    /// last read it (audit round 3, 2026-11-16).
+    func saveHandled(_ rule: RecurringRule) {
+        guard let row = fetch(FetchDescriptor<RecurringRuleRecord>(predicate: RecurringRuleRecord.matching(rule.id))).first
+        else { return }
+        row.lastHandled = rule.lastHandled
+        row.updatedAt = .now
+        commit()
+    }
+
     func deleteRecurringRule(id: UUID) {
         delete(RecurringRuleRecord.self, id: id)
     }
@@ -669,6 +695,7 @@ extension ReminderRecord: IdentifiedRecord {
 /// A row with the date it was made, to tell which of two duplicates came first.
 protocol Dated {
     var createdAt: Date { get }
+    var updatedAt: Date { get }
 }
 
 extension AccountRecord: Dated {}

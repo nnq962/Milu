@@ -204,6 +204,20 @@ struct FinanceStoreTests {
         #expect(history[0].value == 6_000_000)
     }
 
+    /// Lent from an account later locked: the loan counts from the day it was made, not before
+    /// (audit round 3, 2026-11-16: every earlier month showed it too).
+    @Test func aLoanThroughALockedAccountShowsWhenItWasMade() {
+        let store = makeStore()
+        store.save(Loan(name: "Minh", direction: .lent, principal: 1_000_000, outstanding: 1_000_000, dueDate: nil,
+                        accountID: wallet.id, date: .now))
+        var locked = store.account(id: wallet.id)!
+        locked.isLocked = true
+        store.update(locked, balance: locked.balance)
+        let history = store.netWorthHistory(months: 2)
+        #expect(history[1].value == store.netWorth)
+        #expect(history[1].value - history[0].value == 1_000_000)
+    }
+
     @Test func transfersAndExistingLoansDoNotMoveTheHistory() {
         let store = makeStore()
         store.add(AccountTransfer(fromAccountID: bank.id, toAccountID: wallet.id, amount: 1_000_000, date: .now))

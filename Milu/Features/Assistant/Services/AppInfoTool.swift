@@ -47,7 +47,8 @@ struct AppFacts {
             proRenews: pro.renews,
             monthlyPrice: pro.price(.monthly),
             yearlyPrice: pro.price(.yearly),
-            lockOn: isPro && defaults.bool(forKey: StorageKey.appLock),
+            // The switch alone: it locks whatever the plan (`AppLock.isOn`).
+            lockOn: defaults.bool(forKey: StorageKey.appLock),
             lockDelay: AppLock.Delay(rawValue: defaults.integer(forKey: StorageKey.appLockDelay))?.title,
             biometry: AppLock.biometryName,
             iCloud: sync?.account,

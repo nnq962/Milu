@@ -80,7 +80,9 @@ final class AppLock {
     /// The switch is on. Not the plan: it is read from the App Store's last answer, which moving
     /// the iPhone's date past the plan's end (no passcode needed) turns to "free", and a lock
     /// that followed the plan then opened on the next launch with no Face ID (audit round 2,
-    /// 2026-11-15). A plan that lapsed turns the switch off at the next unlock (`opened`).
+    /// 2026-11-15). Nor does a lapsed plan turn it off: a renewal not yet heard (offline on the
+    /// day) looks the same, and the subscriber lost the lock for good (audit round 3,
+    /// 2026-11-16). It stays until the owner turns it off in Cài đặt, which shows it while on.
     var isOn: Bool { defaults.bool(forKey: StorageKey.appLock) }
 
     var delay: Delay {
@@ -138,11 +140,9 @@ final class AppLock {
         if !defaults.bool(forKey: StorageKey.appLock) { isLocked = false }
     }
 
-    /// The owner opened the lock. On the free plan (Pro lapsed) the switch goes off with it: this
-    /// was the last lock, and Cài đặt no longer offers the switch to turn it off.
+    /// The owner opened the lock.
     private func opened() {
         isLocked = false
-        if !MiluPlan.isPro { defaults.set(false, forKey: StorageKey.appLock) }
     }
 
     #if DEBUG

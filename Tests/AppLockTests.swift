@@ -31,9 +31,10 @@ struct AppLockTests {
         #expect(appLock.isLocked)
     }
 
-    /// The plan lapsing, or seeming to (the iPhone's date moved past its end), never opens the
-    /// lock: not the one that is up, not the next launch's (audit 2026-11-15, and its round 2: a
-    /// relaunch opened it). Only Face ID does, and on the free plan that also turns it off.
+    /// The plan lapsing, or seeming to (the iPhone's date moved past its end, a renewal not yet
+    /// heard), never opens the lock: not the one that is up, not the next launch's (audit
+    /// 2026-11-15, and its round 2: a relaunch opened it). Only Face ID does, and it leaves the
+    /// switch on (round 3: it turned it off for a subscriber offline on the renewal day).
     @Test func aLapsedPlanDoesNotOpenTheLock() {
         defer { UserDefaults.standard.removeObject(forKey: StorageKey.debugPro) }
         let (appLock, defaults) = lock(on: true, pro: true, delay: .immediately)
@@ -44,11 +45,14 @@ struct AppLockTests {
         // Killed and launched again on the "free" plan: still locked.
         let relaunched = AppLock(defaults: defaults)
         #expect(relaunched.isLocked)
-        // Opened with Face ID: the switch goes off, and it does not lock again.
+        // Opened with Face ID: the switch stays on, and it locks again until turned off.
         relaunched.didReturnForTest(unlocked: true)
-        #expect(!defaults.bool(forKey: StorageKey.appLock))
+        #expect(defaults.bool(forKey: StorageKey.appLock))
         relaunched.didLeave(now: .now)
         relaunched.didReturn(now: .now + .seconds(5))
+        #expect(relaunched.isLocked)
+        defaults.set(false, forKey: StorageKey.appLock)
+        relaunched.refresh()
         #expect(!relaunched.isLocked)
         #expect(!AppLock(defaults: defaults).isLocked)
     }

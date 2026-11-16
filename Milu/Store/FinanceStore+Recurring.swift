@@ -93,7 +93,7 @@ extension FinanceStore {
                 }
                 var handled = rule
                 handled.lastHandled = last
-                save(handled)
+                moveOn(handled)
             }
         }
         return recorded
@@ -170,7 +170,14 @@ extension FinanceStore {
     private func markHandled(_ occurrence: RecurringOccurrence) {
         guard var rule = recurringRule(id: occurrence.rule.id) else { return }
         rule.lastHandled = max(rule.lastHandled ?? .distantPast, occurrence.day)
-        save(rule)
+        moveOn(rule)
+    }
+
+    /// The rule's `lastHandled` moved on, nothing else written (`FinanceDatabase.saveHandled`).
+    private func moveOn(_ rule: RecurringRule) {
+        guard let index = recurringRules.firstIndex(where: { $0.id == rule.id }) else { return }
+        recurringRules[index].lastHandled = rule.lastHandled
+        database?.saveHandled(rule)
     }
 
     /// Records one day of a rule, unless it is there already; nil when it was, or when its account

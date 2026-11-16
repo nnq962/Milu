@@ -250,13 +250,13 @@ struct MiluApp: App {
                 .task(id: generation) {
                     await sync.waitForFreshData(since: sync.startedAt)
                     guard !Task.isCancelled else { return }
-                    store.recordDueRecurring()
+                    recordDueRecurringOnFreshData()
                 }
                 // Past midnight with the app open: today's are due now.
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
                     store.recordDueRecurring()
                 }
-                // Pro bought or lapsed: the lock follows the plan, the AI allowance with it.
+                // Pro bought or lapsed: the AI allowance follows; the lock follows its switch.
                 .onChange(of: ProStore.shared.isPro) {
                     appLock.refresh()
                     quota.reload()
@@ -271,20 +271,31 @@ struct MiluApp: App {
             if phase == .active {
                 // A plan cancelled or lapsed while away (Cài đặt › Đăng ký): Pro follows at once.
                 Task { await ProStore.shared.refresh() }
-                guard cameFromBackground else { return }
-                cameFromBackground = false
                 // Read again only when iCloud brought something meanwhile: every return read the
                 // whole database on the main thread, years of it, for nothing (audit 2026-11-15).
+                // On every coming to the front, not only from the background: started by iCloud
+                // in the background, the app had its data written with no screen to read it, and
+                // opened on what it held before (audit round 3, 2026-11-16).
                 if sync.takeNewData() { store.reload() }
+                guard cameFromBackground else { return }
+                cameFromBackground = false
                 sync.checkAccount()
                 // What came due while away, once iCloud has sent what changed meanwhile.
                 let back = ContinuousClock.now
                 Task {
                     await sync.waitForFreshData(since: back)
-                    store.recordDueRecurring()
+                    recordDueRecurringOnFreshData()
                 }
             }
         }
+    }
+
+    /// Records what the self-recording rules owe, on the database as iCloud left it: what came
+    /// down is read first (audit round 3, 2026-11-16: recorded on the copy from before the
+    /// download, a payment or rule deleted on another device came back).
+    private func recordDueRecurringOnFreshData() {
+        if sync.takeNewData() { store.reload() }
+        store.recordDueRecurring()
     }
 
     /// The welcome is done: straight to Tổng quan, built under the welcome and still before it
@@ -338,10 +349,12 @@ private struct ReloadAfterSync: ViewModifier {
             .onChange(of: sync.quietImports) { readNewData() }
     }
 
+    /// What came down, read. Nothing recorded here: a restore comes in rounds, and recording
+    /// after the first wrote from data still behind (audit round 3, 2026-11-16); the launch and
+    /// the return to the front record once the downloads have settled.
     private func readNewData() {
         guard !sync.isReceiving, sync.takeNewData() else { return }
         store.reload()
-        store.recordDueRecurring()
     }
 }
 

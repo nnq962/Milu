@@ -195,7 +195,8 @@ final class CloudSyncMonitor {
             if shows, !isOffline { receiving.insert(update.id) }
         } else {
             receiving.remove(update.id)
-            if update.isImport { lastImportEnded = .now }
+            // A download that failed brought nothing: it does not count as the data being in.
+            if update.isImport, update.succeeded { lastImportEnded = .now }
             if update.isImport, update.succeeded, takeImportedRows() { hasNewData = true }
             let isExport = !update.isImport && !update.isSetup
             if update.succeeded {
@@ -226,10 +227,18 @@ final class CloudSyncMonitor {
     /// themselves, waits for it: written from an old copy (an iPad not opened for weeks), a
     /// payment deleted or skipped on the iPhone came back on every device (audit round 2,
     /// 2026-11-15).
-    func waitForFreshData(since: ContinuousClock.Instant, timeout: Duration = .seconds(15)) async {
+    ///
+    /// Done once a download has ended well after `since` and none has started for `quiet` (a
+    /// device far behind gets its data in rounds with short gaps, the latest changes last: audit
+    /// round 3, 2026-11-16, it recorded after the first round). The caller then reads the database
+    /// before writing (`takeNewData`).
+    func waitForFreshData(since: ContinuousClock.Instant, timeout: Duration = .seconds(60),
+                          quiet: Duration = SyncPillTimeline.settle) async {
         let deadline = ContinuousClock.now + timeout
         while !Task.isCancelled, ContinuousClock.now < deadline, expectsDownload {
-            if let ended = lastImportEnded, ended >= since { return }
+            if let ended = lastImportEnded, ended >= since, receiving.isEmpty, ContinuousClock.now - ended >= quiet {
+                return
+            }
             try? await Task.sleep(for: .milliseconds(250))
         }
     }

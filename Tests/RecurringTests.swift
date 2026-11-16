@@ -79,6 +79,18 @@ struct RecurringTests {
         #expect(reopened.recordDueRecurring(now: day(2027, 3, 20)).isEmpty)
     }
 
+    /// Moving a rule on writes only its last day, on a row still there: a rule deleted on another
+    /// device is not written back (audit round 3, 2026-11-16).
+    @Test func movingOnDoesNotBringBackADeletedRule() throws {
+        let (store, container, wallet) = storeWithWallet()
+        store.save(rule(start: day(2027, 1, 5), auto: true, account: wallet.id))
+        let context = ModelContext(container)
+        for row in try context.fetch(FetchDescriptor<RecurringRuleRecord>()) { context.delete(row) }
+        try context.save()
+        store.recordDueRecurring(now: day(2027, 2, 6))
+        #expect(try ModelContext(container).fetch(FetchDescriptor<RecurringRuleRecord>()).isEmpty)
+    }
+
     /// A category only a rule uses is hidden, not deleted: the rule goes on filing under it (audit
     /// round 2, 2026-11-15: it recorded under "Hạng mục đã xoá").
     @Test func aRulesCategoryIsHiddenNotDeleted() throws {

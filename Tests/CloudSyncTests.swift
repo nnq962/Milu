@@ -138,6 +138,28 @@ struct CloudSyncTests {
         #expect(food.first?.name == "Ăn uống của tôi")
     }
 
+    /// A recurring payment recorded on two devices, then changed on one: the changed copy stays,
+    /// not the older untouched one (audit round 3, 2026-11-16).
+    @Test func theLastChangedCopyOfATransactionStays() throws {
+        let container = FinanceDatabase.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let id = UUID()
+        let ipad = TransactionRecord(id: id, kind: "expense", amount: 1_000_000, occurredAt: day)
+        ipad.createdAt = day
+        ipad.updatedAt = day
+        let iphone = TransactionRecord(id: id, kind: "expense", amount: 1_150_000, occurredAt: day)
+        iphone.createdAt = day.addingTimeInterval(7_200)
+        iphone.updatedAt = day.addingTimeInterval(9_000)
+        context.insert(iphone)
+        context.insert(ipad)
+        try context.save()
+
+        FinanceDatabase(context: context).removeDuplicates()
+        let rows = try context.fetch(FetchDescriptor<TransactionRecord>()).filter { $0.id == id }
+        #expect(rows.count == 1)
+        #expect(rows.first?.amount == 1_150_000)
+    }
+
     /// A system category (hidden from the lists) twice: still found and made one, though the
     /// snapshot never shows it (review 2026-11-13: the check read the lists, not the rows).
     @Test func aHiddenDuplicateIsStillCleared() throws {

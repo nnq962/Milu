@@ -43,6 +43,13 @@ extension FinanceStore {
         for transfer in goalTransfers where after.holds(transfer.date) && uncounted.contains(transfer.accountID) {
             change += transfer.goalDelta
         }
+        // A new loan through an account that does not count: only the loan's side moved, as for
+        // its repayments below (audit round 3, 2026-11-16: every month before it was off by the
+        // principal).
+        for loan in loans where after.holds(loan.date) {
+            guard let accountID = loan.movedAccountID, uncounted.contains(accountID) else { continue }
+            change += loan.direction == .lent ? loan.principal : -loan.principal
+        }
         // A repayment through an account that does not count: only the loan's side moved.
         for payment in loanPayments where after.holds(payment.date) && uncounted.contains(payment.accountID) {
             guard let loan = loan(id: payment.loanID) else { continue }

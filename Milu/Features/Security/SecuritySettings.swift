@@ -13,11 +13,24 @@ struct SecuritySettings: View {
     @State private var isExplainingNoPasscode = false
 
     private var title: String { "Khoá bằng \(AppLock.biometryName)" }
+    /// What opens it: the face with Face ID, a finger with Touch ID (audit round 3: "khuôn mặt"
+    /// on a Touch ID iPhone), and the passcode.
+    private static var unlockWords: String {
+        switch AppLock.biometryName {
+        case "Face ID": "khuôn mặt hoặc mật mã iPhone"
+        case "Touch ID": "vân tay hoặc mật mã iPhone"
+        default: "mật mã iPhone"
+        }
+    }
 
     var body: some View {
         FormGroup(title: "Bảo mật") {
-            if MiluPlan.isPro {
-                FormConfirmedToggleRow(title: title, subtitle: "Mở Milu bằng khuôn mặt hoặc mật mã iPhone",
+            // On, it shows whatever the plan, so it can be turned off: a lapsed plan no longer
+            // turns it off by itself (`AppLock.isOn`).
+            if MiluPlan.isPro || isOn {
+                FormConfirmedToggleRow(title: title,
+                                       subtitle: MiluPlan.isPro ? "Mở Milu bằng \(Self.unlockWords)"
+                                           : "Milu Pro đã hết hạn. Tắt rồi thì cần Pro để bật lại",
                                        icon: "hugeicons-square-lock-02", isOn: $isOn, confirm: confirm)
                 if isOn {
                     FormDivider()

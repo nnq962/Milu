@@ -133,15 +133,29 @@ struct CloudSettingsTests {
     /// old iPad recorded from its own copy, bringing back a payment deleted on the iPhone); not
     /// where none comes, and not past the time limit.
     @Test func autoRecordingWaitsForTheDownload() async {
+        // A download that failed does not count (audit round 3, 2026-11-16): it waits on.
+        let afterFailure = CloudSyncMonitor(defaults: makeDefaults(), syncs: true)
+        let failedAt = ContinuousClock.now
+        let failed = UUID()
+        afterFailure.handle(.init(id: failed, isImport: true, ended: false))
+        afterFailure.handle(.init(id: failed, isImport: true, ended: true, succeeded: false, error: CKError(.networkFailure)))
+        await afterFailure.waitForFreshData(since: failedAt, timeout: .milliseconds(800), quiet: .milliseconds(100))
+        #expect(ContinuousClock.now - failedAt >= .milliseconds(800))
+
+        // A first round, the next at once: done only once the last has gone quiet.
         let monitor = CloudSyncMonitor(defaults: makeDefaults(), syncs: true)
         let since = ContinuousClock.now
-        let waiting = Task { await monitor.waitForFreshData(since: since, timeout: .seconds(5)) }
-        try? await Task.sleep(for: .milliseconds(300))
-        let download = UUID()
-        monitor.handle(.init(id: download, isImport: true, ended: false))
-        monitor.handle(.init(id: download, isImport: true, ended: true))
+        let waiting = Task { await monitor.waitForFreshData(since: since, timeout: .seconds(10), quiet: .milliseconds(500)) }
+        let first = UUID(), second = UUID()
+        monitor.handle(.init(id: first, isImport: true, ended: false))
+        monitor.handle(.init(id: first, isImport: true, ended: true))
+        monitor.handle(.init(id: second, isImport: true, ended: false))
+        try? await Task.sleep(for: .milliseconds(700))
+        let secondEnds = ContinuousClock.now
+        monitor.handle(.init(id: second, isImport: true, ended: true))
         await waiting.value
-        #expect(ContinuousClock.now - since < .seconds(2))
+        #expect(ContinuousClock.now - secondEnds >= .milliseconds(500))
+        #expect(ContinuousClock.now - since < .seconds(10))
 
         let noICloud = CloudSyncMonitor(defaults: makeDefaults(), syncs: false)
         let asked = ContinuousClock.now

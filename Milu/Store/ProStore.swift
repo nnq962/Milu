@@ -147,8 +147,10 @@ final class ProStore {
         for await entitlement in Transaction.currentEntitlements {
             guard case .verified(let transaction) = entitlement, transaction.revocationDate == nil,
                   let plan = Plan(rawValue: transaction.productID) else { continue }
-            // Lapsed already, though still listed a moment: not owned.
-            if let end = transaction.expirationDate, end <= .now { continue }
+            // Lapsed already, though still listed a moment: not owned. In Apple's billing grace
+            // period (a card that failed, being retried) it still is (audit round 3, 2026-11-16).
+            if let end = transaction.expirationDate, end <= .now,
+               await transaction.subscriptionStatus?.state != .inGracePeriod { continue }
             owned = plan
             ends = transaction.expirationDate
             if case .verified(let renewal)? = await transaction.subscriptionStatus?.renewalInfo {
