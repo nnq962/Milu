@@ -244,6 +244,10 @@ struct FinanceToolsTests {
         #expect(ToolArgs.int(.number(.nan), default: 10, in: 1...20) == 10)
         #expect(ToolArgs.int(nil, default: 10, in: 1...20) == 10)
         #expect(JSONValue.number(1e20).string == "1e+20")
+        // The thinking step's words too, made before the tool runs (audit round 4, 2026-11-16).
+        let step = ThinkingStep.tool(GetMonthlyTrend().name, arguments: ["months": .number(1e20)])
+        #expect(step.done.contains("24 tháng"))
+        _ = ThinkingStep.tool(GetMonthlyTrend().name, arguments: ["months": .number(.infinity)])
         let store = makeStore(transactions: [spend(100_000, "food.lunch")])
         let result = ListTransactions().run(["from": .string(ToolDates.text(day(-9))), "to": .string(ToolDates.text(.now)),
                                              "limit": .number(1e20)], in: store).result

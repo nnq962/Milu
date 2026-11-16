@@ -204,7 +204,17 @@ struct RecurringEditorSheet: View {
     private var startsAnew: Bool {
         guard let original, let schedule = repeatChoice.schedule else { return false }
         return !Calendar.current.isDate(original.startDate, inSameDayAs: startDate) || original.frequency != schedule.frequency
-            || original.interval != schedule.interval || (original.isPaused && !isPaused)
+            || original.interval != schedule.interval || (original.isPaused && !isPaused) || extendsPastEnd
+    }
+
+    /// An end already past, taken off or moved later: the rule comes back from today, as from a
+    /// pause, not with every time missed since (audit round 4, 2026-11-16: they were all
+    /// recorded at once, unasked).
+    private var extendsPastEnd: Bool {
+        guard let oldEnd = original?.endDate else { return false }
+        let calendar = RecurringRule.calendar
+        guard calendar.startOfDay(for: oldEnd) < calendar.startOfDay(for: .now) else { return false }
+        return !hasEnd || calendar.startOfDay(for: endDate) > calendar.startOfDay(for: oldEnd)
     }
 
     /// The days before today still waiting that saving would have Milu record at once, by itself:

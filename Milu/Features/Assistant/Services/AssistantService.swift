@@ -47,7 +47,9 @@ struct ThinkingStep: Identifiable, Equatable {
         case GetRecurring().name: return ThinkingStep("xem", "giao dịch định kỳ")
         case GetUpcoming().name: return ThinkingStep("xem", "các khoản sắp đến hạn")
         case GetMonthlyTrend().name:
-            let months = arguments["months"]?.number.map { min(max(Int($0), 2), 24) } ?? 6
+            // Kept in range as the tool keeps it: `Int()` of a huge number stopped the app here,
+            // before the tool ran (audit round 4, 2026-11-16).
+            let months = ToolArgs.int(arguments["months"], default: 6, in: 2...24)
             return ThinkingStep("so sánh", "\(months) tháng gần đây")
         case ListTransfers().name: return ThinkingStep("tìm", "các lần chuyển tiền" + period)
         case RecordTransaction().name: return ThinkingStep("ghi", "giao dịch")

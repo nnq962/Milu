@@ -185,6 +185,39 @@ struct CloudSyncTests {
         }
     }
 
+    /// The same payment, changed on the device that recorded it first, then recorded untouched
+    /// on another later: the change stays (audit round 4, 2026-11-16: the later, untouched copy
+    /// won). Two untouched copies: the oldest, as an older build keeps.
+    @Test func aChangedCopyBeatsALaterUntouchedOne() throws {
+        let container = FinanceDatabase.makeContainer(inMemory: true)
+        let context = ModelContext(container)
+        let id = UUID()
+        let iphone = TransactionRecord(id: id, kind: "expense", amount: 1_340_000, occurredAt: day)
+        iphone.createdAt = day
+        iphone.updatedAt = day.addingTimeInterval(300)
+        let ipad = TransactionRecord(id: id, kind: "expense", amount: 1_000_000, occurredAt: day)
+        ipad.createdAt = day.addingTimeInterval(46_800)
+        ipad.updatedAt = day.addingTimeInterval(46_800)
+        context.insert(ipad)
+        context.insert(iphone)
+        try context.save()
+        FinanceDatabase(context: context).removeDuplicates()
+        let rows = try context.fetch(FetchDescriptor<TransactionRecord>()).filter { $0.id == id }
+        #expect(rows.map(\.amount) == [1_340_000])
+
+        let other = UUID()
+        for offset in [3_600.0, 0] {
+            let row = TransactionRecord(id: other, kind: "expense", amount: Int64(offset), occurredAt: day)
+            row.createdAt = day.addingTimeInterval(offset)
+            row.updatedAt = row.createdAt
+            context.insert(row)
+        }
+        try context.save()
+        FinanceDatabase(context: context).removeDuplicates()
+        let kept = try context.fetch(FetchDescriptor<TransactionRecord>()).filter { $0.id == other }
+        #expect(kept.map(\.amount) == [0])
+    }
+
     /// A system category (hidden from the lists) twice: still found and made one, though the
     /// snapshot never shows it (review 2026-11-13: the check read the lists, not the rows).
     @Test func aHiddenDuplicateIsStillCleared() throws {

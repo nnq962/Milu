@@ -149,12 +149,21 @@ final class ProStore {
                   let plan = Plan(rawValue: transaction.productID) else { continue }
             // Lapsed already, though still listed a moment: not owned. In Apple's billing grace
             // period (a card that failed, being retried) it still is (audit round 3, 2026-11-16).
-            if let end = transaction.expirationDate, end <= .now,
-               await transaction.subscriptionStatus?.state != .inGracePeriod { continue }
+            var inGracePeriod = false
+            if let end = transaction.expirationDate, end <= .now {
+                guard await transaction.subscriptionStatus?.state == .inGracePeriod else { continue }
+                inGracePeriod = true
+            }
             owned = plan
             ends = transaction.expirationDate
             if case .verified(let renewal)? = await transaction.subscriptionStatus?.renewalInfo {
                 renewing = renewal.willAutoRenew
+                // Owned until Apple stops retrying, not until its end, already past: with that,
+                // the check after the end ran every second, and "Gia hạn" named a day gone
+                // (audit round 4, 2026-11-16).
+                if inGracePeriod { ends = renewal.gracePeriodExpirationDate }
+            } else if inGracePeriod {
+                ends = nil
             }
         }
         // Each set only when it changed: asked again every time the app comes back, a same value
@@ -179,7 +188,8 @@ final class ProStore {
     /// (cancelled, a failed payment), back to free on the spot.
     private func scheduleExpiryCheck() {
         expiryCheck?.cancel()
-        guard let expiresAt else { return }
+        // Never for an end already past: it would ask again at once, over and over.
+        guard let expiresAt, expiresAt > .now else { return }
         let wait = max(expiresAt.timeIntervalSinceNow, 0) + 1
         expiryCheck = Task { [weak self] in
             try? await Task.sleep(for: .seconds(wait))

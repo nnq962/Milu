@@ -42,9 +42,18 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
         switch await permission() {
         case .allowed: return true
         case .denied: return false
-        case .notAsked: return (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        case .notAsked:
+            let allowed = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+            // Planned at once (`NotificationScheduling`): switches already on (from iCloud, or
+            // the invitation's) planned nothing until the next return to the app (audit round 4,
+            // 2026-11-16).
+            if allowed { NotificationCenter.default.post(name: Self.allowedNotification, object: nil) }
+            return allowed
         }
     }
+
+    /// Posted once iOS's prompt was answered yes.
+    static let allowedNotification = Notification.Name("milu.notificationsAllowed")
 
     // MARK: Daily reminder
 

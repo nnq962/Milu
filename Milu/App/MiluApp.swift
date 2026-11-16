@@ -22,6 +22,10 @@ struct MiluApp: App {
     /// Tổng quan, đóng mọi sheet đang mở).
     @State private var generation = 0
     @Environment(\.scenePhase) private var scenePhase
+    /// The app is on screen and in front (`scenePhase`), read by tasks as it is now.
+    @State private var isActive = false
+    /// The self-recording rules' pass waiting for iCloud (`autoRecord`); a new one replaces it.
+    @State private var autoRecording: Task<Void, Never>?
     /// "Khoá bằng Face ID" (Milu Pro): locked from launch when on.
     @State private var appLock = AppLock.shared
     @State private var lockCurtain = LockCurtain()
@@ -246,15 +250,17 @@ struct MiluApp: App {
                     showsNotificationInvite = true
                 }
                 // What recurring rules that record by themselves owe since the app was last open,
-                // once this launch's download from iCloud is in (`waitForFreshData`).
+                // once this launch's download from iCloud is in (`autoRecord`). Launched by
+                // iCloud in the background long before, the download that counts is one after
+                // the screen came up (audit round 4, 2026-11-16: the old background one did).
                 .task(id: generation) {
-                    await sync.waitForFreshData(since: sync.startedAt)
-                    guard !Task.isCancelled else { return }
-                    recordDueRecurringOnFreshData()
+                    let launchedJustNow = ContinuousClock.now - sync.startedAt < .seconds(5)
+                    autoRecord(since: launchedJustNow ? sync.startedAt : .now)
                 }
-                // Past midnight with the app open: today's are due now.
+                // Past midnight: today's are due now, by the same way in (audit round 4: this
+                // one recorded at once, from what the app held, on a return the day after).
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
-                    store.recordDueRecurring()
+                    autoRecord(since: .now)
                 }
                 // Pro bought or lapsed: the AI allowance follows; the lock follows its switch.
                 .onChange(of: ProStore.shared.isPro) {
@@ -262,7 +268,8 @@ struct MiluApp: App {
                     quota.reload()
                 }
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            isActive = phase == .active
             // The lock follows UIKit's scene notifications itself (`LockWindowInstaller`).
             if phase == .background {
                 cameFromBackground = true
@@ -281,21 +288,28 @@ struct MiluApp: App {
                 cameFromBackground = false
                 sync.checkAccount()
                 // What came due while away, once iCloud has sent what changed meanwhile.
-                let back = ContinuousClock.now
-                Task {
-                    await sync.waitForFreshData(since: back)
-                    recordDueRecurringOnFreshData()
-                }
+                autoRecord(since: .now)
             }
         }
     }
 
-    /// Records what the self-recording rules owe, on the database as iCloud left it: what came
-    /// down is read first (audit round 3, 2026-11-16: recorded on the copy from before the
-    /// download, a payment or rule deleted on another device came back).
-    private func recordDueRecurringOnFreshData() {
-        if sync.takeNewData() { store.reload() }
-        store.recordDueRecurring()
+    /// The one way the self-recording rules record by themselves (audit round 4, 2026-11-16:
+    /// there were three, two of them without waiting): with the app in front, once a download
+    /// from iCloud that ended after `since` has gone quiet (or none can come), on the database as
+    /// iCloud left it, what came down read first (audit round 3: recorded on the copy from before
+    /// the download, a payment or rule deleted on another device came back). A new call replaces
+    /// one still waiting.
+    private func autoRecord(since: ContinuousClock.Instant) {
+        autoRecording?.cancel()
+        autoRecording = Task {
+            await sync.waitForFreshData(since: since)
+            while !Task.isCancelled, !isActive {
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            guard !Task.isCancelled else { return }
+            if sync.takeNewData() { store.reload() }
+            store.recordDueRecurring()
+        }
     }
 
     /// The welcome is done: straight to Tổng quan, built under the welcome and still before it

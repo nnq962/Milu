@@ -225,9 +225,13 @@ final class FinanceDatabase {
 
     /// Two devices can each make a row with the same `id` before they sync. The built-in
     /// categories and relationships, which every install adds: the oldest stays, being the one
-    /// the user may have changed since (a new install's is made fresh). Every other row: the one
-    /// changed last stays (audit round 3, 2026-11-16: a recurring payment recorded on two devices,
-    /// then changed on one, lost the change to the other's older, untouched copy).
+    /// the user may have changed since (a new install's is made fresh). Every other row: a copy
+    /// changed after it was made beats one never changed, the last changed of two changed ones
+    /// stays, and of two untouched ones the oldest, as before. A recurring payment recorded on
+    /// two devices and changed on one keeps the change whichever copy was made first (audit
+    /// rounds 3 and 4, 2026-11-16: by age, or by the last write alone, the change was lost one
+    /// way or the other); and two untouched copies keep the one an older build keeps too, so a
+    /// device not yet updated does not delete the other's.
     func removeDuplicates() {
         var removed = 0
         removed += removeDuplicates(of: AccountRecord.self, id: \.id, keeping: .changedLast)
@@ -247,6 +251,11 @@ final class FinanceDatabase {
 
     enum DuplicateKept { case oldest, changedLast }
 
+    /// Written again a while after it was made: changed by someone, not only recorded.
+    private static func wasChanged(_ row: some Dated) -> Bool {
+        row.updatedAt.timeIntervalSince(row.createdAt) > 2
+    }
+
     private func removeDuplicates<T: PersistentModel & Dated, ID: Hashable>(of type: T.Type, id: KeyPath<T, ID>,
                                                                          keeping: DuplicateKept) -> Int {
         var seen: [ID: T] = [:]
@@ -258,7 +267,14 @@ final class FinanceDatabase {
             case .oldest:
                 row.createdAt != kept.createdAt ? row.createdAt < kept.createdAt : row.updatedAt > kept.updatedAt
             case .changedLast:
-                row.updatedAt != kept.updatedAt ? row.updatedAt > kept.updatedAt : row.createdAt < kept.createdAt
+                switch (Self.wasChanged(row), Self.wasChanged(kept)) {
+                case (true, false): true
+                case (false, true): false
+                case (true, true):
+                    row.updatedAt != kept.updatedAt ? row.updatedAt > kept.updatedAt : row.createdAt < kept.createdAt
+                case (false, false):
+                    row.createdAt != kept.createdAt ? row.createdAt < kept.createdAt : row.updatedAt > kept.updatedAt
+                }
             }
         }
         for row in fetch(FetchDescriptor<T>()) {

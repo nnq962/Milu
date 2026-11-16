@@ -22,8 +22,27 @@ struct NotificationScheduling: ViewModifier {
     @State private var planning: Task<Void, Never>?
 
     func body(content: Content) -> some View {
-        content
+        watchingChanges(content)
             .task { await refresh(checkingQuietly: false) }
+            // Just allowed: what is on is planned now, not at the next return to the app.
+            .onReceive(NotificationCenter.default.publisher(for: Reminders.allowedNotification)) { _ in
+                Task { await refresh(checkingQuietly: true) }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background { wasInBackground = true }
+                // A new day since: plan from it.
+                if phase == .active, wasInBackground {
+                    wasInBackground = false
+                    Task { await planReminder() }
+                    replanRecurring()
+                }
+            }
+    }
+
+    /// What is planned again as the data and the choices change (apart from `body`, which the
+    /// compiler could not type-check in one piece).
+    private func watchingChanges(_ content: Content) -> some View {
+        content
             .onChange(of: store.transactions) { Task { await checkLimits(quietly: false) } }
             // A transfer's fee, a loan's interest, an account locked or brought back move the
             // month's spending too (audit round 2, 2026-11-15: no alert for those).
@@ -38,15 +57,6 @@ struct NotificationScheduling: ViewModifier {
             .onChange(of: budgetAlerts) { _, on in if on { Task { await checkLimits(quietly: true) } } }
             .onChange(of: monthlyBudget) { Task { await checkLimits(quietly: true) } }
             .onChange(of: categoryBudgets) { Task { await checkLimits(quietly: true) } }
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .background { wasInBackground = true }
-                // A new day since: plan from it.
-                if phase == .active, wasInBackground {
-                    wasInBackground = false
-                    Task { await planReminder() }
-                    replanRecurring()
-                }
-            }
     }
 
     private func replanRecurring() {
