@@ -62,7 +62,9 @@ struct FinanceToolsTests {
         #expect(result["left"] == 500_000)
         #expect(result["used"]?.string == 0.75.percentText)
         #expect(result["allowedPerDayToMonthEnd"] != nil)
-        #expect(result["spentPerDaySoFar"] == .number(1_500_000 / Double(Calendar.current.component(.day, from: .now))))
+        // Whole đồng, as every sum the tools give (`ToolMoney`): unrounded, this failed on days that
+        // do not divide 1.500.000 (seen 2026-11-17).
+        #expect(result["spentPerDaySoFar"] == .number((1_500_000 / Double(Calendar.current.component(.day, from: .now))).rounded()))
         let food = result["groups"].flatMap { groups -> JSONValue? in
             if case .array(let items) = groups { return items.first } else { return nil }
         }

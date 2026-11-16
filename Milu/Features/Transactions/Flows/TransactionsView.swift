@@ -107,8 +107,8 @@ struct TransactionsView: View {
             .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 // Plain items: the bar draws their glass, which then takes part in push and pop.
-                // The + beside the tab bar adds a transaction, or a loan while "Vay nợ" shows
-                // (`AddTransactionContext.addsLoan`). The spacer gives each its own glass.
+                // The + beside the tab bar adds a transaction or a loan, a loan on the side "Vay
+                // nợ" shows (`AddTransactionContext`). The spacer gives each its own glass.
                 ToolbarItem(placement: .topBarLeading) { ProfileBarButton { isShowingSettings = true } }
                 ToolbarItem(placement: .topBarTrailing) { assistantButton }
                 if #available(iOS 26.0, *) {
@@ -134,7 +134,7 @@ struct TransactionsView: View {
             followToday()
         }
         .onChange(of: scenePhase) { _, phase in if phase == .active { followToday() } }
-        // The + beside the tabs adds a loan while "Vay nợ" is what shows.
+        // A loan from the + beside the tabs starts on the side "Vay nợ" shows, while it shows.
         .onAppear {
             addContext?.addsLoan = segment == .loans
             addContext?.loanDirection = loanFilter.direction

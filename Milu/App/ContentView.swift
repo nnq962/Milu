@@ -3,9 +3,12 @@ import UIKit
 
 struct ContentView: View {
     @State private var selectedTab: AppTab = .overview
-    /// What the + opened: a transaction, or a loan on "Vay nợ" (`AddTransactionContext.addsLoan`),
-    /// fixed as it opens so the form does not change under the user.
+    /// The form the + opened, picked in its small sheet.
     @State private var adding: AddKind?
+    /// The + first asks what to add (user requests 2026-11-16 and 2026-11-17): a transaction, a
+    /// loan, or with AI. The same rows on every tab; the form opens once the small sheet has gone.
+    @State private var isChoosingAdd = false
+    @State private var pendingAdd: AddKind?
     @State private var addContext = AddTransactionContext()
     @Environment(AppLock.self) private var appLock
     @Environment(\.scenePhase) private var scenePhase
@@ -17,8 +20,41 @@ struct ContentView: View {
         var id: Self { self }
     }
 
+    /// The rows of the small sheet the + opens, in a set order on every tab.
+    private enum AddWay: CaseIterable {
+        case transaction, loan, ai
+
+        var option: SheetOption {
+            switch self {
+            case .transaction:
+                SheetOption(icon: IconCatalog.emojiName("📝"), title: "Thêm giao dịch",
+                            subtitle: "Chi tiêu, thu nhập, chuyển khoản")
+            case .loan:
+                SheetOption(icon: IconCatalog.emojiName("🤝"), title: "Thêm khoản vay",
+                            subtitle: "Cho vay hoặc đi vay")
+            case .ai:
+                SheetOption(icon: IconCatalog.emojiName("✨"), title: "Thêm bằng AI",
+                            subtitle: "Gõ hoặc nói một câu, Milu ghi giúp")
+            }
+        }
+
+        /// The form the row opens. "Thêm bằng AI" only closes the sheet for now (user request
+        /// 2026-11-16: no next step yet).
+        var kind: AddKind? {
+            switch self {
+            case .transaction: .transaction
+            case .loan: .loan
+            case .ai: nil
+            }
+        }
+    }
+
     private func add() {
-        adding = addContext.addsLoan ? .loan : .transaction
+        isChoosingAdd = true
+    }
+
+    private func choose(_ option: SheetOption) {
+        pendingAdd = AddWay.allCases.first { $0.option.title == option.title }?.kind
     }
 
     /// A tapped "Nhắc ghi chi tiêu" opens the add form once nothing stands in its way: not under
@@ -51,11 +87,12 @@ struct ContentView: View {
         adding = .transaction
     }
 
-    /// The +'s name for VoiceOver, as what it adds on the screen behind it.
-    private var addTitle: String { addContext.addsLoan ? "Thêm khoản vay" : "Thêm giao dịch" }
+    /// The +'s name for VoiceOver and the title of its small sheet.
+    private static let addTitle = "Thêm mới"
 
-    /// Picking the + opens the add sheet and leaves the current tab where it is. `InstantTabSwitch`
-    /// stops the tap before the tab is selected; this is the fallback should it get through.
+    /// Picking the + opens the small "how to add" sheet and leaves the current tab where it is.
+    /// `InstantTabSwitch` stops the tap before the tab is selected; this is the fallback should it
+    /// get through.
     private var tabSelection: Binding<AppTab> {
         Binding { selectedTab } set: { tab in
             if tab == .add { add() } else { selectedTab = tab }
@@ -85,10 +122,18 @@ struct ContentView: View {
                 waitingForSheet = nil
                 if Reminders.shared.router.pending == .addTransaction { Reminders.shared.router.pending = nil }
             }
+            .sheet(isPresented: $isChoosingAdd, onDismiss: {
+                adding = pendingAdd
+                pendingAdd = nil
+            }) {
+                OptionSheet(title: Self.addTitle, options: AddWay.allCases.map(\.option)) { choose($0) }
+            }
             .sheet(item: $adding) { kind in
                 switch kind {
                 case .transaction: AddTransactionView(preferredAccount: addContext.accountID)
-                case .loan: LoanEditorView(loan: nil, direction: addContext.loanDirection)
+                // On the side "Vay nợ" shows, when it is the page behind; "Cho vay" elsewhere.
+                case .loan: LoanEditorView(loan: nil,
+                                           direction: addContext.addsLoan ? addContext.loanDirection : nil)
                 }
             }
     }
@@ -116,7 +161,7 @@ struct ContentView: View {
                 .tabItem { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
                 .tag(AppTab.transactions)
             Color.clear
-                .tabItem { Label(addTitle, systemImage: "plus.circle.fill") }
+                .tabItem { Label(Self.addTitle, systemImage: "plus.circle.fill") }
                 .tag(AppTab.add)
         }
     }
@@ -134,14 +179,14 @@ struct ContentView: View {
                 TabPage(tab: .transactions) { TransactionsView() }.equatable()
             } label: { tabLabel("Giao dịch", symbol: "list.bullet.rectangle", tab: .transactions) }
             // A search-role tab sits apart in its own circle beside the bar, as Search does in App
-            // Store: there, by the thumb on every tab, it adds a transaction (user choice 2026-10-29),
-            // a loan on "Vay nợ".
+            // Store: there, by the thumb on every tab, it adds (user choice 2026-10-29) a
+            // transaction, a loan or with AI, picked in a small sheet (2026-11-17).
             // The + drawn Regular (user request 2026-11-05: the bar's default read bold); the
             // weight is set in the image itself, as the bar ignores SwiftUI's font weight.
             Tab(value: AppTab.add, role: .search) {
                 Color.clear
             } label: {
-                Label { Text(addTitle) } icon: { Image(uiImage: Self.regularPlus) }
+                Label { Text(Self.addTitle) } icon: { Image(uiImage: Self.regularPlus) }
             }
         }
     }
