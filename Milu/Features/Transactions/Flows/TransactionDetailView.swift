@@ -93,10 +93,14 @@ struct TransactionDetailView: View {
             // Recorded by a recurring rule (user request 2026-11-12): how often, opening the rule.
             if let rule = transaction.recurringRuleID.flatMap(store.recurringRule(id:)) {
                 FormDivider(hasIcon: false)
+                let schedule = rule.isPaused ? "\(rule.scheduleText) · Tạm dừng" : rule.scheduleDetail()
                 Button { viewingRule = rule } label: {
-                    FormValueRowContent(title: "Lặp lại", value: rule.isPaused ? "\(rule.scheduleText) · Tạm dừng" : rule.scheduleDetail())
+                    FormValueRowContent(title: "Lặp lại", value: schedule)
                 }
                 .buttonStyle(.row)
+                // "Hằng năm · 05/09" said as a day, not a fraction (audit round 5, 2026-11-16).
+                .accessibilityLabel("Lặp lại")
+                .accessibilityValue(SpokenText.of(schedule))
                 .accessibilityHint("Xem khoản định kỳ")
             }
         }

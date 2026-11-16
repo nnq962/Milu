@@ -59,10 +59,13 @@ struct UpcomingRecurringCard: View {
                     Text(store.title(of: rule))
                         .textRole(.bodyStrong)
                         .lineLimit(isAccessibilitySize ? nil : 1)
-                    Text(when(occurrence, isWaiting: isWaiting))
+                    let whenText = when(occurrence, isWaiting: isWaiting)
+                    Text(whenText)
                         .textRole(.caption)
                         .foregroundStyle(isWaiting && days < 0 ? Palette.warningLabel : Palette.secondaryLabel)
                         .lineLimit(isAccessibilitySize ? nil : 1)
+                        // "Tới hạn 5 tháng 12", not a fraction (audit round 5, 2026-11-16).
+                        .accessibilityLabel(SpokenText.of(whenText))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: isAccessibilitySize ? .leading : .trailing, spacing: Spacing.xs) {
@@ -71,6 +74,8 @@ struct UpcomingRecurringCard: View {
                         .fixedSize(horizontal: !isAccessibilitySize, vertical: false)
                     if isWaiting {
                         MiluButton("Ghi", role: .primary, size: .compact) { onConfirm(occurrence) }
+                            // Each its own, in the Buttons rotor too: not every one "Ghi".
+                            .accessibilityLabel("Ghi \(store.title(of: rule))")
                             .accessibilityHint("Xem lại số tiền rồi ghi")
                     }
                 }

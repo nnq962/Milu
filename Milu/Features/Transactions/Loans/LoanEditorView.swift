@@ -41,9 +41,10 @@ struct LoanEditorView: View {
     /// "Còn lại" as the form opened, to tell whether the user changed it.
     private let openedOutstandingText: String
 
-    init(loan: Loan?) {
+    /// `direction`: the side a new loan starts on, "Cho vay" when none.
+    init(loan: Loan?, direction: LoanDirection? = nil) {
         original = loan
-        _direction = State(initialValue: loan?.direction ?? .lent)
+        _direction = State(initialValue: loan?.direction ?? direction ?? .lent)
         _contactID = State(initialValue: loan?.contactID)
         _principalText = State(initialValue: loan.map { String(Int($0.principal)).groupedVNDInput } ?? "")
         _isExisting = State(initialValue: loan?.isExisting ?? false)

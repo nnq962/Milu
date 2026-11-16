@@ -22,9 +22,25 @@ import UIKit
 final class SpeechDictation {
     enum Failure: Equatable {
         case denied, unavailable, audio
-        /// Listening ended by itself (the network went, the recognizer kept failing, a call or
-        /// another app took the sound); what was heard is in `heardWhenStopped`.
-        case stopped
+        /// Listening ended by itself: why, and whether anything was heard (it is then in
+        /// `heardWhenStopped`, for the field).
+        case stopped(StopReason, heard: Bool)
+
+        var isStopped: Bool {
+            if case .stopped = self { return true }
+            return false
+        }
+    }
+
+    /// Why listening ended by itself (audit round 5, 2026-11-16: the alert always blamed the
+    /// network or a call, and said the words were in the field when none were heard).
+    enum StopReason: Equatable {
+        /// Milu went to the background: the user left it.
+        case leftApp
+        /// A call or another app took the sound.
+        case interrupted
+        /// The recognizer kept failing, or went away (often the network).
+        case recognizer
     }
 
     /// What was heard when listening ended by itself, for the field; taken once.
@@ -94,11 +110,11 @@ final class SpeechDictation {
                                             queue: .main) { [weak self] note in
             let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
             guard raw.flatMap(AVAudioSession.InterruptionType.init(rawValue:)) == .began else { return }
-            MainActor.assumeIsolated { self?.endOnItsOwn() }
+            MainActor.assumeIsolated { self?.endOnItsOwn(.interrupted) }
         })
         observers.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil,
                                             queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.endOnItsOwn() }
+            MainActor.assumeIsolated { self?.endOnItsOwn(.leftApp) }
         })
     }
 
@@ -115,13 +131,15 @@ final class SpeechDictation {
 
     /// Listening ended without ■ or ✕: the words heard so far go to the field and the page says
     /// why, rather than everything going silently (audit round 4, 2026-11-16).
-    private func endOnItsOwn() {
+    /// Left the app with nothing heard: nothing to say, the user knows why it stopped.
+    private func endOnItsOwn(_ reason: StopReason) {
         guard isRecording else { return }
         commitPartial()
         let heard = transcript
         stop()
         if !heard.isEmpty { heardWhenStopped = heard }
-        failure = .stopped
+        if reason == .leftApp, heard.isEmpty { return }
+        failure = .stopped(reason, heard: !heard.isEmpty)
     }
     /// How long the server has for the words before the iPhone's are taken.
     static let serverTimeout: TimeInterval = 5
@@ -302,7 +320,7 @@ final class SpeechDictation {
     private func continueAfterStretch() {
         commitPartial()
         endStretch()
-        guard isRecording, let recognizer, recognizer.isAvailable else { return endOnItsOwn() }
+        guard isRecording, let recognizer, recognizer.isAvailable else { return endOnItsOwn(.recognizer) }
         startStretch(with: recognizer)
     }
 
@@ -324,7 +342,7 @@ final class SpeechDictation {
         } else if failed {
             failedStretches += 1
             if failedStretches > 3 {
-                endOnItsOwn()
+                endOnItsOwn(.recognizer)
             } else {
                 continueAfterStretch()
             }

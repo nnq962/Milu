@@ -153,9 +153,31 @@ final class AssistantChats {
         }
     }
 
+    /// Each chat as last written: only a chat that changed is encoded again (audit round 5,
+    /// 2026-11-16: every save encoded every chat kept, up to 100, on the main thread, in the
+    /// middle of an answer's words coming in).
+    @ObservationIgnored private var encoded: [Conversation.ID: (chat: Conversation, data: Data)] = [:]
+
     private func writeNow() {
         let kept = Array(history.prefix(Self.limit))
-        guard let data = try? JSONEncoder().encode(kept) else { return }
+        let encoder = JSONEncoder()
+        var written: [Conversation.ID: (chat: Conversation, data: Data)] = [:]
+        // The same as encoding the array at once: "[", the chats, "," between them, "]".
+        var data = Data("[".utf8)
+        for (index, chat) in kept.enumerated() {
+            let part: Data
+            if let last = encoded[chat.id], last.chat == chat {
+                part = last.data
+            } else {
+                guard let fresh = try? encoder.encode(chat) else { return }
+                part = fresh
+            }
+            if index > 0 { data.append(UInt8(ascii: ",")) }
+            data.append(part)
+            written[chat.id] = (chat, part)
+        }
+        data.append(UInt8(ascii: "]"))
+        encoded = written
         let url = url
         Task.detached(priority: .utility) {
             do {

@@ -172,7 +172,9 @@ struct RecurringRule: Identifiable, Hashable {
         case .daily: nil
         case .weekly: Self.weekdayName(calendar.component(.weekday, from: startDate))
         case .monthly: "ngày \(calendar.component(.day, from: startDate))"
-        case .yearly: startDate.dayMonth
+        // On the rule's calendar too, not the iPhone's (audit round 5, 2026-11-16).
+        case .yearly: String(format: "%02d/%02d", calendar.component(.day, from: startDate),
+                             calendar.component(.month, from: startDate))
         }
         return [scheduleText, day].compactMap { $0 }.joined(separator: " · ")
     }

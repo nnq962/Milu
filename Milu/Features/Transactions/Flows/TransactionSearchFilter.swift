@@ -165,7 +165,9 @@ struct TransactionSearchFilter: Equatable {
         var chips: [Chip] = []
         if kind != .all { chips.append(Chip(part: .kind, title: kind.title)) }
         if period == .custom {
-            chips.append(Chip(part: .period, title: "\(min(from, to).shortDay)–\(max(from, to).shortDay)"))
+            let title = "\(min(from, to).shortDay)–\(max(from, to).shortDay)"
+            // Days said as words, not fractions (audit round 5, 2026-11-16).
+            chips.append(Chip(part: .period, title: title, spoken: SpokenText.of(title)))
         } else if period != .all {
             chips.append(Chip(part: .period, title: period.title))
         }
@@ -180,7 +182,8 @@ struct TransactionSearchFilter: Equatable {
         default: break
         }
         if accountIDs.count == 1, let id = accountIDs.first {
-            chips.append(Chip(part: .accounts, title: store.account(id: id)?.name ?? store.goal(id: id)?.name ?? "1 tài khoản"))
+            // A goal deleted since: named as the picker names it (audit round 5, 2026-11-16).
+            chips.append(Chip(part: .accounts, title: store.account(id: id)?.name ?? store.goal(id: id)?.name ?? "Hũ đã xoá"))
         } else if accountIDs.count > 1 {
             chips.append(Chip(part: .accounts, title: "\(accountIDs.count) tài khoản"))
         }

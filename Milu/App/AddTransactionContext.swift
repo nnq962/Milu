@@ -8,4 +8,7 @@ import Observation
 final class AddTransactionContext {
     var accountID: Account.ID?
     var addsLoan = false
+    /// The side "Vay nợ" shows ("Đi vay" pill): a new loan starts on it (audit round 5,
+    /// 2026-11-16: it always started on "Cho vay").
+    var loanDirection: LoanDirection?
 }

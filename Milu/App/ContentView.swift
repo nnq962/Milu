@@ -88,7 +88,7 @@ struct ContentView: View {
             .sheet(item: $adding) { kind in
                 switch kind {
                 case .transaction: AddTransactionView(preferredAccount: addContext.accountID)
-                case .loan: LoanEditorView(loan: nil)
+                case .loan: LoanEditorView(loan: nil, direction: addContext.loanDirection)
                 }
             }
     }

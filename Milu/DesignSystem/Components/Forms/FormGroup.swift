@@ -54,8 +54,16 @@ struct FormErrorText: View {
         // Money and days said as words, as on the rows (audit round 5, 2026-11-16: "đ" was read as
         // a letter, "16/12" as a fraction).
         .accessibilityLabel(SpokenText.of(message))
-        .onAppear { AccessibilityNotification.Announcement(SpokenText.of(message)).post() }
-        .onChange(of: message) { _, new in AccessibilityNotification.Announcement(SpokenText.of(new)).post() }
+        .onAppear { Self.announce(message) }
+        .onChange(of: message) { _, new in Self.announce(new) }
+    }
+
+    /// Queued behind what is being said, so two lines that appear at once ("Nhập số tiền.",
+    /// "Chọn hạng mục.") are both said (audit round 5, 2026-11-16: the second cut the first off).
+    private static func announce(_ message: String) {
+        var spoken = AttributedString(SpokenText.of(message))
+        spoken.accessibilitySpeechAnnouncementPriority = .low
+        AccessibilityNotification.Announcement(spoken).post()
     }
 }
 

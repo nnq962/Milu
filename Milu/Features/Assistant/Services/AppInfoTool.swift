@@ -18,6 +18,7 @@ struct AppFacts {
     var proPlan: String?
     var proEnds: Date?
     var proRenews = true
+    var proPaymentFailing = false
     /// From the App Store; nil until the plans load, or while Pro is not on sale.
     var monthlyPrice: String?
     var yearlyPrice: String?
@@ -45,6 +46,7 @@ struct AppFacts {
             proPlan: pro.ownedPlan?.title,
             proEnds: pro.expiresAt,
             proRenews: pro.renews,
+            proPaymentFailing: pro.paymentFailing,
             monthlyPrice: pro.price(.monthly),
             yearlyPrice: pro.price(.yearly),
             // The switch alone: it locks whatever the plan (`AppLock.isOn`).
@@ -247,7 +249,9 @@ struct GetAppInfo: AssistantTool {
         var now: [String: JSONValue] = ["plan": "Milu Pro", "owned": true]
         if let plan = facts.proPlan { now["kind"] = .string(plan) }
         if let ends = facts.proEnds {
-            now[facts.proRenews ? "renews" : "endsCancelled"] = .string(Self.day(ends))
+            // A failed payment Apple still retries: Pro goes that day unless it goes through.
+            let key = facts.proPaymentFailing ? "paymentFailedEndsUnlessFixed" : facts.proRenews ? "renews" : "endsCancelled"
+            now[key] = .string(Self.day(ends))
         }
         return .object(now)
     }

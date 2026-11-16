@@ -113,7 +113,7 @@ struct AssistantView: View {
         } message: {
             Text(cannotDelete.flatMap { store.readOnlyReason($0) } ?? "Giao dịch này không xoá được nữa.")
         }
-        .systemAlert(dictation.failure == .stopped ? "Milu ngừng nghe" : "Không dùng được micro", isPresented: Binding(
+        .systemAlert(dictation.failure?.isStopped == true ? "Milu ngừng nghe" : "Không dùng được micro", isPresented: Binding(
             get: { dictation.failure != nil },
             set: { if !$0 { dictation.failure = nil } }
         )) {
@@ -337,8 +337,18 @@ struct AssistantView: View {
         case .denied: "Hãy cho phép Milu dùng micro và nhận dạng giọng nói trong Cài đặt."
         case .unavailable: "Nhận dạng giọng nói tiếng Việt hiện chưa sẵn sàng trên thiết bị này."
         case .audio, nil: "Không mở được micro. Bạn thử lại sau nhé."
-        case .stopped: "Milu ngừng nghe giữa chừng (mất mạng hoặc có cuộc gọi). Những gì đã nghe được đã ở trong ô nhập."
+        case .stopped(let reason, let heard): Self.stoppedMessage(reason, heard: heard)
         }
+    }
+
+    /// Why listening ended, and, only when something was heard, where it went.
+    static func stoppedMessage(_ reason: SpeechDictation.StopReason, heard: Bool) -> String {
+        let why = switch reason {
+        case .leftApp: "Milu ngừng nghe khi bạn rời ứng dụng."
+        case .interrupted: "Milu ngừng nghe vì có cuộc gọi hoặc ứng dụng khác dùng âm thanh."
+        case .recognizer: "Milu ngừng nghe vì nhận dạng giọng nói gặp lỗi, có thể do mất mạng."
+        }
+        return heard ? "\(why) Những gì đã nghe được đã ở trong ô nhập." : why
     }
 
     // MARK: - Hành động

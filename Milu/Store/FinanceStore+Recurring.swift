@@ -24,15 +24,15 @@ extension FinanceStore {
 
     /// A new transaction that comes back on `schedule`: it is recorded now, and its rule starts
     /// from its day. Dated in the past, nothing between it and today is recorded (review
-    /// 2026-11-12: "Tiền nhà" dated 5/9 filled in 5/10 and 5/11 by itself).
+    /// 2026-11-12: "Tiền nhà" dated 5/9 filled in 5/10 and 5/11 by itself); today's, if due, is,
+    /// as for a rule made in Cài đặt (`firstHandled(forRepeating:)`).
     func add(_ transaction: FinanceTransaction, repeating schedule: (frequency: RecurringRule.Frequency, interval: Int),
              autoRecords: Bool, now: Date = .now) {
-        let calendar = RecurringRule.calendar
         let rule = RecurringRule(kind: transaction.kind, amount: transaction.amount, categoryID: transaction.categoryID,
                                  accountID: transaction.accountID, note: transaction.note,
                                  frequency: schedule.frequency, interval: schedule.interval,
                                  startDate: transaction.date, autoRecords: autoRecords,
-                                 lastHandled: max(calendar.startOfDay(for: transaction.date), calendar.startOfDay(for: now)),
+                                 lastHandled: Self.firstHandled(forRepeating: transaction.date, now: now),
                                  isExcluded: transaction.isExcluded)
         var first = transaction
         first.id = RecurringRule.transactionID(rule: rule.id, day: transaction.date)
@@ -41,19 +41,20 @@ extension FinanceStore {
             save(rule)
             add(first)
         }
+        recordDueRecurring(only: rule.id, now: now)
     }
 
     /// A transaction already recorded, changed and made to repeat from now on (user choice
     /// 2026-11-12): its rule starts on its day, but nothing before today is recorded for it, so
-    /// a balance never moves by itself when a past transaction is made to repeat.
+    /// a balance never moves by itself for the past when a past transaction is made to repeat.
+    /// Today's, if due, is, as for a rule made in Cài đặt.
     func update(_ transaction: FinanceTransaction, startRepeating schedule: (frequency: RecurringRule.Frequency, interval: Int),
                 autoRecords: Bool, now: Date = .now) {
-        let calendar = RecurringRule.calendar
-        let handled = max(calendar.startOfDay(for: transaction.date), calendar.startOfDay(for: now))
         let rule = RecurringRule(kind: transaction.kind, amount: transaction.amount, categoryID: transaction.categoryID,
                                  accountID: transaction.accountID, note: transaction.note,
                                  frequency: schedule.frequency, interval: schedule.interval,
-                                 startDate: transaction.date, autoRecords: autoRecords, lastHandled: handled,
+                                 startDate: transaction.date, autoRecords: autoRecords,
+                                 lastHandled: Self.firstHandled(forRepeating: transaction.date, now: now),
                                  isExcluded: transaction.isExcluded)
         var linked = transaction
         linked.recurringRuleID = rule.id
@@ -61,6 +62,17 @@ extension FinanceStore {
             save(rule)
             update(linked)
         }
+        recordDueRecurring(only: rule.id, now: now)
+    }
+
+    /// The day a rule made from a transaction has handled: the transaction's own (it is that day's),
+    /// or yesterday when it is older, so nothing before today is recorded but today's still is
+    /// recorded or asked (audit round 5, 2026-11-16: "Tiền nhà" of last month made to repeat on its
+    /// day this month was never recorded nor asked, while a rule made in Cài đặt was).
+    static func firstHandled(forRepeating date: Date, now: Date = .now) -> Date {
+        let calendar = RecurringRule.calendar
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)) ?? now
+        return max(calendar.startOfDay(for: date), yesterday)
     }
 
     /// A rule made in Cài đặt: like one made from a transaction, nothing before today is recorded
@@ -86,21 +98,34 @@ extension FinanceStore {
     func recordDueRecurring(only ruleID: RecurringRule.ID? = nil, now: Date = .now) -> [FinanceTransaction] {
         var recorded: [FinanceTransaction] = []
         persist {
+            // All the days at once: the list sorted once, each balance moved once, the rows saved
+            // together (audit round 5, 2026-11-16: months of a daily rule went in a day at a time,
+            // the whole list sorted and the database searched twice for each, as Milu came to the
+            // front).
+            var known = Set(transactions.map(\.id))
+            var moves: [Account.ID: Double] = [:]
             // A rule whose account was archived or deleted records nothing and does not move on:
             // its days wait for the user, who picks another account (`waitingRecurring`).
             for rule in recurringRules where rule.autoRecords && !rule.isPaused && canRecord(onto: rule.accountID)
                 && (ruleID == nil || rule.id == ruleID) {
                 let days = rule.occurrences(after: rule.lastHandled ?? dayBefore(rule.startDate), through: now)
                 guard let last = days.last else { continue }
-                for day in days {
-                    if let transaction = record(rule, on: day, amount: rule.amount, now: now, byUser: false) {
-                        recorded.append(transaction)
-                    }
+                for day in days where rule.amount > 0 {
+                    let transaction = occurrenceTransaction(rule, on: day, amount: rule.amount, now: now)
+                    // Recording a day another device already recorded makes nothing new.
+                    guard known.insert(transaction.id).inserted else { continue }
+                    recorded.append(transaction)
+                    moves[rule.accountID, default: 0] += transaction.signedAmount
                 }
                 var handled = rule
                 handled.lastHandled = last
                 moveOn(handled)
             }
+            guard !recorded.isEmpty else { return }
+            transactions.append(contentsOf: recorded)
+            transactions.sort { $0.date > $1.date }
+            for (accountID, delta) in moves { adjustBalance(of: accountID, by: delta) }
+            database?.save(recorded)
         }
         return recorded
     }
@@ -195,20 +220,28 @@ extension FinanceStore {
     @discardableResult
     private func record(_ rule: RecurringRule, on day: Date, amount: Double, accountID: Account.ID? = nil,
                         now: Date, byUser: Bool) -> FinanceTransaction? {
-        let id = RecurringRule.transactionID(rule: rule.id, day: day)
         let accountID = accountID ?? rule.accountID
-        guard transaction(id: id) == nil, amount > 0, canRecord(onto: accountID) else { return nil }
-        var transaction = FinanceTransaction(id: id, amount: amount, categoryID: rule.categoryID, kind: rule.kind,
-                                             accountID: accountID, date: rule.transactionDate(on: day, now: now),
-                                             note: rule.note)
-        transaction.recurringRuleID = rule.id
-        transaction.isExcluded = rule.isExcluded
+        let transaction = occurrenceTransaction(rule, on: day, amount: amount, accountID: accountID, now: now)
+        guard self.transaction(id: transaction.id) == nil, amount > 0, canRecord(onto: accountID) else { return nil }
         let before = transactions.count
         // Recorded by Milu, not by the user: no "Làm quen" step is paid for it.
         let creation = lastCreated
         add(transaction)
         if !byUser { lastCreated = creation }
         return transactions.count > before ? transaction : nil
+    }
+
+    /// One day of a rule as a transaction: its id the same on every device, on the rule's account
+    /// unless another is given.
+    private func occurrenceTransaction(_ rule: RecurringRule, on day: Date, amount: Double,
+                                       accountID: Account.ID? = nil, now: Date) -> FinanceTransaction {
+        var transaction = FinanceTransaction(id: RecurringRule.transactionID(rule: rule.id, day: day), amount: amount,
+                                             categoryID: rule.categoryID, kind: rule.kind,
+                                             accountID: accountID ?? rule.accountID,
+                                             date: rule.transactionDate(on: day, now: now), note: rule.note)
+        transaction.recurringRuleID = rule.id
+        transaction.isExcluded = rule.isExcluded
+        return transaction
     }
 
     private func dayBefore(_ date: Date) -> Date {

@@ -100,6 +100,18 @@ extension FinanceStore {
     /// Whether anything was ever recorded on the account; such an account is archived, not deleted.
     /// Balance corrections alone ("Điều chỉnh số dư", a typo fixed after adding it) do not count
     /// (user choice 2026-10-29): the account can still be deleted, with them.
+    /// The day of the account's first money in or out (not counting an adjustment), nil without
+    /// any: "Số dư tính từ" cannot be later (audit round 5, 2026-11-16).
+    func firstActivity(of account: Account) -> Date? {
+        let id = account.id
+        let dates = transactions.filter { $0.accountID == id && !$0.isAdjustment }.map(\.date)
+            + goalTransfers.filter { $0.accountID == id }.map(\.date)
+            + accountTransfers.filter { $0.fromAccountID == id || $0.toAccountID == id }.map(\.date)
+            + loans.filter { $0.movedAccountID == id }.map(\.date)
+            + loanPayments.filter { $0.accountID == id }.map(\.date)
+        return dates.min()
+    }
+
     func hasHistory(_ account: Account) -> Bool {
         transactions.contains { $0.accountID == account.id && !$0.isAdjustment }
             || goalTransfers.contains { $0.accountID == account.id }

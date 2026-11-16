@@ -34,6 +34,8 @@ final class SyncPillUIView: UIView {
     private static let side: CGFloat = 16
     private static let iconSize: CGFloat = 20
     private static let gap: CGFloat = 8
+    /// Kept clear at each side of the screen.
+    private static let margin: CGFloat = 16
 
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
 
@@ -86,9 +88,21 @@ final class SyncPillUIView: UIView {
         let role = TextRole.captionStrong
         let base = UIFont(name: Typography.instance(for: role.weight), size: role.size)
             ?? .systemFont(ofSize: role.size, weight: .bold)
-        label.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: base, compatibleWith: traitCollection)
+        // Grown no further than the largest size before the accessibility ones, and shrunk a little
+        // to fit the screen: a passing status in a 38 point capsule (audit round 5, 2026-11-16: from
+        // AX1 it ran off both sides of the screen, from AX3 it was cut top and bottom).
+        label.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: base, maximumPointSize: role.size * 1.5,
+                                                                       compatibleWith: traitCollection)
         label.textColor = UIColor(Palette.label)
         label.numberOfLines = 1
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+    }
+
+    /// The label's width, no wider than the screen leaves it.
+    private func labelWidth(_ label: UILabel) -> CGFloat {
+        let room = bounds.width - Self.margin * 2 - Self.side * 2 - Self.iconSize - Self.gap
+        return max(0, min(label.intrinsicContentSize.width, room))
     }
 
     // MARK: Layout
@@ -102,13 +116,13 @@ final class SyncPillUIView: UIView {
     /// By bounds and centre, not frame: the label may be mid-move (a transform), and a frame set
     /// then lands in the wrong place (it sat high, 2026-11-12).
     private func place(_ label: UILabel, in frame: CGRect) {
-        let size = label.intrinsicContentSize
+        let size = CGSize(width: labelWidth(label), height: label.intrinsicContentSize.height)
         label.bounds = CGRect(origin: .zero, size: size)
         label.center = CGPoint(x: Self.side + Self.iconSize + Self.gap + size.width / 2, y: frame.height / 2)
     }
 
     private func layoutPill() {
-        let frame = capsuleFrame(labelWidth: label.intrinsicContentSize.width)
+        let frame = capsuleFrame(labelWidth: labelWidth(label))
         wrapper.bounds = CGRect(origin: .zero, size: frame.size)
         wrapper.center = CGPoint(x: frame.midX, y: frame.midY)
         capsule.frame = wrapper.bounds
@@ -188,7 +202,7 @@ final class SyncPillUIView: UIView {
             newLabel.text = newText
             capsule.addSubview(newLabel)
             label = newLabel
-            let target = capsuleFrame(labelWidth: newLabel.intrinsicContentSize.width)
+            let target = capsuleFrame(labelWidth: labelWidth(newLabel))
             place(newLabel, in: target)
             if !reduceMotion {
                 newLabel.transform = CGAffineTransform(translationX: 0, y: 10)

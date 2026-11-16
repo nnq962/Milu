@@ -136,9 +136,17 @@ struct TransactionsView: View {
         }
         .onChange(of: scenePhase) { _, phase in if phase == .active { followToday() } }
         // The + beside the tabs adds a loan while "Vay nợ" is what shows.
-        .onAppear { addContext?.addsLoan = segment == .loans }
+        .onAppear {
+            addContext?.addsLoan = segment == .loans
+            addContext?.loanDirection = loanFilter.direction
+        }
         .onChange(of: segment) { _, new in addContext?.addsLoan = new == .loans }
-        .onDisappear { addContext?.addsLoan = false }
+        // On the side the pills show (audit round 5, 2026-11-16).
+        .onChange(of: loanFilter) { _, new in addContext?.loanDirection = new.direction }
+        .onDisappear {
+            addContext?.addsLoan = false
+            addContext?.loanDirection = nil
+        }
     }
 
     private static let filterAnchor = "filter"

@@ -76,7 +76,7 @@ private struct CompletedGoalRow: View {
 
     var body: some View {
         LedgerRow(title: goal.name, subtitle: subtitle, figure: goal.target.vnd,
-                  spoken: [goal.name, FormDateRow.spokenDays(in: subtitle), "mục tiêu \(MoneyText.spoken(goal.target))"].joined(separator: ", "),
+                  spoken: [goal.name, SpokenText.of(subtitle), "mục tiêu \(MoneyText.spoken(goal.target))"].joined(separator: ", "),
                   hint: "Xem hũ") {
             // Its Fluent Flat picture, 32, as the wallets beside it (user request 2026-11-05).
             GoalPictureMark(goal: goal)

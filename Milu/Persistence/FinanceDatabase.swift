@@ -355,6 +355,25 @@ final class FinanceDatabase {
         commit()
     }
 
+    /// Transactions recorded together (a rule's missed days): one fetch for the lot, not one each
+    /// (audit round 5, 2026-11-16: a fetch per day, each reading the whole table). A row already
+    /// there, from another device, is updated rather than doubled.
+    func save(_ transactions: [FinanceTransaction]) {
+        guard !transactions.isEmpty else { return }
+        let ids = transactions.map(\.id)
+        let existing = fetch(FetchDescriptor<TransactionRecord>(predicate: #Predicate { ids.contains($0.id) }))
+        let rows = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for transaction in transactions {
+            let row = rows[transaction.id] ?? {
+                let row = TransactionRecord(id: transaction.id)
+                context.insert(row)
+                return row
+            }()
+            row.apply(transaction)
+        }
+        commit()
+    }
+
     func save(_ transfer: GoalTransfer) {
         record(TransactionRecord.self, id: transfer.id) { TransactionRecord(id: $0) }.apply(transfer)
         commit()

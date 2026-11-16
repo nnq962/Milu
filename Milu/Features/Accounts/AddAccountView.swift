@@ -46,6 +46,9 @@ struct AddAccountView: View {
     init(type: AccountType = .bank) {
         self.type = type
         original = nil
+        // Cash has no bank to name it: "Tiền mặt" is filled in, to keep or change (audit round 5,
+        // 2026-11-16: shown as the field's placeholder, it looked given, and ✓ asked for a name).
+        _name = State(initialValue: type == .cash ? "Tiền mặt" : "")
     }
 
     init(account: Account, onLeave: @escaping (Leave) -> Void) {
@@ -69,6 +72,11 @@ struct AddAccountView: View {
     }
 
     private var institution: Institution? { Institution.find(institutionID) }
+
+    private var latestOpening: Date {
+        let first = original.flatMap { store.firstActivity(of: $0) }
+        return min(first ?? .now, .now)
+    }
     private var hasInstitutions: Bool { !Institution.list(for: type).isEmpty }
 
     private var title: String {
@@ -101,7 +109,7 @@ struct AddAccountView: View {
     /// 2026-11-06).
     private var suggestedName: String {
         switch type {
-        case .cash: "Tiền mặt"
+        case .cash: "Nhập tên"
         case .eWallet: institution?.shortName ?? "Tên ví"
         // Not "Tên tài khoản": that is the row's own label beside it.
         default: institution?.shortName ?? "Nhập tên"
@@ -132,7 +140,9 @@ struct AddAccountView: View {
             }
 
             FormGroup(title: "Thời gian") {
-                FormDateTimeRow(title: "Số dư tính từ", date: $openedAt)
+                // Not in the future, nor after the account's first money in or out (audit round 5,
+                // 2026-11-16: "Từ ngày 25/12" stood above a history from 02/11).
+                FormDateTimeRow(title: "Số dư tính từ", date: $openedAt, latest: latestOpening)
             }
 
             // A locked account stays in the list but out of totals, and cannot be picked when

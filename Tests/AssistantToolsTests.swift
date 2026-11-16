@@ -90,6 +90,27 @@ struct AssistantToolsTests {
         #expect(ids.allSatisfy { store.category(id: $0)?.parentID != nil })
     }
 
+    /// A group the user hid takes nothing new from Milu, as the add form offers none of its items:
+    /// "netflix" goes on "Khác" (audit round 5, 2026-11-16).
+    @Test func aHiddenGroupTakesNothingNew() throws {
+        let store = store([vcb])
+        store.remove(try #require(store.category(id: "entertainment")))
+        #expect(store.category(id: "entertainment")?.isHidden == true)
+        _ = RecordTransaction().run(["amount": 260_000, "note": "netflix"], in: store)
+        let id = try #require(store.transactions.first?.categoryID)
+        #expect(store.groupID(of: id) != "entertainment")
+        #expect(id == "otherExpense.other")
+    }
+
+    /// Why Milu stopped listening, and the field only when something was heard (audit round 5,
+    /// 2026-11-16: a network or a call was blamed, and words promised that were never heard).
+    @Test func stoppedListeningSaysWhy() {
+        #expect(AssistantView.stoppedMessage(.leftApp, heard: true)
+            == "Milu ngừng nghe khi bạn rời ứng dụng. Những gì đã nghe được đã ở trong ô nhập.")
+        #expect(!AssistantView.stoppedMessage(.interrupted, heard: false).contains("ô nhập"))
+        #expect(AssistantView.stoppedMessage(.recognizer, heard: false).contains("mất mạng"))
+    }
+
     /// A card kept as a bank account below zero, as Milu advises, is named as such; no
     /// "thẻ tín dụng 0đ" without a card account (audit round 4, 2026-11-16).
     @Test func anAccountBelowZeroIsNamedNotACardAtZero() {

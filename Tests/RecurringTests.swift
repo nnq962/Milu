@@ -281,6 +281,25 @@ struct RecurringTests {
         #expect(store.recordDueRecurring(now: day(2027, 12, 6)).count == 1)
     }
 
+    /// Last month's rent made to repeat on its day this month: today's is recorded (or asked), as
+    /// for a rule made in Cài đặt; nothing before today (audit round 5, 2026-11-16).
+    @Test func repeatingOnItsDayRecordsToday() {
+        let (store, _, wallet) = storeWithWallet()
+        let rent = FinanceTransaction(amount: 5_000_000, categoryID: "housing.rent", kind: .expense,
+                                      accountID: wallet.id, date: day(2027, 10, 16))
+        store.add(rent, repeating: (.monthly, 1), autoRecords: true, now: day(2027, 11, 16))
+        #expect(store.transactions.map { calendar.component(.month, from: $0.date) }.sorted() == [10, 11])
+        #expect(store.recordDueRecurring(now: day(2027, 11, 16)).isEmpty)
+
+        let lunch = FinanceTransaction(amount: 50_000, categoryID: "food.lunch", kind: .expense,
+                                       accountID: wallet.id, date: day(2027, 11, 15))
+        store.add(lunch, repeating: (.daily, 1), autoRecords: false, now: day(2027, 11, 16))
+        let waiting = store.waitingRecurring(now: day(2027, 11, 16)).filter { $0.rule.amount == 50_000 }
+        #expect(waiting.map { calendar.component(.day, from: $0.day) } == [16])
+        #expect(FinanceStore.firstHandled(forRepeating: day(2027, 11, 16), now: day(2027, 11, 16))
+            == calendar.startOfDay(for: day(2027, 11, 16)))
+    }
+
     @Test func scheduleSaysWhichDay() {
         #expect(rule(start: day(2027, 1, 15)).scheduleDetail() == "Hằng tháng · ngày 15")
         #expect(rule(start: day(2027, 11, 15), frequency: .weekly).scheduleDetail() == "Hằng tuần · Thứ Hai")

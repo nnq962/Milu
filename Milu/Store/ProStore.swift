@@ -43,6 +43,10 @@ final class ProStore {
     private(set) var expiresAt: Date?
     /// Whether it renews then: false once cancelled, when it stays until `expiresAt` and goes.
     private(set) var renews = true
+    /// In Apple's billing grace period: the renewal's payment failed and is being retried;
+    /// `expiresAt` is when Pro goes unless it goes through (audit round 5, 2026-11-16: it said
+    /// "Gia hạn" on that day).
+    private(set) var paymentFailing = false
 
     #if DEBUG
     /// Debug builds with no plan from the App Store (not set up in App Store Connect yet, or run
@@ -144,6 +148,7 @@ final class ProStore {
         var owned: Plan?
         var ends: Date?
         var renewing = true
+        var failing = false
         for await entitlement in Transaction.currentEntitlements {
             guard case .verified(let transaction) = entitlement, transaction.revocationDate == nil,
                   let plan = Plan(rawValue: transaction.productID) else { continue }
@@ -156,6 +161,7 @@ final class ProStore {
             }
             owned = plan
             ends = transaction.expirationDate
+            failing = inGracePeriod
             if case .verified(let renewal)? = await transaction.subscriptionStatus?.renewalInfo {
                 renewing = renewal.willAutoRenew
                 // Owned until Apple stops retrying, not until its end, already past: with that,
@@ -170,6 +176,7 @@ final class ProStore {
         // set anew still redrew every view that reads it.
         if expiresAt != ends { expiresAt = ends }
         if renews != renewing { renews = renewing }
+        if paymentFailing != failing { paymentFailing = failing }
         scheduleExpiryCheck()
         var mock = false
         #if DEBUG

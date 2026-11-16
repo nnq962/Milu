@@ -422,7 +422,9 @@ struct RecordTransaction: AssistantTool {
         }
         let groupID = name.flatMap { ToolNames.category($0, kind: kind, in: store) }.map(store.groupID(of:))
             ?? store.groupID(of: guessCategory(note: note, kind: kind))
-        if let group = store.category(id: groupID), let first = store.items(of: group).first { return first.id }
+        // Among the pickable items only: a hidden group's are not (audit round 5, 2026-11-16: "xem
+        // phim" went under the hidden "Giải trí"); such a group falls through to "Khác".
+        if let first = items.first(where: { $0.parentID == groupID }) { return first.id }
         let other = kind == .expense ? "otherExpense.other" : "otherIncome.other"
         return items.first { $0.id == other }?.id ?? items.first?.id ?? groupID
     }

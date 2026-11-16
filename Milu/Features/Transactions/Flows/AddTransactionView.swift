@@ -431,12 +431,13 @@ struct AddTransactionView: View {
 
     private var repeatFooter: String? {
         guard isEditing, canRepeat, let schedule = repeatChoice.schedule else { return nil }
-        let calendar = Calendar.current
-        var preview = RecurringRule(kind: .expense, amount: 0, categoryID: "", accountID: UUID(),
+        let preview = RecurringRule(kind: .expense, amount: 0, categoryID: "", accountID: UUID(),
                                     frequency: schedule.frequency, interval: schedule.interval, startDate: date)
-        preview.lastHandled = max(calendar.startOfDay(for: date), calendar.startOfDay(for: .now))
-        guard let next = preview.nextOccurrence(after: preview.lastHandled ?? .now) else { return nil }
-        return "Lần tới: \(RecurringRule.shortDay(next)). Milu không ghi bù các lần đã qua."
+        // The same day the saved rule takes, on its calendar (audit round 5, 2026-11-16: the
+        // iPhone's calendar named a day early abroad).
+        guard let next = preview.nextOccurrence(after: FinanceStore.firstHandled(forRepeating: date)) else { return nil }
+        let when = RecurringRule.daysFromToday(next) == 0 ? "hôm nay" : RecurringRule.shortDay(next)
+        return "Lần tới: \(when). Milu không ghi bù các lần đã qua."
     }
 
     private var footer: String? {
@@ -660,6 +661,8 @@ private struct RecurringNoticeCard: View {
                                      icon: "hugeicons-calendar-03")
             }
             .buttonStyle(.row)
+            .accessibilityLabel(SpokenText.of("Giao dịch định kỳ · \(schedule)"))
+            .accessibilityHint("Chạm để sửa các lần sau")
         }
     }
 }

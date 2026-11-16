@@ -28,6 +28,27 @@ struct AssistantTests {
         chats.conversations[index].messages.append(ChatMessage(role: .user, text: question))
     }
 
+    /// A chat that did not change is written as it was, the one that did anew: every chat is in the
+    /// file, read back as it was (audit round 5, 2026-11-16).
+    @Test func savingWritesEveryChatWhenOneChanges() async throws {
+        let folder = URL.temporaryDirectory.appending(path: "chats-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appending(path: "AssistantChats.json")
+        let chats = AssistantChats(saving: true, fileURL: url)
+        ask(chats, "Tháng này tiêu bao nhiêu?")
+        chats.startNew()
+        ask(chats, "Ghi cà phê 35k")
+        try await Task.sleep(for: .seconds(1))
+        ask(chats, "Và gửi xe 5k")
+        try await Task.sleep(for: .seconds(1))
+        let written = try JSONDecoder().decode([Conversation].self, from: Data(contentsOf: url))
+        #expect(written.count == 2)
+        #expect(written.map(\.messages.count).sorted() == [1, 2])
+        #expect(written.contains { $0.messages.last?.text == "Và gửi xe 5k" })
+        #expect(written.contains { $0.title == "Tháng này tiêu bao nhiêu?" })
+    }
+
     /// Saved chats that cannot be read at launch (locked with the iPhone) are not written over, and
     /// come back, with any chat started since, once they can be read (audit 2026-11-15).
     @Test func lockedChatsAreNotWrittenOverAndComeBack() async throws {

@@ -73,9 +73,11 @@ struct RecurringDetailSheet: View {
             FormDivider(hasIcon: false)
             FormInfoRow(title: "Lần tới", value: nextText(rule))
             FormDivider(hasIcon: false)
-            FormInfoRow(title: "Bắt đầu", value: rule.startDate.shortDay)
+            // The days the rule counts, as "ngày 15" and Lần tới (audit round 5, 2026-11-16: abroad,
+            // the iPhone's calendar named the day before).
+            FormInfoRow(title: "Bắt đầu", value: RecurringRule.shortDay(rule.startDate))
             FormDivider(hasIcon: false)
-            FormInfoRow(title: "Kết thúc", value: rule.endDate?.shortDay ?? "Không có")
+            FormInfoRow(title: "Kết thúc", value: rule.endDate.map { RecurringRule.shortDay($0) } ?? "Không có")
             FormDivider(hasIcon: false)
             FormInfoRow(title: "Khi tới hạn", value: rule.autoRecords ? "Milu tự ghi" : "Hỏi bạn trước")
         }

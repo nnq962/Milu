@@ -173,6 +173,18 @@ struct FinanceStoreTests {
         #expect(store.loan(id: loan.id)?.outstanding == 3_000_000)
     }
 
+    /// "Số dư tính từ" can be no later than the account's first money in or out (audit round 5,
+    /// 2026-11-16).
+    @Test func firstActivityIsTheEarliestMove() {
+        let store = makeStore()
+        #expect(store.firstActivity(of: bank) == nil)
+        let early = Date.now.addingTimeInterval(-10 * 86_400)
+        store.add(FinanceTransaction(amount: 50_000, categoryID: "food.lunch", kind: .expense, accountID: bank.id,
+                                     date: .now.addingTimeInterval(-86_400)))
+        store.save(LoanPayment(loanID: UUID(), principal: 0, interest: 10_000, accountID: bank.id, date: early))
+        #expect(store.firstActivity(of: bank) == early)
+    }
+
     @Test func anExistingLoanMovesNoMoney() {
         let store = makeStore()
         store.save(Loan(name: "Lan", direction: .lent, principal: 4_000_000, outstanding: 4_000_000,

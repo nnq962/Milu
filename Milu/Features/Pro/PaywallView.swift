@@ -253,6 +253,13 @@ struct PaywallView: View {
         return "\(date.dayMonth)/\(calendar.component(.year, from: date))"
     }
 
+    /// Before the plan's end day: it renews then; cancelled, or its payment failing (Apple's grace
+    /// period), it lasts until then.
+    static func endWords(_ store: ProStore) -> String {
+        if store.paymentFailing { return "Thanh toán chưa thành công, dùng đến" }
+        return store.renews ? "Gia hạn" : "Đã huỷ, dùng đến"
+    }
+
     /// Owned already: the plan and when it renews (or, cancelled, until when it lasts) on one card,
     /// and Apple's own sheet to change or cancel it.
     private var owned: some View {
@@ -263,7 +270,7 @@ struct PaywallView: View {
                         .textRole(.bodyStrong)
                     // Pro stays to the end of what was paid, then goes by itself.
                     if let end = store.expiresAt {
-                        Text("\(store.renews ? "Gia hạn" : "Đã huỷ, dùng đến") \(Self.when(end))")
+                        Text("\(Self.endWords(store)) \(Self.when(end))")
                             .textRole(.caption)
                             .foregroundStyle(Palette.secondaryLabel)
                     }

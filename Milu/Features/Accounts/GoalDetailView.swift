@@ -203,10 +203,16 @@ struct GoalDetailView: View {
             // Past its deadline: say so, as an overdue loan does, instead of "167.000đ/tháng".
             StatusBadge(title: "Quá hạn · \(goal.progressText)", tone: .warning)
         } else {
+            let monthly = Self.monthlyText(goal)
             (Text(goal.progressText).foregroundStyle(Palette.label)
-                + Text(Self.monthlyText(goal).map { " · \($0)" } ?? ""))
+                + Text(monthly.map { " · \($0)" } ?? ""))
                 .textRole(.captionStrong)
                 .foregroundStyle(Palette.secondaryLabel)
+                // "167.000 đồng mỗi tháng", as the paywall says a price (audit round 5, 2026-11-16:
+                // "đ" was read as a letter).
+                .accessibilityLabel([goal.progressText, monthly.map {
+                    SpokenText.of($0.replacingOccurrences(of: "/tháng", with: " mỗi tháng"))
+                }].compactMap { $0 }.joined(separator: ", "))
         }
     }
 
@@ -214,6 +220,7 @@ struct GoalDetailView: View {
         Text("Mục tiêu \(goal.target.vnd)")
             .textRole(.caption)
             .foregroundStyle(Palette.secondaryLabel)
+            .accessibilityLabel("Mục tiêu \(MoneyText.spoken(goal.target))")
     }
 
     /// How it ended as the screen's one kind of badge, as "Đã đủ mục tiêu" (re-review 2026-10-31:
@@ -230,7 +237,8 @@ struct GoalDetailView: View {
         let note = Text(rest)
             .textRole(.caption)
             .foregroundStyle(Palette.secondaryLabel)
-            .accessibilityLabel(FormDateRow.spokenDays(in: rest))
+            // Money as words too, not only the day (audit round 5, 2026-11-16).
+            .accessibilityLabel(SpokenText.of(rest))
         return ViewThatFits(in: .horizontal) {
             HStack(spacing: Spacing.s) {
                 badge.fixedSize()
