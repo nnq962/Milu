@@ -103,6 +103,18 @@ final class AssistantChats {
     /// The newest chats kept: an old chat is a few kilobytes, but the list should stay short.
     static let limit = 100
 
+    /// A chat not spoken in for this many days is deleted on its own (user request 2026-11-17:
+    /// "lưu trữ đoạn chat không quá 30 ngày"): left out of the history at once, of the file at the
+    /// next save, and not read at the next launch. Counted from its last message, so a chat still
+    /// in use stays.
+    static let keptDays = 30
+
+    /// Not spoken in for `keptDays`.
+    static func isExpired(_ chat: Conversation, now: Date = .now) -> Bool {
+        guard let oldest = Calendar.current.date(byAdding: .day, value: -keptDays, to: now) else { return false }
+        return chat.lastActivity < oldest
+    }
+
     /// `saving: false` keeps it in memory only (previews, tests). `fileURL`: where they are kept
     /// (tests use their own).
     init(saving: Bool = true, fileURL: URL = AssistantChats.fileURL) {
@@ -141,9 +153,13 @@ final class AssistantChats {
     @ObservationIgnored private var isUnread = false
     @ObservationIgnored private var unlockObserver: NSObjectProtocol?
 
-    /// Chats with a question, newest activity first.
+    /// Chats with a question, newest activity first; none older than `keptDays`, but the open one,
+    /// even if it was opened just before its last day ran out.
     var history: [Conversation] {
-        conversations.filter(\.hasQuestions).sorted { $0.lastActivity > $1.lastActivity }
+        let now = Date.now
+        return conversations
+            .filter { $0.hasQuestions && ($0.id == currentID || !Self.isExpired($0, now: now)) }
+            .sorted { $0.lastActivity > $1.lastActivity }
     }
 
     func delete(_ id: Conversation.ID) {
@@ -245,8 +261,9 @@ final class AssistantChats {
             return .unreadable
         }
         do {
+            let now = Date.now
             return .read(try JSONDecoder().decode([Conversation].self, from: data)
-                .filter(\.hasQuestions)
+                .filter { $0.hasQuestions && !isExpired($0, now: now) }
                 .sorted { $0.startedAt < $1.startedAt })
         } catch {
             log.error("Cannot read the chats: \(error)")

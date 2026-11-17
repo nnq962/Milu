@@ -137,4 +137,68 @@ struct AssistantTests {
                                                  now: now)
         #expect(sections.map(\.title) == ["Hôm nay", "Hôm qua", "7 ngày qua", "Trước đó"])
     }
+
+    // MARK: - Tự xoá sau 30 ngày
+
+    /// A chat whose last message is `daysAgo` old.
+    private func chat(_ question: String, daysAgo: Double) -> Conversation {
+        let date = Date.now.addingTimeInterval(-daysAgo * 86_400)
+        return Conversation(startedAt: date, messages: [ChatMessage(role: .user, text: question, date: date),
+                                                        ChatMessage(role: .assistant, text: "Được", date: date)])
+    }
+
+    /// Counted from the last message (user request 2026-11-17): 29 days kept, 31 gone.
+    @Test func aChatUnusedForThirtyDaysLeavesTheHistory() {
+        let chats = AssistantChats(saving: false)
+        chats.conversations += [chat("Cũ", daysAgo: 31), chat("Còn", daysAgo: 29)]
+        #expect(chats.history.map(\.title) == ["Còn"])
+        // Started long ago but spoken in yesterday: still in use.
+        var used = chat("Đang dùng", daysAgo: 40)
+        used.messages.append(ChatMessage(role: .user, text: "Hỏi tiếp", date: .now.addingTimeInterval(-86_400)))
+        chats.conversations.append(used)
+        #expect(chats.history.map(\.title) == ["Đang dùng", "Còn"])
+    }
+
+    @Test func theOpenChatStaysEvenPastThirtyDays() {
+        let chats = AssistantChats(saving: false)
+        let old = chat("Cũ", daysAgo: 31)
+        chats.conversations.append(old)
+        chats.currentID = old.id
+        #expect(chats.history.map(\.title) == ["Cũ"])
+    }
+
+    /// Not read at launch, and gone from the file at the next save.
+    @Test func oldChatsAreDeletedFromTheFile() async throws {
+        let folder = URL.temporaryDirectory.appending(path: "chats-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appending(path: "AssistantChats.json")
+        try JSONEncoder().encode([chat("Cũ", daysAgo: 45), chat("Mới", daysAgo: 2)]).write(to: url)
+
+        let chats = AssistantChats(saving: true, fileURL: url)
+        #expect(chats.history.map(\.title) == ["Mới"])
+        ask(chats, "Ghi cà phê 35k")
+        try await Task.sleep(for: .seconds(1))
+        let written = try JSONDecoder().decode([Conversation].self, from: Data(contentsOf: url))
+        #expect(Set(written.map(\.title)) == ["Mới", "Ghi cà phê 35k"])
+    }
+
+    // MARK: - Dòng trong lịch sử
+
+    /// The line under a chat's question: Milu's first line, without the markdown.
+    @Test func aHistoryRowShowsMilusLastWordsPlain() {
+        var chat = Conversation.new()
+        chat.messages = [ChatMessage(role: .user, text: "Tháng này chi gì nhiều?"),
+                         ChatMessage(role: .assistant, text: "\n**Ăn uống** nhiều nhất, 135.000đ.\n- Di chuyển 100.000đ")]
+        #expect(ChatHistorySheet.lastWords(of: chat) == "Ăn uống nhiều nhất, 135.000đ.")
+
+        chat.messages.append(ChatMessage(role: .user, text: "Còn gì nữa?"))
+        chat.messages.append(ChatMessage(role: .assistant, text: "- Cà phê 35.000đ\n- Gửi xe 5.000đ"))
+        #expect(ChatHistorySheet.lastWords(of: chat) == "Cà phê 35.000đ")
+
+        chat.messages.append(ChatMessage(role: .notice, text: "Milu chưa kịp trả lời câu này"))
+        #expect(ChatHistorySheet.lastWords(of: chat) == "Milu chưa kịp trả lời câu này")
+
+        #expect(ChatHistorySheet.lastWords(of: Conversation(messages: [ChatMessage(role: .user, text: "Chào")])) == nil)
+    }
 }

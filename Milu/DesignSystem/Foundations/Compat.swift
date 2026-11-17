@@ -180,3 +180,108 @@ enum LegacyBar {
     /// The sheet's ✕ and ✓, as iOS 17's own: smaller, a filled disc.
     static let sheetControl: CGFloat = 30
 }
+
+// MARK: - Vuốt ngang trong danh sách cuộn
+
+extension View {
+    /// A sideways drag on a row of a list that scrolls up and down (a row slid open on its "Xoá",
+    /// `SwipeToDeleteRow`): `onChanged` with how far it has gone since it began, `onEnded` with
+    /// that and its speed (points a second), also when it is cut short (speed 0).
+    ///
+    /// From iOS 18 it is UIKit's own pan, as iOS's rows use: it begins only when the finger moves
+    /// more sideways than up or down, and once it has, the list does not take it over (user report
+    /// 2026-11-17: with SwiftUI's drag the list took the touch as the finger drifted and the row
+    /// jumped back). Before iOS 18, SwiftUI's drag alongside the scrolling.
+    func sidewaysDrag(onChanged: @escaping (CGFloat) -> Void,
+                      onEnded: @escaping (_ distance: CGFloat, _ speed: CGFloat) -> Void) -> some View {
+        modifier(SidewaysDrag(onChanged: onChanged, onEnded: onEnded))
+    }
+}
+
+private struct SidewaysDrag: ViewModifier {
+    let onChanged: (CGFloat) -> Void
+    let onEnded: (CGFloat, CGFloat) -> Void
+
+    /// iOS 17: the drag under way, so one taken over by the list still ends.
+    @GestureState private var dragging = false
+    /// iOS 17: where a sideways drag began and how far it has gone; nil when it is not one.
+    @State private var start: CGFloat?
+    @State private var distance: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.gesture(SidewaysPan(onChanged: onChanged, onEnded: onEnded))
+        } else {
+            content
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .updating($dragging) { _, state, _ in state = true }
+                        .onChanged { value in
+                            let width = value.translation.width
+                            if start == nil {
+                                guard abs(width) > abs(value.translation.height) else { return }
+                                start = width
+                            }
+                            distance = width - (start ?? 0)
+                            onChanged(distance)
+                        }
+                        .onEnded { value in
+                            guard start != nil else { return }
+                            start = nil
+                            onEnded(distance, value.velocity.width)
+                        }
+                )
+                .onChange(of: dragging) { _, isDragging in
+                    guard !isDragging, start != nil else { return }
+                    start = nil
+                    onEnded(distance, 0)
+                }
+        }
+    }
+}
+
+/// UIKit's pan for `sidewaysDrag`: it begins only on a sideways move, and counts from where it
+/// began, so the row does not jump by the few points the finger moved before it did.
+@available(iOS 18.0, *)
+private struct SidewaysPan: UIGestureRecognizerRepresentable {
+    let onChanged: (CGFloat) -> Void
+    let onEnded: (CGFloat, CGFloat) -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let pan = UIPanGestureRecognizer()
+        pan.delegate = context.coordinator
+        pan.maximumNumberOfTouches = 1
+        return pan
+    }
+
+    func handleUIGestureRecognizerAction(_ pan: UIPanGestureRecognizer, context: Context) {
+        let coordinator = context.coordinator
+        let x = pan.translation(in: pan.view).x
+        switch pan.state {
+        case .began:
+            coordinator.start = x
+            onChanged(0)
+        case .changed:
+            onChanged(x - coordinator.start)
+        case .ended:
+            onEnded(x - coordinator.start, pan.velocity(in: pan.view).x)
+        case .cancelled, .failed:
+            onEnded(x - coordinator.start, 0)
+        default:
+            break
+        }
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var start: CGFloat = 0
+
+        /// Sideways only: up and down stays the list's.
+        func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = recognizer as? UIPanGestureRecognizer else { return false }
+            let speed = pan.velocity(in: pan.view)
+            return abs(speed.x) > abs(speed.y)
+        }
+    }
+}

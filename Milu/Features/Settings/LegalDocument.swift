@@ -13,7 +13,7 @@ struct LegalDocument {
 
     static let privacy = LegalDocument(
         title: "Chính sách quyền riêng tư",
-        updated: "16/11/2026",
+        updated: "17/11/2026",
         entries: [
             ReadingEntry("Tóm tắt",
                          "Số liệu bạn ghi trong Milu được lưu trên iPhone này và trong iCloud của chính bạn. Chỉ khi bạn hỏi Milu AI hoặc nói bằng giọng, phần dữ liệu cần thiết mới được gửi tới máy chủ riêng của Milu, xử lý xong là bỏ, không lưu lại.",
@@ -26,7 +26,8 @@ struct LegalDocument {
                          "Để trả lời, app gửi tới máy chủ của Milu câu hỏi của bạn cùng tối đa 6 tin nhắn gần nhất trong cuộc trò chuyện, tên hạng mục và tài khoản, tên hiển thị của bạn (nếu có đặt) và ngày hôm nay.",
                          "Khi cần số liệu, app tự tra trên máy rồi chỉ gửi đúng phần cần cho câu trả lời, ví dụ một khoản tổng hay các giao dịch khớp câu hỏi kèm ghi chú của chúng. Toàn bộ sổ sách không bao giờ được gửi đi.",
                          "Dữ liệu đi bằng kết nối mã hoá (HTTPS) qua mạng của Cloudflare tới máy chủ riêng của Milu. AI chạy ngay trên máy chủ đó, không qua dịch vụ AI bên ngoài. Nội dung được xử lý trong bộ nhớ rồi bỏ đi: không lưu, không ghi nhật ký, không dùng để huấn luyện AI. Máy chủ chỉ đếm số lần gọi để chống lạm dụng.",
-                         "Lịch sử trò chuyện với Milu AI được lưu trên iPhone này."),
+                         // The days from `AssistantChats`, so the two never disagree (user request 2026-11-17).
+                         "Lịch sử trò chuyện với Milu AI được lưu trên iPhone này. Đoạn chat không dùng trong \(AssistantChats.keptDays) ngày (tính từ tin nhắn cuối) sẽ tự xoá; bạn cũng có thể vuốt để xoá từng đoạn trong Lịch sử trò chuyện."),
             ReadingEntry("Khi bạn nói bằng giọng",
                          "Đoạn ghi âm được gửi tới máy chủ của Milu, kèm tên hạng mục và tài khoản để nhận đúng chữ, chuyển thành chữ rồi bỏ đi, không lưu lại.",
                          // What it does (audit 2026-11-15: this said Apple's only when the server fails,
