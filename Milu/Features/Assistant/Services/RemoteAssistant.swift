@@ -32,16 +32,21 @@ struct RemoteAssistant: AssistantService {
                               open: history.compactMap(\.pendingDraft))
         /// A card was waiting before this question: an answer that says it changed must have changed it.
         let cardWaiting = !turn.open.isEmpty
-        /// How to do by hand what Milu refused to record, sure to be said (`withHowTo`).
-        var howTos: [String] = []
+        /// What Milu refused to record in this answer, and whether its last record call asked
+        /// something back (then the model's question stands, the way by hand added to it).
+        var refused: [RecordRefusal.Refused] = []
+        var asksBack = false
 
         do {
             for _ in 0..<Self.maxRounds {
                 let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
-                    let answer = Self.answerText(text, actions: actions, cardWaiting: cardWaiting, refused: !howTos.isEmpty)
-                    return AssistantReply(text: Self.withHowTo(answer, howTos), actions: actions, counts: Self.counts(toolsRun))
+                    let answer = !refused.isEmpty && !asksBack
+                        ? Self.refusedAnswer(refused, actions: actions)
+                        : Self.withHowTo(Self.answerText(text, actions: actions, cardWaiting: cardWaiting, refused: !refused.isEmpty),
+                                         refused.compactMap(\.howTo))
+                    return AssistantReply(text: answer, actions: actions, counts: Self.counts(toolsRun))
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
                 for call in reply.toolCalls {
@@ -50,7 +55,10 @@ struct RemoteAssistant: AssistantService {
                     let output = AssistantTools.named(call.name, app: app, turn: turn)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
                     if let next = output.action { Self.add(next, to: &actions, turn: &turn) }
-                    if call.name == RecordTransaction().name { howTos = Self.howTos(in: output.result, adding: howTos) }
+                    if call.name == RecordTransaction().name {
+                        refused = Self.refused(in: output.result, adding: refused)
+                        asksBack = output.result["status"] == "needsInfo"
+                    }
                     toolsRun.insert(call.name)
                     messages.append(.tool(call.name, result: output.result))
                 }
@@ -158,19 +166,35 @@ struct RemoteAssistant: AssistantService {
         character.unicodeScalars.contains { $0.properties.isEmojiPresentation || ($0.properties.isEmoji && $0.value > 0x2000) }
     }
 
-    /// The ways by hand a record result gives for what it refused, new ones after `known`.
-    static func howTos(in result: JSONValue, adding known: [String]) -> [String] {
+    /// What a record result refused, new ones after `known`.
+    static func refused(in result: JSONValue, adding known: [RecordRefusal.Refused]) -> [RecordRefusal.Refused] {
         var found = known
-        let refused: [JSONValue] = switch (result["items"], result["rejected"]) {
+        let items: [JSONValue] = switch (result["items"], result["rejected"]) {
         case (_, .array(let items)?): items
         case (.array(let items)?, _) where result["status"] == "rejected": items
         default: []
         }
-        for item in refused {
-            if let howTo = item["howTo"]?.string, !howTo.isEmpty, !found.contains(howTo) { found.append(howTo) }
+        for item in items {
+            guard let reason = item["reason"]?.string, !reason.isEmpty else { continue }
+            let howTo = item["howTo"]?.string.flatMap { $0.isEmpty ? nil : $0 }
+            let refusal = RecordRefusal.Refused(reason: reason, howTo: howTo)
+            if !found.contains(refusal) { found.append(refusal) }
         }
         return found
     }
+
+    /// An answer that refused something, in the app's own words (user request 2026-11-17: the
+    /// model said "Milu bị từ chối rồi nè", as if Milu were the one turned down): what Milu cannot
+    /// record yet and the way by hand; then, when the rest made a card, that it waits for "Lưu",
+    /// last, right over the card.
+    static func refusedAnswer(_ refused: [RecordRefusal.Refused], actions: [AssistantReply.Action]) -> String {
+        let message = RecordRefusal.message(refused)
+        let hasDraft = actions.contains { if case .draft = $0 { true } else { false } }
+        return hasDraft ? message + "\n\n" + restReady : message
+    }
+
+    /// Over the card of what was not refused.
+    static let restReady = "Phần còn lại Milu soạn xong rồi, bạn kiểm tra rồi bấm **Lưu** nhé:"
 
     /// The answer with each way by hand it left out added at its end: told in the model's own words
     /// it was lost half the time ("rút 2tr": "Milu cần bạn làm thủ công", and no path; eval

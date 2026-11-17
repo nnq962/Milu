@@ -26,7 +26,8 @@ struct RecordTransaction: AssistantTool {
         thông tin, và gửi mọi khoản của câu trong một lần. Kết quả: needsInfo thì hỏi lại đúng câu `ask` (kèm \
         gợi ý), rồi gọi lại với đủ các khoản; rejected thì nói `reason` và `howTo`; draft thì nói ngắn là người \
         dùng kiểm tra thẻ rồi bấm Lưu, không bao giờ nói đã ghi. Sửa thẻ đang chờ thì gửi lại đủ các khoản của \
-        thẻ kèm `replaces`.
+        thẻ kèm `replaces`. Chuyển khoản, rút tiền, nạp ví, vay, trả nợ, hũ: Milu chưa ghi được, vẫn gọi ngay với \
+        kind transfer, loan hay goal, không hỏi thêm tài khoản hay người nào.
         """
     let parameters: JSONValue = [
         "type": "object",
@@ -71,16 +72,51 @@ struct RecordTransaction: AssistantTool {
     }
 }
 
-/// What Milu does not record, and where the user does it by hand (the paths as the app shows them,
-/// 2026-11-17).
+/// What Milu does not record, said plainly as what it cannot do yet (user request 2026-11-17: it
+/// asked which accounts a transfer was between, then said "Milu bị từ chối rồi nè"), and where the
+/// user does it by hand (the paths as the app shows them).
 enum RecordRefusal {
-    static let transfer = (reason: "Đây là chuyển tiền giữa hai tài khoản của bạn, không phải khoản chi hay thu, nên Milu chưa ghi.",
-                           howTo: "Ghi tay: nút + → Thêm giao dịch → Chuyển khoản.")
-    static let loan = (reason: "Đây là khoản vay hoặc trả nợ, Milu chưa ghi giúp được.",
-                       howTo: "Khoản vay mới: nút + → Thêm khoản vay. Trả hay thu nợ: Giao dịch → Vay nợ → chọn khoản vay → Ghi nhận thu nợ / trả nợ.")
-    static let goal = (reason: "Đây là tiền bỏ vào hoặc rút từ hũ tiết kiệm, Milu chưa ghi giúp được.",
-                       howTo: "Ghi tay: Tài khoản → chọn hũ → Nạp tiền hoặc Rút tiền.")
+    /// A kind of transaction Milu does not record yet.
+    struct Kind: Equatable {
+        let reason: String
+        /// Each way by hand, a line of its own in the answer.
+        let ways: [String]
+        /// The ways in one line, as the model is given them.
+        var howTo: String { ways.joined(separator: " ") }
+    }
+
+    static let transfer = Kind(
+        reason: "Milu chưa ghi được chuyển tiền giữa các tài khoản (chuyển khoản, rút tiền, nạp ví): tính năng này chưa có.",
+        ways: ["Nút + → Thêm giao dịch → Chuyển khoản."])
+    static let loan = Kind(
+        reason: "Milu chưa ghi được khoản vay hay trả nợ: tính năng này chưa có.",
+        ways: ["Khoản vay mới: nút + → Thêm khoản vay.",
+               "Trả hay thu nợ: Giao dịch → Vay nợ → chọn khoản vay → Ghi nhận thu nợ / trả nợ."])
+    static let goal = Kind(
+        reason: "Milu chưa ghi được tiền bỏ vào hay rút từ hũ tiết kiệm: tính năng này chưa có.",
+        ways: ["Tài khoản → chọn hũ → Nạp tiền hoặc Rút tiền."])
+    static let kinds = [transfer, loan, goal]
     static let futureHowTo = "Khoản lặp lại hằng tháng thì tạo giao dịch định kỳ: nút + → Thêm giao dịch → Lặp lại."
+
+    /// One item refused, as the record tool's result gives it.
+    struct Refused: Equatable {
+        let reason: String
+        let howTo: String?
+    }
+
+    /// The app's own words for what was refused, in place of the model's: why, then each way by
+    /// hand on a line of its own; the same refusal said once.
+    static func message(_ refused: [Refused]) -> String {
+        var said: [Refused] = []
+        for item in refused where !said.contains(item) { said.append(item) }
+        return said.map { item in
+            if let kind = kinds.first(where: { $0.reason == item.reason }) {
+                return ([kind.reason + " Bạn ghi tay giúp Milu nhé:"] + kind.ways.map { "• " + $0 }).joined(separator: "\n")
+            }
+            return [item.reason, item.howTo.map { "• " + $0 }].compactMap { $0 }.joined(separator: "\n")
+        }
+        .joined(separator: "\n\n")
+    }
 }
 
 /// The checks behind `RecordTransaction`, item by item, saving nothing; the keyword assistant uses
@@ -156,8 +192,9 @@ struct DraftBuilder {
         guard !rows.isEmpty else {
             return ToolOutput(result: [
                 "ok": false, "status": "rejected", "items": .array(refused),
-                // The way by hand copied as written: said in its own words, it was lost (eval 2026-11-17).
-                "say": "Không ghi gì, không soạn thẻ. Nói lý do (reason) rồi chép nguyên văn cách ghi tay (howTo), ngắn gọn.",
+                // The app says it in its own words (`RecordRefusal.message`); the model is told the
+                // same, for the chat it is given next.
+                "say": "Không ghi gì, không soạn thẻ. Nói thật là Milu chưa làm được (reason), rồi chép nguyên văn cách ghi tay (howTo); không hỏi thêm gì.",
             ])
         }
         let draft = TransactionDraft(rows: rows, replacing: replacing?.id)

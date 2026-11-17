@@ -278,19 +278,48 @@ struct TransactionDraftTests {
             == "Cà phê **35.000đ** soạn xong. Còn rút tiền thì bạn ghi tay nha")
     }
 
-    /// The way by hand for what Milu refused is always said: added when the model left it out.
+    /// The way by hand for what Milu refused is always said: added when the model, asking
+    /// something back, left it out.
     @Test func aRefusalAlwaysSaysTheWayByHand() {
         let store = store()
         let result = record(["transactions": [["kind": "transfer", "amount": 2_000_000, "note": "Rút tiền"]]], in: store).result
-        let howTos = RemoteAssistant.howTos(in: result, adding: [])
-        #expect(howTos == [RecordRefusal.transfer.howTo])
+        let refused = RemoteAssistant.refused(in: result, adding: [])
+        #expect(refused == [.init(reason: RecordRefusal.transfer.reason, howTo: RecordRefusal.transfer.howTo)])
+        let howTos = refused.compactMap(\.howTo)
         let left = RemoteAssistant.withHowTo("Cái này là chuyển tiền, bạn làm thủ công nha 💸", howTos)
         #expect(left.contains("Thêm giao dịch → Chuyển khoản"))
         let said = "Bạn ghi tay ở nút + → Thêm giao dịch → Chuyển khoản nha"
         #expect(RemoteAssistant.withHowTo(said, howTos) == said)
         // Refused beside a card made of the rest: said too.
         let mixed = record(["transactions": [lunch(), ["kind": "goal", "amount": 1_000_000, "note": "Hũ"]]], in: store).result
-        #expect(RemoteAssistant.howTos(in: mixed, adding: []) == [RecordRefusal.goal.howTo])
+        #expect(RemoteAssistant.refused(in: mixed, adding: []).map(\.reason) == [RecordRefusal.goal.reason])
+    }
+
+    /// What Milu cannot record is said by the app, plainly, never in the model's words (user report
+    /// 2026-11-17: "Ủa, Milu bị từ chối rồi nè 😭"): that the feature is not there yet, then each
+    /// way by hand on its own line.
+    @Test func aRefusalIsSaidPlainlyByTheApp() {
+        let store = store()
+        let transfer = record(["transactions": [["kind": "transfer", "amount": 500_000, "amount_said": "500k"]]], in: store).result
+        let answer = RemoteAssistant.refusedAnswer(RemoteAssistant.refused(in: transfer, adding: []), actions: [])
+        #expect(answer == """
+            Milu chưa ghi được chuyển tiền giữa các tài khoản (chuyển khoản, rút tiền, nạp ví): tính năng này chưa có. \
+            Bạn ghi tay giúp Milu nhé:
+            • Nút + → Thêm giao dịch → Chuyển khoản.
+            """)
+        // A loan has two ways, each a line; the same refusal twice is said once.
+        let loans = record(["transactions": [["kind": "loan", "amount": 500_000], ["kind": "loan", "amount": 200_000]]],
+                           in: store).result
+        let loanAnswer = RemoteAssistant.refusedAnswer(RemoteAssistant.refused(in: loans, adding: []), actions: [])
+        #expect(loanAnswer.components(separatedBy: "tính năng này chưa có").count == 2)
+        #expect(loanAnswer.components(separatedBy: "\n• ").count == 3)
+        // Beside a card of the rest: the refusal, then that the card waits for "Lưu", right over it.
+        let mixed = record(["transactions": [lunch(), ["kind": "goal", "amount": 1_000_000, "note": "Hũ"]]], in: store)
+        let mixedAnswer = RemoteAssistant.refusedAnswer(RemoteAssistant.refused(in: mixed.result, adding: []),
+                                                         actions: [mixed.action!])
+        #expect(mixedAnswer.hasPrefix(RecordRefusal.goal.reason))
+        #expect(mixedAnswer.hasSuffix(RemoteAssistant.restReady))
+        #expect(!mixedAnswer.contains("từ chối"))
     }
 
     @Test func theGuesserReadsWholeWords() {

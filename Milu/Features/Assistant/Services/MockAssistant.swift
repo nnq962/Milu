@@ -64,7 +64,7 @@ struct MockAssistant {
     private func recordCommand(_ question: String) -> AssistantReply {
         let text = Self.normalize(question)
         if let refusal = Self.refusal(for: text) {
-            return .init(text: "\(refusal.reason) \(refusal.howTo)", counts: false)
+            return .init(text: RecordRefusal.message([.init(reason: refusal.reason, howTo: refusal.howTo)]), counts: false)
         }
         guard let amount = Self.amount(in: question) else {
             return .init(text: "Bạn cho mình biết tên khoản và số tiền nhé, ví dụ: **ghi ăn trưa 60.000 hôm nay** hoặc **ghi nhận lương 25tr**.",
@@ -90,12 +90,12 @@ struct MockAssistant {
         case .needs(let need):
             return .init(text: need.ask, counts: false)
         case .refused(let reason, let howTo):
-            return .init(text: [reason, howTo].compactMap { $0 }.joined(separator: " "), counts: false)
+            return .init(text: RecordRefusal.message([.init(reason: reason, howTo: howTo)]), counts: false)
         }
     }
 
     /// A transfer, a loan or a goal, which Milu does not record, by its words.
-    private static func refusal(for normalized: String) -> (reason: String, howTo: String)? {
+    private static func refusal(for normalized: String) -> RecordRefusal.Kind? {
         let padded = " " + normalized.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
         func has(_ words: [String]) -> Bool { words.contains { padded.contains(" \($0) ") } }
         if has(["chuyen khoan", "chuyen tien", "rut tien", "rut", "nap vi", "tra the"]) { return RecordRefusal.transfer }
