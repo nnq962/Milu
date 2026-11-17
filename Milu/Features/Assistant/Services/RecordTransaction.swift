@@ -156,15 +156,17 @@ struct DraftBuilder {
         guard !rows.isEmpty else {
             return ToolOutput(result: [
                 "ok": false, "status": "rejected", "items": .array(refused),
-                "say": "Không ghi gì. Nói lý do (reason) và cách ghi tay (howTo), ngắn gọn.",
+                // The way by hand copied as written: said in its own words, it was lost (eval 2026-11-17).
+                "say": "Không ghi gì, không soạn thẻ. Nói lý do (reason) rồi chép nguyên văn cách ghi tay (howTo), ngắn gọn.",
             ])
         }
         let draft = TransactionDraft(rows: rows, replacing: replacing?.id)
         var result: [String: JSONValue] = [
             "ok": true, "status": "draft", "card": .string(draft.ref),
             "rows": .array(rows.enumerated().map { describe($0.element, number: $0.offset + 1) }),
-            "say": .string("Đã soạn thẻ #\(draft.ref), CHƯA ghi gì. Nói ngắn gọn: người dùng kiểm tra thẻ rồi bấm Lưu; không nói đã ghi."
-                + (refused.isEmpty ? "" : " Nói thêm khoản nào không ghi được, lý do và cách ghi tay.")),
+            // No "#ref" said here: the model read it out to the user (Simulator, 2026-11-17).
+            "say": .string("Đã soạn thẻ, CHƯA ghi gì. Nói ngắn gọn: người dùng kiểm tra thẻ rồi bấm Lưu; không nói đã ghi, không nói mã thẻ."
+                + (refused.isEmpty ? "" : " Nói thêm khoản nào không ghi được, lý do, rồi chép nguyên văn cách ghi tay (howTo).")),
         ]
         if !refused.isEmpty { result["rejected"] = .array(refused) }
         return ToolOutput(result: .object(result), action: .draft(draft))

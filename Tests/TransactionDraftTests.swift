@@ -232,18 +232,23 @@ struct TransactionDraftTests {
         #expect(DraftShortcut.match("ăn trưa 60k") == nil)
     }
 
-    /// The model is told of a card under its words, and of one still waiting from further back.
+    /// The model is told of a card as the call that made it, before Milu's words, never as words
+    /// of Milu's own (it copied them); and of one still waiting from further back, first.
     @Test func theHistoryTellsTheModelOfCards() throws {
         let store = store()
         let draft = try #require(card(record(["transactions": [lunch()]], in: store)))
         var messages = [ChatMessage(role: .user, text: "ghi ăn trưa 60k"),
                         ChatMessage(role: .assistant, text: "Bạn kiểm tra rồi bấm Lưu nhé", card: .draft(draft))]
         let told = RemoteAssistant.history(messages, store: store)
-        #expect(told.count == 2)
-        #expect(String(describing: told.last).contains("#\(draft.ref)"))
+        #expect(told.map(\.role) == ["user", "assistant", "tool", "assistant"])
+        #expect(told[1].toolCalls?.first?.name == "record_transaction")
+        #expect(told[2].content.contains("[Thẻ #\(draft.ref) · đang chờ"))
+        #expect(told[3].content == "Bạn kiểm tra rồi bấm Lưu nhé")
+        #expect(!told.contains { $0.role == "assistant" && $0.content.contains("[Thẻ") })
         for index in 0..<8 { messages.append(ChatMessage(role: index.isMultiple(of: 2) ? .user : .assistant, text: "câu \(index)")) }
         let later = RemoteAssistant.history(messages, store: store)
-        #expect(String(describing: later.first).contains("#\(draft.ref)"))
+        #expect(later.first?.toolCalls?.first?.name == "record_transaction")
+        #expect(later.dropFirst().first?.content.contains("#\(draft.ref)") == true)
     }
 
     @Test func anAnswerNeverSaysACardWasSaved() {
@@ -251,6 +256,29 @@ struct TransactionDraftTests {
         #expect(RemoteAssistant.answerText("Mình đã ghi khoản này rồi nhé", actions: [.draft(draft)]) == RemoteAssistant.draftReady)
         #expect(RemoteAssistant.answerText("Bạn kiểm tra rồi bấm Lưu nhé", actions: [.draft(draft)]) == "Bạn kiểm tra rồi bấm Lưu nhé")
         #expect(RemoteAssistant.answerText("Mình đã ghi xong", actions: []) == "Mình đã ghi xong")
+        // A card waiting, none new, "changed" said: the card did not change.
+        #expect(RemoteAssistant.answerText("Thẻ **#adb0** đã được cập nhật **50.000đ** rồi nè", actions: [], cardWaiting: true)
+            == RemoteAssistant.cardUnchanged)
+        #expect(RemoteAssistant.answerText("Tháng này bạn chi **2.000.000đ**", actions: [], cardWaiting: true)
+            == "Tháng này bạn chi **2.000.000đ**")
+        // The card's code is the model's alone.
+        #expect(RemoteAssistant.answerText("Milu soạn xong thẻ **#adb0** rồi nè, bấm Lưu nha", actions: [.draft(draft)])
+            == "Milu soạn xong thẻ rồi nè, bấm Lưu nha")
+    }
+
+    /// The way by hand for what Milu refused is always said: added when the model left it out.
+    @Test func aRefusalAlwaysSaysTheWayByHand() {
+        let store = store()
+        let result = record(["transactions": [["kind": "transfer", "amount": 2_000_000, "note": "Rút tiền"]]], in: store).result
+        let howTos = RemoteAssistant.howTos(in: result, adding: [])
+        #expect(howTos == [RecordRefusal.transfer.howTo])
+        let left = RemoteAssistant.withHowTo("Cái này là chuyển tiền, bạn làm thủ công nha 💸", howTos)
+        #expect(left.contains("Thêm giao dịch → Chuyển khoản"))
+        let said = "Bạn ghi tay ở nút + → Thêm giao dịch → Chuyển khoản nha"
+        #expect(RemoteAssistant.withHowTo(said, howTos) == said)
+        // Refused beside a card made of the rest: said too.
+        let mixed = record(["transactions": [lunch(), ["kind": "goal", "amount": 1_000_000, "note": "Hũ"]]], in: store).result
+        #expect(RemoteAssistant.howTos(in: mixed, adding: []) == [RecordRefusal.goal.howTo])
     }
 
     @Test func theGuesserReadsWholeWords() {

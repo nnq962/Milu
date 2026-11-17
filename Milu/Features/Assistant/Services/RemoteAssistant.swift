@@ -30,14 +30,18 @@ struct RemoteAssistant: AssistantService {
         /// cards waiting for "Lưu", this answer's own as they come.
         var turn = RecordTurn(userWords: history.filter { $0.role == .user }.suffix(3).map(\.text) + [question],
                               open: history.compactMap(\.pendingDraft))
+        /// A card was waiting before this question: an answer that says it changed must have changed it.
+        let cardWaiting = !turn.open.isEmpty
+        /// How to do by hand what Milu refused to record, sure to be said (`withHowTo`).
+        var howTos: [String] = []
 
         do {
             for _ in 0..<Self.maxRounds {
                 let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
-                    return AssistantReply(text: Self.answerText(text, actions: actions), actions: actions,
-                                          counts: Self.counts(toolsRun))
+                    let answer = Self.answerText(text, actions: actions, cardWaiting: cardWaiting)
+                    return AssistantReply(text: Self.withHowTo(answer, howTos), actions: actions, counts: Self.counts(toolsRun))
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
                 for call in reply.toolCalls {
@@ -46,6 +50,7 @@ struct RemoteAssistant: AssistantService {
                     let output = AssistantTools.named(call.name, app: app, turn: turn)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
                     if let next = output.action { Self.add(next, to: &actions, turn: &turn) }
+                    if call.name == RecordTransaction().name { howTos = Self.howTos(in: output.result, adding: howTos) }
                     toolsRun.insert(call.name)
                     messages.append(.tool(call.name, result: output.result))
                 }
@@ -98,16 +103,58 @@ struct RemoteAssistant: AssistantService {
     /// Said over a card waiting for "Lưu".
     static let draftReady = "Milu soạn xong rồi, bạn kiểm tra rồi bấm **Lưu** nhé:"
 
-    /// The model's words, unless it said a card was recorded: nothing is until "Lưu", and "đã ghi"
-    /// over a card waiting for it would have the user leave it unsaved.
-    static func answerText(_ text: String, actions: [AssistantReply.Action]) -> String {
+    /// Said when the model claimed a card waiting for "Lưu" was changed, and nothing changed it.
+    static let cardUnchanged = "Thẻ ở trên chưa đổi gì đâu. Bạn bấm vào dòng trên thẻ để sửa, hoặc nói lại rõ hơn (ví dụ: “đổi thành 50k”) nhé."
+
+    /// The model's words, but never a card's code ("#adb0", only for the model), and never a claim
+    /// the words cannot keep: "đã ghi" over a card waiting for "Lưu" (nothing is saved until then,
+    /// and the user would leave it), or "đã cập nhật thẻ" when no new card came (Simulator,
+    /// 2026-11-17: said with the card still at 60k, after "50k thôi").
+    static func answerText(_ text: String, actions: [AssistantReply.Action], cardWaiting: Bool = false) -> String {
+        let text = text.replacing(/\s?\*{0,2}#[0-9a-f]{4}\b\*{0,2}/, with: "")
         guard !text.isEmpty else { return emptyAnswer(actions.first) }
         let hasDraft = actions.contains { if case .draft = $0 { true } else { false } }
-        guard hasDraft else { return text }
         let words = " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
-        let saysSaved = [" da ghi ", " da luu ", " ghi xong ", " luu xong ", " da them ", " ghi lai roi ", " ghi roi "]
-            .contains { words.contains($0) } && !words.contains(" ghi chu ")
-        return saysSaved ? draftReady : text
+        if hasDraft {
+            let saysSaved = [" da ghi ", " da luu ", " ghi xong ", " luu xong ", " da them ", " ghi lai roi ", " ghi roi "]
+                .contains { words.contains($0) } && !words.contains(" ghi chu ")
+            return saysSaved ? draftReady : text
+        }
+        guard cardWaiting, actions.isEmpty else { return text }
+        let saysChanged = [" da cap nhat ", " da duoc cap nhat ", " da sua ", " da duoc sua ", " da doi ", " da duoc doi ",
+                           " cap nhat roi ", " sua roi ", " doi roi ", " da ghi ", " da luu "]
+            .contains { words.contains($0) }
+        return saysChanged ? cardUnchanged : text
+    }
+
+    /// The ways by hand a record result gives for what it refused, new ones after `known`.
+    static func howTos(in result: JSONValue, adding known: [String]) -> [String] {
+        var found = known
+        let refused: [JSONValue] = switch (result["items"], result["rejected"]) {
+        case (_, .array(let items)?): items
+        case (.array(let items)?, _) where result["status"] == "rejected": items
+        default: []
+        }
+        for item in refused {
+            if let howTo = item["howTo"]?.string, !howTo.isEmpty, !found.contains(howTo) { found.append(howTo) }
+        }
+        return found
+    }
+
+    /// The answer with each way by hand it left out added at its end: told in the model's own words
+    /// it was lost half the time ("rút 2tr": "Milu cần bạn làm thủ công", and no path; eval
+    /// 2026-11-17). Said is where its path ends ("Chuyển khoản" of "nút + → Thêm giao dịch →
+    /// Chuyển khoản").
+    static func withHowTo(_ text: String, _ howTos: [String]) -> String {
+        let said = text.searchKey
+        let missing = howTos.filter { howTo in
+            let firstWay = howTo.components(separatedBy: ".").first ?? howTo
+            let end = (firstWay.components(separatedBy: "→").last ?? firstWay)
+                .trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+            return !end.isEmpty && !said.contains(end.searchKey)
+        }
+        guard !missing.isEmpty else { return text }
+        return ([text] + missing.map { "• \($0)" }).joined(separator: "\n")
     }
 
     /// A card into the answer's: one that replaces another made in this answer takes its place;
@@ -131,59 +178,79 @@ struct RemoteAssistant: AssistantService {
         actions.append(.draft(draft))
     }
 
-    /// The chat so far as the model reads it: the last few messages, a card's state said under
-    /// the words it came with (`[Thẻ #k7f2 · đang chờ Lưu · 1) chi 60.000đ · Ăn trưa …]`), so
-    /// "à không, 50k thôi" means that card. A card still waiting from further back comes first.
-    /// None of it is shown in the chat.
+    /// The chat so far as the model reads it: the last few messages, each card as the tool call
+    /// that made it and its result, before Milu's words (`cardExchange`), so "à không, 50k thôi"
+    /// means that card. A card still waiting from further back comes first. Said as a note in
+    /// Milu's own words, the model copied the note into its answers (Simulator, 2026-11-17).
     static func history(_ history: [ChatMessage], store: FinanceStore) -> [MiluAPI.ChatMessage] {
         let recent = Array(history.suffix(historyLength))
         var messages: [MiluAPI.ChatMessage] = []
         let recentIDs = Set(recent.map(\.id))
-        if let waiting = history.last(where: { $0.pendingDraft != nil }), !recentIDs.contains(waiting.id),
-           let note = cardNote(waiting.card, store: store) {
-            messages.append(.assistant(note))
+        if let waiting = history.last(where: { $0.pendingDraft != nil }), !recentIDs.contains(waiting.id) {
+            messages += cardExchange(waiting.card, store: store)
         }
         for message in recent where message.role != .notice {
             let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            let note = cardNote(message.card, store: store)
-            let full = [text, note].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: "\n")
-            guard !full.isEmpty else { continue }
-            messages.append(message.role == .user ? .user(full) : .assistant(full))
+            if message.role == .user {
+                if !text.isEmpty { messages.append(.user(text)) }
+                continue
+            }
+            messages += cardExchange(message.card, store: store)
+            if !text.isEmpty { messages.append(.assistant(text)) }
         }
         return messages
     }
 
-    /// A card as the model is told of it.
-    static func cardNote(_ card: ChatMessage.Card?, store: FinanceStore) -> String? {
+    /// A card as the call that made it and the result it gave, as now: "[Thẻ #k7f2 · đang chờ …]"
+    /// in the result for one waiting (the server looks for it), the rows as they are on the card.
+    static func cardExchange(_ card: ChatMessage.Card?, store: FinanceStore) -> [MiluAPI.ChatMessage] {
+        let builder = DraftBuilder(turn: RecordTurn(), store: store)
+        func exchange(_ name: String, id: String, arguments: JSONValue, result: JSONValue) -> [MiluAPI.ChatMessage] {
+            [.assistant("", calls: [MiluAPI.ToolCall(id: id, name: name, arguments: arguments)]), .tool(name, result: result)]
+        }
         switch card {
         case .draft(let draft):
+            let rows = draft.liveRows
             let state = switch draft.state {
-            case .pending: "đang chờ người dùng bấm Lưu, chưa ghi"
-            case .saved: "đã lưu"
+            case .pending: "đang chờ người dùng bấm Lưu, chưa ghi; đổi gì thì gọi record_transaction với replaces"
+            case .saved: "đã lưu, người dùng bấm Xem trên thẻ để sửa"
             case .cancelled: "đã huỷ, không ghi gì"
             case .replaced: "đã thay bằng thẻ mới"
             }
-            let rows = draft.liveRows.enumerated().map { index, row in
+            let items: [JSONValue] = rows.map { row in
                 let transaction = row.transaction
-                var parts = ["\(index + 1)) \(transaction.kind == .income ? "thu" : "chi") \(transaction.amount.vnd)"]
-                parts.append(DraftChecks.categoryText(of: row, in: store))
-                parts.append(store.account(id: transaction.accountID)?.name ?? "")
-                parts.append(ToolDates.text(transaction.date) + " " + DraftChecks.time(transaction.date))
-                if !transaction.note.isEmpty { parts.append("ghi chú: \(transaction.note)") }
-                return parts.joined(separator: " · ")
+                var item: [String: JSONValue] = [
+                    "kind": .string(transaction.kind.rawValue), "amount": ToolMoney.value(transaction.amount),
+                    "category": .string(row.newItem?.name ?? store.categoryName(transaction.categoryID)),
+                    "date": .string(ToolDates.text(transaction.date)),
+                ]
+                if !row.accountChosenByApp, let account = store.account(id: transaction.accountID) {
+                    item["account"] = .string(account.name)
+                }
+                if !transaction.note.isEmpty { item["note"] = .string(transaction.note) }
+                return .object(item)
             }
-            return "[Thẻ #\(draft.ref) · \(state) · " + rows.joined(separator: " · ") + "]"
+            return exchange(RecordTransaction().name, id: "card-\(draft.ref)", arguments: ["transactions": .array(items)],
+                            result: ["ok": true, "status": "draft", "card": .string(draft.ref),
+                                     "note": .string("[Thẻ #\(draft.ref) · \(state)]"),
+                                     "rows": .array(rows.enumerated().map { builder.describe($0.element, number: $0.offset + 1) })])
         case .recorded(let transaction, let removed):
-            return "[Đã ghi \(transaction.amount.vnd)\(removed ? ", rồi đã xoá" : "")]"
+            return exchange(RecordTransaction().name, id: "rec-\(ToolTransactions.ref(transaction))",
+                            arguments: ["kind": .string(transaction.kind.rawValue), "amount": ToolMoney.value(transaction.amount)],
+                            result: ["ok": true, "recorded": ToolTransactions.describe(transaction, in: store),
+                                     "removed": .bool(removed)])
         case .confirmDelete(let transaction, let state):
             let said = switch state {
-            case .pending: "chờ xác nhận xoá"
+            case .pending: "chờ người dùng bấm xác nhận xoá"
             case .deleted: "đã xoá"
-            case .cancelled: "đã giữ lại"
+            case .cancelled: "người dùng giữ lại, không xoá"
             }
-            return "[Khoản \(transaction.amount.vnd) \(said)]"
+            return exchange(DeleteTransaction().name, id: "del-\(ToolTransactions.ref(transaction))",
+                            arguments: ["ref": .string(ToolTransactions.ref(transaction))],
+                            result: ["ok": true, "state": .string(said),
+                                     "transaction": ToolTransactions.describe(transaction, in: store)])
         case nil:
-            return nil
+            return []
         }
     }
 
