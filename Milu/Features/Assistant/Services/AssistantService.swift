@@ -52,7 +52,8 @@ struct ThinkingStep: Identifiable, Equatable {
             let months = ToolArgs.int(arguments["months"], default: 6, in: 2...24)
             return ThinkingStep("so sánh", "\(months) tháng gần đây")
         case ListTransfers().name: return ThinkingStep("tìm", "các lần chuyển tiền" + period)
-        case RecordTransaction().name: return ThinkingStep("ghi", "giao dịch")
+        // Nothing is recorded here: a card is made for "Lưu" (2026-11-17).
+        case RecordTransaction().name: return ThinkingStep("kiểm tra", "khoản cần ghi")
         case DeleteTransaction().name: return ThinkingStep("tìm", "khoản cần xoá")
         case GetAppInfo().name:
             let what = switch arguments["topic"]?.string.flatMap({ GetAppInfo.Topic(rawValue: $0.lowercased()) }) {

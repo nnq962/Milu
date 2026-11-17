@@ -85,10 +85,7 @@ struct CategoryEditorView: View {
 
     private var cleanName: String { Self.clean(name) }
 
-    /// Trimmed, with runs of spaces inside made one ("Ăn  sáng" is "Ăn sáng"), so twins are caught.
-    private static func clean(_ text: String) -> String {
-        text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-    }
+    private static func clean(_ text: String) -> String { Category.cleanName(text) }
     /// ✓ stays on so what is missing can be pointed out instead of the button just doing
     /// nothing (sheet review 2026-10-30: it greyed out here, against the app's rule).
     private func validate() -> Bool {
@@ -101,10 +98,7 @@ struct CategoryEditorView: View {
             && reservedFirstItem == nil
     }
 
-    /// The system name `text` matches ("Điều chỉnh số dư"), if any.
-    private static func reserved(_ text: String) -> String? {
-        Category.reservedNames.first { $0.compare(text, options: .caseInsensitive) == .orderedSame }
-    }
+    private static func reserved(_ text: String) -> String? { Category.reservedName(text) }
 
     private var reservedName: String? { Self.reserved(cleanName) }
 

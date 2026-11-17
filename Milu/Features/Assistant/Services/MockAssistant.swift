@@ -8,15 +8,16 @@ import Foundation
 /// What the assistant answers: text plus an optional action card the chat renders.
 struct AssistantReply {
     enum Action {
-        /// A transaction the assistant just recorded (card offers Sửa / Xoá).
-        case recorded(FinanceTransaction)
+        /// Transactions made ready to record: nothing is saved until "Lưu" on their card (user
+        /// choice 2026-11-17; before, they were recorded at once).
+        case draft(TransactionDraft)
         /// A transaction the user asked to delete; nothing changes until they confirm.
         case confirmDelete(FinanceTransaction)
     }
 
     var text: String
-    /// Every transaction recorded or found to delete, in order: each gets its card (audit round
-    /// 4, 2026-11-16: "ghi cà phê 35k và gửi xe 5k" recorded both, and only the last had one).
+    /// Every card to show, in order: each gets its own (audit round 4, 2026-11-16: only the last
+    /// one had one).
     var actions: [Action] = []
     /// Takes a lượt (`AIQuota`): false when it only recorded or deleted a transaction, which is
     /// data entry and free (user choice 2026-11-12).
@@ -58,23 +59,49 @@ struct MockAssistant {
 
     // MARK: - Ghi giao dịch
 
+    /// A card to save, as the AI makes one (`DraftBuilder`): nothing is recorded before "Lưu". It
+    /// cannot ask back, so a category it is unsure of goes on its guess, for the user to change.
     private func recordCommand(_ question: String) -> AssistantReply {
+        let text = Self.normalize(question)
+        if let refusal = Self.refusal(for: text) {
+            return .init(text: "\(refusal.reason) \(refusal.howTo)", counts: false)
+        }
         guard let amount = Self.amount(in: question) else {
-            return .init(text: "Bạn cho mình biết tên khoản và số tiền nhé, ví dụ: **ghi ăn trưa 60.000 hôm nay** hoặc **ghi nhận lương 25tr**.")
+            return .init(text: "Bạn cho mình biết tên khoản và số tiền nhé, ví dụ: **ghi ăn trưa 60.000 hôm nay** hoặc **ghi nhận lương 25tr**.",
+                         counts: false)
         }
-        guard let account = store.paymentAccounts.first ?? store.accounts.first else {
-            return .init(text: "Bạn chưa có tài khoản nào. Hãy thêm một tài khoản ở tab Tài khoản trước nhé.")
-        }
-        let category = Self.category(for: Self.normalize(question))
+        let category = Self.category(for: text)
         let title = Self.title(from: question, fallback: category.title)
-        let date = Self.date(in: Self.normalize(question)) ?? .now
-        // What was said ("Ăn trưa") goes in the note when it says more than the category.
-        let transaction = FinanceTransaction(amount: amount, category: category,
-                                             accountID: account.id, date: Self.keepingTime(of: .now, on: date),
-                                             note: title == category.title ? "" : title)
-        store.add(transaction)
-        let kind = category.kind == .income ? "khoản thu" : "khoản chi"
-        return .init(text: "Mình đã ghi \(kind) này vào \(account.name):", action: .recorded(transaction), counts: false)
+        let date = Self.date(in: text) ?? .now
+        var input: [String: JSONValue] = ["kind": .string(category.kind.rawValue), "amount": .number(amount),
+                                          "note": .string(title), "date": .string(ToolDates.text(date))]
+        let builder = DraftBuilder(turn: RecordTurn(userWords: [question]), store: store)
+        var outcome = builder.resolve(.object(input))
+        if case .needs(let need) = outcome, need.missing == "category" {
+            let items = store.pickableItems(category.kind)
+            let guess = items.first { $0.parentID == category.rawValue && !$0.id.hasSuffix(".other") }
+                ?? items.first { $0.id.hasSuffix(".other") } ?? items.first
+            input["category"] = guess.map { .string($0.name) }
+            outcome = builder.resolve(.object(input))
+        }
+        switch outcome {
+        case .ready(let row):
+            return .init(text: RemoteAssistant.draftReady, action: .draft(TransactionDraft(rows: [row])), counts: false)
+        case .needs(let need):
+            return .init(text: need.ask, counts: false)
+        case .refused(let reason, let howTo):
+            return .init(text: [reason, howTo].compactMap { $0 }.joined(separator: " "), counts: false)
+        }
+    }
+
+    /// A transfer, a loan or a goal, which Milu does not record, by its words.
+    private static func refusal(for normalized: String) -> (reason: String, howTo: String)? {
+        let padded = " " + normalized.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        func has(_ words: [String]) -> Bool { words.contains { padded.contains(" \($0) ") } }
+        if has(["chuyen khoan", "chuyen tien", "rut tien", "rut", "nap vi", "tra the"]) { return RecordRefusal.transfer }
+        if has(["cho vay", "di vay", "vay", "muon", "tra no", "thu no"]) { return RecordRefusal.loan }
+        if has(["hu", "bo vao hu"]) { return RecordRefusal.goal }
+        return nil
     }
 
     // MARK: - Xoá giao dịch
@@ -104,30 +131,9 @@ struct MockAssistant {
         return words.contains { tokens.contains($0) }
     }
 
-    /// "60.000", "60k", "1,5tr", "2 triệu", "25tr" → số tiền VND.
+    /// "60.000", "60k", "1,5tr", "2 triệu", "1tr2", "1 củ rưỡi" → số tiền VND (`SaidAmount`).
     static func amount(in text: String) -> Double? {
-        let pattern = #"(\d[\d.,]*)\s*(k|nghìn|ngàn|tr|triệu|củ|đ|đồng|vnd)?(?![\p{L}])"#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return nil }
-        let range = NSRange(text.startIndex..., in: text)
-        for match in regex.matches(in: text, range: range) {
-            guard let numberRange = Range(match.range(at: 1), in: text) else { continue }
-            let raw = String(text[numberRange])
-            let unit = Range(match.range(at: 2), in: text).map { text[$0].lowercased() } ?? ""
-            let multiplier: Double = switch unit {
-            case "k", "nghìn", "ngàn": 1_000
-            case "tr", "triệu", "củ": 1_000_000
-            default: 1
-            }
-            // With a unit, "1,5" / "1.5" is a decimal; without one, dots and commas group thousands.
-            let value: Double?
-            if multiplier > 1 {
-                value = Double(raw.replacingOccurrences(of: ",", with: "."))
-            } else {
-                value = Double(raw.filter(\.isNumber))
-            }
-            if let value, value * multiplier >= 1_000 { return (value * multiplier).rounded() }
-        }
-        return nil
+        SaidAmount.parse(text)
     }
 
     static func date(in normalized: String) -> Date? {
@@ -138,28 +144,24 @@ struct MockAssistant {
         return nil
     }
 
-    private static func keepingTime(of time: Date, on day: Date) -> Date {
-        let calendar = Calendar.current
-        let parts = calendar.dateComponents([.hour, .minute], from: time)
-        return calendar.date(bySettingHour: parts.hour ?? 12, minute: parts.minute ?? 0, second: 0, of: day) ?? day
-    }
-
     static func category(for normalized: String) -> TransactionCategory {
         let rules: [(TransactionCategory, [String])] = [
             (.salary, ["luong"]),
             (.bonus, ["thuong", "li xi"]),
             (.investment, ["lai", "co tuc", "dau tu"]),
-            (.otherIncome, ["nhan tien", "duoc tra", "thu nhap", "ban "]),
+            (.otherIncome, ["nhan tien", "duoc tra", "thu nhap", "ban"]),
             (.food, ["an", "uong", "com", "pho", "bun", "ca phe", "cafe", "tra sua", "trua", "toi", "sang", "nha hang", "di cho"]),
-            (.transport, ["grab", "taxi", "xang", "xe", "gui xe", "be ", "tau", "may bay"]),
+            (.transport, ["grab", "taxi", "xang", "xe", "gui xe", "be", "tau", "may bay"]),
             (.bills, ["dien", "nuoc", "internet", "wifi", "tien nha", "hoa don", "cuoc"]),
             (.shopping, ["mua", "sieu thi", "quan ao", "giay", "shopee", "lazada"]),
             (.entertainment, ["phim", "netflix", "spotify", "game", "du lich"]),
             (.health, ["thuoc", "kham", "benh vien", "nha khoa"]),
             (.education, ["sach", "hoc", "khoa hoc"]),
         ]
-        let padded = " \(normalized) "
-        for (category, words) in rules where words.contains(where: { padded.contains(" \($0)") }) {
+        // Whole words only: by the start of a word, "xem phim" was Di chuyển ("xe") and "trả anh
+        // Tuấn" Ăn uống ("an") (audit round 5, 2026-11-16).
+        let padded = " " + normalized.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        for (category, words) in rules where words.contains(where: { padded.contains(" \($0) ") }) {
             return category
         }
         return normalized.contains("nhan") ? .otherIncome : .otherExpense

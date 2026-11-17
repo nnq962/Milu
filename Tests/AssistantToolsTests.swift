@@ -51,55 +51,73 @@ struct AssistantToolsTests {
         #expect(options.count == 2)
     }
 
-    /// A named account that is not one, or could be several, is asked about: nothing recorded.
-    @Test func recordingOnAnUnclearAccountAsksInstead() {
-        let store = store([vcb, cash, mb])
-        let missing = RecordTransaction().run(["amount": 200_000, "account": "ACB", "note": "Ăn tối"], in: store)
-        #expect(missing.result["ok"] == false)
-        #expect(missing.action == nil)
-        let onMB = RecordTransaction().run(["amount": 200_000, "account": "MB", "note": "Ăn tối"], in: store)
-        #expect(onMB.result["ok"] == true)
-        #expect(store.transactions.count == 1)
-        #expect(store.transactions.first?.accountID == mb.id)
-        // None named: the main account, as before.
-        _ = RecordTransaction().run(["amount": 35_000, "note": "Cà phê"], in: store)
-        #expect(store.transactions.count == 2)
+    /// The last account used, kept apart from the app's own.
+    private let defaults = UserDefaults(suiteName: "assistant-tools-tests")!
+
+    private func record(_ arguments: JSONValue, in store: FinanceStore, words: [String] = []) -> ToolOutput {
+        RecordTransaction(turn: RecordTurn(userWords: words, defaults: defaults)).run(arguments, in: store)
     }
 
-    /// A day ahead is not recorded: the form allows none, and no list could show it (audit round
-    /// 2, 2026-11-15).
-    @Test func aDayAheadIsNotRecorded() {
-        let store = store([vcb, cash])
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
-        let result = RecordTransaction().run(["amount": 5_000_000, "note": "Tiền nhà",
-                                              "date": .string(ToolDates.text(tomorrow))], in: store)
-        #expect(result.result["ok"] == false)
+    /// A result as the model reads it, to look for words in.
+    private func text(_ value: JSONValue?) -> String {
+        value.flatMap { try? JSONEncoder().encode($0) }.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    }
+
+    private func card(_ output: ToolOutput) -> TransactionDraft? {
+        if case .draft(let draft) = output.action { return draft }
+        return nil
+    }
+
+    /// A named account that is not one, or could be several, is asked about; none named, the
+    /// main one, said on the card as chosen. Nothing is saved before "Lưu" (2026-11-17).
+    @Test func recordingOnAnUnclearAccountAsksInstead() {
+        let store = store([vcb, cash, mb])
+        let missing = record(["kind": "expense", "amount": 200_000, "account": "ACB", "category": "Ăn tối"], in: store)
+        #expect(missing.result["status"] == "needsInfo")
+        #expect(missing.action == nil)
+        let onMB = record(["kind": "expense", "amount": 200_000, "account": "MB", "category": "Ăn tối"], in: store)
+        #expect(card(onMB)?.rows.first?.transaction.accountID == mb.id)
+        #expect(card(onMB)?.rows.first?.accountChosenByApp == false)
+        let main = record(["kind": "expense", "amount": 35_000, "category": "Cà phê"], in: store)
+        #expect(card(main)?.rows.first?.accountChosenByApp == true)
         #expect(store.transactions.isEmpty)
     }
 
-    /// What Milu records goes on an item, as the add form needs: the item the note names, the
-    /// first item of a group named, "Khác" when nothing fits; never a group (audit round 4,
-    /// 2026-11-16: its form then would not save).
-    @Test func recordingFilesUnderAnItem() {
+    /// A day ahead is refused: the form allows none, and no list could show it (audit round 2,
+    /// 2026-11-15).
+    @Test func aDayAheadIsNotRecorded() {
         let store = store([vcb, cash])
-        _ = RecordTransaction().run(["amount": 60_000, "note": "ăn trưa"], in: store)
-        _ = RecordTransaction().run(["amount": 500_000, "note": "Siêu thị", "category": "Ăn uống"], in: store)
-        _ = RecordTransaction().run(["amount": 90_000, "note": "khách sạn lạ"], in: store)
-        let ids = store.transactions.map(\.categoryID)
-        #expect(ids.contains("food.lunch"))
-        #expect(ids.allSatisfy { store.category(id: $0)?.parentID != nil })
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
+        let result = record(["kind": "expense", "amount": 5_000_000, "category": "Thuê nhà",
+                             "date": .string(ToolDates.text(tomorrow))], in: store)
+        #expect(result.result["status"] == "rejected")
+        #expect(result.action == nil)
+        #expect(store.transactions.isEmpty)
     }
 
-    /// A group the user hid takes nothing new from Milu, as the add form offers none of its items:
-    /// "netflix" goes on "Khác" (audit round 5, 2026-11-16).
+    /// An item only when Milu is sure: the one the note names; a group named is asked among its
+    /// items; nothing fitting is asked, with a new one offered. Never a group (audit round 4).
+    @Test func recordingFindsAnItemOrAsks() {
+        let store = store([vcb, cash])
+        let lunch = record(["kind": "expense", "amount": 60_000, "note": "ăn trưa"], in: store)
+        #expect(card(lunch)?.rows.first?.transaction.categoryID == "food.lunch")
+        let group = record(["kind": "expense", "amount": 500_000, "note": "Siêu thị", "category": "Ăn uống"], in: store)
+        #expect(group.result["status"] == "needsInfo")
+        #expect(text(group.result["items"]).contains("Đi chợ"))
+        let odd = record(["kind": "expense", "amount": 90_000, "note": "khách sạn lạ"], in: store)
+        #expect(odd.result["status"] == "needsInfo")
+        #expect(text(odd.result["items"]).contains("canCreate"))
+    }
+
+    /// A group the user hid takes nothing new from Milu, as the add form offers none of its items
+    /// (audit round 5, 2026-11-16): its item is not taken, and asked instead.
     @Test func aHiddenGroupTakesNothingNew() throws {
         let store = store([vcb])
         store.remove(try #require(store.category(id: "entertainment")))
         #expect(store.category(id: "entertainment")?.isHidden == true)
-        _ = RecordTransaction().run(["amount": 260_000, "note": "netflix"], in: store)
-        let id = try #require(store.transactions.first?.categoryID)
-        #expect(store.groupID(of: id) != "entertainment")
-        #expect(id == "otherExpense.other")
+        let result = record(["kind": "expense", "amount": 260_000, "note": "netflix", "category": "Xem phim"], in: store)
+        #expect(result.action == nil)
+        #expect(result.result["status"] == "needsInfo")
     }
 
     /// Why Milu stopped listening, and the field only when something was heard (audit round 5,
@@ -131,17 +149,17 @@ struct AssistantToolsTests {
         #expect(JSONValue.string("35000.0").number == 35_000)
         #expect(JSONValue.string("1,5").number == 1.5)
         let store = store([vcb, cash])
-        let income = RecordTransaction().run(["amount": 25_000_000, "kind": "Income", "note": "Lương"], in: store)
-        #expect(income.result["ok"] != false)
-        #expect(store.transactions.first?.kind == .income)
-        let odd = RecordTransaction().run(["amount": 50_000, "kind": "transfer", "note": "Gửi xe"], in: store)
-        #expect(odd.result["ok"] == false)
-        let badDate = RecordTransaction().run(["amount": 50_000, "note": "Gửi xe", "date": "15/11/2026"], in: store)
-        #expect(badDate.result["ok"] == false)
-        #expect(store.transactions.count == 1)
+        let income = record(["amount": 25_000_000, "kind": "Income", "category": "Lương chính"], in: store)
+        #expect(card(income)?.rows.first?.transaction.kind == .income)
+        let odd = record(["amount": 50_000, "kind": "transfer", "note": "Rút tiền"], in: store)
+        #expect(odd.result["status"] == "rejected")
+        #expect(text(odd.result["items"]).contains("Chuyển khoản"))
+        let badDate = record(["kind": "expense", "amount": 50_000, "category": "Gửi xe", "date": "15/11/2026"], in: store)
+        #expect(badDate.result["status"] == "needsInfo")
         // No kind, an income item named: income.
-        _ = RecordTransaction().run(["amount": 2_000_000, "category": "Lương chính", "note": "Lương tháng"], in: store)
-        #expect(store.transactions.filter { $0.kind == .income }.count == 2)
+        let salary = record(["amount": 2_000_000, "category": "Lương chính", "note": "Lương tháng"], in: store)
+        #expect(card(salary)?.rows.first?.transaction.kind == .income)
+        #expect(store.transactions.isEmpty)
     }
 
     // MARK: get_app_info
@@ -254,6 +272,9 @@ struct AssistantToolsTests {
             /// What get_app_info answers, each topic, for the answers' cases: the free plan with
             /// 3 of the week's lượt and 5 bonus left, Pro not on sale yet, iCloud on.
             var appInfo: [String: JSONValue]
+            /// What record_transaction answers, one of each (2026-11-17): a card made, a question
+            /// to ask back, a refusal with how to do it by hand.
+            var record: [String: JSONValue]
         }
         var facts = AppFacts()
         facts.weeklyLeft = 3
@@ -266,9 +287,16 @@ struct AssistantToolsTests {
         let appInfo = Dictionary(uniqueKeysWithValues: GetAppInfo.Topic.allCases.map { topic in
             (topic.rawValue, GetAppInfo(facts: facts).run(["topic": .string(topic.rawValue)], in: store).result)
         })
+        let lunch: JSONValue = ["kind": "expense", "amount": 60_000, "amount_said": "60k", "category": "Ăn trưa"]
+        let record: [String: JSONValue] = [
+            "draft": RecordTransaction().run(["transactions": [lunch]], in: store).result,
+            "needsInfo": RecordTransaction().run(["transactions": [["kind": "expense", "note": "Ăn trưa"]]], in: store).result,
+            "rejected": RecordTransaction().run(["transactions": [["kind": "transfer", "amount": 2_000_000,
+                                                                   "note": "Rút tiền"]]], in: store).result,
+        ]
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        try encoder.encode(Export(tools: AssistantTools.specs, context: context, appInfo: appInfo))
+        try encoder.encode(Export(tools: AssistantTools.specs, context: context, appInfo: appInfo, record: record))
             .write(to: URL(fileURLWithPath: path))
     }
 }

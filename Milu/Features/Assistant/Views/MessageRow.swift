@@ -70,7 +70,8 @@ struct MessageRow: View {
             // (user request 2026-11-11).
             AnswerWords(text: formattedText, reveals: revealsAnswer) {
                 revealDone = true
-                // The card pops up as the words are done: a "done" tap with it.
+                // The card pops up as the words are done: a "done" tap with it. None for a card
+                // waiting for "Lưu": nothing is done yet.
                 if case .recorded = message.card { Haptics.milestone() }
             }
             // Money and days said as words, as on every other screen (audit round 5, 2026-11-16:
@@ -80,6 +81,10 @@ struct MessageRow: View {
                 TransactionCard(transaction: transaction)
                     .modifier(PopsIn(hidden: revealing))
             }
+            if case .draft(let draft) = message.card {
+                DraftCard(draft: draft) { id in onAction(draft.isPending ? .editRow(id) : .viewRow(id), message) }
+                    .modifier(PopsIn(hidden: revealing))
+            }
             if let status = cardStatus {
                 Text(status)
                     .textRole(.captionStrong)
@@ -87,7 +92,7 @@ struct MessageRow: View {
             }
             cardButtons
                 .modifier(PopsIn(hidden: revealing, delay: 0.1))
-            if message.card == nil {
+            if message.card == nil, message.isLocal != true {
                 answerActions
                     .opacity(revealing ? 0 : 1)
                     .animation(Motion.gentle(.easeOut(duration: 0.25).delay(0.15)), value: revealing)
@@ -188,7 +193,7 @@ struct MessageRow: View {
         switch message.card {
         case .recorded(let snapshot, _), .confirmDelete(let snapshot, _):
             store.transaction(id: snapshot.id) ?? snapshot
-        case nil: nil
+        case .draft, nil: nil
         }
     }
 
@@ -197,6 +202,13 @@ struct MessageRow: View {
         // Short, like every status line (re-review 2026-10-31).
         case .recorded(_, removed: true), .confirmDelete(_, .deleted): "Đã xoá khoản này."
         case .confirmDelete(_, .cancelled): "Đã giữ lại khoản này."
+        case .draft(let draft):
+            switch draft.state {
+            case .pending: nil
+            case .saved: draft.liveRows.isEmpty ? "Đã xoá các khoản này." : draft.liveRows.count == 1 ? "Đã lưu." : "Đã lưu \(draft.liveRows.count) khoản."
+            case .cancelled: "Đã huỷ, Milu chưa ghi gì."
+            case .replaced: "Đã thay bằng thẻ mới bên dưới."
+            }
         default: nil
         }
     }
@@ -217,6 +229,22 @@ struct MessageRow: View {
                 cardButton("Xoá khoản này", color: Palette.onNegative, fill: Palette.negative, role: .destructive) {
                     onAction(.confirm, message)
                 }
+            }
+        case .draft(let draft) where draft.isPending:
+            // Nothing is saved before this "Lưu" (user choice 2026-11-17).
+            HStack(spacing: Spacing.s) {
+                cardButton("Huỷ", color: Palette.label) { onAction(.cancel, message) }
+                cardButton(draft.liveRows.count > 1 ? "Lưu cả \(draft.liveRows.count)" : "Lưu",
+                           color: Palette.onPrimary, fill: Palette.primary) {
+                    onAction(.confirm, message)
+                }
+            }
+        case .draft(let draft) where draft.state == .saved && draft.liveRows.count == 1
+            && draft.liveRows.first.map({ store.transaction(id: $0.id) != nil }) == true:
+            // One saved: seen or deleted as a recorded one always was; several open from their rows.
+            HStack(spacing: Spacing.s) {
+                cardButton("Xem", icon: "hugeicons-eye", color: Palette.label) { onAction(.view, message) }
+                cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.negative) { onAction(.remove, message) }
             }
         default:
             EmptyView()

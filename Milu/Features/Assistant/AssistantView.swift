@@ -30,6 +30,8 @@ struct AssistantView: View {
     /// Set on the first question; `OnboardingRewards` pays "Hỏi Milu một câu" in Làm quen với Milu.
     @AppStorage(StorageKey.askedAI) private var hasAskedAI = false
     @State private var viewingTransaction: FinanceTransaction?
+    /// A row of a card waiting for "Lưu", open to be changed (`DraftRowEditor`).
+    @State private var editingRow: EditingRow?
     /// The chat card whose "Xoá" was tapped, until the alert is answered: deleting always asks
     /// first, in chat too (strict review 2026-10-31: it deleted at once).
     @State private var pendingRemoval: ChatMessage?
@@ -95,6 +97,13 @@ struct AssistantView: View {
         }
         .sheet(isPresented: $isShowingHistory) { ChatHistorySheet() }
         .sheet(item: $viewingTransaction) { TransactionDetailSheet(transactionID: $0.id) }
+        .sheet(item: $editingRow) { editing in
+            DraftRowEditor(row: editing.row) { changed in
+                changeDraft(holding: changed.id) { $0.replacingRow(changed) }
+            } onRemove: {
+                changeDraft(holding: editing.row.id) { $0.removingRow(editing.row.id) }
+            }
+        }
         .systemAlert("Xoá giao dịch?", isPresented: Binding(
             get: { pendingRemoval != nil },
             set: { if !$0 { pendingRemoval = nil } }
@@ -312,7 +321,7 @@ struct AssistantView: View {
     private func outOfQuestionsReply(after action: AssistantReply.Action?) -> String {
         let renews = "Lượt mới có từ **thứ Hai \(quota.renewsOn.shortDay)** nha."
         let first = switch action {
-        case .recorded: "Khoản bạn nhờ ghi thì Milu ghi rồi, ở bên dưới nhé. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
+        case .draft: "Khoản bạn nhờ ghi ở bên dưới, bạn kiểm tra rồi bấm **Lưu** nhé. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
         case .confirmDelete: "Khoản cần xoá ở bên dưới, bạn bấm xác nhận là xong. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
         case nil: "Tuần này bạn hỏi Milu hết lượt rồi 😏 "
         }
@@ -320,16 +329,6 @@ struct AssistantView: View {
         // 2026-11-15: both were told to "wait for Milu Pro").
         let more = MiluPlan.isPro ? "" : "\n• Muốn hỏi nhiều hơn thì nâng cấp Milu Pro nhé."
         return first + renews + "\n\n" + "• Ghi hay xoá giao dịch thì vẫn thoải mái, không tốn lượt." + more
-    }
-
-    /// ■ came after Milu had recorded a transaction: said under "Bạn đã dừng", with its card.
-    private func showRecordedAfterStop(_ transaction: FinanceTransaction, in chatID: Conversation.ID) {
-        guard let index = chats.conversations.firstIndex(where: { $0.id == chatID }) else { return }
-        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
-            chats.conversations[index].messages.append(
-                ChatMessage(role: .assistant, text: "Trước khi bạn dừng, Milu đã ghi khoản này rồi. Sai thì bạn xoá nhé:",
-                            card: .recorded(transaction, removed: false)))
-        }
     }
 
     private var dictationMessage: String {
@@ -403,8 +402,39 @@ struct AssistantView: View {
     private func send() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isThinking else { return }
-        ask(question)
         draft = ""
+        if answerByShortcut(question) { return }
+        ask(question)
+    }
+
+    /// "ok", "lưu đi", "huỷ" typed when Milu's last answer holds a card waiting for "Lưu": done
+    /// here, as its buttons do, with no question to Milu and no lượt (user choice 2026-11-17).
+    private func answerByShortcut(_ question: String) -> Bool {
+        guard let answer = DraftShortcut.match(question),
+              let last = messages.last(where: { $0.role == .assistant }), last.pendingDraft != nil else { return false }
+        let index = currentIndex
+        Haptics.selection()
+        dictation.stop()
+        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
+            chats.conversations[index].messages.append(ChatMessage(role: .user, text: question))
+        }
+        let said: String
+        switch answer {
+        case .save:
+            let saved = saveDraft(in: last)
+            said = saved?.state == .saved
+                ? (saved?.liveRows.count ?? 0) > 1 ? "Đã lưu \(saved?.liveRows.count ?? 0) khoản." : "Đã lưu."
+                : "Chưa lưu được, bạn xem trên thẻ ở trên nhé."
+        case .cancel:
+            setDraft(of: last.id) { $0.state = .cancelled }
+            said = "Đã huỷ, Milu chưa ghi gì."
+        }
+        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
+            chats.conversations[index].messages.append(ChatMessage(role: .assistant, text: said, isLocal: true))
+        }
+        AccessibilityNotification.Announcement(said).post()
+        hasAskedAI = true
+        return true
     }
 
     /// "Hỏi lại" under an answer: its question asked once more, at the chat's end.
@@ -452,13 +482,9 @@ struct AssistantView: View {
                 let answer = try await service.reply(to: question, history: history) { step in
                     withAnimation(Motion.gentle(.spring(duration: 0.3, bounce: 0))) { progress.steps.append(step) }
                 }
-                // Stopped (■) while the answer was on its way: it is dropped, unless Milu had already
-                // recorded something, which stays in: its card shows under "Bạn đã dừng", to see or
-                // undo it (audit 2026-11-15: hidden, it looked unrecorded and was recorded again).
-                if Task.isCancelled {
-                    for case .recorded(let transaction) in answer.actions { showRecordedAfterStop(transaction, in: chatID) }
-                    return
-                }
+                // Stopped (■) while the answer was on its way: it is dropped, its card too, as
+                // nothing on it is saved before "Lưu" (2026-11-17).
+                if Task.isCancelled { return }
                 reply = answer
                 thought = ChatMessage.Thought(seconds: max(1, Int(Date.now.timeIntervalSince(askedAt).rounded())),
                                               steps: progress.steps.map(\.done))
@@ -476,8 +502,8 @@ struct AssistantView: View {
             case .free: if paid { quota.refund() }
             case .paid: quota.settle()
             case .outOfQuestions:
-                // What it recorded, or the transaction to delete, still shows: the one is in
-                // already, the other waits for a yes (audit 2026-11-15: hidden, it was recorded again).
+                // The card to save, or the transaction to delete, still shows: each waits for a yes
+                // (audit 2026-11-15: hidden, it was recorded again).
                 reply = AssistantReply(text: outOfQuestionsReply(after: reply.action), actions: reply.actions)
                 thought = nil
             }
@@ -491,7 +517,7 @@ struct AssistantView: View {
             Haptics.selection()
             let cards: [ChatMessage.Card] = reply.actions.map { action in
                 switch action {
-                case .recorded(let transaction): .recorded(transaction, removed: false)
+                case .draft(let draft): .draft(draft)
                 case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
                 }
             }
@@ -499,10 +525,14 @@ struct AssistantView: View {
             // the answer, each other under its own line (audit round 4, 2026-11-16).
             withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
                 if let index = chats.conversations.firstIndex(where: { $0.id == chatID }) {
+                    // A card it replaces ("à không, 50k thôi") waits no more.
+                    for case .draft(let draft) in reply.actions {
+                        if let replaced = draft.replacing { markReplaced(replaced, inChat: index) }
+                    }
                     chats.conversations[index].messages.append(
                         ChatMessage(role: .assistant, text: reply.text, card: cards.first, thought: thought))
                     for card in cards.dropFirst() {
-                        let line = if case .confirmDelete = card { "Và khoản cần xoá này:" } else { "Và khoản này:" }
+                        let line = if case .confirmDelete = card { "Và khoản cần xoá này:" } else { "Và các khoản này, bấm Lưu nếu đúng:" }
                         chats.conversations[index].messages.append(ChatMessage(role: .assistant, text: line, card: card))
                     }
                 }
@@ -540,16 +570,100 @@ struct AssistantView: View {
             chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .deleted)
         case (.cancel, .confirmDelete(let snapshot, .pending)):
             chats.conversations[index].messages[row].card = .confirmDelete(snapshot, state: .cancelled)
+        case (.confirm, .draft(let draft)) where draft.isPending:
+            let saved = saveDraft(in: message)
+            if let saved, saved.state == .saved {
+                AccessibilityNotification.Announcement(saved.liveRows.count > 1 ? "Đã lưu \(saved.liveRows.count) khoản" : "Đã lưu").post()
+            }
+        case (.cancel, .draft(let draft)) where draft.isPending:
+            setDraft(of: message.id) { $0.state = .cancelled }
+        case (.editRow(let id), .draft(let draft)) where draft.isPending:
+            if let row = draft.row(id) { editingRow = EditingRow(row: row) }
+        case (.viewRow(let id), .draft):
+            viewingTransaction = store.transaction(id: id)
+        case (.view, .draft):
+            if let id = messageDraftRowID(message) { viewingTransaction = store.transaction(id: id) }
+        case (.remove, .draft):
+            pendingRemoval = message
         default:
             break
         }
     }
 
-    /// "Xoá" on a recorded card, once the alert said yes.
+    /// The one row of a saved card ("Xem", "Xoá" under it).
+    private func messageDraftRowID(_ message: ChatMessage) -> UUID? {
+        guard case .draft(let draft) = message.card, draft.liveRows.count == 1 else { return nil }
+        return draft.liveRows.first?.id
+    }
+
+    /// "Lưu" on a card: all of it saved, or none with why on the card (`DraftSaver`).
+    @discardableResult
+    private func saveDraft(in message: ChatMessage) -> TransactionDraft? {
+        guard let draft = message.pendingDraft else { return nil }
+        let saved = DraftSaver.save(draft, in: store)
+        setDraft(of: message.id) { $0 = saved }
+        if saved.state == .saved { Haptics.milestone() } else { Haptics.warning() }
+        return saved
+    }
+
+    /// Changes the card of a message, in whichever chat holds it.
+    private func setDraft(of messageID: ChatMessage.ID, _ change: (inout TransactionDraft) -> Void) {
+        for chat in chats.conversations.indices {
+            guard let row = chats.conversations[chat].messages.firstIndex(where: { $0.id == messageID }),
+                  case .draft(var draft) = chats.conversations[chat].messages[row].card else { continue }
+            change(&draft)
+            chats.conversations[chat].messages[row].card = .draft(draft)
+            return
+        }
+    }
+
+    /// Changes the card waiting for "Lưu" that holds this row, wherever it is now (a newer card may
+    /// have taken its place while its form was open: then the change is dropped with it).
+    private func changeDraft(holding rowID: UUID, _ change: (TransactionDraft) -> TransactionDraft) {
+        for chat in chats.conversations.indices {
+            guard let row = chats.conversations[chat].messages.firstIndex(where: {
+                $0.pendingDraft?.row(rowID) != nil
+            }), let draft = chats.conversations[chat].messages[row].pendingDraft else { continue }
+            chats.conversations[chat].messages[row].card = .draft(change(draft))
+            return
+        }
+    }
+
+    /// The card a newer one replaced, said so, if it still waited.
+    private func markReplaced(_ draftID: UUID, inChat chat: Int) {
+        guard let row = chats.conversations[chat].messages.firstIndex(where: { $0.pendingDraft?.id == draftID }),
+              var draft = chats.conversations[chat].messages[row].pendingDraft else { return }
+        draft.state = .replaced
+        chats.conversations[chat].messages[row].card = .draft(draft)
+    }
+
+    /// A row of a card waiting for "Lưu", open in its form.
+    struct EditingRow: Identifiable {
+        let row: TransactionDraft.Row
+        var id: UUID { row.id }
+    }
+
+    /// "Xoá" on a recorded card, or on a card saved with one row, once the alert said yes.
     private func remove(_ message: ChatMessage) {
         let index = currentIndex
-        guard let row = chats.conversations[index].messages.firstIndex(where: { $0.id == message.id }),
-              case .recorded(let snapshot, removed: false) = chats.conversations[index].messages[row].card
+        guard let row = chats.conversations[index].messages.firstIndex(where: { $0.id == message.id }) else { return }
+        if case .draft(let draft) = chats.conversations[index].messages[row].card, draft.state == .saved,
+           let rowID = messageDraftRowID(chats.conversations[index].messages[row]),
+           let snapshot = store.transaction(id: rowID) {
+            store.delete(snapshot)
+            guard store.transaction(id: rowID) == nil else {
+                Task {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    cannotDelete = snapshot
+                }
+                return
+            }
+            setDraft(of: message.id) { draft in
+                if let found = draft.rows.firstIndex(where: { $0.id == rowID }) { draft.rows[found].removed = true }
+            }
+            return
+        }
+        guard case .recorded(let snapshot, removed: false) = chats.conversations[index].messages[row].card
         else { return }
         store.delete(snapshot)
         guard store.transaction(id: snapshot.id) == nil else {

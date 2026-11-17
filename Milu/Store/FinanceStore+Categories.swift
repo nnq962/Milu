@@ -74,6 +74,28 @@ extension FinanceStore {
             || recurringRules.contains { ids.contains($0.categoryID) }
     }
 
+    /// The item of a group with this name, case aside (accents count, as the category editor
+    /// reads them), hidden ones too.
+    func item(named name: String, inGroup groupID: String) -> Category? {
+        let clean = Category.cleanName(name)
+        return categories.first { $0.parentID == groupID && $0.name.compare(clean, options: .caseInsensitive) == .orderedSame }
+    }
+
+    /// What keeps `name` from being a new item of the group, as the category editor says it: none,
+    /// too long, a system name, or one the group has (hidden too: showing it again would bring a
+    /// twin). nil when it can be made.
+    func newItemProblem(_ name: String, inGroup groupID: String) -> String? {
+        let clean = Category.cleanName(name)
+        if clean.isEmpty { return "Chưa có tên hạng mục." }
+        if clean.count > Category.maxNameLength { return "Tên hạng mục dài quá \(Category.maxNameLength) ký tự." }
+        if let reserved = Category.reservedName(clean) { return "“\(reserved)” là tên dành cho hệ thống." }
+        if let twin = item(named: clean, inGroup: groupID) {
+            return twin.isHidden ? "Nhóm này đã có “\(twin.name)”, đang ở mục Đã ẩn của nhóm."
+                : "Nhóm này đã có “\(twin.name)”."
+        }
+        return nil
+    }
+
     /// Adds or changes a category. A new group comes with its first item (a transaction is always
     /// filed under an item): `firstItem` names it, or it takes the group's name.
     func save(_ category: Category, firstItem: String? = nil) {

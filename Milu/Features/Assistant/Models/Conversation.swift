@@ -8,8 +8,12 @@ struct ChatMessage: Identifiable, Equatable, Codable {
 
     /// Action card state; the transaction is a snapshot so the card still reads after a delete.
     enum Card: Equatable, Codable {
+        /// A transaction Milu recorded at once, before cards asked first (chats saved before
+        /// 2026-11-17); nothing makes one now.
         case recorded(FinanceTransaction, removed: Bool)
         case confirmDelete(FinanceTransaction, state: DeleteState)
+        /// Transactions waiting for "Lưu" (user choice 2026-11-17), then saved, cancelled or replaced.
+        case draft(TransactionDraft)
     }
 
     enum DeleteState: String, Equatable, Codable { case pending, deleted, cancelled }
@@ -29,6 +33,34 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var thought: Thought? = nil
     /// When it was sent: the history orders chats by their last message.
     var date = Date.now
+    /// Said by the app itself, not the model: "ok" typed under a card saved it here (no
+    /// "Sao chép" or "Hỏi lại" under it).
+    var isLocal: Bool? = nil
+}
+
+extension ChatMessage {
+    private enum CodingKeys: String, CodingKey {
+        case id, role, text, card, thought, date, isLocal
+    }
+
+    /// Read leniently: a card this build cannot read (one a newer build wrote) is dropped alone.
+    /// Read strictly, one such card failed the whole file, and every chat was gone.
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        role = try values.decode(Role.self, forKey: .role)
+        text = try values.decode(String.self, forKey: .text)
+        card = (try? values.decodeIfPresent(Card.self, forKey: .card)) ?? nil
+        thought = (try? values.decodeIfPresent(Thought.self, forKey: .thought)) ?? nil
+        date = (try? values.decodeIfPresent(Date.self, forKey: .date)) ?? .now
+        isLocal = (try? values.decodeIfPresent(Bool.self, forKey: .isLocal)) ?? nil
+    }
+
+    /// The card waiting for "Lưu" in this message, if it holds one.
+    var pendingDraft: TransactionDraft? {
+        if case .draft(let draft) = card, draft.isPending { return draft }
+        return nil
+    }
 }
 
 /// One chat thread. A new one starts empty: the page greets with suggestions in its place, and it
@@ -52,8 +84,10 @@ struct Conversation: Identifiable, Codable, Equatable {
     var lastActivity: Date { messages.last?.date ?? startedAt }
 }
 
-/// What a message's buttons ask of the page: a card's, or "Hỏi lại" under an answer.
-enum CardAction { case view, remove, confirm, cancel, retry }
+/// What a message's buttons ask of the page: a card's, or "Hỏi lại" under an answer. On a card
+/// waiting for "Lưu", `confirm` saves it and `cancel` drops it; a row is edited, or once saved
+/// viewed, by its transaction's id.
+enum CardAction: Equatable { case view, remove, confirm, cancel, retry, editRow(UUID), viewRow(UUID) }
 
 /// The chats, kept by the app rather than the page (Trợ lý AI opens anew each time) and saved on
 /// this phone, so the history is still there after a relaunch (user request 2026-11-09). Each

@@ -36,6 +36,16 @@ struct Category: Identifiable, Hashable {
     /// one, or its transactions would read like balance adjustments.
     static let reservedNames: [String] = [TransactionCategory.adjustmentIn.title, TransactionCategory.transferFee.title,
                                           TransactionCategory.loanInterestIncome.title, TransactionCategory.loanInterestExpense.title]
+
+    /// Trimmed, with runs of spaces inside made one ("Ăn  sáng" is "Ăn sáng"), so twins are caught.
+    static func cleanName(_ text: String) -> String {
+        text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    /// The system name `text` matches ("Điều chỉnh số dư"), if any.
+    static func reservedName(_ text: String) -> String? {
+        reservedNames.first { $0.compare(text, options: .caseInsensitive) == .orderedSame }
+    }
 }
 
 /// The categories a new install starts with: the V1 groups (same ids, so existing transactions

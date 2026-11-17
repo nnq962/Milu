@@ -184,8 +184,11 @@ struct GetAppInfo: AssistantTool {
                     // zero (audit round 3, 2026-11-16: Milu sent users to add a card).
                     "Tài khoản: tiền mặt, ngân hàng, ví điện tử, hũ tiết kiệm (thẻ tín dụng thì thêm như tài khoản ngân hàng, số dư âm)",
                     "Giao dịch: các khoản thu chi và khoản vay",
-                    "Nút + ở thanh dưới: thêm giao dịch (hoặc khoản vay)",
+                    // The + opens "Thêm mới" first (2026-11-17).
+                    "Nút + ở thanh dưới: chọn Thêm giao dịch, Thêm khoản vay (Thêm bằng AI sắp có)",
                     "✨ Hỏi Milu ở góc trên bên phải: trợ lý AI, gõ hoặc chạm micro để nói",
+                    // Nothing recorded before "Lưu" (user choice 2026-11-17).
+                    "Nhờ Hỏi Milu ghi khoản chi, thu: Milu soạn thẻ, người dùng kiểm tra rồi bấm Lưu mới ghi; chưa ghi chuyển khoản, khoản vay, hũ",
                     "Ảnh đại diện ở góc trên bên trái: Cài đặt",
                 ],
                 "settings": [

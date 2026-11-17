@@ -14,8 +14,8 @@ protocol AssistantTool {
     func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput
 }
 
-/// What a tool hands back: the result the model reads, and a card for the chat (a transaction
-/// recorded, one to confirm deleting).
+/// What a tool hands back: the result the model reads, and a card for the chat (transactions
+/// waiting for "Lưu", one to confirm deleting).
 struct ToolOutput {
     var result: JSONValue
     var action: AssistantReply.Action? = nil
@@ -26,8 +26,9 @@ struct ToolOutput {
 }
 
 enum AssistantTools {
-    /// Every tool, `get_app_info` reading `app`: the app's facts at the time of the question.
-    static func tools(app: AppFacts = AppFacts()) -> [any AssistantTool] {
+    /// Every tool, `get_app_info` reading `app`: the app's facts at the time of the question;
+    /// `record_transaction` reading `turn`: the chat's words and its cards waiting for "Lưu".
+    static func tools(app: AppFacts = AppFacts(), turn: RecordTurn = RecordTurn()) -> [any AssistantTool] {
         [
             SummarizeTransactions(),
             ListTransactions(),
@@ -39,7 +40,7 @@ enum AssistantTools {
             GetUpcoming(),
             GetMonthlyTrend(),
             ListTransfers(),
-            RecordTransaction(),
+            RecordTransaction(turn: turn),
             DeleteTransaction(),
             GetAppInfo(facts: app),
         ]
@@ -47,8 +48,8 @@ enum AssistantTools {
 
     static var all: [any AssistantTool] { tools() }
 
-    static func named(_ name: String, app: AppFacts = AppFacts()) -> (any AssistantTool)? {
-        tools(app: app).first { $0.name == name }
+    static func named(_ name: String, app: AppFacts = AppFacts(), turn: RecordTurn = RecordTurn()) -> (any AssistantTool)? {
+        tools(app: app, turn: turn).first { $0.name == name }
     }
 
     static var specs: [MiluAPI.ToolSpec] {
@@ -312,129 +313,6 @@ struct GetLoans: AssistantTool {
 }
 
 // MARK: - Changing
-
-/// Records a transaction; the chat shows it on a card to view or delete.
-struct RecordTransaction: AssistantTool {
-    let name = "record_transaction"
-    let description = """
-        Ghi một giao dịch chi hoặc thu mới vào app. Gọi ngay khi người dùng muốn ghi, thêm một khoản \
-        ("ghi ăn trưa 60k", "nhận lương 25 triệu"); app hiện thẻ để họ xem, sửa hoặc xoá.
-        """
-    let parameters: JSONValue = [
-        "type": "object",
-        "properties": [
-            "kind": ["type": "string", "enum": ["expense", "income"]],
-            "amount": ["type": "integer", "description": "Số tiền VND, số nguyên dương"],
-            "category": ["type": "string", "description": "Tên danh mục trong danh sách; bỏ trống để app tự chọn"],
-            "account": ["type": "string", "description": "Tên tài khoản; bỏ trống là tài khoản chính"],
-            "date": ["type": "string", "description": "YYYY-MM-DD; bỏ trống là hôm nay"],
-            "note": ["type": "string", "description": "Ghi chú ngắn: đã chi hay nhận gì, ví dụ: Ăn trưa"],
-        ],
-        "required": ["kind", "amount"],
-    ]
-
-    func run(_ arguments: JSONValue, in store: FinanceStore) -> ToolOutput {
-        guard let amount = arguments["amount"]?.number, amount >= 1 else { return .failure("Thiếu số tiền") }
-        // No more than the forms take: a larger one could not be edited, and past Int64 it stopped
-        // the app (audit 2026-11-15).
-        guard amount <= MiluAmountField.maxAmount else {
-            return .failure("Số tiền quá lớn, tối đa \(MiluAmountField.maxAmount.vnd). Hỏi lại người dùng, chưa ghi gì")
-        }
-        let note = String((arguments["note"]?.string ?? "").prefix(200))
-        // A kind that is not one, or a date that cannot be read, is asked again, never guessed:
-        // "Income" went down as a spending, and "15/11/2026" as today (audit round 4, 2026-11-16).
-        guard let kind = Self.kind(arguments["kind"]?.string, category: arguments["category"]?.string, in: store) else {
-            return .failure("Không rõ là khoản chi hay thu (kind phải là expense hoặc income). Chưa ghi gì")
-        }
-        if let text = arguments["date"]?.string, !text.isEmpty, ToolDates.day(text) == nil {
-            return .failure("Ngày \"\(text)\" không đọc được, cần YYYY-MM-DD. Chưa ghi gì")
-        }
-        let named = arguments["account"]?.string?.trimmingCharacters(in: .whitespaces) ?? ""
-        let account: Account
-        if named.isEmpty {
-            // The one the add form would pick: the last used, else the first wallet or bank; never a
-            // locked one, kept out of every total (audit 2026-11-15: the spending vanished there).
-            let usable = store.usableAccounts
-            let last = UserDefaults.standard.string(forKey: StorageKey.lastAccountID).flatMap(UUID.init(uuidString:))
-            guard let main = usable.first(where: { $0.id == last })
-                ?? usable.first(where: { AccountType.paymentTypes.contains($0.type) }) ?? usable.first else {
-                return .failure("Chưa có tài khoản nào dùng được: người dùng cần thêm tài khoản trước")
-            }
-            account = main
-        } else {
-            // A named account that is not one, or could be several: asked, never put on another
-            // (audit 2026-11-15: it went on the first account, or the wrong one, unseen).
-            switch ToolNames.match(named, in: store.accounts) {
-            case .found(let match):
-                account = match
-            case .ambiguous(let options):
-                return .failure("Chưa rõ tài khoản \"\(named)\": có thể là \(options.map(\.name).joined(separator: ", ")). Hỏi lại người dùng muốn ghi vào tài khoản nào, chưa ghi gì")
-            case .none:
-                return .failure("Không có tài khoản nào tên \"\(named)\". Các tài khoản: \(store.accounts.map(\.name).joined(separator: ", ")). Hỏi lại người dùng muốn ghi vào tài khoản nào, chưa ghi gì")
-            }
-        }
-        let categoryID = Self.item(named: arguments["category"]?.string, note: note, kind: kind, in: store)
-        let day = arguments["date"]?.string.flatMap(ToolDates.day) ?? .now
-        // No day ahead, as the add form allows none: the balance moved now, and no month list or
-        // report could show it (audit round 2, 2026-11-15).
-        if Calendar.current.startOfDay(for: day) > Calendar.current.startOfDay(for: .now) {
-            return .failure("Ngày \(ToolDates.text(day)) ở tương lai, Milu chỉ ghi khoản đã chi hoặc đã nhận. Chưa ghi gì; hỏi lại người dùng hoặc gợi ý tạo khoản định kỳ trong ứng dụng")
-        }
-        let transaction = FinanceTransaction(amount: amount.rounded(), categoryID: categoryID, kind: kind,
-                                             accountID: account.id, date: ToolDates.keepingTime(on: day),
-                                             note: note == store.categoryName(categoryID) ? "" : note)
-        store.add(transaction)
-        return ToolOutput(result: ["ok": true, "recorded": ToolTransactions.describe(transaction, in: store)],
-                          action: .recorded(transaction))
-    }
-
-    /// The category the note's words point to, as the offline assistant reads them.
-    /// The kind given ("expense", "income", or in Vietnamese); none given, the kind of the category
-    /// named (an income item or group means income), else spending; nil for one that is not a kind.
-    static func kind(_ text: String?, category: String?, in store: FinanceStore) -> TransactionKind? {
-        guard let key = text?.searchKey.trimmingCharacters(in: .whitespaces), !key.isEmpty else {
-            let isIncome = ToolNames.category(category, kind: .income, in: store) != nil
-                && ToolNames.category(category, kind: .expense, in: store) == nil
-            return isIncome ? .income : .expense
-        }
-        switch key {
-        case "expense", "spending", "chi", "chi tieu", "khoan chi": return .expense
-        case "income", "thu", "thu nhap", "khoan thu": return .income
-        default: return nil
-        }
-    }
-
-    /// An item a new transaction can be filed under, as the add form allows: never a group (audit
-    /// round 4, 2026-11-16: "ăn trưa 60k" went on the group "Ăn uống", and its form then would not
-    /// save until an item was picked). The item named; else one the note names ("ăn trưa"); else
-    /// the first item of the group named or guessed; else "Khác".
-    static func item(named name: String?, note: String, kind: TransactionKind, in store: FinanceStore) -> String {
-        let items = store.pickableItems(kind)
-        if let key = name?.searchKey, !key.isEmpty,
-           let item = items.first(where: { $0.name.searchKey == key })
-            ?? items.first(where: { $0.name.searchKey.contains(key) || key.contains($0.name.searchKey) }) {
-            return item.id
-        }
-        // Whole words of the note: "khách sạn" is not "Khác".
-        let words = " \(note.searchKey) "
-        if let item = items.first(where: { !$0.id.hasSuffix(".other") && words.contains(" \($0.name.searchKey) ") }) {
-            return item.id
-        }
-        let groupID = name.flatMap { ToolNames.category($0, kind: kind, in: store) }.map(store.groupID(of:))
-            ?? store.groupID(of: guessCategory(note: note, kind: kind))
-        // Among the pickable items only: a hidden group's are not (audit round 5, 2026-11-16: "xem
-        // phim" went under the hidden "Giải trí"); such a group falls through to "Khác".
-        if let first = items.first(where: { $0.parentID == groupID }) { return first.id }
-        let other = kind == .expense ? "otherExpense.other" : "otherIncome.other"
-        return items.first { $0.id == other }?.id ?? items.first?.id ?? groupID
-    }
-
-    private static func guessCategory(note: String, kind: TransactionKind) -> String {
-        let guess = MockAssistant.category(for: note.searchKey)
-        if guess.kind == kind { return guess.rawValue }
-        return (kind == .expense ? TransactionCategory.otherExpense : .otherIncome).rawValue
-    }
-}
 
 /// Asks to delete a transaction: the chat shows it with Huỷ / Xoá, nothing goes until then.
 struct DeleteTransaction: AssistantTool {
