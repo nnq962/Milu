@@ -264,6 +264,18 @@ struct TransactionDraftTests {
         // The card's code is the model's alone.
         #expect(RemoteAssistant.answerText("Milu soạn xong thẻ **#adb0** rồi nè, bấm Lưu nha", actions: [.draft(draft)])
             == "Milu soạn xong thẻ rồi nè, bấm Lưu nha")
+        // Over a card, one sentence: not the lines saying again what the card shows.
+        #expect(RemoteAssistant.answerText("Milu soạn xong thẻ rồi nè 🫠\n• Bạn xem lại 3 khoản chi nha.\n• Bấm **Lưu** nha!",
+                                           actions: [.draft(draft)]) == "Milu soạn xong thẻ rồi nè 🫠")
+        #expect(RemoteAssistant.answerText("Milu soạn lại thẻ rồi nè 🫠. Bạn kiểm tra kỹ rồi bấm **Lưu** nha",
+                                           actions: [.draft(draft)]) == "Milu soạn lại thẻ rồi nè 🫠.")
+        #expect(RemoteAssistant.answerText("Milu soạn xong thẻ trà sữa **45.000đ** rồi nha 🧋 Bạn kiểm tra thẻ rồi bấm **Lưu** nha 😏",
+                                           actions: [.draft(draft)]) == "Milu soạn xong thẻ trà sữa **45.000đ** rồi nha 🧋")
+        #expect(RemoteAssistant.answerText("Ủa **2.000.000đ** luôn 😳. **Bạn** bấm Lưu nha", actions: [.draft(draft)])
+            == "Ủa **2.000.000đ** luôn 😳.")
+        #expect(RemoteAssistant.answerText("Cà phê **35.000đ** soạn xong. Còn rút tiền thì bạn ghi tay nha",
+                                           actions: [.draft(draft)], refused: true)
+            == "Cà phê **35.000đ** soạn xong. Còn rút tiền thì bạn ghi tay nha")
     }
 
     /// The way by hand for what Milu refused is always said: added when the model left it out.

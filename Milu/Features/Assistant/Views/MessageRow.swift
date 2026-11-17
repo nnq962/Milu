@@ -252,18 +252,20 @@ struct MessageRow: View {
     }
 
     /// A flat capsule at least 44 tall: no Liquid Glass inside the chat, which scrolls (re-review
-    /// 2026-10-31: glass, and ~34 tall).
+    /// 2026-10-31: glass, and ~34 tall). Its words and icon as on every button 44 tall
+    /// (`MiluButton`: `button`, a 20 icon 8 before them; review 2026-11-17: 13 and 14, a size of
+    /// their own).
     private func cardButton(_ title: String, icon: String? = nil, color: Color, fill: Color = Palette.fill,
                             role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
         Button(role: role, action: action) {
-            HStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.s) {
                 if let icon {
-                    MiluIcon(icon, size: RowMetrics.inlineGlyph)
+                    MiluIcon(icon, size: IconSize.control)
                         .accessibilityHidden(true)
                 }
                 Text(title)
             }
-            .textRole(.captionStrong)
+            .textRole(.button)
             .foregroundStyle(color)
             .padding(.horizontal, Spacing.l)
             .frame(maxWidth: .infinity, minHeight: ControlHeight.regular)

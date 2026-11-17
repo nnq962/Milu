@@ -40,7 +40,7 @@ struct RemoteAssistant: AssistantService {
                 let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
-                    let answer = Self.answerText(text, actions: actions, cardWaiting: cardWaiting)
+                    let answer = Self.answerText(text, actions: actions, cardWaiting: cardWaiting, refused: !howTos.isEmpty)
                     return AssistantReply(text: Self.withHowTo(answer, howTos), actions: actions, counts: Self.counts(toolsRun))
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
@@ -110,7 +110,11 @@ struct RemoteAssistant: AssistantService {
     /// the words cannot keep: "đã ghi" over a card waiting for "Lưu" (nothing is saved until then,
     /// and the user would leave it), or "đã cập nhật thẻ" when no new card came (Simulator,
     /// 2026-11-17: said with the card still at 60k, after "50k thôi").
-    static func answerText(_ text: String, actions: [AssistantReply.Action], cardWaiting: Bool = false) -> String {
+    /// Over a card, one short sentence of the model's (user choice 2026-11-17: it wrote lines of
+    /// bullets saying again what the card shows); all of it when something was refused, as that
+    /// is said there.
+    static func answerText(_ text: String, actions: [AssistantReply.Action], cardWaiting: Bool = false,
+                           refused: Bool = false) -> String {
         let text = text.replacing(/\s?\*{0,2}#[0-9a-f]{4}\b\*{0,2}/, with: "")
         guard !text.isEmpty else { return emptyAnswer(actions.first) }
         let hasDraft = actions.contains { if case .draft = $0 { true } else { false } }
@@ -118,13 +122,40 @@ struct RemoteAssistant: AssistantService {
         if hasDraft {
             let saysSaved = [" da ghi ", " da luu ", " ghi xong ", " luu xong ", " da them ", " ghi lai roi ", " ghi roi "]
                 .contains { words.contains($0) } && !words.contains(" ghi chu ")
-            return saysSaved ? draftReady : text
+            if saysSaved { return draftReady }
+            return refused ? text : firstSentence(text)
         }
         guard cardWaiting, actions.isEmpty else { return text }
         let saysChanged = [" da cap nhat ", " da duoc cap nhat ", " da sua ", " da duoc sua ", " da doi ", " da duoc doi ",
                            " cap nhat roi ", " sua roi ", " doi roi ", " da ghi ", " da luu "]
             .contains { words.contains($0) }
         return saysChanged ? cardUnchanged : text
+    }
+
+    /// The answer's first sentence, from its first line that is not a bullet: "Milu soạn xong rồi
+    /// nè 🫠. Bạn kiểm tra…" is "Milu soạn xong rồi nè 🫠.". A sentence ends at ".", "!", "?" or
+    /// "…", or at an emoji, before a space and a capital ("rồi nha 🧋 Bạn kiểm tra…", 2026-11-17).
+    static func firstSentence(_ text: String) -> String {
+        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }
+        guard let line = lines.first(where: { !$0.isEmpty && !$0.hasPrefix("•") }) else { return text }
+        let characters = Array(line)
+        for index in characters.indices.dropLast(2) {
+            let character = characters[index]
+            let ends = ".!?…".contains(character) || isEmoji(character)
+            guard ends, characters[index + 1].isWhitespace else { continue }
+            // The next word: past the spaces, and past a run of emoji ("nè 🫠 😏 Bạn").
+            var next = index + 1
+            while next < characters.count, characters[next].isWhitespace || isEmoji(characters[next]) { next += 1 }
+            guard next < characters.count, characters[next].isUppercase || characters[next] == "*" else { continue }
+            let kept = String(characters[...index]).trimmingCharacters(in: .whitespaces)
+            // An emoji at the end keeps the ones right after it ("nè 🫠😏").
+            return kept
+        }
+        return line
+    }
+
+    private static func isEmoji(_ character: Character) -> Bool {
+        character.unicodeScalars.contains { $0.properties.isEmojiPresentation || ($0.properties.isEmoji && $0.value > 0x2000) }
     }
 
     /// The ways by hand a record result gives for what it refused, new ones after `known`.
