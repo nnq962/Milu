@@ -38,6 +38,8 @@ struct AssistantView: View {
     /// A card's transaction the store would not delete (a closed goal's, an archived account's).
     @State private var cannotDelete: FinanceTransaction?
     @State private var dictation = SpeechDictation()
+    /// For a moment in the empty field, why the mic stopped ("Milu chưa nghe thấy gì").
+    @State private var fieldNote: String?
     @State private var isShowingHistory = false
     @AppStorage(StorageKey.profileName) private var profileName = ""
 
@@ -62,6 +64,7 @@ struct AssistantView: View {
             // The field stays with no lượt left: recording and deleting are free (user choice
             // 2026-11-12); a question that needs a lượt is told so in the chat.
             isOutOfQuestions: false,
+            placeholder: fieldNote ?? ChatViewController.defaultPlaceholder,
             leading: AnyView(roundButton("xmark", label: "Huỷ nhập giọng nói") {
                 dictation.stop()
             }),
@@ -131,6 +134,18 @@ struct AssistantView: View {
             Text(dictationMessage)
         }
         .onAppear { dictation.prepare() }
+        // Ended by itself (user choice 2026-11-17): said and paused, or out of time, it is sent
+        // as ↑ sends it; nothing said, the mic goes off and the field says so for a moment.
+        .onChange(of: dictation.autoEnd) { _, end in
+            guard let end, dictation.isRecording else { return }
+            switch end {
+            case .paused, .timeUp:
+                finishDictation(thenSend: true)
+            case .nothingSaid:
+                dictation.stop()
+                showFieldNote("Milu chưa nghe thấy gì")
+            }
+        }
         // Listening ended by itself: what was heard goes after what was typed, as ■ puts it.
         .onChange(of: dictation.heardWhenStopped) {
             guard let heard = dictation.takeHeardWhenStopped() else { return }
@@ -217,8 +232,13 @@ struct AssistantView: View {
             : .identity
         return ZStack {
             if dictation.isRecording {
-                VoiceWaveform(dictation: dictation)
-                    .transition(swap)
+                // No spacing of the stack's own: the countdown, there or not, would leave a gap.
+                HStack(spacing: 0) {
+                    // On the left, where the oldest sound fades out: the newest stays where it is.
+                    ListeningCountdown(startedAt: dictation.startedAt)
+                    VoiceWaveform(dictation: dictation)
+                }
+                .transition(swap)
             } else if dictation.isTranscribing {
                 Text("Milu đang hiểu ý bạn…")
                     .textRole(.body)
@@ -358,8 +378,19 @@ struct AssistantView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
+    /// `note` in the empty field for a few seconds, and said by VoiceOver.
+    private func showFieldNote(_ note: String) {
+        fieldNote = note
+        AccessibilityNotification.Announcement(note).post()
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            if fieldNote == note { fieldNote = nil }
+        }
+    }
+
     private func startDictation() {
         guard Date.now.timeIntervalSince(answeredAt) > 0.5 else { return }
+        fieldNote = nil
         // The names the server's recognizer favours: the user's accounts, then every bank and wallet.
         var seen = Set<String>()
         dictation.hotwords = (store.accounts.map(\.name) + Institution.all.map(\.shortName)).filter { seen.insert($0).inserted }

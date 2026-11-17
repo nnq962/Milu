@@ -21,6 +21,72 @@ struct AssistantTests {
         #expect(!DictationText.restarted(from: "", to: "Xin chào"))
     }
 
+    // MARK: - Mic tự dừng (người dùng chọn 2026-11-17: 30 giây, im 2 giây, chưa nói 6 giây)
+
+    /// Steps of `SpeechDictation.tickInterval`, each with its loudest level and whether new words
+    /// came; the end and when it came.
+    private func listen(_ steps: [(level: Float, words: Bool)]) -> (end: DictationAutoStop.End, at: Double)? {
+        var stop = DictationAutoStop()
+        for (index, step) in steps.enumerated() {
+            let time = Double(index + 1) * SpeechDictation.tickInterval
+            if let end = stop.step(level: step.level, newWords: step.words, at: time) { return (end, time) }
+        }
+        return nil
+    }
+
+    private func quiet(_ seconds: Double, level: Float = 0.05) -> [(level: Float, words: Bool)] {
+        Array(repeating: (level, false), count: Int((seconds * 10).rounded()))
+    }
+
+    private func speech(_ seconds: Double) -> [(level: Float, words: Bool)] {
+        // Loud syllables with short gaps between, a new word now and then.
+        (0..<Int((seconds * 10).rounded())).map { index in index % 4 == 3 ? (0.1, false) : (0.65, index % 3 == 0) }
+    }
+
+    @Test func nothingSaidStopsAfterSixSeconds() throws {
+        let ended = try #require(listen(quiet(10)))
+        #expect(ended.end == .nothingSaid)
+        #expect(abs(ended.at - 6) < 0.01)
+    }
+
+    /// A pause of a second to think is kept; two seconds ends it.
+    @Test func twoQuietSecondsAfterSpeakingEndIt() throws {
+        #expect(listen(quiet(1) + speech(2) + quiet(1.5) + speech(1)) == nil)
+        let ended = try #require(listen(quiet(1) + speech(2) + quiet(5)))
+        #expect(ended.end == .paused)
+        // The last loud syllable at 2.9 s (the speech ends on a gap), two seconds later.
+        #expect(abs(ended.at - 4.9) < 0.01)
+    }
+
+    @Test func thirtySecondsAtMost() throws {
+        let ended = try #require(listen(speech(40)))
+        #expect(ended.end == .timeUp)
+        #expect(abs(ended.at - 30) < 0.01)
+    }
+
+    /// A café's steady murmur over the quiet-room level is the room, not voice: speaking over it
+    /// still counts, and stopping still ends it.
+    @Test func aNoisyRoomIsNotVoice() throws {
+        let murmur = Array(repeating: (level: Float(0.4), words: false), count: 30)
+        let loud = (0..<20).map { index in (level: Float(index % 4 == 3 ? 0.4 : 0.8), words: index % 3 == 0) }
+        let ended = try #require(listen(murmur + loud + murmur + murmur))
+        #expect(ended.end == .paused)
+        // The last loud syllable at 4.9 s, two seconds of murmur after it.
+        #expect(abs(ended.at - 6.9) < 0.01)
+    }
+
+    /// Words from the recognizer count as speaking, however quiet the voice.
+    @Test func wordsAloneCountAsSpeaking() throws {
+        let ended = try #require(listen(quiet(1) + [(0.1, true)] + quiet(5)))
+        #expect(ended.end == .paused)
+    }
+
+    /// A door or a cough is not speaking: still "nothing said" at six seconds.
+    @Test func aSingleNoiseIsNotSpeaking() throws {
+        let ended = try #require(listen(quiet(1) + [(0.9, false)] + quiet(8)))
+        #expect(ended.end == .nothingSaid)
+    }
+
     // MARK: - Lịch sử trò chuyện
 
     private func ask(_ chats: AssistantChats, _ question: String) {

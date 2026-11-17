@@ -9,6 +9,9 @@ import UIKit.UIGestureRecognizerSubclass
 /// Step 1 of the UIKit chat (user request 2026-11-11): iOS's own motion only. The chat keeps to
 /// its end when it was there and the keyboard or the field changes its room.
 final class ChatViewController: UIViewController {
+    /// The empty field's words.
+    static let defaultPlaceholder = "Hỏi Milu"
+
     struct State {
         var conversation: Conversation
         var isThinking: Bool
@@ -17,6 +20,7 @@ final class ChatViewController: UIViewController {
         var isDictating: Bool
         var showsLeading: Bool
         var isOutOfQuestions: Bool
+        var placeholder: String
         var leading: AnyView
         var stop: AnyView
         var action: AnyView
@@ -277,7 +281,7 @@ final class ChatViewController: UIViewController {
         textView.accessibilityLabel = "Hỏi Milu"
         textView.delegate = self
 
-        placeholder.text = "Hỏi Milu"
+        placeholder.text = Self.defaultPlaceholder
         placeholder.font = font
         placeholder.adjustsFontForContentSizeCategory = true
         placeholder.textColor = Palette.uiSecondaryLabel.withAlphaComponent(0.7)
@@ -442,6 +446,12 @@ final class ChatViewController: UIViewController {
         overlayHost.rootView = AnyView(new.fieldOverlay.modifier(MiluEnvironment(store: store)))
         outHost.rootView = AnyView(new.outOfQuestions.modifier(MiluEnvironment(store: store)))
         greetingHost.rootView = AnyView(new.greeting.modifier(MiluEnvironment(store: store)))
+
+        // Crossfaded, as the mic's notes come and go ("Milu chưa nghe thấy gì").
+        if placeholder.text != new.placeholder {
+            UIView.transition(with: placeholder, duration: UIAccessibility.isReduceMotionEnabled ? 0 : 0.25,
+                              options: .transitionCrossDissolve) { self.placeholder.text = new.placeholder }
+        }
 
         let barChanged = old?.showsLeading != new.showsLeading || old?.isDictating != new.isDictating
             || old?.isOutOfQuestions != new.isOutOfQuestions

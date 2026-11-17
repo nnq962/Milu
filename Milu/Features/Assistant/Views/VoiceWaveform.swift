@@ -46,3 +46,28 @@ struct VoiceWaveform: View {
         .accessibilityHidden(true)
     }
 }
+
+/// "Còn 5 giây" before the wave over the last seconds of listening (`DictationAutoStop.longest`,
+/// user choice 2026-11-17: 30 seconds at most), so a long sentence is not cut off unawares; then
+/// what was heard is sent. Nothing before that. Said once by VoiceOver as it comes.
+struct ListeningCountdown: View {
+    let startedAt: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: startedAt, by: 0.25)) { timeline in
+            let left = Int((DictationAutoStop.longest - timeline.date.timeIntervalSince(startedAt)).rounded(.up))
+            let shows = left > 0 && Double(left) <= DictationAutoStop.countdown
+            if shows {
+                Text("Còn \(left) giây")
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryLabel)
+                    .monospacedDigit()
+                    .fixedSize()
+                    .padding(.trailing, Spacing.s)
+                    .onAppear {
+                        AccessibilityNotification.Announcement("Còn \(left) giây").post()
+                    }
+            }
+        }
+    }
+}

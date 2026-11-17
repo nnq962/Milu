@@ -14,10 +14,11 @@ import UIKit
 /// the sound is kept in a file the server reads once the user is done, so falling back waits for
 /// nothing.
 ///
-/// Listens until the user stops it (■, ✕ or ↑), pauses included: the recognizer ends a stretch
-/// after a silence, or starts the words over, so each finished stretch is kept and a new one is
-/// started on the same microphone (user report 2026-11-09: after a pause the earlier sentence was
-/// gone and it had to be said again).
+/// Listens until the user stops it (■, ✕ or ↑) or it ends by itself (`autoEnd`: 30 seconds at
+/// most, 2 seconds quiet once something was said, 6 with nothing said; user choice 2026-11-17).
+/// Within that a pause is kept: the recognizer ends a stretch after a silence, or starts the words
+/// over, so each finished stretch is kept and a new one is started on the same microphone (user
+/// report 2026-11-09: after a pause the earlier sentence was gone and it had to be said again).
 @Observable
 final class SpeechDictation {
     enum Failure: Equatable {
@@ -45,6 +46,9 @@ final class SpeechDictation {
 
     /// What was heard when listening ended by itself, for the field; taken once.
     private(set) var heardWhenStopped: String?
+    /// Set once while listening, when it should end by itself (`DictationAutoStop`): the page
+    /// sends what was heard, or stops when nothing was said. Cleared at each start.
+    private(set) var autoEnd: DictationAutoStop.End?
 
     private(set) var isRecording = false
     /// After ■ or ↑: the microphone is off and what was said is being turned into words, which
@@ -92,6 +96,11 @@ final class SpeechDictation {
     @ObservationIgnored private var failedStretches = 0
     /// The loudest moment since the last step of the wave.
     @ObservationIgnored private var peak: Float = 0
+    /// The loudest moment in the step under way, for `autoStop` (`peak` fades for the wave).
+    @ObservationIgnored private var stepPeak: Float = 0
+    @ObservationIgnored private var autoStop = DictationAutoStop()
+    /// The words at the last step, to tell `autoStop` when new ones came.
+    @ObservationIgnored private var wordsAtStep = ""
     @ObservationIgnored private var timer: Timer?
     /// `finish()` waiting for the recognizer's last word, and whether ✕ ended that wait.
     @ObservationIgnored private var finishing: CheckedContinuation<Void, Never>?
@@ -184,6 +193,10 @@ final class SpeechDictation {
         transcript = ""
         failedStretches = 0
         peak = 0
+        stepPeak = 0
+        autoStop = DictationAutoStop()
+        autoEnd = nil
+        wordsAtStep = ""
         levels = [Float](repeating: 0, count: Self.levelCount)
         isRecording = true
         watchInterruptions()
@@ -378,19 +391,26 @@ final class SpeechDictation {
         let due = Int(Date.now.timeIntervalSince(startedAt) / Self.tickInterval)
         guard due > levelTotal else { return }
         var next = levels
+        var end: DictationAutoStop.End?
         while levelTotal < due {
             next.removeFirst()
             next.append(peak)
             // Falls away between words rather than dropping at once.
             peak *= 0.4
             levelTotal += 1
+            end = end ?? autoStop.step(level: stepPeak, newWords: transcript != wordsAtStep,
+                                      at: Double(levelTotal) * Self.tickInterval)
+            stepPeak = 0
+            wordsAtStep = transcript
         }
         levels = next
+        if autoEnd == nil, let end { autoEnd = end }
     }
 
     private func hear(_ level: Float) {
         guard isRecording else { return }
         peak = max(peak, level)
+        stepPeak = max(stepPeak, level)
     }
 
     // The tap and the recognizer call back on background queues. Build those closures in
@@ -566,5 +586,57 @@ enum DictationText {
         guard !old.isEmpty, new.count < old.count else { return false }
         let opening = String(old.lowercased().prefix(min(old.count, 6)))
         return !new.lowercased().hasPrefix(opening)
+    }
+}
+
+/// When listening ends by itself (user choice 2026-11-17: "30s · im 2s · chưa nói 6s", and what
+/// was heard is sent at once): at most 30 seconds; once something was said, 2 seconds with no
+/// voice and no new word; with nothing said, after 6 seconds. One step every
+/// `SpeechDictation.tickInterval`, fed the loudest moment of that step.
+///
+/// Voice is sound well over the room's own: the quietest the room has been is followed down at
+/// once and up slowly, so a fan or a café's murmur stops counting as voice after a few seconds,
+/// while a pause between words does not raise it. The recognizer's new words count too.
+nonisolated struct DictationAutoStop: Equatable {
+    enum End: Equatable {
+        /// Something was said, then nothing for `pauseAfterWords`.
+        case paused
+        /// `longest` reached.
+        case timeUp
+        /// Nothing said in `waitForWords`.
+        case nothingSaid
+    }
+
+    static let longest: TimeInterval = 30
+    static let pauseAfterWords: TimeInterval = 2
+    static let waitForWords: TimeInterval = 6
+    /// The field counts down the last seconds of `longest`.
+    static let countdown: TimeInterval = 5
+
+    /// Loud enough to be voice in a quiet room (about −38 dB), and how far over the room's own
+    /// sound it must be elsewhere.
+    static let voiceLevel: Float = 0.3
+    static let overRoom: Float = 0.15
+    /// How fast the room's level is followed up, each step (0.1 a second).
+    static let roomRise: Float = 0.01
+    /// Steps of voice before it counts as speaking (0.3 s): a door or a cough alone is not.
+    static let speakingSteps = 3
+
+    private(set) var room: Float = 1
+    private(set) var spoke = false
+    private var voiceSteps = 0
+    private var lastActive: TimeInterval = 0
+
+    /// One step `at` seconds since listening began: `level` its loudest moment (0…1), `newWords`
+    /// whether the recognizer's words changed in it. The end, once one is due.
+    mutating func step(level: Float, newWords: Bool, at time: TimeInterval) -> End? {
+        room = min(level, room + Self.roomRise)
+        let voice = level >= max(Self.voiceLevel, room + Self.overRoom)
+        if voice { voiceSteps += 1 }
+        if newWords || voiceSteps >= Self.speakingSteps { spoke = true }
+        if voice || newWords { lastActive = time }
+        if time >= Self.longest { return .timeUp }
+        if spoke { return time - lastActive >= Self.pauseAfterWords ? .paused : nil }
+        return time >= Self.waitForWords ? .nothingSaid : nil
     }
 }
