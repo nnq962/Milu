@@ -64,9 +64,7 @@ struct ListeningCountdown: View {
 
     var body: some View {
         TimelineView(.periodic(from: startedAt, by: 0.25)) { timeline in
-            let left = Int((DictationAutoStop.longest - timeline.date.timeIntervalSince(startedAt)).rounded(.up))
-            let shows = left > 0 && Double(left) <= DictationAutoStop.countdown
-            if shows {
+            if let left = Self.left(at: timeline.date, since: startedAt) {
                 Text("Còn \(left) giây")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryLabel)
@@ -78,5 +76,12 @@ struct ListeningCountdown: View {
                     }
             }
         }
+    }
+
+    /// The seconds left to count at `date`, listening begun at `startedAt`: only over the last
+    /// ones, nothing before or once the time is up. The quick sheet counts them under its card.
+    static func left(at date: Date, since startedAt: Date) -> Int? {
+        let left = Int((DictationAutoStop.longest - date.timeIntervalSince(startedAt)).rounded(.up))
+        return left > 0 && Double(left) <= DictationAutoStop.countdown ? left : nil
     }
 }

@@ -30,7 +30,7 @@ struct QuickRecordTests {
     @Test func aTransferOpensItsFormWithTheAmount() {
         let said = "chuyển khoản 500k sang momo"
         #expect(QuickRecordResult.of(MockAssistant(store: store()).record(said), said: said)
-            == .refused(RecordRefusal.transfer.reason, form: .transfer(amount: 500_000)))
+            == .refused(QuickRecordForm.transfer(amount: nil).message, form: .transfer(amount: 500_000)))
         // No form for a goal: the way by hand is said.
         let goal = "bỏ 1tr vào hũ du lịch"
         let refused = RecordRefusal.Refused(reason: RecordRefusal.goal.reason, howTo: RecordRefusal.goal.howTo)

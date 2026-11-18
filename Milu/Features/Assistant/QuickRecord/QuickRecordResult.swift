@@ -25,8 +25,7 @@ enum QuickRecordResult: Equatable {
         if !reply.refused.isEmpty {
             let form = QuickRecordForm.of(reply.refused, said: said)
             // With the form's button under it, the way by hand ("Nút + → …") said nothing more.
-            let message = form != nil && reply.refused.count == 1
-                ? reply.refused[0].reason : RecordRefusal.message(reply.refused)
+            let message = if let form, reply.refused.count == 1 { form.message } else { RecordRefusal.message(reply.refused) }
             return .refused(message, form: form)
         }
         // The tool's own short question, over the model's longer one.
@@ -44,8 +43,19 @@ enum QuickRecordForm: Hashable {
 
     var title: String {
         switch self {
-        case .transfer: "Mở form chuyển khoản"
-        case .loan: "Mở form khoản vay"
+        // Plain words, not the English "form" (user review 2026-11-18).
+        case .transfer: "Ghi chuyển khoản thủ công"
+        case .loan: "Ghi khoản vay thủ công"
+        }
+    }
+
+    /// Over its button, what Milu cannot record and that the button does it, in a line: the
+    /// chat's "…: tính năng này chưa có." read cold over a button that answers it (user review
+    /// 2026-11-18).
+    var message: String {
+        switch self {
+        case .transfer: "Milu chưa hỗ trợ ghi chuyển khoản, rút tiền hoặc nạp ví. Bạn có thể ghi thủ công."
+        case .loan: "Milu chưa hỗ trợ ghi khoản vay. Bạn có thể ghi thủ công."
         }
     }
 

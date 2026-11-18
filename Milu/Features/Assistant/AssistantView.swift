@@ -250,11 +250,29 @@ struct AssistantView: View {
                 // In the field lit up (`ChatViewController`, user choice 2026-11-17).
                 TranscribingStatus()
                     .padding(.leading, Spacing.s)
+                    .modifier(ComesAfterTheFieldLights())
                     .transition(swap)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(fades ? .easeOut(duration: 0.2) : nil, value: phase)
+    }
+
+    /// "Đang chuyển thành chữ" in a beat after the wave has gone: this view follows the mic by
+    /// itself, a frame ahead of the chat page, which lights the field up and takes ✕ and ■ away
+    /// (`ChatViewController.animateBar`); the words stood for a frame or two in the field still
+    /// white, its three buttons still there (frames, 2026-11-18). The transition's own delay does
+    /// not run here: the page hands this view over anew at each update.
+    private struct ComesAfterTheFieldLights: ViewModifier {
+        @State private var shown = UIAccessibility.isReduceMotionEnabled
+
+        func body(content: Content) -> some View {
+            content
+                .opacity(shown ? 1 : 0)
+                .onAppear {
+                    withAnimation(.easeOut(duration: 0.2).delay(0.15)) { shown = true }
+                }
+        }
     }
 
     /// The mic, or ↑ once there is something to send. Between the two, the blue disc grows out
@@ -502,9 +520,11 @@ struct AssistantView: View {
         let history = messages
         withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
             chats.conversations[currentIndex].messages.append(ChatMessage(role: .user, text: question))
+            // With the question, in the one update: set after it, "Đang nghĩ…" reached the chat
+            // page 30 ms behind the question, as a second update (log, 2026-11-18).
+            answeringChatID = chatID
             isThinking = true
         }
-        answeringChatID = chatID
         progress.steps = []
         hasAskedAI = true
         let service = AssistantServices.make(store: store, app: app)
@@ -521,7 +541,8 @@ struct AssistantView: View {
             var thought: ChatMessage.Thought?
             do {
                 let answer = try await service.reply(to: question, history: history) { step in
-                    withAnimation(Motion.gentle(.spring(duration: 0.3, bounce: 0))) { progress.steps.append(step) }
+                    // No animation of the row's layout: its line draws itself in (`ThinkingIndicator`).
+                    progress.steps.append(step)
                 }
                 // Stopped (■) while the answer was on its way: it is dropped, its card too, as
                 // nothing on it is saved before "Lưu" (2026-11-17).

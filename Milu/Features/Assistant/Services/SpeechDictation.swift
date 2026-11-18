@@ -170,6 +170,12 @@ final class SpeechDictation {
 
     func start() async {
         guard !isRecording, !isStarting else { return }
+        #if DEBUG
+        if let sentence = Self.nextFakeSentence() {
+            startFake(sentence)
+            return
+        }
+        #endif
         // Already allowed: no hop off the main thread, so the wave shows the moment the mic is
         // tapped (seen in testing 2026-11-10: it came a beat late).
         // No Face ID cover over iOS's prompts for speech and the microphone (`AppLock.whileSystemAsks`).
@@ -218,6 +224,15 @@ final class SpeechDictation {
         guard isRecording || isTranscribing || task != nil else { return }
         timer?.invalidate()
         timer = nil
+        #if DEBUG
+        if Self.fakeSentences != nil {
+            fakeTask?.cancel()
+            if isTranscribing { finishCancelled = true }
+            isRecording = false
+            isTranscribing = false
+            return
+        }
+        #endif
         endStretch()
         if isTranscribing {
             finishCancelled = true
@@ -235,6 +250,9 @@ final class SpeechDictation {
         guard isRecording else { return nil }
         timer?.invalidate()
         timer = nil
+        #if DEBUG
+        if Self.fakeSentences != nil { return await finishFake() }
+        #endif
         isRecording = false
         stopWatchingInterruptions()
         isTranscribing = true
@@ -372,6 +390,67 @@ final class SpeechDictation {
     private func updateTranscript() {
         transcript = [committed, partial].filter { !$0.isEmpty }.joined(separator: " ")
     }
+
+    #if DEBUG
+    // MARK: - Giọng giả (chỉ bản DEBUG, để thử trên Simulator)
+
+    /// Sentences "heard" with no microphone, one per listening (the last one again after that),
+    /// for trying the voice flow on the Simulator, whose microphone is the Mac's (often the
+    /// user's headphones): launched with `MILU_FAKE_VOICE="cà phê 35k, gửi xe 5k|tạo mới hết"`.
+    /// Never in a build for the App Store or TestFlight.
+    private static let fakeSentences: [String]? = ProcessInfo.processInfo.environment["MILU_FAKE_VOICE"]
+        .map { $0.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) } }
+        .flatMap { $0.isEmpty ? nil : $0 }
+    private static var fakeHeard = 0
+    @ObservationIgnored private var fakeTask: Task<Void, Never>?
+
+    private static func nextFakeSentence() -> String? {
+        guard let sentences = fakeSentences else { return nil }
+        defer { fakeHeard += 1 }
+        return sentences[min(fakeHeard, sentences.count - 1)]
+    }
+
+    /// The words come one by one with the wave, then nothing: the real clock and `autoStop` end
+    /// it after the usual pause, as for speech.
+    private func startFake(_ sentence: String) {
+        transcript = ""
+        peak = 0
+        stepPeak = 0
+        autoStop = DictationAutoStop()
+        autoEnd = nil
+        wordsAtStep = ""
+        finishCancelled = false
+        levels = [Float](repeating: 0, count: Self.levelCount)
+        isRecording = true
+        startClock()
+        let words = sentence.split(separator: " ").map(String.init)
+        fakeTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(0.8))
+            for count in 1...max(words.count, 1) {
+                for _ in 0..<3 {
+                    guard let self, self.isRecording, !Task.isCancelled else { return }
+                    self.hear(Float.random(in: 0.35...0.85))
+                    try? await Task.sleep(for: .seconds(0.1))
+                }
+                guard let self, self.isRecording, !Task.isCancelled else { return }
+                self.transcript = words.prefix(count).joined(separator: " ")
+            }
+        }
+    }
+
+    /// A second or so of "Đang chuyển thành chữ", as the server takes; nil when ✕ came first.
+    private func finishFake() async -> String? {
+        fakeTask?.cancel()
+        isRecording = false
+        isTranscribing = true
+        try? await Task.sleep(for: .seconds(1.2))
+        if finishCancelled {
+            finishCancelled = false
+            return nil
+        }
+        return transcript
+    }
+    #endif
 
     // MARK: - Sóng âm
 

@@ -25,6 +25,10 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
     /// not close it (audit 2026-11-15: a drag to put the keyboard away closed the form, and
     /// everything typed was lost; Milu: "Tiếp tục chỉnh sửa" / "Bỏ thay đổi").
     var hasChanges = false
+    /// For `fitsContent`: the least change of height the sheet slides to; under it, the new
+    /// height is taken at once (`FittedDetent`). 44 unless the content animates its own lines,
+    /// when a line more should slide with it ("Thêm bằng AI", as the words come into its card).
+    var fitStep: CGFloat = 44
     @ViewBuilder var header: Header
     @ViewBuilder var content: Content
     @ViewBuilder var trailing: Trailing
@@ -39,8 +43,8 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
                       header: { header }, content: { content }, trailing: { trailing })
         }
         .interactiveDismissDisabled(hasChanges)
-        .onPreferenceChange(SheetHeightKey.self) { if fitsContent { fittedHeight = $0 } }
-        .modifier(FittedDetent(isOn: fitsContent, height: fittedHeight))
+        .onPreferenceChange(SheetHeightKey.self) { if fitsContent, $0 != fittedHeight { fittedHeight = $0 } }
+        .modifier(FittedDetent(isOn: fitsContent, height: fittedHeight, step: fitStep))
         // The sheet's own chrome, so no caller has to remember it (review 2026-10-31: five short
         // sheets had no `miluSheetStyle` and could show a scroll bar).
         .presentationBackground(Palette.surface)
@@ -63,10 +67,11 @@ extension SheetScaffold where Trailing == EmptyView {
 
 extension SheetScaffold where Header == EmptyView, Trailing == EmptyView {
     init(title: String, canConfirm: Bool = true, validate: (() -> Bool)? = nil, onConfirm: (() -> Void)? = nil,
-         fitsContent: Bool = false, hasChanges: Bool = false, @ViewBuilder content: () -> Content) {
+         fitsContent: Bool = false, hasChanges: Bool = false, fitStep: CGFloat = 44,
+         @ViewBuilder content: () -> Content) {
         self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
-                  fitsContent: fitsContent, hasChanges: hasChanges, header: { EmptyView() }, content: content,
-                  trailing: { EmptyView() })
+                  fitsContent: fitsContent, hasChanges: hasChanges, fitStep: fitStep, header: { EmptyView() },
+                  content: content, trailing: { EmptyView() })
     }
 }
 
@@ -242,15 +247,78 @@ private struct ContentHeightReader: ViewModifier {
 
 /// The one detent of a short sheet: its content's height, once known. iOS caps a detent taller
 /// than the screen, where the content then scrolls.
+///
+/// A new height eases the sheet there (user request 2026-11-18: "Thêm bằng AI" jumped up and down
+/// at each step, its content fading inside a sheet already at its new height). iOS slides a sheet
+/// only to another of its detents, never to a new set of them: so for a moment both heights are
+/// detents, the new one is selected, and the old one goes once the sheet is there.
+///
+/// Only once the sheet is up, and only for a step of the content, not a line more of words
+/// (iPhone, 2026-11-18): opening, the height came twice and the second slide made the sheet
+/// overshoot as it rose; a line of words came at once and the sheet followed after, the buttons
+/// pushed down then back up. Those take the new height at once, as before. A sheet whose content
+/// animates its own lines asks for a smaller `step`, and the sheet slides with them.
+///
+/// The keyboard is left to iOS, which carries the sheet up with it: shortened under the keyboard
+/// by the home indicator's room, the sheet jumped as the keyboard rose (iPhone, 2026-11-18).
 private struct FittedDetent: ViewModifier {
     let isOn: Bool
     let height: CGFloat?
+    /// Smaller changes than this are a line of words, not a step: taken at once.
+    let step: CGFloat
+
+    @State private var selected: PresentationDetent?
+    @State private var detents: Set<PresentationDetent> = []
+    /// The height the sheet is at or going to.
+    @State private var shown: CGFloat?
+    /// Up a moment after its first height: no slide while it opens.
+    @State private var settled = false
+    /// Which move is the latest: an older one's tidying up is dropped.
+    @State private var move = 0
 
     func body(content: Content) -> some View {
         if isOn {
-            content.presentationDetents([.height(max(height ?? 300, 1))])
+            let target = PresentationDetent.height(goal)
+            content
+                .presentationDetents(detents.isEmpty ? [target] : detents,
+                                     selection: Binding(get: { selected ?? target }, set: { selected = $0 }))
+                // Two detents for a moment would show the grabber, as if the sheet could be pulled.
+                .presentationDragIndicator(.hidden)
+                .onChange(of: goal) { _, new in moveTo(new) }
         } else {
             content
+        }
+    }
+
+    private var goal: CGFloat { max(height ?? 300, 1) }
+
+    private func moveTo(_ height: CGFloat) {
+        move += 1
+        let this = move
+        let before = shown
+        shown = height
+        let target = PresentationDetent.height(height)
+        guard settled, let before, abs(height - before) >= step, let current = selected, current != target,
+              let animation = Motion.gentle(.smooth(duration: 0.35)) else {
+            selected = target
+            detents = [target]
+            if before == nil {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(700))
+                    settled = true
+                }
+            }
+            return
+        }
+        detents = [current, target]
+        Task { @MainActor in
+            // The new detent in place before it is picked.
+            try? await Task.sleep(for: .milliseconds(20))
+            guard move == this else { return }
+            withAnimation(animation) { selected = target }
+            try? await Task.sleep(for: .milliseconds(450))
+            guard move == this else { return }
+            detents = [target]
         }
     }
 }

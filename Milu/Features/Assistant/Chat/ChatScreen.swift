@@ -331,11 +331,15 @@ struct AnswerWords: UIViewRepresentable {
 /// so a short answer reads as written and a long one still takes little more than a second.
 enum AnswerReveal {
     static let fade: Double = 0.32
+    /// Before the first word: "Đang nghĩ…" and its steps fade away in the answer's place
+    /// (`ChatViewController.fadeOut`, 0.16 s), and its first words showed through them (frames,
+    /// 2026-11-18).
+    static let lead: Double = 0.14
 
     static func stagger(_ words: Int) -> Double { min(0.02, 1.2 / Double(max(words, 1))) }
 
-    /// From the first word starting to the last one shown.
-    static func duration(words: Int) -> Double { stagger(words) * Double(max(words - 1, 0)) + fade }
+    /// From the answer coming in to its last word shown.
+    static func duration(words: Int) -> Double { lead + stagger(words) * Double(max(words - 1, 0)) + fade }
 
     /// The words of `string`, as runs between spaces and line breaks (a "•" or a "12%," is one).
     static func words(in string: String) -> [NSRange] {
@@ -392,7 +396,8 @@ final class WordReveal: NSObject {
 
     @objc private func tick() {
         guard let view else { return stop() }
-        let elapsed = CACurrentMediaTime() - start
+        let elapsed = CACurrentMediaTime() - start - AnswerReveal.lead
+        guard elapsed > 0 else { return }
         let storage = view.textStorage
         storage.beginEditing()
         for index in words.indices where shown[index] < 1 {

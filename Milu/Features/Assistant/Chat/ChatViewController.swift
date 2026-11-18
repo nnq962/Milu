@@ -202,14 +202,18 @@ final class ChatViewController: UIViewController {
             guard let self else { return }
             // A reused cell may still carry a reveal's mask (`reveal`).
             cell.contentView.layer.mask = nil
+            // Or be drawn off its place, taken away while the rows slid (`slideRows`).
+            if self.sliding == nil { cell.layer.sublayerTransform = CATransform3DIdentity }
             cell.contentConfiguration = UIHostingConfiguration { self.row(for: item) }
                 .margins(.horizontal, Spacing.l)
                 .margins(.vertical, 0)
             // The question in flight is drawn by its flyer until it lands (`fly`); set after the
             // configuration, which puts up its own content view.
             // So are the rows waiting for the answer above them to be written (`waitingIDs`).
+            // And "Đang nghĩ…" until the question has landed (`typingWaits`).
             let hidden = self.flyingID.map { item == .message($0) } == true
                 || self.waitingIDs.contains { item == .message($0) }
+                || (item == .typing && self.typingWaits)
             cell.contentView.alpha = hidden ? 0 : 1
         }
         dataSource = UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
@@ -230,11 +234,14 @@ final class ChatViewController: UIViewController {
                     }
                     .environment(\.onBubbleFrame) { [weak self] frame in self?.bubbleFrames[id] = frame }
                     .environment(\.revealsAnswer, id == revealingID)
-                    .environment(\.resizeChatRow) { [weak self] id in self?.resizeRow(id) }
+                    .environment(\.resizeChatRow) { [weak self] id in self?.resizeRow(.message(id)) }
+                    .environment(\.unfoldChatRow) { [weak self] id in self?.unfoldRow(id) }
+                    .environment(\.slideChatRows) { [weak self] left in self?.slideRows(left) }
                 }
             case .typing:
                 if let progress = state?.progress {
                     ThinkingIndicator(progress: progress)
+                        .environment(\.resizeThinkingRow) { [weak self] in self?.resizeRow(.typing) }
                 }
             }
         }
@@ -530,6 +537,7 @@ final class ChatViewController: UIViewController {
             return
         }
         let previous = messagesByID
+        let wasThinking = shownThinking
         messagesByID = Dictionary(uniqueKeysWithValues: conversation.messages.map { ($0.id, $0) })
 
         var snapshot = NSDiffableDataSourceSnapshot<Int, Item>()
@@ -552,8 +560,25 @@ final class ChatViewController: UIViewController {
         let isAnswer = sameChat && conversation.messages.last.map { $0.role == .assistant && previous[$0.id] == nil } == true
         let newAnswers = isAnswer ? conversation.messages.filter { $0.role == .assistant && previous[$0.id] == nil }.map(\.id) : []
         let answered = newAnswers.first
+        // A card whose state alone changed ("Lưu", "Huỷ", a deletion): as it was, laid over its
+        // row, to fade over the card as it now is (`crossOver`).
+        let cardsOnly = sameChat && !grew && !changed.isEmpty && view.window != nil
+            && !UIAccessibility.isReduceMotionEnabled
+        let oldCards = cardsOnly ? changed.compactMap { picture(of: .message($0.id)) } : []
         shownConversation = conversation
         shownThinking = thinking
+        // "Đang nghĩ…" comes once the question has landed, not while it flies: for a moment it
+        // stood over the bubble still on its way up, then beside it (frames, 2026-11-18).
+        if asked != nil { askedAt = CACurrentMediaTime() }
+        if !thinking {
+            typingWaits = false
+        } else if !wasThinking, let askedAt, view.window != nil, !UIAccessibility.isReduceMotionEnabled {
+            let wait = Self.typingDelay - (CACurrentMediaTime() - askedAt)
+            if wait > 0 {
+                typingWaits = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in self?.showTyping() }
+            }
+        }
 
         // A question about to fly: its row is hidden from the moment it is in the list, or it
         // showed for a frame before its flyer took over (frames, 2026-11-11).
@@ -568,7 +593,16 @@ final class ChatViewController: UIViewController {
             revealingID = answered
             waitingIDs = Array(newAnswers.dropFirst())
         }
-        dataSource.apply(snapshot, animatingDifferences: sameChat && view.window != nil && answered == nil)
+        if cardsOnly {
+            // The card takes its new height at once, under its picture.
+            UIView.performWithoutAnimation {
+                dataSource.apply(snapshot, animatingDifferences: false)
+                collectionView.layoutIfNeeded()
+            }
+            oldCards.forEach(crossOver)
+        } else {
+            dataSource.apply(snapshot, animatingDifferences: sameChat && view.window != nil && answered == nil)
+        }
         if !sameChat {
             // Another chat (the history, a new one): opened at its end, nothing pinned.
             endFlight()
@@ -645,13 +679,46 @@ final class ChatViewController: UIViewController {
     /// "Đang nghĩ…" as it is on screen, laid over the list where it is: the row itself goes with
     /// the answer's coming, the picture of it fades (`fadeOut`).
     private func typingSnapshot() -> UIView? {
-        guard view.window != nil, let indexPath = dataSource.indexPath(for: .typing),
+        picture(of: .typing)
+    }
+
+    /// A row as it is on screen, laid over the list where it is.
+    private func picture(of item: Item) -> UIView? {
+        guard view.window != nil, let indexPath = dataSource.indexPath(for: item),
               let cell = collectionView.cellForItem(at: indexPath),
               let picture = cell.contentView.snapshotView(afterScreenUpdates: false) else { return nil }
         picture.frame = cell.frame
         picture.isUserInteractionEnabled = false
         collectionView.addSubview(picture)
         return picture
+    }
+
+    /// A card as it was, fading over the card as it now is: "Lưu" or "Huỷ" took its warnings and
+    /// its buttons away and made it 100pt shorter within one frame (frames, 2026-11-18). What
+    /// stays is the same in both and does not move; what goes, fades.
+    private func crossOver(_ picture: UIView) {
+        UIView.animate(withDuration: 0.28, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
+            picture.alpha = 0
+        } completion: { _ in
+            picture.removeFromSuperview()
+        }
+    }
+
+    /// When the question just sent left the field, and how long after that "Đang nghĩ…" waits:
+    /// the flight's 0.41 s, less the tail of its spring.
+    private var askedAt: CFTimeInterval?
+    private var typingWaits = false
+    private static let typingDelay: CFTimeInterval = 0.34
+
+    /// "Đang nghĩ…" in, the question landed.
+    private func showTyping() {
+        guard typingWaits else { return }
+        typingWaits = false
+        guard let indexPath = dataSource.indexPath(for: .typing),
+              let cell = collectionView.cellForItem(at: indexPath) else { return }
+        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut, .beginFromCurrentState, .allowUserInteraction]) {
+            cell.contentView.alpha = 1
+        }
     }
 
     /// "Đang nghĩ…" and its steps going, over the answer coming in their place.
@@ -667,18 +734,72 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    /// A row that changed its height from within (an answer's steps opened or closed), measured
-    /// again at once and with no animation: left to iOS's own self-sizing, the cell grew on its
-    /// curve with the row centred in it, and the answer dipped and came back up (frames,
-    /// 2026-11-15). The row keeps its state: its cell is configured again, not replaced.
-    private func resizeRow(_ id: UUID) {
-        guard dataSource.indexPath(for: .message(id)) != nil else { return }
+    /// A row that changed its height from within (an answer's steps opened or closed, a step
+    /// more under "Đang nghĩ…"), measured again at once and with no animation: left to iOS's own
+    /// self-sizing, the cell grew on its curve with the row centred in it, and the answer dipped
+    /// and came back up (frames, 2026-11-15; "Đang nghĩ…" did by 4–5pt at each step, measured
+    /// 2026-11-18). The row keeps its state: its cell is configured again, not replaced.
+    private func resizeRow(_ item: Item) {
+        guard dataSource.indexPath(for: item) != nil else { return }
         var snapshot = dataSource.snapshot()
-        snapshot.reconfigureItems([.message(id)])
+        snapshot.reconfigureItems([item])
         UIView.performWithoutAnimation {
             dataSource.apply(snapshot, animatingDifferences: false)
             collectionView.layoutIfNeeded()
         }
+    }
+
+    /// An answer's steps opened or closed (`MessageRow.toggleThought`): its row at its new height
+    /// at once, and every row on screen drawn where it was a moment ago. The rows below the one
+    /// that changed are the ones to move, by as much as it grew or shrank; where the chat keeps
+    /// to its end or cannot stay as far down as it was, the rows above move instead, or both.
+    /// Told by where the row was on the screen and where it now is, whichever it was.
+    ///
+    /// Then the row itself says, frame by frame, how much of the way is left (`slideRows`): the
+    /// rows go with the words under the steps, which SwiftUI moves, as one. Given a spring of
+    /// their own with the same duration and bounce, begun in the same turn of the run loop, they
+    /// ran 0.05 s ahead of the words, up to 10pt (measured frame by frame, 2026-11-18).
+    ///
+    /// Drawn moved by the cell's layer, all that is in it at once (`sublayerTransform`), which
+    /// no layout touches. A transform on the content view was undone in the same frame: the
+    /// cell lays it out by its frame, which moved its centre the other way (log, 2026-11-18: the
+    /// rows below showed where they were going for three frames, came back, then slid).
+    private func unfoldRow(_ id: UUID) {
+        let item = Item.message(id)
+        guard view.window != nil, !UIAccessibility.isReduceMotionEnabled,
+              let indexPath = dataSource.indexPath(for: item),
+              let old = collectionView.layoutAttributesForItem(at: indexPath)?.frame else {
+            return resizeRow(item)
+        }
+        // A slide still under way ends where it is going.
+        slideRows(0)
+        let wasAt = old.minY - collectionView.contentOffset.y
+        resizeRow(item)
+        guard let new = collectionView.layoutAttributesForItem(at: indexPath)?.frame else { return }
+        // How far up the row went on the screen, and the rows below it with it, less its growth.
+        let above = wasAt - (new.minY - collectionView.contentOffset.y)
+        sliding = (item, above, above - (new.height - old.height))
+        slideRows(1)
+    }
+
+    /// The row whose height changed, and how far the rows down to it and the rows below it are
+    /// drawn from where they are while the whole of the way is left.
+    private var sliding: (item: Item, above: CGFloat, below: CGFloat)?
+
+    /// `left` of the way still to go, from 1 to 0: every row on screen drawn that much off its
+    /// place, the ones that come onto the screen on the way too.
+    private func slideRows(_ left: CGFloat) {
+        guard let sliding else { return }
+        let row = dataSource.indexPath(for: sliding.item)?.item ?? .max
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for cell in collectionView.visibleCells {
+            guard let path = collectionView.indexPath(for: cell) else { continue }
+            let shift = (path.item > row ? sliding.below : sliding.above) * left
+            cell.layer.sublayerTransform = abs(shift) > 0.01 ? CATransform3DMakeTranslation(0, shift, 0) : CATransform3DIdentity
+        }
+        CATransaction.commit()
+        if left == 0 { self.sliding = nil }
     }
 
     /// The answer just in, whose words show one after another (`AnswerWords`, told through
@@ -789,6 +910,11 @@ final class ChatViewController: UIViewController {
             greeting.alpha = shows ? 1 : 0
             self.collectionView.alpha = shows ? 0 : 1
         }
+        // Told the same again while on its way there (the question, then "Đang nghĩ…", came as
+        // two updates 30 ms apart): left to finish. Set at once here, the greeting's going was cut
+        // at its first frame and it blinked out, a frame or two of empty page before the question
+        // (log and frames, 2026-11-18).
+        if shown == shows, greeting.layer.animationKeys()?.isEmpty == false { return }
         guard animated, shown != shows, !UIAccessibility.isReduceMotionEnabled else {
             greeting.layer.removeAllAnimations()
             greeting.transform = .identity

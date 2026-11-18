@@ -81,15 +81,28 @@ struct TypingDots: View {
 /// đang hiểu ý bạn…", grey in the field, went unseen; a bubble waiting over the field made the
 /// question fly to the wrong place, the bar shrinking under it as it flew.
 struct TranscribingStatus: View {
+    /// What it says, and VoiceOver for it. The quick sheet says "Milu đang soạn" in its card's
+    /// last row once there are words in the card, the two lines swapping in place (user request
+    /// 2026-11-18: from the voice to Milu at work, the sheet jumped).
+    var text = "Đang chuyển thành chữ"
+    var spoken = "Milu đang chuyển giọng nói thành chữ"
+    /// How one line gives way to the next. The old words up and away, the new ones in from
+    /// under, not two lines on one spot; the quick sheet, whose line steps down as its words
+    /// change, has the old ones gone first instead.
+    var swap: AnyTransition = .asymmetric(insertion: .opacity.combined(with: .offset(y: 6)),
+                                          removal: .opacity.combined(with: .offset(y: -6)))
+
     var body: some View {
         HStack(spacing: Spacing.s) {
-            ShimmerText(text: "Đang chuyển thành chữ", base: Palette.primary.opacity(0.45), shine: Palette.primary)
+            ShimmerText(text: text, base: Palette.primary.opacity(0.45), shine: Palette.primary)
+                .id(text)
+                .transition(swap)
             TypingDots(color: Palette.primary)
                 .scaleEffect(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Milu đang chuyển giọng nói thành chữ")
+        .accessibilityLabel(spoken)
     }
 }
 
@@ -98,8 +111,14 @@ struct TranscribingStatus: View {
 /// Milu thinking, as Claude and ChatGPT show it: no bubble, no avatar, no name. "Đang nghĩ…" with
 /// a light passing over it, and under it a line for each thing Milu does on the phone as it does
 /// it (`AssistantProgress`), a spinner turning into ✓.
+///
+/// A step more makes the row taller at once and unseen (`resizeThinkingRow`); only the step's own
+/// line is drawn coming in (`ThinkingStepRow`). Laid out on a spring, the row grew over a moment
+/// and "Đang nghĩ…" dipped 4–5pt and came back at every step (measured frame by frame,
+/// 2026-11-18), as an answer's words once did under its steps (`ThoughtLine`).
 struct ThinkingIndicator: View {
     let progress: AssistantProgress
+    @Environment(\.resizeThinkingRow) private var resizeRow
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
@@ -108,14 +127,12 @@ struct ThinkingIndicator: View {
                 VStack(alignment: .leading, spacing: Spacing.s + 2) {
                     ForEach(progress.steps) { step in
                         ThinkingStepRow(step: step)
-                            .transition(.asymmetric(insertion: .opacity.combined(with: .offset(y: -6)),
-                                                    removal: .opacity))
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(Motion.gentle(.spring(duration: 0.3, bounce: 0)), value: progress.steps.count)
+        .onChange(of: progress.steps.count) { resizeRow?() }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel((["Milu đang nghĩ"] + progress.steps.map(\.running)).joined(separator: ", "))
     }
@@ -163,12 +180,23 @@ struct ShimmerText: View {
 
 /// One step while Milu thinks: a spinner while it runs, ✓ once done. The tools run in a moment;
 /// the spinner is kept a little, so the step reads as done rather than blinking past.
+///
+/// It comes in drawn, not laid out: clear and a little high, then in its place, once the row has
+/// its room (`ThinkingIndicator`).
 private struct ThinkingStepRow: View {
     let step: ThinkingStep
     @State private var done = false
+    @State private var shown = false
 
     var body: some View {
         ThoughtStepLabel(text: done ? step.done : step.running, done: done)
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : -6)
+            .onAppear {
+                ChatMotion.afterResize {
+                    withAnimation(Motion.gentle(.easeOut(duration: 0.25))) { shown = true }
+                }
+            }
             .task {
                 try? await Task.sleep(for: .seconds(0.6))
                 withAnimation(Motion.gentle(.spring(duration: 0.3, bounce: 0.3))) { done = true }
@@ -197,11 +225,18 @@ struct ThoughtStepLabel: View {
             }
             .frame(width: mark, height: mark)
             .accessibilityHidden(true)
-            Text(text)
-                .textRole(.caption)
-                .foregroundStyle(done ? Palette.secondaryLabel : Palette.label)
-                .contentTransition(.opacity)
-                .fixedSize(horizontal: false, vertical: true)
+            // "Đang xem…" gone, then "Đã xem…": crossed in place, the two lines of unlike
+            // length were read one through the other for a tenth of a second (frames, 2026-11-18).
+            ZStack(alignment: .leading) {
+                Text(text)
+                    .textRole(.caption)
+                    .foregroundStyle(done ? Palette.secondaryLabel : Palette.label)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .id(text)
+                    .transition(.asymmetric(
+                        insertion: .opacity.animation(Motion.gentle(.easeOut(duration: 0.2).delay(0.1))),
+                        removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.1)))))
+            }
         }
     }
 }
@@ -234,19 +269,24 @@ private struct StepSpinner: View {
 /// the steps sliding by the steps' height, measured here before they open).
 struct ThoughtLine: View {
     let thought: ChatMessage.Thought
-    /// The steps are laid out under the line.
+    /// Room for the steps is laid out under the line.
     let expanded: Bool
-    /// The steps are drawn (fading in or out while they are laid out).
+    /// The steps are drawn: they fade in and out over their room, laid out or not.
     let stepsShown: Bool
+    /// The chevron points down: turned at the tap, ahead of the rest, so the tap is answered at
+    /// once (it turned with the steps, 0.15 s after the finger: measured 2026-11-18).
+    let turned: Bool
     let toggle: () -> Void
     /// How much room the steps take once open, line gap included.
     let stepsRoom: (CGFloat) -> Void
 
     private static let gap = Spacing.s + 2
+    @State private var lineHeight: CGFloat = 0
+    @State private var stepsHeight: CGFloat = 0
 
     var body: some View {
         let words = "Đã nghĩ \(thought.seconds) giây" + (thought.steps.isEmpty ? "" : " · \(thought.steps.count) bước")
-        VStack(alignment: .leading, spacing: Self.gap) {
+        VStack(alignment: .leading, spacing: 0) {
             if thought.steps.isEmpty {
                 Text(words)
                     .textRole(.caption)
@@ -260,7 +300,7 @@ struct ThoughtLine: View {
                         Text(words)
                         Image(systemName: "chevron.right")
                             .font(.system(size: IconSize.chevron - 2, weight: .semibold))
-                            .rotationEffect(.degrees(stepsShown ? 90 : 0))
+                            .rotationEffect(.degrees(turned ? 90 : 0))
                     }
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryLabel)
@@ -274,21 +314,33 @@ struct ThoughtLine: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Đã nghĩ \(thought.seconds) giây, \(thought.steps.count) bước")
                 .accessibilityHint(expanded ? "Ẩn các bước" : "Xem các bước")
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { lineHeight = $0 }
+                // The steps' room alone: the steps are drawn over it, below.
                 if expanded {
-                    ThoughtSteps(steps: thought.steps)
-                        .opacity(stepsShown ? 1 : 0)
+                    Color.clear
+                        .frame(height: stepsHeight + Self.gap)
+                        .accessibilityHidden(true)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // The steps measured unseen, at the line's width, so their room is known before they open.
-        .background(alignment: .topLeading) {
+        // The steps, always there and drawn under the line, never laid out: their room comes and
+        // goes at once (`expanded`) while they fade over it, opening and closing alike, so
+        // closing is the opening run backwards and needs no second change of the row's height
+        // once it is done (that one came late and by itself: the rows below followed the words
+        // up 0.06 s after them, measured 2026-11-18). Measured here, at the line's width.
+        .overlay(alignment: .topLeading) {
             if !thought.steps.isEmpty {
                 ThoughtSteps(steps: thought.steps)
                     .fixedSize(horizontal: false, vertical: true)
-                    .hidden()
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { stepsRoom($0 + Self.gap) }
-                    .accessibilityHidden(true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                        stepsHeight = $0
+                        stepsRoom($0 + Self.gap)
+                    }
+                    .opacity(stepsShown ? 1 : 0)
+                    .offset(y: lineHeight + Self.gap)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(!expanded)
             }
         }
     }
@@ -313,4 +365,8 @@ enum ChatMotion {
     static func afterResize(_ change: @escaping @MainActor () -> Void) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { change() }
     }
+
+    /// An answer's steps opening or closing: the words under them go on this spring, and the
+    /// rows below with them (`MessageRow.toggleThought`).
+    static var unfold: Animation { .spring(duration: 0.32, bounce: 0) }
 }

@@ -12,6 +12,8 @@ struct MessageRow: View {
     /// pops up and its buttons come.
     @Environment(\.revealsAnswer) private var revealsAnswer
     @Environment(\.resizeChatRow) private var resizeChatRow
+    @Environment(\.unfoldChatRow) private var unfoldChatRow
+    @Environment(\.slideChatRows) private var slideChatRows
     let message: ChatMessage
     let onAction: (CardAction, ChatMessage) -> Void
     @State private var revealDone = false
@@ -21,11 +23,17 @@ struct MessageRow: View {
     @State private var stepsShown = false
     /// The steps are opening or closing: a tap then waits.
     @State private var thoughtMoving = false
+    /// The chevron by "Đã nghĩ …" points down: turned at the tap.
+    @State private var chevronOpen = false
     /// The room the answer's steps take once open (`ThoughtLine`).
     @State private var stepsRoom: CGFloat = 0
     /// How far up the words under the steps are drawn while they slide down into place.
     @State private var answerLift: CGFloat = 0
+    /// How far that was as the slide began: what is left of it is told to the chat as it goes.
+    @State private var liftWhole: CGFloat = 0
     @State private var copied = false
+    /// Counted up as its card is saved: the tick by "Đã lưu" bounces.
+    @State private var savedBounces = 0
 
     private var revealing: Bool { revealsAnswer && !revealDone }
 
@@ -46,12 +54,13 @@ struct MessageRow: View {
             VStack(alignment: .leading, spacing: Spacing.s) {
                 if let thought = message.thought {
                     ThoughtLine(thought: thought, expanded: thoughtOpen, stepsShown: stepsShown,
-                                toggle: toggleThought) { stepsRoom = $0 }
+                                turned: chevronOpen, toggle: toggleThought) { stepsRoom = $0 }
                         .modifier(FadesInAfterThinking(active: revealsAnswer))
                 }
                 answer
                     // Drawn moved, never laid out moved: the row keeps its height while it slides.
-                    .offset(y: answerLift)
+                    // The rows below are told how much of the way is left, at every frame.
+                    .modifier(Lifted(lift: answerLift, whole: liftWhole, report: slideChatRows))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .notice:
@@ -89,9 +98,20 @@ struct MessageRow: View {
                 .modifier(PopsIn(hidden: revealing))
             }
             if let status = cardStatus {
-                Text(status)
-                    .textRole(.captionStrong)
-                    .foregroundStyle(Palette.secondaryLabel)
+                HStack(spacing: Spacing.xs + 2) {
+                    // Saved: the steps' own tick before the words, with a small bounce as "Lưu"
+                    // is tapped (the card changed with nothing to mark the moment, 2026-11-18).
+                    if isSaved {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: IconSize.inline - 2, weight: .bold))
+                            .foregroundStyle(Palette.positive)
+                            .symbolEffect(.bounce, value: savedBounces)
+                            .accessibilityHidden(true)
+                    }
+                    Text(status)
+                        .textRole(.captionStrong)
+                        .foregroundStyle(Palette.secondaryLabel)
+                }
             }
             if message.card == nil, message.isLocal != true {
                 answerActions
@@ -99,55 +119,61 @@ struct MessageRow: View {
                     .animation(Motion.gentle(.easeOut(duration: 0.25).delay(0.15)), value: revealing)
             }
         }
+        .onChange(of: isSaved) { _, saved in
+            guard saved, !UIAccessibility.isReduceMotionEnabled else { return }
+            // As the card as it was has faded from over it (`ChatViewController.crossOver`).
+            Task {
+                try? await Task.sleep(for: .seconds(0.2))
+                savedBounces += 1
+            }
+        }
     }
 
-    /// The steps opened or closed, smoothly both ways, the row's height changing at once and
-    /// unseen (`ThoughtLine`, `resizeChatRow`):
-    /// - opening, the row grows at once with the words under the steps drawn where they were;
-    ///   then the steps fade in, the chevron turns down and the words slide down to their place;
-    /// - closing, the steps fade out, the chevron turns back and the words slide up over them;
-    ///   then the row shrinks at once, the words already where it puts them.
+    /// A card of several rows or one, saved and not since deleted.
+    private var isSaved: Bool {
+        if case .draft(let draft) = message.card { draft.state == .saved && !draft.liveRows.isEmpty } else { false }
+    }
+
+    /// The steps opened or closed, the same way run forwards or backwards (user report 2026-11-18:
+    /// opening an older answer's steps, the rows below jumped 29pt in one frame and the words
+    /// slid a tenth of a second later; closing, the words slid up and the rows below followed
+    /// after them: two moves each time, measured frame by frame).
+    ///
+    /// 1. At the tap the chevron turns, and the row takes its new height at once and unseen:
+    ///    the steps' room is there or gone (`ThoughtLine`), the words under it are drawn where
+    ///    they were (`answerLift`), and so is every row below (`unfoldChatRow`).
+    /// 2. A moment later, in one go: the words slide to where they now are on a spring
+    ///    (`ChatMotion.unfold`) and tell the chat at every frame how far they have left, so the
+    ///    rows below go with them as one (`Lifted`); the steps fade in over their room, or out.
+    ///
+    /// Nothing is laid out while anything moves: an animation running as the row changed its
+    /// height had iOS resize the cell on its own curve (`ThoughtLine`).
     private func toggleThought() {
         guard !thoughtMoving else { return }
-        let moves = !UIAccessibility.isReduceMotionEnabled && stepsRoom > 0
-        let motion = Animation.easeInOut(duration: 0.25)
-        if thoughtOpen {
-            guard moves else {
-                stepsShown = false
-                thoughtOpen = false
-                resizeChatRow?(message.id)
-                return
-            }
-            thoughtMoving = true
-            withAnimation(motion) {
-                stepsShown = false
-                answerLift = -stepsRoom
-            } completion: {
-                thoughtOpen = false
+        let opens = !thoughtOpen
+        guard !UIAccessibility.isReduceMotionEnabled, stepsRoom > 0 else {
+            thoughtOpen = opens
+            stepsShown = opens
+            chevronOpen = opens
+            resizeChatRow?(message.id)
+            return
+        }
+        thoughtMoving = true
+        withAnimation(ChatMotion.unfold) { chevronOpen = opens }
+        liftWhole = opens ? -stepsRoom : stepsRoom
+        answerLift = liftWhole
+        thoughtOpen = opens
+        unfoldChatRow?(message.id)
+        ChatMotion.afterResize {
+            withAnimation(ChatMotion.unfold) {
                 answerLift = 0
-                resizeChatRow?(message.id)
+            } completion: {
+                slideChatRows?(0)
                 thoughtMoving = false
             }
-        } else {
-            guard moves else {
-                thoughtOpen = true
-                stepsShown = true
-                resizeChatRow?(message.id)
-                return
-            }
-            thoughtMoving = true
-            answerLift = -stepsRoom
-            thoughtOpen = true
-            resizeChatRow?(message.id)
-            // Once the row has its new height (an animation begun with it resized the cell too).
-            ChatMotion.afterResize {
-                withAnimation(motion) {
-                    stepsShown = true
-                    answerLift = 0
-                } completion: {
-                    thoughtMoving = false
-                }
-            }
+            // Opening, the steps come into the room the words have begun to leave; closing,
+            // they are gone before the words reach them.
+            withAnimation(opens ? .easeOut(duration: 0.2).delay(0.08) : .easeOut(duration: 0.12)) { stepsShown = opens }
         }
     }
 
@@ -326,6 +352,27 @@ private struct TransactionCard: View {
     }
 }
 
+/// An answer's words drawn `lift` off their place, and, as that eases to nothing, the chat told
+/// at every frame how much of `whole` is left: the rows below are drawn that much off theirs
+/// (`ChatViewController.slideRows`), in the same frame, so they and the words move as one.
+private struct Lifted: ViewModifier, @preconcurrency Animatable {
+    var lift: CGFloat
+    let whole: CGFloat
+    let report: ((CGFloat) -> Void)?
+
+    var animatableData: CGFloat {
+        get { lift }
+        set {
+            lift = newValue
+            if whole != 0 { report?(newValue / whole) }
+        }
+    }
+
+    func body(content: Content) -> some View {
+        content.offset(y: lift)
+    }
+}
+
 /// The answer's first line coming in a beat after it does, as "Đang nghĩ…" fades away in its
 /// place: the two crossed at once, one over the other (frames, 2026-11-15).
 private struct FadesInAfterThinking: ViewModifier {
@@ -394,6 +441,13 @@ extension EnvironmentValues {
     @Entry var revealsAnswer = false
     /// Has the chat take a message's row's new height at once (`ChatViewController`).
     @Entry var resizeChatRow: ((UUID) -> Void)? = nil
+    /// The same for the row of "Đang nghĩ…", a step more under it.
+    @Entry var resizeThinkingRow: (() -> Void)? = nil
+    /// A message's row to its new height at once, every row on screen drawn where it was; then
+    /// `slideChatRows` is told how much of the way to where they are is left, 1 to 0
+    /// (`MessageRow.toggleThought`).
+    @Entry var unfoldChatRow: ((UUID) -> Void)? = nil
+    @Entry var slideChatRows: ((CGFloat) -> Void)? = nil
     /// Where the row's bubble is, in `ChatRow.space`.
     @Entry var onBubbleFrame: ((CGRect) -> Void)? = nil
     /// The chat's rows' width, inside their margins (`ChatViewController`).
