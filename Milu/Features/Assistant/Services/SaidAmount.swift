@@ -1,10 +1,11 @@
 import Foundation
 
 /// Money as people say it in Vietnamese, read on the phone: "60k", "60 nghìn", "1tr2", "1 triệu
-/// 2", "1,5tr", "2 củ", "1 củ rưỡi", "2 trăm rưỡi", "1 tỷ", "60.000", "60000đ". Milu checks the
-/// amount the model read against these, and asks when they differ, so a number it made up is
-/// never put on a card (user choice 2026-11-17). Numbers said in words ("sáu mươi nghìn") are not
-/// read: the model's is trusted then.
+/// 2", "1,5tr", "2 củ", "1 củ rưỡi", "2 trăm rưỡi", "1 tỷ", "60.000", "60000đ", the slang ("200
+/// cá", "200 cành", "3 xị", "2 lít", "nửa củ"), and in words, as the voice gives them: "ba mươi
+/// nghìn", "mười lăm nghìn", "một triệu hai", "năm trăm". Milu checks the amount the model read
+/// against these, and warns on the card when they differ, so a number it misread is looked at
+/// before "Lưu" (user choice 2026-11-17).
 enum SaidAmount {
     /// The amount `text` says: the first one said with its unit or in full ("60k", "60.000"), else
     /// the first bare small number, taken as thousands ("35" is 35.000đ; "2 ly cà phê 35k" is 35k).
@@ -36,10 +37,23 @@ enum SaidAmount {
         "ty": 1_000_000_000, "ti": 1_000_000_000,
         "tram": 100,
         "d": 1, "dong": 1, "vnd": 1,
+        // Slang (user question 2026-11-17): "3 xị", "2 lít" are hundreds of thousands. "200 cá",
+        // "200 cành" need no word: a bare number under 1.000 is thousands.
+        "xi": 100_000, "lit": 100_000,
     ]
 
+    /// After "lít" or "xì", what makes them a liquid, not money: "2 lít xăng", "1 xì dầu".
+    private static let liquids: Set<String> = ["xang", "dau", "nuoc", "sua", "bia", "ruou", "nhot", "gas", "ga", "nhien"]
+
+    /// The unit at `index`, if the word there is one: not "lít" or "xì" of a liquid.
+    private static func unit(_ tokens: [String], at index: Int) -> Double? {
+        guard index < tokens.count, let unit = units[tokens[index]] else { return nil }
+        if unit == 100_000, index + 1 < tokens.count, liquids.contains(tokens[index + 1]) { return nil }
+        return unit
+    }
+
     private static func amounts(in text: String) -> [Amount] {
-        let (tokens, attached) = tokenize(text.searchKey.lowercased())
+        let (tokens, attached) = spelledOut(tokenize(text.searchKey.lowercased()))
         var found: [Amount] = []
         var index = 0
         while index < tokens.count {
@@ -63,8 +77,7 @@ enum SaidAmount {
         var index = start
         let numberToken = tokens[index]
         index += 1
-        let unitToken = index < tokens.count ? tokens[index] : nil
-        guard let unitToken, let unit = units[unitToken] else {
+        guard let unit = unit(tokens, at: index) else {
             return (number(numberToken, decimal: false), index, false)
         }
         index += 1
@@ -139,6 +152,87 @@ enum SaidAmount {
         }
         flush()
         return (tokens, attached)
+    }
+
+    // MARK: - Số bằng chữ
+
+    /// Numbers said in words turned into digits (user report 2026-11-17, iPhone: "ăn sáng hết ba
+    /// mươi nghìn… tối ăn cơm hết năm mươi nghìn", said by voice, and every amount asked again, the
+    /// words read as no amount at all). Only where it is surely a number: two words or more of one
+    /// ("ba mươi", "mười lăm"), or one before a unit ("năm nghìn", "hai trăm rưỡi"), or after a
+    /// million ("một triệu hai"); "năm nay", "hai ly", "ba mẹ" stay words. "trăm" with nothing of
+    /// tens after it is left to `readGroup` ("hai trăm rưỡi", "hai trăm nghìn").
+    private static func spelledOut(_ split: ([String], [Bool])) -> ([String], [Bool]) {
+        let (tokens, attached) = split
+        var outTokens: [String] = []
+        var outAttached: [Bool] = []
+        var index = 0
+        while index < tokens.count {
+            // "nửa củ", "nửa triệu": half a million.
+            if tokens[index] == "nua", index + 1 < tokens.count, (units[tokens[index + 1]] ?? 0) >= 1_000_000 {
+                outTokens.append("0.5")
+                outAttached.append(false)
+                index += 1
+                continue
+            }
+            if let (value, end) = spelledNumber(tokens, from: index) {
+                let next = end < tokens.count ? tokens[end] : nil
+                let before = index > 0 ? tokens[index - 1] : nil
+                if end - index > 1 || next.map({ units[$0] != nil }) == true
+                    || before.map({ (units[$0] ?? 0) >= 1_000_000 }) == true {
+                    outTokens.append(String(value))
+                    outAttached.append(false)
+                    index = end
+                    continue
+                }
+            }
+            outTokens.append(tokens[index])
+            outAttached.append(attached[index])
+            index += 1
+        }
+        return (outTokens, outAttached)
+    }
+
+    /// The digits a number may start with ("tư", "lăm" only come after tens).
+    private static let leadingDigits: [String: Int] = [
+        "mot": 1, "hai": 2, "ba": 3, "bon": 4, "nam": 5, "sau": 6, "bay": 7, "tam": 8, "chin": 9,
+    ]
+    /// The digit after tens: "hai mươi mốt", "hai mươi tư", "ba mươi lăm".
+    private static let digitsAfterTens: [String: Int] = leadingDigits.merging(["tu": 4, "lam": 5]) { first, _ in first }
+
+    /// A number under a thousand in words from `start`, and where it ends: "ba", "ba mươi",
+    /// "ba mươi lăm", "mười", "mười lăm", "hai trăm năm mươi", "một trăm linh năm". Accents gone
+    /// (`searchKey`), "mười" and "mươi" are both "muoi": ten at the start, tens after a digit.
+    private static func spelledNumber(_ tokens: [String], from start: Int) -> (Int, Int)? {
+        func token(_ index: Int) -> String? { index < tokens.count ? tokens[index] : nil }
+        /// "mười", "mười lăm" from `index`.
+        func ten(_ index: Int) -> (Int, Int)? {
+            guard token(index) == "muoi" else { return nil }
+            if let unit = token(index + 1).flatMap({ digitsAfterTens[$0] }) { return (10 + unit, index + 2) }
+            return (10, index + 1)
+        }
+        /// "ba mươi", "ba mươi lăm", or the digit alone, from `index`.
+        func tens(_ index: Int) -> (Int, Int)? {
+            guard let digit = token(index).flatMap({ leadingDigits[$0] }) else { return ten(index) }
+            guard token(index + 1) == "muoi" else { return (digit, index + 1) }
+            if let unit = token(index + 2).flatMap({ digitsAfterTens[$0] }) { return (digit * 10 + unit, index + 3) }
+            return (digit * 10, index + 2)
+        }
+        guard let digit = token(start).flatMap({ leadingDigits[$0] }) else { return ten(start) }
+        if token(start + 1) == "tram" {
+            // "hai trăm năm mươi", "hai trăm mười", "một trăm linh năm": the hundreds and the rest.
+            let rest = start + 2
+            if let link = token(rest), link == "linh" || link == "le",
+               let unit = token(rest + 1).flatMap({ leadingDigits[$0] }) {
+                return (digit * 100 + unit, rest + 2)
+            }
+            if let (part, end) = tens(rest), end - rest > 1 || token(rest) == "muoi" {
+                return (digit * 100 + part, end)
+            }
+            // Nothing of tens after "trăm": the digit alone, "trăm" read as a unit.
+            return (digit, start + 1)
+        }
+        return tens(start)
     }
 
     private static func isNumber(_ token: String) -> Bool {

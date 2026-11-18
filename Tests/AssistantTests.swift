@@ -43,6 +43,17 @@ struct AssistantTests {
         (0..<Int((seconds * 10).rounded())).map { index in index % 4 == 3 ? (0.1, false) : (0.65, index % 3 == 0) }
     }
 
+    /// Drawn taller than heard (user feedback 2026-11-17: speaking loud, the wave hardly rose): the
+    /// room's hum flat, a voice spread up the row, a loud one at its top.
+    @Test func theWaveIsDrawnTallerThanHeard() {
+        #expect(VoiceWaveform.shown(0.05) == 0)
+        #expect(VoiceWaveform.shown(0.1) == 0)
+        #expect(VoiceWaveform.shown(0.35) > 0.5)
+        #expect(VoiceWaveform.shown(0.6) == 1)
+        #expect(VoiceWaveform.shown(1) == 1)
+        #expect(VoiceWaveform.shown(0.3) < VoiceWaveform.shown(0.4))
+    }
+
     @Test func nothingSaidStopsAfterSixSeconds() throws {
         let ended = try #require(listen(quiet(10)))
         #expect(ended.end == .nothingSaid)
@@ -94,6 +105,20 @@ struct AssistantTests {
         chats.conversations[index].messages.append(ChatMessage(role: .user, text: question))
     }
 
+    /// The chats in the file once `done` holds for them, or after 5 seconds: a save waits a moment,
+    /// then writes off the main thread, and a fixed second was short on a busy Mac (2026-11-17).
+    private func chatsInFile(_ url: URL, until done: ([Conversation]) -> Bool) async throws -> [Conversation] {
+        var last: [Conversation] = []
+        for _ in 0..<50 {
+            if let data = try? Data(contentsOf: url), let read = try? JSONDecoder().decode([Conversation].self, from: data) {
+                last = read
+                if done(read) { return read }
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        return last
+    }
+
     /// A chat that did not change is written as it was, the one that did anew: every chat is in the
     /// file, read back as it was (audit round 5, 2026-11-16).
     @Test func savingWritesEveryChatWhenOneChanges() async throws {
@@ -107,8 +132,7 @@ struct AssistantTests {
         ask(chats, "Ghi cà phê 35k")
         try await Task.sleep(for: .seconds(1))
         ask(chats, "Và gửi xe 5k")
-        try await Task.sleep(for: .seconds(1))
-        let written = try JSONDecoder().decode([Conversation].self, from: Data(contentsOf: url))
+        let written = try await chatsInFile(url) { $0.contains { $0.messages.last?.text == "Và gửi xe 5k" } }
         #expect(written.count == 2)
         #expect(written.map(\.messages.count).sorted() == [1, 2])
         #expect(written.contains { $0.messages.last?.text == "Và gửi xe 5k" })
@@ -136,8 +160,7 @@ struct AssistantTests {
 
         chats.readUnread()
         #expect(Set(chats.history.map(\.title)) == ["Tháng này tiêu bao nhiêu?", "Ghi cà phê 35k"])
-        try await Task.sleep(for: .seconds(1))
-        let written = try JSONDecoder().decode([Conversation].self, from: Data(contentsOf: url))
+        let written = try await chatsInFile(url) { $0.count == 2 }
         #expect(written.count == 2)
     }
 
@@ -244,8 +267,7 @@ struct AssistantTests {
         let chats = AssistantChats(saving: true, fileURL: url)
         #expect(chats.history.map(\.title) == ["Mới"])
         ask(chats, "Ghi cà phê 35k")
-        try await Task.sleep(for: .seconds(1))
-        let written = try JSONDecoder().decode([Conversation].self, from: Data(contentsOf: url))
+        let written = try await chatsInFile(url) { $0.contains { $0.title == "Ghi cà phê 35k" } }
         #expect(Set(written.map(\.title)) == ["Mới", "Ghi cà phê 35k"])
     }
 

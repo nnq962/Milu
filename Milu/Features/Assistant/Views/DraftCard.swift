@@ -5,10 +5,13 @@ import SwiftUI
 /// from it): "Milu soạn 3 khoản" and when, a thin line per transaction (its item, its note under
 /// it, its amount), the total under a dashed rule, the account once, and what to look at (a twin
 /// already saved, a row that cannot be saved) gathered in a box of its own. Waiting for "Lưu", a
-/// row opens to be changed; saved, to be viewed.
+/// row opens to be changed; saved, to be viewed. Its buttons (Huỷ and Lưu, Xem and Xoá) inside it,
+/// at its foot (user feedback 2026-11-17: under the card, they seemed to belong to no one; over
+/// them a dashed tear was one rule too many).
 struct DraftCard: View {
     let draft: TransactionDraft
     let onRow: (UUID) -> Void
+    var actions: AnyView? = nil
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -40,6 +43,11 @@ struct DraftCard: View {
                 .padding(.horizontal, RowMetrics.horizontal)
                 .padding(.top, live.count > 1 ? Spacing.m : Spacing.xs)
                 .padding(.bottom, Spacing.m)
+            if let actions {
+                actions
+                    .padding(.horizontal, RowMetrics.horizontal)
+                    .padding(.bottom, Spacing.m)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(radius: CardCorners.card)
@@ -96,19 +104,23 @@ struct DraftCard: View {
         let opens = draft.isPending || (draft.state == .saved && !row.removed && store.transaction(id: row.id) != nil)
         let detail = detail(of: row)
         let large = dynamicTypeSize.isAccessibilitySize
-        // One line: the picture and the amount on the name's line; two: on the row's middle.
-        let alignment: VerticalAlignment = large || detail == nil ? .firstTextBaseline : .center
+        // The picture, the name and the amount on one line, the note hanging under the name: the
+        // name level with its picture on every row, a note or none (user request 2026-11-18; with
+        // the picture on the row's middle, a row with a note had its name above its picture, and
+        // 2026-11-17 its amount between the two lines). Lists elsewhere keep a lone figure on the
+        // middle (2026-11-15).
         return Button { onRow(row.id) } label: {
-            HStack(alignment: alignment, spacing: RowMetrics.gap) {
+            HStack(alignment: .firstTextBaseline, spacing: RowMetrics.gap) {
                 RowIcon(name: icon(of: row))
                     .centeredOnTextLine()
                     .opacity(row.removed ? 0.5 : 1)
-                AdaptiveStack(alignment: alignment, spacing: Spacing.s) {
+                AdaptiveStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                     VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
-                        Text(title(of: row))
+                        title(of: row)
                             .textRole(.bodyStrong)
                             .foregroundStyle(row.removed ? Palette.secondaryLabel : Palette.label)
                             .strikethrough(row.removed)
+                            .accessibilityLabel(marksNew(row) ? "\(name(of: row)), mục mới" : name(of: row))
                         if let detail {
                             Text(detail)
                                 .textRole(.caption)
@@ -137,23 +149,34 @@ struct DraftCard: View {
         return store.categoryIcon(row.transaction.categoryID)
     }
 
-    /// The item's name; a new one says so.
-    private func title(of row: TransactionDraft.Row) -> String {
-        if let item = row.newItem { return "\(item.name) (mới)" }
+    /// The item's name: the one to make, or the one it goes under.
+    private func name(of row: TransactionDraft.Row) -> String {
+        if let item = row.newItem { return item.name }
         return store.categoryName(row.transaction.categoryID)
     }
 
+    /// An item made on "Lưu", while the card waits for it (and the row is still on it).
+    private func marksNew(_ row: TransactionDraft.Row) -> Bool {
+        row.newItem != nil && draft.isPending && !row.removed
+    }
+
+    /// The name, and a red * on an item made on "Lưu", told under the rows (user request
+    /// 2026-11-18: "(mới)" in the name and "tạo mục mới trong … khi Lưu" under it, said again
+    /// on each new one, made those rows taller and wordier than the rest).
+    private func title(of row: TransactionDraft.Row) -> Text {
+        let name = Text(name(of: row))
+        guard marksNew(row) else { return name }
+        return name + Text("*").foregroundStyle(Palette.negative)
+    }
+
     /// The small line under a row: its note; where it differs from the others, its account and
-    /// day; an item to make; or that it was deleted since.
+    /// day; or that it was deleted since.
     private func detail(of row: TransactionDraft.Row) -> String? {
         if row.removed { return "Đã xoá" }
         let transaction = row.transaction
         var parts: [String] = []
         let note = transaction.note.components(separatedBy: .newlines).first ?? ""
         if !note.isEmpty { parts.append(note) }
-        if let item = row.newItem, draft.isPending {
-            parts.append("tạo mục mới trong \(store.categoryName(item.groupID)) khi Lưu")
-        }
         if sharedAccount == nil { parts.append(accountName(transaction.accountID)) }
         if sharedMoment == nil {
             parts.append("\(Self.day(transaction.date)), \(DraftChecks.time(transaction.date))")
@@ -185,16 +208,24 @@ struct DraftCard: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The account, once ("Từ Vietcombank · Milu tự chọn"), the boxes of what to look at, and
+    /// The account, once ("Từ Vietcombank (Milu tự chọn)"), the boxes of what to look at, and
     /// while it waits, that a row opens.
     private var footer: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             if let account = sharedAccount {
                 let chosen = draft.isPending && live.allSatisfy(\.accountChosenByApp)
                 let word = live.allSatisfy { $0.transaction.kind == .income } ? "Vào" : "Từ"
-                Text("\(word) \(accountName(account))\(chosen ? " · Milu tự chọn" : "")")
+                // "(Milu tự chọn)", not "· Milu tự chọn": said of the account (user feedback 2026-11-17).
+                Text("\(word) \(accountName(account))\(chosen ? " (Milu tự chọn)" : "")")
                     .textRole(.caption)
                     .foregroundStyle(Palette.secondaryLabel)
+            }
+            if let note = newItemsNote {
+                (Text("*").foregroundStyle(Palette.negative) + Text(" \(note)"))
+                    .textRole(.caption)
+                    .foregroundStyle(Palette.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(note)
             }
             if draft.isPending, !warnings.isEmpty {
                 NoticeBox(lines: warnings, tone: .warning)
@@ -221,18 +252,33 @@ struct DraftCard: View {
         store.account(id: id)?.name ?? "Tài khoản không còn"
     }
 
+    /// What the red * says, once for every new item: "Mục mới trong nhóm “Ăn uống”, Milu tạo khi
+    /// bạn bấm Lưu", the groups named in the rows' order.
+    private var newItemsNote: String? {
+        var groups: [String] = []
+        for row in draft.rows where marksNew(row) {
+            guard let item = row.newItem else { continue }
+            let group = "“\(store.categoryName(item.groupID))”"
+            if !groups.contains(group) { groups.append(group) }
+        }
+        guard let last = groups.last else { return nil }
+        let named = groups.count == 1 ? last : groups.dropLast().joined(separator: ", ") + " và " + last
+        return "Mục mới trong nhóm \(named), Milu tạo khi bạn bấm Lưu"
+    }
+
     /// Twins saved that day ("Hôm nay đã có Cà phê 35.000đ lúc 06:51.").
     private var warnings: [String] { live.compactMap(\.warning) }
 
     /// Why rows cannot be saved, each with its row's name, and the card's own.
     private var problems: [String] {
-        let rows = live.compactMap { row in row.problem.map { "\(title(of: row)): \($0)" } }
+        let rows = live.compactMap { row in row.problem.map { "\(name(of: row)): \($0)" } }
         return rows + (draft.problem.map { [$0] } ?? [])
     }
 }
 
 /// A thin dashed line across the card, as on a receipt.
-private struct DashedRule: View {
+/// The receipt's dashed rule: under its head, over its total.
+struct DashedRule: View {
     var body: some View {
         Line()
             .stroke(Palette.separator, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))

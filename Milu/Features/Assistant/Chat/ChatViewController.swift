@@ -20,6 +20,9 @@ final class ChatViewController: UIViewController {
         var isDictating: Bool
         var showsLeading: Bool
         var isOutOfQuestions: Bool
+        /// The voice on its way to words: the field lit up, pale blue inside a blue ring, its
+        /// words saying so (`TranscribingStatus`, user choice 2026-11-17, "Ô nhập sáng lên").
+        var isTranscribing: Bool
         var placeholder: String
         var leading: AnyView
         var stop: AnyView
@@ -90,6 +93,10 @@ final class ChatViewController: UIViewController {
     /// killed the app (watchdog, iPhone 16 Pro, 2026-11-11).
     private let overlayHost = ChatViewController.host(sizing: false)
     private let outHost = ChatViewController.host()
+    /// The field lit up while the voice turns into words: a pale blue under its content, a blue
+    /// ring round it. Faded, as the bar's other parts are.
+    private let glassLight = UIView()
+    private let glassRing = UIView()
     private let greetingHost = ChatViewController.host(sizing: false)
 
     // MARK: Metrics
@@ -242,10 +249,12 @@ final class ChatViewController: UIViewController {
         .coordinateSpace(.named(ChatRow.space))
     }
 
-    /// How wide the field's words are: measured once the field is laid out, worked out from the
-    /// bar before (its inset each side, the words' lead, ↑ and its gap).
+    /// How wide the field's words are, the field at rest: worked out from the bar (its inset each
+    /// side, the words' lead, ↑ and its gap), never read off the field, narrower while it listens
+    /// (✕ and ■ in it). Read off it, a question said and sent was set in its row at the listening
+    /// width and in its flyer, built a moment later, at the rest width: a long one changed size
+    /// and broke its lines anew as it landed (user report 2026-11-17).
     private var questionWordsWidth: CGFloat {
-        if textView.bounds.width > 0 { return textView.bounds.width }
         let row = (view.bounds.width > 0 ? view.bounds.width : collectionView.bounds.width) - 2 * Spacing.l
         return row - (2 * Self.inset + Spacing.s + Self.buttonSize + Spacing.s)
     }
@@ -346,6 +355,24 @@ final class ChatViewController: UIViewController {
         tap.delegate = self
         glass.addGestureRecognizer(tap)
 
+        // Under the field's content, over the glass.
+        for part in [glassLight, glassRing] {
+            part.translatesAutoresizingMaskIntoConstraints = false
+            part.isUserInteractionEnabled = false
+            part.alpha = 0
+            glass.contentView.insertSubview(part, at: 0)
+            NSLayoutConstraint.activate([
+                part.topAnchor.constraint(equalTo: glass.contentView.topAnchor),
+                part.bottomAnchor.constraint(equalTo: glass.contentView.bottomAnchor),
+                part.leadingAnchor.constraint(equalTo: glass.contentView.leadingAnchor),
+                part.trailingAnchor.constraint(equalTo: glass.contentView.trailingAnchor),
+            ])
+        }
+        glassLight.backgroundColor = UIColor(Palette.accentSoft)
+        glassRing.layer.cornerRadius = Self.radius
+        glassRing.layer.cornerCurve = .continuous
+        glassRing.layer.borderWidth = 1.5
+
         addHost(outHost)
         bar.axis = .vertical
         bar.addArrangedSubview(glass)
@@ -424,6 +451,10 @@ final class ChatViewController: UIViewController {
         if outHost.view.isHidden == state.isOutOfQuestions { outHost.view.isHidden = !state.isOutOfQuestions }
         glass.alpha = state.isOutOfQuestions ? 0 : 1
         outHost.view.alpha = state.isOutOfQuestions ? 1 : 0
+        // The ring's colour read for the light or dark look of the moment.
+        glassRing.layer.borderColor = UIColor(Palette.primary).resolvedColor(with: traitCollection).cgColor
+        glassLight.alpha = state.isTranscribing ? 1 : 0
+        glassRing.alpha = state.isTranscribing ? 1 : 0
         // Hidden, never disabled: a disabled field gives up the keyboard, and the keyboard going
         // down inside an update is where the page hung (iPhone 16 Pro, 2026-11-11). It stays up
         // while listening, as asked (user report 2026-11-10); the wave covers the field's taps and
@@ -454,7 +485,7 @@ final class ChatViewController: UIViewController {
         }
 
         let barChanged = old?.showsLeading != new.showsLeading || old?.isDictating != new.isDictating
-            || old?.isOutOfQuestions != new.isOutOfQuestions
+            || old?.isOutOfQuestions != new.isOutOfQuestions || old?.isTranscribing != new.isTranscribing
         if barChanged {
             if old != nil, view.window != nil, !UIAccessibility.isReduceMotionEnabled {
                 // On the next turn of the run loop, once SwiftUI is done with this update: laid

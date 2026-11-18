@@ -22,6 +22,16 @@ struct AssistantReply {
     /// Takes a lượt (`AIQuota`): false when it only recorded or deleted a transaction, which is
     /// data entry and free (user choice 2026-11-12).
     var counts = true
+    /// What the record tool would not record in this answer (a transfer, a loan, a goal…): the
+    /// quick sheet offers the form to do it by hand (`QuickRecordResult`).
+    var refused: [RecordRefusal.Refused] = []
+    /// The record tool asked something back (a missing amount, an unsure item), and the answers it
+    /// suggested, for the quick sheet's chips.
+    var asksBack = false
+    var choices: [String] = []
+    /// What the record tool asked, in its own short words, for the quick sheet: the model's own
+    /// question ran to lines of bullets saying again what the chips say (Simulator 2026-11-17).
+    var asked: String?
 
     /// The first, its card under the answer's words; the others follow it.
     var action: Action? { actions.first }
@@ -61,14 +71,25 @@ struct MockAssistant {
 
     /// A card to save, as the AI makes one (`DraftBuilder`): nothing is recorded before "Lưu". It
     /// cannot ask back, so a category it is unsure of goes on its guess, for the user to change.
+    /// `question` as a transaction to record, whatever its words: the quick sheet's sentence ("cà
+    /// phê 35k"), which has no "ghi" to tell it from a question.
+    func record(_ question: String) -> AssistantReply {
+        recordCommand(question)
+    }
+
     private func recordCommand(_ question: String) -> AssistantReply {
         let text = Self.normalize(question)
         if let refusal = Self.refusal(for: text) {
-            return .init(text: RecordRefusal.message([.init(reason: refusal.reason, howTo: refusal.howTo)]), counts: false)
+            let refused = RecordRefusal.Refused(reason: refusal.reason, howTo: refusal.howTo)
+            var reply = AssistantReply(text: RecordRefusal.message([refused]), counts: false)
+            reply.refused = [refused]
+            return reply
         }
         guard let amount = Self.amount(in: question) else {
-            return .init(text: "Bạn cho mình biết tên khoản và số tiền nhé, ví dụ: **ghi ăn trưa 60.000 hôm nay** hoặc **ghi nhận lương 25tr**.",
-                         counts: false)
+            var reply = AssistantReply(text: "Bạn cho mình biết tên khoản và số tiền nhé, ví dụ: **ghi ăn trưa 60.000 hôm nay** hoặc **ghi nhận lương 25tr**.",
+                                       counts: false)
+            reply.asksBack = true
+            return reply
         }
         let category = Self.category(for: text)
         let title = Self.title(from: question, fallback: category.title)
@@ -88,9 +109,16 @@ struct MockAssistant {
         case .ready(let row):
             return .init(text: RemoteAssistant.draftReady, action: .draft(TransactionDraft(rows: [row])), counts: false)
         case .needs(let need):
-            return .init(text: need.ask, counts: false)
+            var reply = AssistantReply(text: need.ask, counts: false)
+            reply.asksBack = true
+            reply.asked = need.ask
+            reply.choices = need.suggestions + need.options
+            return reply
         case .refused(let reason, let howTo):
-            return .init(text: RecordRefusal.message([.init(reason: reason, howTo: howTo)]), counts: false)
+            let refused = RecordRefusal.Refused(reason: reason, howTo: howTo)
+            var reply = AssistantReply(text: RecordRefusal.message([refused]), counts: false)
+            reply.refused = [refused]
+            return reply
         }
     }
 

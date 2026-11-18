@@ -12,7 +12,7 @@ struct AssistantView: View {
     @Environment(AIQuota.self) private var quota
     @Environment(AssistantChats.self) private var chats
     @Environment(CloudSyncMonitor.self) private var sync
-    @State private var draft = ""
+    @State private var draft: String
     /// A question is out and Milu's answer not in yet.
     @State private var isThinking = false
     /// The chat that question was asked in: "Đang nghĩ…" and ■ show there only, and ■ says it
@@ -52,6 +52,12 @@ struct AssistantView: View {
     private var isThinkingHere: Bool { isThinking && answeringChatID == chats.conversations[currentIndex].id }
     private var hasQuestions: Bool { chats.conversations[currentIndex].hasQuestions }
 
+    /// `prefill`: words already in the field, not sent: a question the quick sheet ("Thêm bằng
+    /// AI") passed on, for the user to send (a question takes a lượt, theirs to spend).
+    init(prefill: String = "") {
+        _draft = State(initialValue: prefill)
+    }
+
     var body: some View {
         let isDictating = dictation.isRecording || dictation.isTranscribing
         ChatScreen(
@@ -64,6 +70,7 @@ struct AssistantView: View {
             // The field stays with no lượt left: recording and deleting are free (user choice
             // 2026-11-12); a question that needs a lượt is told so in the chat.
             isOutOfQuestions: false,
+            isTranscribing: dictation.isTranscribing,
             placeholder: fieldNote ?? ChatViewController.defaultPlaceholder,
             leading: AnyView(roundButton("xmark", label: "Huỷ nhập giọng nói") {
                 dictation.stop()
@@ -240,11 +247,9 @@ struct AssistantView: View {
                 }
                 .transition(swap)
             } else if dictation.isTranscribing {
-                Text("Milu đang hiểu ý bạn…")
-                    .textRole(.body)
-                    .foregroundStyle(Palette.secondaryLabel)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                // In the field lit up (`ChatViewController`, user choice 2026-11-17).
+                TranscribingStatus()
+                    .padding(.leading, Spacing.s)
                     .transition(swap)
             }
         }
@@ -352,11 +357,16 @@ struct AssistantView: View {
     }
 
     private var dictationMessage: String {
-        switch dictation.failure {
+        dictation.failure.map(Self.dictationMessage) ?? Self.dictationMessage(for: .audio)
+    }
+
+    /// Why the mic could not be used, or stopped by itself; the quick sheet says it too.
+    static func dictationMessage(for failure: SpeechDictation.Failure) -> String {
+        switch failure {
         case .denied: "Hãy cho phép Milu dùng micro và nhận dạng giọng nói trong Cài đặt."
         case .unavailable: "Nhận dạng giọng nói tiếng Việt hiện chưa sẵn sàng trên thiết bị này."
-        case .audio, nil: "Không mở được micro. Bạn thử lại sau nhé."
-        case .stopped(let reason, let heard): Self.stoppedMessage(reason, heard: heard)
+        case .audio: "Không mở được micro. Bạn thử lại sau nhé."
+        case .stopped(let reason, let heard): stoppedMessage(reason, heard: heard)
         }
     }
 
@@ -455,7 +465,7 @@ struct AssistantView: View {
             let saved = saveDraft(in: last)
             said = saved?.state == .saved
                 ? (saved?.liveRows.count ?? 0) > 1 ? "Đã lưu \(saved?.liveRows.count ?? 0) khoản." : "Đã lưu."
-                : "Chưa lưu được, bạn xem trên thẻ ở trên nhé."
+                : "Chưa lưu được, bạn xem các khoản ở trên nhé."
         case .cancel:
             setDraft(of: last.id) { $0.state = .cancelled }
             said = "Đã huỷ, Milu chưa ghi gì."

@@ -32,7 +32,8 @@ extension FinanceStore {
         let pickable = Dictionary(uniqueKeysWithValues: pickableItems(kind).map { ($0.id, $0) })
         var seen = Set<String>()
         // By when it was recorded, not its date: one recorded today for last week is recent too.
-        return transactions.sorted { $0.createdAt > $1.createdAt }.compactMap { transaction -> Category? in
+        // Recorded at the same time (the sample data, an import): the later date first.
+        return transactions.sorted { ($0.createdAt, $0.date) > ($1.createdAt, $1.date) }.compactMap { transaction -> Category? in
             guard let item = pickable[transaction.categoryID], seen.insert(item.id).inserted else { return nil }
             return item
         }

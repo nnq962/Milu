@@ -108,7 +108,7 @@ struct TransactionDraft: Equatable, Codable, Identifiable {
         return draft
     }
 
-    /// The card without one row ("Bỏ khoản này khỏi thẻ"); an empty card is cancelled.
+    /// The card without one row ("Bỏ khoản này"); an empty card is cancelled.
     func removingRow(_ id: UUID) -> TransactionDraft {
         var draft = self
         draft.rows.removeAll { $0.id == id }

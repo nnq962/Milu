@@ -19,6 +19,8 @@ struct ChatScreen: UIViewControllerRepresentable {
     /// ✕ at the field's start and ■ before the action button, only while listening.
     let showsLeading: Bool
     let isOutOfQuestions: Bool
+    /// The voice on its way to words: the field lit up (user choice 2026-11-17).
+    var isTranscribing = false
     /// The empty field's words: "Hỏi Milu", or for a moment why the mic stopped.
     var placeholder = ChatViewController.defaultPlaceholder
     let leading: AnyView
@@ -49,6 +51,7 @@ struct ChatScreen: UIViewControllerRepresentable {
             isDictating: isDictating,
             showsLeading: showsLeading,
             isOutOfQuestions: isOutOfQuestions,
+            isTranscribing: isTranscribing,
             placeholder: placeholder,
             leading: leading,
             stop: stop,

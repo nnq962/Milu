@@ -107,7 +107,7 @@ struct DraftRowEditor: View {
                 FormNoteRow(text: $note, prompt: "Thêm ghi chú")
             }
             FormGroup {
-                FormDestructiveRow(title: "Bỏ khoản này khỏi thẻ", question: "Bỏ khoản này khỏi thẻ?",
+                FormDestructiveRow(title: "Bỏ khoản này", question: "Bỏ khoản này?",
                                    message: "Khoản này sẽ không được lưu.") {
                     dismiss()
                     onRemove()

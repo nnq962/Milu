@@ -77,21 +77,22 @@ struct MessageRow: View {
             // Money and days said as words, as on every other screen (audit round 5, 2026-11-16:
             // "đ" was read as a letter, "23/11" as a fraction).
             .accessibilityLabel(SpokenText.of(String(formattedText.characters)))
+            // The card's buttons inside it, at its foot (user feedback 2026-11-17).
             if let transaction = cardTransaction {
-                TransactionCard(transaction: transaction)
+                TransactionCard(transaction: transaction, actions: cardActions)
                     .modifier(PopsIn(hidden: revealing))
             }
             if case .draft(let draft) = message.card {
-                DraftCard(draft: draft) { id in onAction(draft.isPending ? .editRow(id) : .viewRow(id), message) }
-                    .modifier(PopsIn(hidden: revealing))
+                DraftCard(draft: draft, onRow: { id in
+                    onAction(draft.isPending ? .editRow(id) : .viewRow(id), message)
+                }, actions: cardActions)
+                .modifier(PopsIn(hidden: revealing))
             }
             if let status = cardStatus {
                 Text(status)
                     .textRole(.captionStrong)
                     .foregroundStyle(Palette.secondaryLabel)
             }
-            cardButtons
-                .modifier(PopsIn(hidden: revealing, delay: 0.1))
             if message.card == nil, message.isLocal != true {
                 answerActions
                     .opacity(revealing ? 0 : 1)
@@ -207,47 +208,47 @@ struct MessageRow: View {
             case .pending: nil
             case .saved: draft.liveRows.isEmpty ? "Đã xoá các khoản này." : draft.liveRows.count == 1 ? "Đã lưu." : "Đã lưu \(draft.liveRows.count) khoản."
             case .cancelled: "Đã huỷ, Milu chưa ghi gì."
-            case .replaced: "Đã thay bằng thẻ mới bên dưới."
+            case .replaced: "Đã thay bằng bản mới bên dưới."
             }
         default: nil
         }
     }
 
-    @ViewBuilder
-    private var cardButtons: some View {
+    /// The card's buttons, for inside it; none, nil (no tear).
+    private var cardActions: AnyView? {
         switch message.card {
         case .recorded(let snapshot, removed: false) where store.transaction(id: snapshot.id) != nil:
-            HStack(spacing: Spacing.s) {
-                // "Xem": it opens the transaction's sheet, where it is edited (strict review
-                // 2026-10-31: "Sửa" promised an editor and showed the detail).
+            // "Xem": it opens the transaction's sheet, where it is edited (strict review
+            // 2026-10-31: "Sửa" promised an editor and showed the detail).
+            AnyView(HStack(spacing: Spacing.s) {
                 cardButton("Xem", icon: "hugeicons-eye", color: Palette.label) { onAction(.view, message) }
                 cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.negative) { onAction(.remove, message) }
-            }
+            })
         case .confirmDelete(let snapshot, .pending) where store.transaction(id: snapshot.id) != nil:
-            HStack(spacing: Spacing.s) {
+            AnyView(HStack(spacing: Spacing.s) {
                 cardButton("Huỷ", color: Palette.label) { onAction(.cancel, message) }
                 cardButton("Xoá khoản này", color: Palette.onNegative, fill: Palette.negative, role: .destructive) {
                     onAction(.confirm, message)
                 }
-            }
+            })
         case .draft(let draft) where draft.isPending:
             // Nothing is saved before this "Lưu" (user choice 2026-11-17).
-            HStack(spacing: Spacing.s) {
+            AnyView(HStack(spacing: Spacing.s) {
                 cardButton("Huỷ", color: Palette.label) { onAction(.cancel, message) }
                 cardButton(draft.liveRows.count > 1 ? "Lưu cả \(draft.liveRows.count)" : "Lưu",
                            color: Palette.onPrimary, fill: Palette.primary) {
                     onAction(.confirm, message)
                 }
-            }
+            })
         case .draft(let draft) where draft.state == .saved && draft.liveRows.count == 1
             && draft.liveRows.first.map({ store.transaction(id: $0.id) != nil }) == true:
             // One saved: seen or deleted as a recorded one always was; several open from their rows.
-            HStack(spacing: Spacing.s) {
+            AnyView(HStack(spacing: Spacing.s) {
                 cardButton("Xem", icon: "hugeicons-eye", color: Palette.label) { onAction(.view, message) }
                 cardButton("Xoá", icon: "hugeicons-delete-02", color: Palette.negative) { onAction(.remove, message) }
-            }
+            })
         default:
-            EmptyView()
+            nil
         }
     }
 
@@ -306,12 +307,22 @@ struct MessageRow: View {
 /// of its own now that the answer has no bubble (user design 2026-11-15).
 private struct TransactionCard: View {
     let transaction: FinanceTransaction
+    /// Xem and Xoá, or Huỷ and Xoá khoản này: inside the card, at its foot (user feedback
+    /// 2026-11-17).
+    var actions: AnyView? = nil
 
     var body: some View {
-        TransactionListRow(transaction: transaction, detail: .day)
-            .cardSurface(radius: CardCorners.card)
-            .cardShadow()
-            .accessibilityElement(children: .combine)
+        VStack(spacing: 0) {
+            TransactionListRow(transaction: transaction, detail: .day)
+                .accessibilityElement(children: .combine)
+            if let actions {
+                actions
+                    .padding(.horizontal, RowMetrics.horizontal)
+                    .padding(.bottom, Spacing.m)
+            }
+        }
+        .cardSurface(radius: CardCorners.card)
+        .cardShadow()
     }
 }
 

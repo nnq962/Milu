@@ -1,0 +1,2285 @@
+{
+ "_about": "Bộ test Milu AI chạy như chat thật (Tests/AILiveTests.swift): AI trên máy chủ, công cụ của app trên dữ liệu mẫu (SampleData), lời hiện ra trong chat. Mỗi case là một cuộc chat mới; mỗi lượt là 'say' (người dùng gõ) hoặc 'tap' (save: bấm Lưu, cancel: bấm Huỷ). 'expect' của lượt: card (thẻ chờ Lưu: rows, amounts, amountsInclude, category, notCategory, newItem, account, date: today/yesterday/-N, note, warning, accountChosen, replaces), noCard, asks (Milu hỏi lại), refused (transfer/loan/goal), tool (một trong các công cụ phải được gọi), noTool, deleteCard, has (mỗi nhóm: phải có một trong các chữ), not (không được có), saved (số giao dịch đã vào sổ từ đầu case), newItemSaved, anyOf (đạt một trong các expect). Chữ so khớp không phân biệt dấu, hoa thường. Mọi lượt còn bị kiểm chung: không mở đầu bằng Ủa/Ê, không lộ mã thẻ hay lời nhắc hệ thống, không nói “thẻ” với người dùng (trừ thẻ tín dụng). 'once': chữ chỉ được nói một lần.",
+ "groups": {
+  "T": "Số tiền: cách nói tiền, từ lóng, số bằng chữ, thiếu số tiền",
+  "H": "Hạng mục chi: chọn đúng mục, mục rộng, mục chưa có",
+  "N": "Thu nhập",
+  "K": "Tài khoản",
+  "D": "Ngày giờ",
+  "M": "Nhiều khoản trong một câu",
+  "S": "Sửa thẻ, lưu, huỷ, xem lại",
+  "Q": "Trả lời khi Milu hỏi lại",
+  "R": "Việc Milu chưa ghi được (chuyển khoản, vay, hũ)",
+  "L": "Tra cứu số liệu",
+  "X": "Xoá giao dịch",
+  "A": "Hỏi về app",
+  "G": "Giọng nói chuyện, câu ngoài lề",
+  "V": "Không dấu, viết tắt, gõ sai, giọng nói"
+ },
+ "cases": [
+  {
+   "id": "T01",
+   "title": "Số tiền kiểu k, trùng khoản đã có hôm nay",
+   "turns": [
+    {
+     "say": "ăn trưa 45k",
+     "expect": {
+      "card": {
+       "rows": 1,
+       "amounts": [
+        45000
+       ],
+       "category": [
+        "Ăn trưa"
+       ],
+       "warning": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T02",
+   "title": "Số tiền kiểu nghìn",
+   "turns": [
+    {
+     "say": "cà phê 35 nghìn",
+     "expect": {
+      "card": {
+       "amounts": [
+        35000
+       ],
+       "category": [
+        "Cà phê"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T03",
+   "title": "Số tiền kiểu 1tr2",
+   "turns": [
+    {
+     "say": "mua giày 1tr2",
+     "expect": {
+      "card": {
+       "amounts": [
+        1200000
+       ],
+       "category": [
+        "Giày dép"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T04",
+   "title": "Số tiền kiểu triệu",
+   "turns": [
+    {
+     "say": "tiền nhà tháng này 5 triệu",
+     "expect": {
+      "card": {
+       "amounts": [
+        5000000
+       ],
+       "category": [
+        "Thuê nhà"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T05",
+   "title": "Số bằng chữ (như giọng nói)",
+   "turns": [
+    {
+     "say": "ăn sáng ba mươi nghìn",
+     "expect": {
+      "card": {
+       "amounts": [
+        30000
+       ],
+       "category": [
+        "Ăn sáng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T06",
+   "title": "Từ lóng: cành",
+   "turns": [
+    {
+     "say": "đi grab 50 cành",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "category": [
+        "Taxi, xe ôm"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T07",
+   "title": "Từ lóng: củ",
+   "turns": [
+    {
+     "say": "mua áo khoác 2 củ",
+     "expect": {
+      "card": {
+       "amounts": [
+        2000000
+       ],
+       "category": [
+        "Quần áo"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T08",
+   "title": "Từ lóng: nửa củ",
+   "turns": [
+    {
+     "say": "đóng tiền điện nửa củ",
+     "expect": {
+      "card": {
+       "amounts": [
+        500000
+       ],
+       "category": [
+        "Tiền điện"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T09",
+   "title": "Từ lóng: xị",
+   "turns": [
+    {
+     "say": "ăn tối 3 xị",
+     "expect": {
+      "card": {
+       "amounts": [
+        300000
+       ],
+       "category": [
+        "Ăn tối"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T10",
+   "title": "Số có dấu chấm và đ",
+   "turns": [
+    {
+     "say": "cà phê 25.000đ",
+     "expect": {
+      "card": {
+       "amounts": [
+        25000
+       ],
+       "category": [
+        "Cà phê"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T11",
+   "title": "Trăm rưỡi",
+   "turns": [
+    {
+     "say": "ăn trưa 1 trăm rưỡi",
+     "expect": {
+      "card": {
+       "amounts": [
+        150000
+       ],
+       "category": [
+        "Ăn trưa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T12",
+   "title": "Số trơn không đơn vị",
+   "turns": [
+    {
+     "say": "mua sách 85000",
+     "expect": {
+      "card": {
+       "amounts": [
+        85000
+       ],
+       "category": [
+        "Sách"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T13",
+   "title": "Thiếu số tiền rồi trả lời",
+   "turns": [
+    {
+     "say": "ghi ăn trưa",
+     "expect": {
+      "noCard": true,
+      "asks": true,
+      "has": [
+       [
+        "bao nhiêu",
+        "bao nhieu",
+        "số tiền"
+       ]
+      ]
+     }
+    },
+    {
+     "say": "50k",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "category": [
+        "Ăn trưa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T14",
+   "title": "Tự sửa số trong câu",
+   "turns": [
+    {
+     "say": "ăn trưa 60k à nhầm 55k",
+     "expect": {
+      "card": {
+       "amounts": [
+        55000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T15",
+   "title": "Số tiền lớn",
+   "turns": [
+    {
+     "say": "mua laptop 25 triệu",
+     "expect": {
+      "card": {
+       "amounts": [
+        25000000
+       ],
+       "category": [
+        "Đồ điện tử"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "T16",
+   "title": "Số tiền quá giới hạn",
+   "turns": [
+    {
+     "say": "mua nhà 2000 tỷ",
+     "expect": {
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "T17",
+   "title": "Năm chục",
+   "turns": [
+    {
+     "say": "ăn trưa năm chục",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "category": [
+        "Ăn trưa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H01",
+   "title": "Đúng tên mục",
+   "turns": [
+    {
+     "say": "trà sữa 45k",
+     "expect": {
+      "card": {
+       "category": [
+        "Trà sữa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H02",
+   "title": "Trà đá không phải Trà sữa",
+   "turns": [
+    {
+     "say": "trà đá 10k",
+     "expect": {
+      "anyOf": [
+       {
+        "asks": true,
+        "has": [
+         [
+          "Trà đá"
+         ]
+        ]
+       },
+       {
+        "card": {
+         "amounts": [
+          10000
+         ],
+         "notCategory": [
+          "Trà sữa"
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "H03",
+   "title": "Mục chưa có: hỏi lại kèm danh sách và đề xuất mục mới",
+   "turns": [
+    {
+     "say": "ăn vặt 20k",
+     "expect": {
+      "noCard": true,
+      "asks": true,
+      "has": [
+       [
+        "Ăn vặt"
+       ],
+       [
+        "Ăn sáng",
+        "Ăn trưa",
+        "Cà phê"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "H04",
+   "title": "Chọn tạo mục mới rồi Lưu",
+   "turns": [
+    {
+     "say": "ăn vặt 20k",
+     "expect": {
+      "asks": true
+     }
+    },
+    {
+     "say": "tạo mục Ăn vặt đi",
+     "expect": {
+      "card": {
+       "amounts": [
+        20000
+       ],
+       "newItem": "Ăn vặt"
+      }
+     }
+    },
+    {
+     "tap": "save",
+     "expect": {
+      "saved": 1,
+      "newItemSaved": "Ăn vặt"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H05",
+   "title": "Chọn mục có sẵn khi được hỏi",
+   "turns": [
+    {
+     "say": "ăn vặt 20k",
+     "expect": {
+      "asks": true
+     }
+    },
+    {
+     "say": "cho vào Ăn trưa",
+     "expect": {
+      "card": {
+       "amounts": [
+        20000
+       ],
+       "category": [
+        "Ăn trưa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H06",
+   "title": "Mục rộng: mua áo",
+   "turns": [
+    {
+     "say": "mua áo 300k",
+     "expect": {
+      "card": {
+       "category": [
+        "Quần áo"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H07",
+   "title": "Xem phim",
+   "turns": [
+    {
+     "say": "xem phim 120k",
+     "expect": {
+      "card": {
+       "category": [
+        "Xem phim"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H08",
+   "title": "Khám răng",
+   "turns": [
+    {
+     "say": "đi khám răng 500k",
+     "expect": {
+      "card": {
+       "category": [
+        "Khám bệnh"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H09",
+   "title": "Học tiếng Nhật",
+   "turns": [
+    {
+     "say": "học tiếng Nhật 1tr2",
+     "expect": {
+      "anyOf": [
+       {
+        "card": {
+         "amounts": [
+          1200000
+         ],
+         "category": [
+          "Khoá học",
+          "Học phí"
+         ]
+        }
+       },
+       {
+        "asks": true,
+        "has": [
+         [
+          "Học tiếng Nhật"
+         ]
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "H10",
+   "title": "Đổ xăng",
+   "turns": [
+    {
+     "say": "đổ xăng 80k",
+     "expect": {
+      "card": {
+       "category": [
+        "Xăng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H11",
+   "title": "Mua thuốc",
+   "turns": [
+    {
+     "say": "mua thuốc cảm 50k",
+     "expect": {
+      "card": {
+       "category": [
+        "Thuốc"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H12",
+   "title": "Cước điện thoại không phải đồ điện tử",
+   "turns": [
+    {
+     "say": "tiền điện thoại tháng này 100k",
+     "expect": {
+      "card": {
+       "category": [
+        "Điện thoại"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H13",
+   "title": "Nạp tiền điện thoại là chi",
+   "turns": [
+    {
+     "say": "nạp tiền điện thoại 50k",
+     "expect": {
+      "card": {
+       "category": [
+        "Điện thoại"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H14",
+   "title": "Quà sinh nhật",
+   "turns": [
+    {
+     "say": "mua quà sinh nhật mẹ 500k",
+     "expect": {
+      "card": {
+       "category": [
+        "Quà tặng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H15",
+   "title": "Thú cưng",
+   "turns": [
+    {
+     "say": "mua thức ăn cho mèo 150k",
+     "expect": {
+      "card": {
+       "category": [
+        "Thú cưng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H16",
+   "title": "Đám cưới",
+   "turns": [
+    {
+     "say": "đi đám cưới bạn 1 triệu",
+     "expect": {
+      "card": {
+       "category": [
+        "Hiếu hỉ"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H17",
+   "title": "Gửi xe",
+   "turns": [
+    {
+     "say": "gửi xe 5k",
+     "expect": {
+      "card": {
+       "category": [
+        "Gửi xe"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H18",
+   "title": "Đồ cho con",
+   "turns": [
+    {
+     "say": "mua bỉm cho con 400k",
+     "expect": {
+      "card": {
+       "category": [
+        "Con cái"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H19",
+   "title": "Tập gym",
+   "turns": [
+    {
+     "say": "đóng tiền tập gym 500k",
+     "expect": {
+      "card": {
+       "category": [
+        "Thể thao"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H20",
+   "title": "Nạp game",
+   "turns": [
+    {
+     "say": "nạp game 100k",
+     "expect": {
+      "card": {
+       "category": [
+        "Game"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "H21",
+   "title": "Đồ uống khác: nước mía",
+   "turns": [
+    {
+     "say": "nước mía 10k",
+     "expect": {
+      "anyOf": [
+       {
+        "asks": true,
+        "has": [
+         [
+          "Nước mía"
+         ]
+        ]
+       },
+       {
+        "card": {
+         "amounts": [
+          10000
+         ],
+         "notCategory": [
+          "Trà sữa",
+          "Cà phê"
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "H22",
+   "title": "Đồ uống khác: sinh tố",
+   "turns": [
+    {
+     "say": "sinh tố bơ 30k",
+     "expect": {
+      "anyOf": [
+       {
+        "asks": true,
+        "has": [
+         [
+          "Sinh tố"
+         ]
+        ]
+       },
+       {
+        "card": {
+         "amounts": [
+          30000
+         ],
+         "notCategory": [
+          "Trà sữa",
+          "Cà phê"
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "N01",
+   "title": "Lương",
+   "turns": [
+    {
+     "say": "nhận lương 25 triệu",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "amounts": [
+        25000000
+       ],
+       "category": [
+        "Lương chính"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "N02",
+   "title": "Thưởng",
+   "turns": [
+    {
+     "say": "được thưởng 2 triệu",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "category": [
+        "Tiền thưởng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "N03",
+   "title": "Được cho",
+   "turns": [
+    {
+     "say": "mẹ cho 500k",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "category": [
+        "Được cho, tặng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "N04",
+   "title": "Bán đồ",
+   "turns": [
+    {
+     "say": "bán đồ cũ được 300k",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "category": [
+        "Bán đồ"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "N05",
+   "title": "Lãi ngân hàng",
+   "turns": [
+    {
+     "say": "lãi ngân hàng tháng này 200k",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "category": [
+        "Lãi tiết kiệm"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "N06",
+   "title": "Làm thêm",
+   "turns": [
+    {
+     "say": "làm thêm được 1tr5",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "amounts": [
+        1500000
+       ],
+       "category": [
+        "Làm thêm"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "N07",
+   "title": "Hoàn tiền",
+   "turns": [
+    {
+     "say": "được hoàn tiền shopee 50k",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "category": [
+        "Hoàn tiền"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "K01",
+   "title": "Nói tên ví",
+   "turns": [
+    {
+     "say": "ăn trưa 50k bằng momo",
+     "expect": {
+      "card": {
+       "account": [
+        "MoMo"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "K02",
+   "title": "Không nói tài khoản: Milu tự chọn",
+   "turns": [
+    {
+     "say": "ăn tối 70k",
+     "expect": {
+      "card": {
+       "accountChosen": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "K03",
+   "title": "Tên tắt ngân hàng",
+   "turns": [
+    {
+     "say": "cà phê 30k quẹt thẻ VCB",
+     "expect": {
+      "card": {
+       "account": [
+        "Vietcombank"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "K04",
+   "title": "Tài khoản không có: hỏi lại kèm danh sách",
+   "turns": [
+    {
+     "say": "ăn trưa 50k bằng ví ZaloPay",
+     "expect": {
+      "noCard": true,
+      "asks": true,
+      "has": [
+       [
+        "Ví tiền mặt",
+        "MoMo",
+        "Vietcombank"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "K05",
+   "title": "Thẻ tín dụng",
+   "turns": [
+    {
+     "say": "mua áo 500k bằng thẻ tín dụng",
+     "expect": {
+      "card": {
+       "account": [
+        "Thẻ VPBank Visa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "K06",
+   "title": "Thu vào ngân hàng",
+   "turns": [
+    {
+     "say": "nhận lương 25 triệu vào techcombank",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "account": [
+        "Techcombank"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "D01",
+   "title": "Hôm qua",
+   "turns": [
+    {
+     "say": "hôm qua ăn tối 150k",
+     "expect": {
+      "card": {
+       "date": "yesterday",
+       "amounts": [
+        150000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "D02",
+   "title": "Hôm kia",
+   "turns": [
+    {
+     "say": "hôm kia đổ xăng 70k",
+     "expect": {
+      "card": {
+       "date": "-2"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "D03",
+   "title": "Sáng nay",
+   "turns": [
+    {
+     "say": "sáng nay ăn phở 40k",
+     "expect": {
+      "card": {
+       "date": "today",
+       "category": [
+        "Ăn sáng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "D04",
+   "title": "Ngày mai (chưa tới): không ghi",
+   "turns": [
+    {
+     "say": "ngày mai đóng tiền nhà 5 triệu",
+     "expect": {
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "D05",
+   "title": "Mấy ngày trước",
+   "turns": [
+    {
+     "say": "3 ngày trước mua sách 120k",
+     "expect": {
+      "card": {
+       "date": "-3",
+       "category": [
+        "Sách"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "M01",
+   "title": "Ba khoản một câu",
+   "turns": [
+    {
+     "say": "cà phê 35k, gửi xe 5k, grab 40k",
+     "expect": {
+      "card": {
+       "rows": 3,
+       "amounts": [
+        35000,
+        5000,
+        40000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "M02",
+   "title": "Hai khoản nối bằng với",
+   "turns": [
+    {
+     "say": "sáng ăn phở 40k với cà phê 20k",
+     "expect": {
+      "card": {
+       "rows": 2,
+       "amounts": [
+        40000,
+        20000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "M03",
+   "title": "Một khoản ghi được, một khoản không",
+   "turns": [
+    {
+     "say": "ăn trưa 50k và rút 2 triệu ở VCB",
+     "expect": {
+      "card": {
+       "rows": 1,
+       "amounts": [
+        50000
+       ]
+      },
+      "refused": [
+       "transfer"
+      ],
+      "has": [
+       [
+        "Chuyển khoản"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "M04",
+   "title": "Bốn khoản trong ngày",
+   "turns": [
+    {
+     "say": "hôm nay tiêu: ăn sáng 30k, ăn trưa 50k, ăn tối 70k, trà sữa 45k",
+     "expect": {
+      "card": {
+       "rows": 4,
+       "amounts": [
+        30000,
+        50000,
+        70000,
+        45000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "M05",
+   "title": "Câu nói dài 5 khoản, 2 khoản chưa có mục (ảnh của người dùng)",
+   "turns": [
+    {
+     "say": "Sáng nay tôi ăn sáng hết ba mươi nghìn uống trà đá hết năm nghìn xong rồi buổi trưa tôi ăn trưa hết bốn mươi nghìn buổi chiều ăn vặt hết bảy mươi nghìn tối ăn cơm hết năm mươi nghìn",
+     "expect": {
+      "noCard": true,
+      "asks": true,
+      "has": [
+       [
+        "Trà đá"
+       ],
+       [
+        "Ăn vặt"
+       ]
+      ],
+      "once": [
+       "Chọn mục có sẵn"
+      ]
+     }
+    },
+    {
+     "say": "trà đá tạo mới, ăn vặt tạo mới",
+     "expect": {
+      "card": {
+       "rows": 5,
+       "amounts": [
+        30000,
+        5000,
+        40000,
+        70000,
+        50000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "M06",
+   "title": "Câu dài 5 khoản, tạo theo đề xuất, rồi thêm ghi chú cho một khoản (ảnh của người dùng)",
+   "turns": [
+    {
+     "say": "Sáng nay tôi ăn sáng hết ba mươi nghìn uống trà đá hết năm nghìn xong rồi buổi trưa tôi ăn trưa hết bốn mươi nghìn buổi chiều ăn vặt hết bảy mươi nghìn tối ăn cơm hết năm mươi nghìn",
+     "expect": {
+      "noCard": true,
+      "asks": true,
+      "once": [
+       "Chọn mục có sẵn"
+      ]
+     }
+    },
+    {
+     "say": "ok tạo theo đề xuất đi",
+     "expect": {
+      "card": {
+       "rows": 5,
+       "amounts": [
+        30000,
+        5000,
+        40000,
+        70000,
+        50000
+       ],
+       "newItems": [
+        "Trà đá",
+        "Ăn vặt"
+       ]
+      }
+     }
+    },
+    {
+     "say": "sửa cho tôi khoản ăn tối thêm ghi chú được giảm giá",
+     "expect": {
+      "card": {
+       "rows": 5,
+       "amounts": [
+        30000,
+        5000,
+        40000,
+        70000,
+        50000
+       ],
+       "newItems": [
+        "Trà đá",
+        "Ăn vặt"
+       ],
+       "note": "giảm giá",
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "M07",
+   "title": "Hai khoản chưa có mục, trả lời “theo đề xuất đi”",
+   "turns": [
+    {
+     "say": "uống trà đá 5k, ăn vặt 70k",
+     "expect": {
+      "noCard": true,
+      "asks": true,
+      "once": [
+       "Chọn mục có sẵn"
+      ]
+     }
+    },
+    {
+     "say": "theo đề xuất đi",
+     "expect": {
+      "card": {
+       "rows": 2,
+       "amounts": [
+        5000,
+        70000
+       ],
+       "newItems": [
+        "Trà đá",
+        "Ăn vặt"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S01",
+   "title": "Sửa số tiền",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {
+       "amounts": [
+        60000
+       ]
+      }
+     }
+    },
+    {
+     "say": "à không, 50k thôi",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "replaces": true,
+       "accountChosen": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S02",
+   "title": "Sửa tài khoản",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "đổi sang momo",
+     "expect": {
+      "card": {
+       "account": [
+        "MoMo"
+       ],
+       "amounts": [
+        60000
+       ],
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S03",
+   "title": "Bỏ một khoản khỏi thẻ",
+   "turns": [
+    {
+     "say": "cà phê 35k, gửi xe 5k",
+     "expect": {
+      "card": {
+       "rows": 2
+      }
+     }
+    },
+    {
+     "say": "bỏ khoản gửi xe đi",
+     "expect": {
+      "card": {
+       "rows": 1,
+       "amounts": [
+        35000
+       ],
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S04",
+   "title": "Gõ ok để lưu",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "ok",
+     "expect": {
+      "saved": 1,
+      "has": [
+       [
+        "Đã lưu"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "S05",
+   "title": "Gõ huỷ",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "huỷ",
+     "expect": {
+      "saved": 0,
+      "has": [
+       [
+        "Đã huỷ"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "S06",
+   "title": "Thêm khoản vào thẻ đang chờ",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "thêm cà phê 20k nữa",
+     "expect": {
+      "card": {
+       "amountsInclude": [
+        20000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S07",
+   "title": "Sửa ngày",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "hôm qua chứ không phải hôm nay",
+     "expect": {
+      "card": {
+       "date": "yesterday",
+       "amounts": [
+        60000
+       ],
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S08",
+   "title": "Câu dài để lưu",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "đúng rồi lưu đi",
+     "expect": {
+      "saved": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "S09",
+   "title": "Quên rồi, xem lại thẻ đang chờ",
+   "turns": [
+    {
+     "say": "ăn trưa 60k, cà phê 20k",
+     "expect": {
+      "card": {
+       "rows": 2
+      }
+     }
+    },
+    {
+     "say": "tôi quên mất list rồi, cho tôi xem lại",
+     "expect": {
+      "card": {
+       "rows": 2,
+       "amounts": [
+        60000,
+        20000
+       ],
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "S10",
+   "title": "Lưu rồi mới hỏi xem lại",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "tap": "save",
+     "expect": {
+      "saved": 1
+     }
+    },
+    {
+     "say": "liệt kê mấy khoản vừa ghi",
+     "expect": {
+      "tool": [
+       "list_transactions"
+      ],
+      "has": [
+       [
+        "60.000",
+        "60k"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "S11",
+   "title": "Hỏi sao lại chọn tài khoản đó",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {
+       "accountChosen": true
+      }
+     }
+    },
+    {
+     "say": "sao lại chọn tài khoản đó?",
+     "expect": {
+      "noCard": true,
+      "has": [
+       [
+        "gần nhất",
+        "dùng gần",
+        "tự chọn",
+        "tự động chọn",
+        "tự đoán",
+        "chọn sẵn",
+        "lần trước",
+        "không nói"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "S12",
+   "title": "Thêm ghi chú",
+   "turns": [
+    {
+     "say": "ăn trưa 60k",
+     "expect": {
+      "card": {}
+     }
+    },
+    {
+     "say": "ghi chú là ăn với sếp",
+     "expect": {
+      "card": {
+       "note": "sếp",
+       "amounts": [
+        60000
+       ],
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Q01",
+   "title": "Chỉ nói số tiền, trả lời mục",
+   "turns": [
+    {
+     "say": "ghi khoản chi 200k",
+     "expect": {
+      "noCard": true,
+      "asks": true
+     }
+    },
+    {
+     "say": "đi chợ",
+     "expect": {
+      "card": {
+       "amounts": [
+        200000
+       ],
+       "category": [
+        "Đi chợ"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Q02",
+   "title": "Trả lời bằng câu tự nhiên",
+   "turns": [
+    {
+     "say": "chi 100k",
+     "expect": {
+      "noCard": true,
+      "asks": true
+     }
+    },
+    {
+     "say": "đi cà phê với bạn",
+     "expect": {
+      "card": {
+       "amounts": [
+        100000
+       ],
+       "category": [
+        "Cà phê"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Q03",
+   "title": "Thu chưa rõ nguồn",
+   "turns": [
+    {
+     "say": "nhận 2 triệu",
+     "expect": {
+      "noCard": true,
+      "asks": true
+     }
+    },
+    {
+     "say": "tiền làm thêm",
+     "expect": {
+      "card": {
+       "kind": "income",
+       "amounts": [
+        2000000
+       ],
+       "category": [
+        "Làm thêm"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "Q04",
+   "title": "Nhờ ghi mà chưa nói gì",
+   "turns": [
+    {
+     "say": "ghi giúp mình 1 khoản",
+     "expect": {
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "R01",
+   "title": "Rút tiền",
+   "turns": [
+    {
+     "say": "rút 2 triệu ở VCB",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "transfer"
+      ],
+      "has": [
+       [
+        "Chuyển khoản"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "R02",
+   "title": "Chuyển giữa hai ví",
+   "turns": [
+    {
+     "say": "chuyển 500k từ VCB sang MoMo",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "transfer"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "R03",
+   "title": "Cho mượn",
+   "turns": [
+    {
+     "say": "cho Tuấn mượn 500k",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "loan"
+      ],
+      "has": [
+       [
+        "khoản vay",
+        "Vay nợ"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "R04",
+   "title": "Trả nợ",
+   "turns": [
+    {
+     "say": "trả nợ anh Minh 1 triệu",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "loan"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "R05",
+   "title": "Bỏ tiền vào hũ",
+   "turns": [
+    {
+     "say": "bỏ 1 triệu vào hũ du lịch",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "goal"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "R06",
+   "title": "Hỏi có ghi được nợ không",
+   "turns": [
+    {
+     "say": "có ghi được khoản nợ không?",
+     "expect": {
+      "noCard": true,
+      "has": [
+       [
+        "chưa",
+        "chỉ ghi được",
+        "mới ghi được"
+       ]
+      ],
+      "not": [
+       "được chứ",
+       "được luôn"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "R07",
+   "title": "Trả thẻ tín dụng",
+   "turns": [
+    {
+     "say": "trả thẻ tín dụng 3 triệu",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "transfer"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L01",
+   "title": "Chi tháng này",
+   "turns": [
+    {
+     "say": "tháng này mình chi bao nhiêu?",
+     "expect": {
+      "tool": [
+       "summarize_transactions"
+      ],
+      "has": [
+       [
+        "đ",
+        "triệu"
+       ]
+      ],
+      "not": [
+       "tuần này"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L02",
+   "title": "Tiêu gì nhiều nhất",
+   "turns": [
+    {
+     "say": "tuần này tiêu gì nhiều nhất?",
+     "expect": {
+      "tool": [
+       "summarize_transactions",
+       "list_transactions"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L03",
+   "title": "Số dư",
+   "turns": [
+    {
+     "say": "mình còn bao nhiêu tiền?",
+     "expect": {
+      "tool": [
+       "get_accounts"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L04",
+   "title": "Ai đang nợ",
+   "turns": [
+    {
+     "say": "ai đang nợ mình?",
+     "expect": {
+      "tool": [
+       "get_loans"
+      ],
+      "has": [
+       [
+        "Minh"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L05",
+   "title": "Hũ tiết kiệm",
+   "turns": [
+    {
+     "say": "hũ du lịch được bao nhiêu rồi?",
+     "expect": {
+      "tool": [
+       "get_savings_goals"
+      ],
+      "has": [
+       [
+        "8.000.000",
+        "8 triệu",
+        "8tr"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L06",
+   "title": "Hôm qua tiêu gì",
+   "turns": [
+    {
+     "say": "hôm qua mình tiêu những gì?",
+     "expect": {
+      "tool": [
+       "list_transactions",
+       "summarize_transactions"
+      ],
+      "has": [
+       [
+        "Grab",
+        "chợ",
+        "WinMart",
+        "72.000",
+        "685.000"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L07",
+   "title": "Hỏi tiếp tháng trước",
+   "turns": [
+    {
+     "say": "tháng này chi ăn uống bao nhiêu?",
+     "expect": {
+      "tool": [
+       "summarize_transactions"
+      ]
+     }
+    },
+    {
+     "say": "còn tháng trước?",
+     "expect": {
+      "tool": [
+       "summarize_transactions"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L08",
+   "title": "Trung bình mỗi tháng",
+   "turns": [
+    {
+     "say": "trung bình mỗi tháng mình tiêu bao nhiêu?",
+     "expect": {
+      "tool": [
+       "get_monthly_trend"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L09",
+   "title": "Còn được tiêu bao nhiêu",
+   "turns": [
+    {
+     "say": "tháng này còn được tiêu bao nhiêu?",
+     "expect": {
+      "tool": [
+       "get_budget"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L10",
+   "title": "Sắp phải trả gì",
+   "turns": [
+    {
+     "say": "sắp tới có khoản nào phải trả không?",
+     "expect": {
+      "tool": [
+       "get_upcoming",
+       "get_recurring",
+       "get_loans"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "L11",
+   "title": "Tìm theo tên",
+   "turns": [
+    {
+     "say": "tìm giao dịch Netflix",
+     "expect": {
+      "tool": [
+       "list_transactions"
+      ],
+      "has": [
+       [
+        "260.000",
+        "Netflix"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "X01",
+   "title": "Xoá một khoản",
+   "turns": [
+    {
+     "say": "xoá khoản cà phê hôm nay",
+     "expect": {
+      "deleteCard": true,
+      "not": [
+       "xong rồi",
+       "đã xoá",
+       "đã xóa"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "X02",
+   "title": "Xoá hết: không được xoá hàng loạt",
+   "turns": [
+    {
+     "say": "xoá hết giao dịch tháng này",
+     "expect": {
+      "saved": 0,
+      "deleteCard": false,
+      "not": [
+       "đã xoá hết",
+       "đã xóa hết"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "A01",
+   "title": "Lượt AI",
+   "turns": [
+    {
+     "say": "còn bao nhiêu lượt hỏi AI?",
+     "expect": {
+      "tool": [
+       "get_app_info"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "A02",
+   "title": "iCloud",
+   "turns": [
+    {
+     "say": "dữ liệu của mình có lên iCloud không?",
+     "expect": {
+      "tool": [
+       "get_app_info"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "A03",
+   "title": "Cách thêm tài khoản",
+   "turns": [
+    {
+     "say": "làm sao để thêm tài khoản ngân hàng?",
+     "expect": {
+      "tool": [
+       "get_app_info"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "G01",
+   "title": "Chào hỏi",
+   "turns": [
+    {
+     "say": "chào Milu",
+     "expect": {
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "G02",
+   "title": "Hỏi ngoài lề",
+   "turns": [
+    {
+     "say": "hôm nay thời tiết thế nào?",
+     "expect": {
+      "noCard": true,
+      "not": [
+       "độ C",
+       "nắng đẹp",
+       "trời mưa"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "G03",
+   "title": "Đùa vui",
+   "turns": [
+    {
+     "say": "kể chuyện cười đi",
+     "expect": {
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "G04",
+   "title": "Người dùng buồn",
+   "turns": [
+    {
+     "say": "tháng này tiêu hoang quá, buồn ghê",
+     "expect": {
+      "noCard": true,
+      "not": [
+       "tuần này"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "G05",
+   "title": "Cảm ơn",
+   "turns": [
+    {
+     "say": "cảm ơn nha",
+     "expect": {
+      "noCard": true,
+      "noTool": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "V01",
+   "title": "Không dấu",
+   "turns": [
+    {
+     "say": "an trua 50k",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "category": [
+        "Ăn trưa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "V02",
+   "title": "Viết tắt cf",
+   "turns": [
+    {
+     "say": "cf 30k",
+     "expect": {
+      "card": {
+       "amounts": [
+        30000
+       ],
+       "category": [
+        "Cà phê"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "V03",
+   "title": "Gõ sai chính tả",
+   "turns": [
+    {
+     "say": "đổ săng 50k",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "category": [
+        "Xăng"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "V04",
+   "title": "Câu nói dài như giọng nói",
+   "turns": [
+    {
+     "say": "ừm ghi cho mình khoản ăn trưa năm mươi nghìn nha",
+     "expect": {
+      "card": {
+       "amounts": [
+        50000
+       ],
+       "category": [
+        "Ăn trưa"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "V05",
+   "title": "Không dấu nhiều khoản",
+   "turns": [
+    {
+     "say": "an sang 25k, cafe 20k",
+     "expect": {
+      "card": {
+       "rows": 2,
+       "amounts": [
+        25000,
+        20000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "V06",
+   "title": "Gõ sai tên app",
+   "turns": [
+    {
+     "say": "grap ve nha 45k",
+     "expect": {
+      "card": {
+       "amounts": [
+        45000
+       ],
+       "category": [
+        "Taxi, xe ôm"
+       ]
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

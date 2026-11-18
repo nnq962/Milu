@@ -8,6 +8,9 @@ struct RecordTurn {
     var userWords: [String] = []
     /// Cards waiting for "Lưu" in the chat, the newest last.
     var open: [TransactionDraft] = []
+    /// The codes of every card in the chat, waiting or not: one the model names that is none of
+    /// these it made up.
+    var seen: Set<String> = []
     var defaults: UserDefaults = .standard
     var now: Date = .now
 }
@@ -21,12 +24,13 @@ struct RecordTransaction: AssistantTool {
 
     let name = "record_transaction"
     let description = """
-        Soạn thẻ ghi khoản chi hoặc thu để người dùng kiểm tra rồi bấm Lưu; công cụ này CHƯA ghi gì. Gọi ngay \
+        Soạn thẻ ghi khoản chi hoặc thu để người dùng kiểm tra rồi bấm Lưu (với người dùng, đừng gọi là thẻ); công cụ này CHƯA ghi gì. Gọi ngay \
         khi người dùng muốn ghi, thêm một khoản ("ghi ăn trưa 60k", "nhận lương 25 triệu"), kể cả khi còn thiếu \
         thông tin, và gửi mọi khoản của câu trong một lần. Kết quả: needsInfo thì hỏi lại đúng câu `ask` (kèm \
         gợi ý), rồi gọi lại với đủ các khoản; rejected thì nói `reason` và `howTo`; draft thì nói ngắn là người \
         dùng kiểm tra thẻ rồi bấm Lưu, không bao giờ nói đã ghi. Sửa thẻ đang chờ thì gửi lại đủ các khoản của \
-        thẻ kèm `replaces`. Chuyển khoản, rút tiền, nạp ví, vay, trả nợ, hũ: Milu chưa ghi được, vẫn gọi ngay với \
+        thẻ kèm `replaces`. Người dùng muốn xem lại thẻ đang chờ thì chỉ gửi `replaces`, không gửi transactions: \
+        app hiện lại thẻ y nguyên. Chuyển khoản, rút tiền, nạp ví, vay, trả nợ, hũ: Milu chưa ghi được, vẫn gọi ngay với \
         kind transfer, loan hay goal, không hỏi thêm tài khoản hay người nào.
         """
     let parameters: JSONValue = [
@@ -46,7 +50,8 @@ struct RecordTransaction: AssistantTool {
                                     """],
                         "amount": ["type": "integer", "description": "Số tiền VND, số nguyên dương; bỏ trống nếu người dùng chưa nói"],
                         "amount_said": ["type": "string", "description": "Số tiền đúng như người dùng nói, ví dụ: 1tr2, 60k, 2 củ"],
-                        "category": ["type": "string", "description": "Tên hạng mục con trong danh sách; bỏ trống nếu không chắc"],
+                        // "uống trà đá" was put on Trà sữa (user report 2026-11-17).
+                        "category": ["type": "string", "description": "Tên hạng mục con trong danh sách: đúng thứ người dùng nói, hoặc mục rộng bao gồm nó (mua áo → Quần áo, grab → Taxi, xe ôm); không chọn một món khác chỉ vì trùng chữ (trà đá không phải Trà sữa); bỏ trống nếu không chắc"],
                         "new_category": [
                             "type": "object",
                             "description": "Chỉ khi không hạng mục nào hợp: tên mục mới và nhóm có sẵn để đặt nó vào",
@@ -62,7 +67,7 @@ struct RecordTransaction: AssistantTool {
                     ],
                 ],
             ],
-            "replaces": ["type": "string", "description": "Mã thẻ đang chờ Lưu cần sửa, ví dụ k7f2 (từ [Thẻ #k7f2])"],
+            "replaces": ["type": "string", "description": "Mã thẻ đang chờ Lưu cần sửa hay xem lại, ví dụ k7f2 (từ [Thẻ #k7f2]); chỉ mã này, không có transactions, là hiện lại thẻ y nguyên"],
         ],
         "required": ["transactions"],
     ]
@@ -144,27 +149,28 @@ struct DraftBuilder {
 
     func run(_ arguments: JSONValue) -> ToolOutput {
         let inputs = Self.items(arguments)
+        let ref = (arguments["replaces"]?.string ?? "").lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "# "))
+        // "Cho tôi xem lại list": the card asked for again, sent as its code alone. Copying every
+        // row back, the model sent the code and no rows (eval 2026-11-18).
+        if inputs.isEmpty, !ref.isEmpty { return showAgain(ref) }
         guard !inputs.isEmpty else {
             return .failure("Không có khoản nào để ghi. Hỏi người dùng muốn ghi khoản gì, bao nhiêu tiền; chưa ghi gì")
         }
         var replacing: TransactionDraft?
-        let ref = (arguments["replaces"]?.string ?? "").lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "# "))
-        if !ref.isEmpty {
-            guard let card = turn.open.last(where: { $0.ref == ref }) else {
-                return ToolOutput(result: [
-                    "ok": false, "status": "rejected",
-                    "reason": .string("Thẻ #\(ref) không còn chờ Lưu: đã lưu, đã huỷ hoặc đã thay."),
-                    "howTo": "Khoản đã lưu thì người dùng bấm Xem trên thẻ để sửa; muốn ghi khoản khác thì soạn thẻ mới, không gửi replaces.",
-                ])
-            }
+        if let card = turn.open.last(where: { $0.ref == ref }) {
             replacing = card
+        } else if !ref.isEmpty, turn.seen.contains(ref) {
+            return Self.notWaiting(ref)
         }
+        // A code of no card in the chat: made up by the model ("ăn trưa 60k à nhầm 55k" with no card
+        // yet was refused as saved, eval 2026-11-18). A new card.
         var rows: [TransactionDraft.Row] = []
         var needs: [JSONValue] = []
         var refused: [JSONValue] = []
         let known = replacing.map { Set($0.liveRows.map(\.transaction.amount)) } ?? []
+        let proposed = replacing?.liveRows.filter { $0.newItem != nil } ?? []
         for (index, input) in inputs.enumerated() {
-            switch resolve(input, knownAmounts: known) {
+            switch resolve(input, knownAmounts: known, proposed: proposed) {
             case .ready(let row):
                 rows.append(row)
             case .needs(let need):
@@ -173,6 +179,8 @@ struct DraftBuilder {
                 if !need.suggestions.isEmpty { item["suggestions"] = .array(need.suggestions.map(JSONValue.string)) }
                 if !need.options.isEmpty { item["options"] = .array(need.options.map(JSONValue.string)) }
                 if let canCreate = need.canCreate { item["canCreate"] = canCreate }
+                let about = Self.about(input)
+                if !about.isEmpty { item["about"] = .string(about) }
                 needs.append(.object(item))
             case .refused(let reason, let howTo):
                 var item: [String: JSONValue] = ["index": .number(Double(index + 1)), "reason": .string(reason)]
@@ -184,7 +192,10 @@ struct DraftBuilder {
         if !needs.isEmpty {
             var result: [String: JSONValue] = [
                 "ok": true, "status": "needsInfo", "items": .array(needs),
-                "say": "Chưa soạn thẻ, chưa ghi gì. Hỏi người dùng đúng câu ask của từng khoản (kèm gợi ý nếu có), rồi gọi lại với đủ mọi khoản.",
+                // The instruction first: said first, "Chưa soạn thẻ, chưa ghi gì" was read out to
+                // the user (eval 2026-11-18).
+                "say": .string("Hỏi người dùng đúng câu ask của từng khoản (kèm gợi ý nếu có), rồi gọi lại với đủ mọi khoản"
+                    + (replacing == nil ? "" : " và replaces như lần này") + ". Chưa soạn, chưa ghi gì: không nói đã soạn hay đã ghi."),
             ]
             if !refused.isEmpty { result["rejected"] = .array(refused) }
             return ToolOutput(result: .object(result))
@@ -194,19 +205,66 @@ struct DraftBuilder {
                 "ok": false, "status": "rejected", "items": .array(refused),
                 // The app says it in its own words (`RecordRefusal.message`); the model is told the
                 // same, for the chat it is given next.
-                "say": "Không ghi gì, không soạn thẻ. Nói thật là Milu chưa làm được (reason), rồi chép nguyên văn cách ghi tay (howTo); không hỏi thêm gì.",
+                "say": "Không ghi gì, không soạn gì. Nói thật là Milu chưa làm được (reason), rồi chép nguyên văn cách ghi tay (howTo); không hỏi thêm gì.",
             ])
+        }
+        // A card made again ("à không, 50k thôi") keeps "Milu tự chọn" on the account Milu chose
+        // before, when the user did not name it now: the model sends that account back by name
+        // (live test 2026-11-18).
+        if let replacing {
+            let said = (turn.userWords.last ?? "").searchKey
+            for index in rows.indices where !rows[index].accountChosenByApp {
+                let account = rows[index].transaction.accountID
+                guard replacing.liveRows.contains(where: { $0.accountChosenByApp && $0.transaction.accountID == account }),
+                      let name = store.account(id: account)?.name, !said.contains(name.searchKey) else { continue }
+                rows[index].accountChosenByApp = true
+            }
         }
         let draft = TransactionDraft(rows: rows, replacing: replacing?.id)
         var result: [String: JSONValue] = [
             "ok": true, "status": "draft", "card": .string(draft.ref),
             "rows": .array(rows.enumerated().map { describe($0.element, number: $0.offset + 1) }),
             // No "#ref" said here: the model read it out to the user (Simulator, 2026-11-17).
-            "say": .string("Đã soạn thẻ, CHƯA ghi gì. Nói ngắn gọn: người dùng kiểm tra thẻ rồi bấm Lưu; không nói đã ghi, không nói mã thẻ."
+            "say": .string("Đã soạn, CHƯA ghi gì. Nói ngắn gọn: người dùng kiểm tra các khoản Milu soạn rồi bấm Lưu; không nói đã ghi, không gọi là thẻ, không nói mã."
                 + (refused.isEmpty ? "" : " Nói thêm khoản nào không ghi được, lý do, rồi chép nguyên văn cách ghi tay (howTo).")),
         ]
         if !refused.isEmpty { result["rejected"] = .array(refused) }
         return ToolOutput(result: .object(result), action: .draft(draft))
+    }
+
+    /// The card waiting under `ref` shown again at the foot of the chat, as it is: the old one
+    /// marked replaced, so one card stays to tap "Lưu" on.
+    func showAgain(_ ref: String) -> ToolOutput {
+        guard let card = turn.open.last(where: { $0.ref == ref }), !card.liveRows.isEmpty else {
+            return Self.notWaiting(ref)
+        }
+        let draft = TransactionDraft(rows: card.liveRows, replacing: card.id)
+        return ToolOutput(result: [
+            "ok": true, "status": "draft", "card": .string(draft.ref),
+            "rows": .array(draft.rows.enumerated().map { describe($0.element, number: $0.offset + 1) }),
+            "say": "Đã hiện lại các khoản ở cuối chat, CHƯA ghi gì. Nói ngắn: các khoản ở bên dưới, người dùng kiểm tra rồi bấm Lưu; không gọi là thẻ, không nói mã.",
+        ], action: .draft(draft))
+    }
+
+    /// `replaces` named a card no longer waiting: saved, cancelled or replaced.
+    /// The words for the user apart from what the model is told to do: told "gọi list_transactions"
+    /// among them, it said so to the user (eval 2026-11-18).
+    static func notWaiting(_ ref: String) -> ToolOutput {
+        ToolOutput(result: [
+            "ok": false, "status": "rejected",
+            "reason": .string("Thẻ #\(ref) không còn chờ Lưu: đã lưu, đã huỷ hoặc đã thay."),
+            "howTo": "Khoản đã lưu thì bấm Xem để sửa.",
+            "say": "Chưa soạn gì. Muốn xem lại các khoản đã lưu thì gọi list_transactions (khoản vừa ghi: hôm nay); muốn ghi khoản khác thì gọi lại, không gửi replaces. Không nói tên công cụ hay mã thẻ với người dùng.",
+        ])
+    }
+
+    /// The transaction asked about, short: "Trà đá 5.000đ", for one question over several
+    /// (`RemoteAssistant.choiceQuestion`).
+    static func about(_ input: JSONValue) -> String {
+        let note = Category.cleanName(input["note"]?.string ?? "")
+        let name = note.isEmpty ? Category.cleanName(input["category"]?.string ?? "") : note
+        let amount = input["amount"]?.number.map { $0.rounded().vnd }
+        return [name.isEmpty ? nil : name.capitalizedFirst, amount].compactMap { $0 }.joined(separator: " ")
     }
 
     /// The items the model sent: `transactions`, or one item at the top as the tool once took it
@@ -231,9 +289,10 @@ struct DraftBuilder {
 
     // MARK: - One item
 
-    func resolve(_ input: JSONValue, knownAmounts: Set<Double> = []) -> Outcome {
+    /// `proposed`: the rows of the card being changed that make a new item.
+    func resolve(_ input: JSONValue, knownAmounts: Set<Double> = [], proposed: [TransactionDraft.Row] = []) -> Outcome {
         let note = String(Category.cleanName(input["note"]?.string ?? "").prefix(200))
-        let what = note.isEmpty ? "Khoản này" : "Khoản “\(note)”"
+        var what = note.isEmpty ? "Khoản này" : "Khoản “\(note)”"
         let categoryText = Category.cleanName(input["category"]?.string ?? "")
         let newCategory = input["new_category"]
 
@@ -265,17 +324,21 @@ struct DraftBuilder {
         guard amount <= MiluAmountField.maxAmount else {
             return .refused(reason: "Số tiền quá lớn: Milu ghi tối đa \(MiluAmountField.maxAmount.vnd) một khoản.", howTo: nil)
         }
-        if !said.isEmpty, let read = SaidAmount.parse(said), read != amount {
-            return .needs(Need(missing: "amount", ask: "“\(said)” là \(read.vnd) phải không?",
-                               suggestions: [read.vnd, amount.vnd]))
-        }
-        // A number the user never said is asked about, never put on a card (a model's slip). The
-        // card being replaced counts as said; with no words to go by (a test), the model's stands.
+        // Its sum said with it from here on: "chi 100k" asked for its item, then answered "đi cà phê
+        // với bạn", was asked its amount again (eval 2026-11-18): the question, in the chat the model
+        // reads, now holds it.
+        what = note.isEmpty ? "Khoản \(amount.vnd)" : "Khoản “\(note)” \(amount.vnd)"
+        // The model's number against the user's words: one read otherwise ("nửa củ" as 50.000đ), or
+        // never said, goes on the card all the same, with a warning over "Lưu" (user choice
+        // 2026-11-17: told, not asked again; asked, every amount said in words was, the app reading
+        // none of them). The card being replaced counts as said; with no words to go by (a test),
+        // the model's stands.
         let heard = SaidAmount.all(in: turn.userWords.joined(separator: " ")).union(knownAmounts)
-        if !turn.userWords.isEmpty, !heard.isEmpty, !heard.contains(amount) {
-            let options = heard.filter { $0 >= 1_000 }.sorted().prefix(3).map(\.vnd)
-            return .needs(Need(missing: "amount", ask: "\(what) bao nhiêu tiền? Milu chưa chắc là \(amount.vnd).",
-                               suggestions: Array(options)))
+        var amountWarning: String?
+        if !said.isEmpty, let read = SaidAmount.parse(said), read != amount {
+            amountWarning = "bạn nói “\(said)” (\(read.vnd)), Milu ghi \(amount.vnd). Kiểm tra lại số tiền nhé."
+        } else if !turn.userWords.isEmpty, !heard.isEmpty, !heard.contains(amount) {
+            amountWarning = "Milu không thấy \(amount.vnd) trong lời bạn. Kiểm tra lại số tiền nhé."
         }
 
         // Day and time: read as written, never ahead of today.
@@ -308,7 +371,10 @@ struct DraftBuilder {
         // Category: an item of the user's, or a new one to make on "Lưu".
         var categoryID = ""
         var newItem: TransactionDraft.NewItem?
-        switch CategoryResolver(store: store).resolve(category: categoryText, newCategory: newCategory, note: note,
+        let resolver = CategoryResolver(store: store, said: turn.userWords.last ?? "", proposed: proposed.compactMap(\.newItem),
+                                        sameAmount: proposed.filter { $0.transaction.amount == amount }.compactMap(\.newItem))
+        switch resolver.resolve(category: categoryText,
+                                                                                     newCategory: newCategory, note: note,
                                                       kind: kind, what: what) {
         case .item(let id): categoryID = id
         case .newItem(let item): newItem = item
@@ -319,7 +385,11 @@ struct DraftBuilder {
         let transaction = FinanceTransaction(amount: amount, categoryID: categoryID, kind: kind, accountID: account.id,
                                              date: date, note: note.compare(name, options: .caseInsensitive) == .orderedSame ? "" : note)
         var row = TransactionDraft.Row(transaction: transaction, newItem: newItem, accountChosenByApp: chosenByApp)
-        row.warning = DraftChecks.duplicate(of: row, in: store)
+        // Its amount's warning, named as the card names the row, then a twin saved that day. The
+        // row edited in its form, only the twin is worked out again: the amount was looked at.
+        let warnings = [amountWarning.map { "\(newItem.map { "\($0.name) (mới)" } ?? name): \($0)" },
+                        DraftChecks.duplicate(of: row, in: store)].compactMap { $0 }
+        row.warning = warnings.isEmpty ? nil : warnings.joined(separator: " ")
         return .ready(row)
     }
 
@@ -375,6 +445,15 @@ struct DraftBuilder {
         let usable = store.usableAccounts
         let options = usable.map(\.name)
         let named = Category.cleanName(text ?? "")
+        // A bank or wallet the user named, the model leaving it out ("ăn trưa 50k bằng ví ZaloPay"
+        // was put on the last account used, live test 2026-11-18): theirs, or asked about.
+        if named.isEmpty, let said = Self.institutionSaid(in: turn.userWords.last ?? "") {
+            if let own = usable.first(where: { $0.institutionID == said.id }) { return .found(own, chosenByApp: false) }
+            if case .found(let own) = ToolNames.match(said.shortName, in: usable) { return .found(own, chosenByApp: false) }
+            return .problem(.needs(Need(
+                missing: "account", ask: "Bạn không có tài khoản nào tên “\(said.shortName)”. Ghi vào tài khoản nào?",
+                options: options)))
+        }
         guard !named.isEmpty else {
             let last = turn.defaults.string(forKey: StorageKey.lastAccountID).flatMap(UUID.init(uuidString:))
             guard let main = usable.first(where: { $0.id == last })
@@ -405,6 +484,24 @@ struct DraftBuilder {
         }
     }
 
+    /// A bank or wallet named after "bằng", "qua", "từ", "ví", "thẻ", "tk" or "tài khoản": "bằng ví
+    /// ZaloPay", "quẹt thẻ VCB". After those words only: "nam a" alone is also "năm à".
+    static func institutionSaid(in text: String) -> Institution? {
+        let words = text.searchKey.split { !$0.isLetter && !$0.isNumber }.map(String.init)
+        let before: Set<String> = ["bang", "qua", "tu", "vi", "the", "tk", "khoan", "bank"]
+        for institution in Institution.all {
+            let names = ([institution.shortName, institution.id] + institution.keywords)
+                .map { $0.searchKey.split { !$0.isLetter && !$0.isNumber }.map(String.init) }
+                .filter { !$0.isEmpty }
+            for name in names {
+                for start in words.indices.dropFirst() where words[start...].starts(with: name) {
+                    if before.contains(words[start - 1]) { return institution }
+                }
+            }
+        }
+        return nil
+    }
+
     // MARK: - For the model
 
     /// A row as the model reads it back.
@@ -415,11 +512,17 @@ struct DraftBuilder {
             "kind": .string(transaction.kind.rawValue),
             "amount": ToolMoney.value(transaction.amount),
             "amountText": .string(transaction.amount.vnd),
-            "category": .string(DraftChecks.categoryText(of: row, in: store)),
             "account": .string(store.account(id: transaction.accountID)?.name ?? ""),
             "date": .string(ToolDates.text(transaction.date)),
             "time": .string(DraftChecks.time(transaction.date)),
         ]
+        // An item to make as the model asks for one: told "Trà đá (mục mới trong Ăn uống)", it sent
+        // that back as the item's name (live test 2026-11-18).
+        if let new = row.newItem {
+            item["new_category"] = ["name": .string(new.name), "group": .string(store.categoryName(new.groupID))]
+        } else {
+            item["category"] = .string(store.categoryName(transaction.categoryID))
+        }
         if !transaction.note.isEmpty { item["note"] = .string(transaction.note) }
         if row.accountChosenByApp { item["accountChosenByApp"] = true }
         if let warning = row.warning { item["warning"] = .string(warning) }
@@ -432,6 +535,12 @@ struct DraftBuilder {
 /// none fits (user choice 2026-11-17). Never a hidden item, as the add form offers none.
 struct CategoryResolver {
     let store: FinanceStore
+    /// The user's latest words: "tạo mục Ăn vặt đi" said to the offer of it.
+    var said = ""
+    /// The new items on the card being changed, to make on its "Lưu": named again, kept.
+    var proposed: [TransactionDraft.NewItem] = []
+    /// Those of them on a row of the same amount: the one meant when only its group is named.
+    var sameAmount: [TransactionDraft.NewItem] = []
 
     enum Result {
         case item(String)
@@ -444,17 +553,68 @@ struct CategoryResolver {
         let groups = store.groups(kind)
         let key = category.searchKey
 
+        // A new item of the card being changed, named again by its name, in category, new_category
+        // or the note: kept, not asked for again (iPhone 2026-11-18: "sửa khoản ăn tối thêm ghi chú
+        // được giảm giá" asked again for Trà đá and Ăn vặt, made new on that card the turn before).
+        if !proposed.isEmpty, !items.contains(where: { $0.name.searchKey == key }) {
+            // "Trà đá (mục mới trong Ăn uống)", as a card was once told to the model: "Trà đá".
+            let bare = category.components(separatedBy: " (").first ?? category
+            let names = [category, bare, newCategory?["name"]?.string ?? "", Self.itemName(from: note)]
+                .map(\.searchKey).filter { !$0.isEmpty }
+            if let item = proposed.first(where: { names.contains($0.name.searchKey) }),
+               let group = store.category(id: item.groupID) {
+                return resolveNew(.object(["name": .string(item.name), "group": .string(group.name)]), items: items,
+                                  groups: groups, kind: kind, what: what)
+            }
+            // Only its group named, or nothing, and no item: the one on the row of the same amount
+            // (live test 2026-11-18: Trà đá 5.000đ sent back as "Ăn uống", no note).
+            if sameAmount.count == 1, let item = sameAmount.first, let group = store.category(id: item.groupID),
+               key.isEmpty || key == group.name.searchKey, (newCategory?["name"]?.string ?? "").isEmpty,
+               Self.named(in: note, among: items) == nil {
+                return resolveNew(.object(["name": .string(item.name), "group": .string(group.name)]), items: items,
+                                  groups: groups, kind: kind, what: what)
+            }
+        }
+
         if !key.isEmpty {
             // The item's own name.
             if let item = items.first(where: { $0.name.searchKey == key }) { return .item(item.id) }
-            // A group's name: its only item, or the one the note names, else asked among its items.
+            // A group's name: its only item, or the one the note names, else asked among its items,
+            // with an offer to make the one the note names (user report 2026-11-17: "học tiếng
+            // Nhật" as Học tập, only Học phí, Sách, Khoá học were offered). "Khác" alone ("Chi
+            // khác") is no answer: asked, rather than "trà đá" put there unsaid.
             if let group = groups.first(where: { $0.name.searchKey == key }) {
                 let members = items.filter { $0.parentID == group.id }
-                if members.count == 1, let only = members.first { return .item(only.id) }
+                if members.count == 1, let only = members.first, !only.id.hasSuffix(".other") { return .item(only.id) }
                 if let named = Self.named(in: note, among: members) { return .item(named.id) }
-                if !members.isEmpty {
-                    return .needs(DraftBuilder.Need(missing: "category", ask: "\(what) thuộc mục nào trong “\(group.name)”?",
-                                                    suggestions: members.prefix(8).map(\.name)))
+                let real = members.filter { !$0.id.hasSuffix(".other") }
+                // The one item named for its group, the group's own ("nhận lương 25 triệu" as
+                // "Lương" is Lương chính, "Thưởng" is Tiền thưởng; it was asked which, eval
+                // 2026-11-18). "Ăn uống", "Mua sắm" have none: asked.
+                let groupWords = Set(key.split(separator: " "))
+                let ownItems = real.filter { groupWords.isSubset(of: Set($0.name.searchKey.split(separator: " "))) }
+                if ownItems.count == 1, let own = ownItems.first { return .item(own.id) }
+                let name = Self.newName(from: note, besides: items + groups)
+                // "Tạo mục Ăn vặt đi" said to the offer: made, not asked again (live test 2026-11-18:
+                // the model sent the group once more).
+                if let name, !real.isEmpty, Self.saysMake(said) {
+                    return resolveNew(.object(["name": .string(name), "group": .string(group.name)]), items: items,
+                                      groups: groups, kind: kind, what: what)
+                }
+                if !real.isEmpty || name != nil {
+                    // "trong nhóm", said with the group: left to the model, it said "tạo mục mới
+                    // tên Ăn vặt dưới nhóm Ăn uống" (iPhone, 2026-11-18).
+                    let offer = name.map {
+                        Self.offerLead + (real.isEmpty ? " “\($0)” luôn?" : " “\($0)” trong nhóm này luôn?")
+                    } ?? ""
+                    let ask = real.isEmpty ? "Milu chưa biết xếp \(what.lowercasedFirst) vô mục nào nè.\(offer)"
+                        : "\(what) này xếp vô mục nào trong nhóm “\(group.name)” nè?\(offer)"
+                    // Made in this group, unless it is the one of "Khác": any of the user's.
+                    let homes = real.isEmpty ? groups : [group]
+                    return .needs(DraftBuilder.Need(
+                        missing: "category", ask: ask,
+                        suggestions: (real.isEmpty ? suggestions(for: note, kind: kind, items: items) : real.prefix(8).map(\.name)),
+                        canCreate: name.map { .object(["name": .string($0), "groups": .array(homes.map { .string($0.name) })]) }))
                 }
             }
             // An item of the other kind ("Lương chính" for a spending): which it is, asked.
@@ -479,7 +639,7 @@ struct CategoryResolver {
         // Not sure: a few to pick from, and an offer to make one.
         return .needs(DraftBuilder.Need(
             missing: "category",
-            ask: "Milu chưa chắc \(what.lowercasedFirst) thuộc hạng mục nào. Chọn một mục, hoặc tạo mục mới?",
+            ask: "Milu chưa biết xếp \(what.lowercasedFirst) vô mục nào nè, bạn chọn giúp Milu nha?",
             suggestions: suggestions(for: [note, category].joined(separator: " "), kind: kind, items: items),
             canCreate: .object([
                 "name": .string(Self.suggestedName(category: category, note: note)),
@@ -533,7 +693,11 @@ struct CategoryResolver {
         func add(_ item: Category) {
             if picked.count < 3, !picked.contains(where: { $0.id == item.id }) { picked.append(item) }
         }
-        let words = Set(text.searchKey.split { !$0.isLetter && !$0.isNumber }.map(String.init)).filter { $0.count > 1 }
+        // Small words shared by many names say nothing: "đổ săng" offered Đồ gia dụng and Đồ điện tử
+        // (eval 2026-11-18).
+        let small: Set<String> = ["do", "di", "cho", "va", "voi", "mua", "cua", "cai", "khoan"]
+        let words = Set(text.searchKey.split { !$0.isLetter && !$0.isNumber }.map(String.init))
+            .filter { $0.count > 1 && !small.contains($0) }
         for item in items where !item.id.hasSuffix(".other") {
             let itemWords = Set(item.name.searchKey.split { !$0.isLetter && !$0.isNumber }.map(String.init))
             if !itemWords.isDisjoint(with: words) { add(item) }
@@ -549,10 +713,53 @@ struct CategoryResolver {
         }
     }
 
+    /// A new item's name from the note ("Uống trà đá" → "Trà đá", "Mua sữa rửa mặt" → "Sữa rửa
+    /// mặt"), when it names none of the user's items or groups; nil with no note.
+    static func newName(from note: String, besides existing: [Category]) -> String? {
+        let name = itemName(from: note)
+        guard !name.isEmpty, !existing.contains(where: { $0.name.searchKey == name.searchKey }) else { return nil }
+        return name
+    }
+
     /// A name for a new item: what the model called it, else the note's first words.
     private static func suggestedName(category: String, note: String) -> String {
-        let base = category.isEmpty ? note : category
-        return String(Category.cleanName(base).prefix(Category.maxNameLength)).capitalizedFirst
+        itemName(from: category.isEmpty ? note : category)
+    }
+
+    /// The words that would name an item: without "uống", "mua" first, and without when it was
+    /// ("ăn vặt buổi chiều" is "Ăn vặt": the item is for every afternoon; iPhone, 2026-11-18).
+    static func itemName(from text: String) -> String {
+        var words = Category.cleanName(text).split(separator: " ").map(String.init)
+        if words.count > 1, let first = words.first, ["uong", "mua"].contains(first.searchKey) { words.removeFirst() }
+        var trimmed = true
+        while trimmed, words.count > 2 {
+            trimmed = false
+            if whenWords.contains(words.suffix(2).map(\.searchKey).joined(separator: " ")) {
+                words.removeLast(2)
+                trimmed = true
+            } else if whenWords.contains(words.prefix(2).map(\.searchKey).joined(separator: " ")) {
+                words.removeFirst(2)
+                trimmed = true
+            }
+        }
+        return String(words.joined(separator: " ").prefix(Category.maxNameLength)).capitalizedFirst
+    }
+
+    private static let whenWords: Set<String> = [
+        "buoi sang", "buoi trua", "buoi chieu", "buoi toi", "sang nay", "trua nay", "chieu nay", "toi nay",
+        "hom nay", "hom qua", "hom kia", "dem qua", "toi qua", "hoi sang", "hoi trua", "hoi chieu", "hoi toi",
+        "luc sang", "luc trua", "luc chieu", "luc toi",
+    ]
+
+    /// How a record question offers a new item, after what it asks: "… Hoặc tạo mục mới “Ăn vặt”
+    /// trong nhóm này?". The chat puts it on a line of its own (`RemoteAssistant.choiceQuestion`).
+    static let offerLead = " Hoặc tạo mục mới"
+
+    /// Words taking the offer of a new item: "tạo mới", "tạo mục Ăn vặt đi", or "theo đề xuất đi"
+    /// (iPhone 2026-11-18). "Tạo" with its mark: "táo" is an apple.
+    static func saysMake(_ said: String) -> Bool {
+        said.lowercased().split(whereSeparator: { !$0.isLetter }).contains("tạo")
+            || (" " + said.searchKey.split(whereSeparator: { !$0.isLetter }).joined(separator: " ") + " ").contains(" de xuat ")
     }
 }
 
@@ -570,12 +777,6 @@ enum DraftChecks {
         }) else { return nil }
         let day = calendar.isDateInToday(twin.date) ? "Hôm nay" : "Ngày \(twin.date.shortDay)"
         return "\(day) đã có \(store.categoryName(twin.categoryID)) \(twin.amount.vnd) lúc \(time(twin.date))."
-    }
-
-    /// "Ăn trưa", or the item to make: "Học tiếng Nhật (mục mới trong Học tập)".
-    static func categoryText(of row: TransactionDraft.Row, in store: FinanceStore) -> String {
-        if let item = row.newItem { return "\(item.name) (mục mới trong \(store.categoryName(item.groupID)))" }
-        return store.categoryName(row.transaction.categoryID)
     }
 
     /// "12:05".

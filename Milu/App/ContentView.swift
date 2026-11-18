@@ -10,14 +10,28 @@ struct ContentView: View {
     @State private var isChoosingAdd = false
     @State private var pendingAdd: AddKind?
     @State private var addContext = AddTransactionContext()
+    /// What "Thêm bằng AI" asked to open once it has gone: a form, or the chat.
+    @State private var afterQuickRecord: QuickRecordNext?
+    /// The chat opened from "Thêm bằng AI" with a question in its field.
+    @State private var chatPrefill: ChatPrefill?
     @Environment(AppLock.self) private var appLock
     @Environment(\.scenePhase) private var scenePhase
     /// A tapped reminder waiting for the sheet on screen to close (`openFromReminder`).
     @State private var waitingForSheet: Task<Void, Never>?
 
-    private enum AddKind: Identifiable {
+    private enum AddKind: Identifiable, Hashable {
         case transaction, loan
+        /// "Thêm bằng AI": the quick sheet that listens at once (user design 2026-11-17).
+        case quickRecord
+        /// What Milu cannot record yet, by hand, the amount said already in.
+        case transfer(amount: Double?)
+        case newLoan(LoanDirection, amount: Double?)
         var id: Self { self }
+    }
+
+    struct ChatPrefill: Identifiable {
+        let id = UUID()
+        let text: String
     }
 
     /// The rows of the small sheet the + opens, in a set order on every tab.
@@ -38,13 +52,12 @@ struct ContentView: View {
             }
         }
 
-        /// The form the row opens. "Thêm bằng AI" only closes the sheet for now (user request
-        /// 2026-11-16: no next step yet).
-        var kind: AddKind? {
+        /// What the row opens.
+        var kind: AddKind {
             switch self {
             case .transaction: .transaction
             case .loan: .loan
-            case .ai: nil
+            case .ai: .quickRecord
             }
         }
     }
@@ -85,6 +98,17 @@ struct ContentView: View {
         // A transaction, whatever the + would add on the page behind: left on "Vay nợ", it opened
         // the loan form (audit round 3, 2026-11-16).
         adding = .transaction
+    }
+
+    /// The form or the chat "Thêm bằng AI" asked for, once it has gone (one sheet at a time).
+    private func openAfterQuickRecord() {
+        guard let next = afterQuickRecord else { return }
+        afterQuickRecord = nil
+        switch next {
+        case .form(.transfer(let amount)): adding = .transfer(amount: amount)
+        case .form(.loan(let direction, let amount)): adding = .newLoan(direction, amount: amount)
+        case .chat(let text): chatPrefill = ChatPrefill(text: text)
+        }
     }
 
     /// The +'s name for VoiceOver and the title of its small sheet.
@@ -128,13 +152,21 @@ struct ContentView: View {
             }) {
                 OptionSheet(title: Self.addTitle, options: AddWay.allCases.map(\.option)) { choose($0) }
             }
-            .sheet(item: $adding) { kind in
+            .sheet(item: $adding, onDismiss: openAfterQuickRecord) { kind in
                 switch kind {
                 case .transaction: AddTransactionView(preferredAccount: addContext.accountID)
                 // On the side "Vay nợ" shows, when it is the page behind; "Cho vay" elsewhere.
                 case .loan: LoanEditorView(loan: nil,
                                            direction: addContext.addsLoan ? addContext.loanDirection : nil)
+                case .quickRecord: QuickRecordSheet { afterQuickRecord = $0 }
+                case .transfer(let amount): AddTransactionView(mode: .transfer, amount: amount)
+                case .newLoan(let direction, let amount): LoanEditorView(loan: nil, direction: direction, principal: amount)
                 }
+            }
+            // The chat, opened from "Thêm bằng AI" with the question in its field, as the pages
+            // open it (a cover of its own).
+            .fullScreenCover(item: $chatPrefill) { prefill in
+                NavigationStack { AssistantView(prefill: prefill.text) }
             }
     }
 

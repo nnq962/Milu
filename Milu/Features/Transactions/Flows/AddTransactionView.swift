@@ -100,10 +100,12 @@ struct AddTransactionView: View {
         _note = State(initialValue: editing?.note ?? "")
     }
 
-    /// A new one starting on `mode`: the quick actions on Tổng quan (Ghi chi, Ghi thu, Chuyển tiền).
-    init(mode: Mode) {
+    /// A new one starting on `mode`: the quick actions on Tổng quan (Ghi chi, Ghi thu, Chuyển tiền);
+    /// `amount` already in it, from "Thêm bằng AI" when Milu cannot record a transfer yet.
+    init(mode: Mode, amount: Double? = nil) {
         self.init()
         _mode = State(initialValue: mode)
+        if let amount, amount >= 1 { _amountText = State(initialValue: String(Int(amount)).groupedVNDInput) }
         // A transfer's two accounts are the user's to pick (user request 2026-10-30).
         if mode == .transfer { _accountID = State(initialValue: nil) }
     }

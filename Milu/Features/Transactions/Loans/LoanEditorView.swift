@@ -42,11 +42,14 @@ struct LoanEditorView: View {
     private let openedOutstandingText: String
 
     /// `direction`: the side a new loan starts on, "Cho vay" when none.
-    init(loan: Loan?, direction: LoanDirection? = nil) {
+    /// `principal`: the amount already in a new loan, from "Thêm bằng AI" when Milu cannot record
+    /// a loan yet.
+    init(loan: Loan?, direction: LoanDirection? = nil, principal: Double? = nil) {
         original = loan
         _direction = State(initialValue: loan?.direction ?? direction ?? .lent)
         _contactID = State(initialValue: loan?.contactID)
-        _principalText = State(initialValue: loan.map { String(Int($0.principal)).groupedVNDInput } ?? "")
+        _principalText = State(initialValue: loan.map { String(Int($0.principal)).groupedVNDInput }
+            ?? principal.flatMap { $0 >= 1 ? String(Int($0)).groupedVNDInput : nil } ?? "")
         _isExisting = State(initialValue: loan?.isExisting ?? false)
         _accountID = State(initialValue: loan?.accountID)
         _date = State(initialValue: loan?.date ?? .now)

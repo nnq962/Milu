@@ -51,6 +51,7 @@ struct TypingIndicator: View {
 
 /// The three dots rising in turn, alone, as the chat's typing bubble draws them.
 struct TypingDots: View {
+    var color: Color = Palette.secondaryLabel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var dot: CGFloat = 7
 
@@ -58,7 +59,7 @@ struct TypingDots: View {
         HStack(spacing: Spacing.xs) {
             ForEach(0..<3, id: \.self) { index in
                 Circle()
-                    .fill(Palette.secondaryLabel)
+                    .fill(color)
                     .frame(width: dot, height: dot)
                     .phaseAnimator([false, true]) { content, up in
                         content
@@ -69,6 +70,26 @@ struct TypingDots: View {
                     }
             }
         }
+    }
+}
+
+// MARK: - Đang chuyển thành chữ (user choice 2026-11-17, "Ô nhập sáng lên")
+
+/// What was said, on its way to words, said where the words will come: "Đang chuyển thành chữ"
+/// in the blue, the light passing over it, and the three dots, in the field lit up (the chat's,
+/// `ChatViewController`; the quick sheet's, `QuickRecordSheet`). User feedback 2026-11-17: "Milu
+/// đang hiểu ý bạn…", grey in the field, went unseen; a bubble waiting over the field made the
+/// question fly to the wrong place, the bar shrinking under it as it flew.
+struct TranscribingStatus: View {
+    var body: some View {
+        HStack(spacing: Spacing.s) {
+            ShimmerText(text: "Đang chuyển thành chữ", base: Palette.primary.opacity(0.45), shine: Palette.primary)
+            TypingDots(color: Palette.primary)
+                .scaleEffect(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Milu đang chuyển giọng nói thành chữ")
     }
 }
 
@@ -106,18 +127,21 @@ struct ThinkingIndicator: View {
 struct ShimmerText: View {
     let text: String
     var role: TextRole = .body
+    /// The words' colour, and theirs under the passing light.
+    var base: Color = Palette.tertiaryLabel
+    var shine: Color = Palette.label
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: CGFloat = 0
 
     var body: some View {
         Text(text)
             .textRole(role)
-            .foregroundStyle(Palette.tertiaryLabel)
+            .foregroundStyle(base)
             .overlay {
                 if !reduceMotion {
                     Text(text)
                         .textRole(role)
-                        .foregroundStyle(Palette.label)
+                        .foregroundStyle(shine)
                         .mask {
                             GeometryReader { proxy in
                                 let band = max(proxy.size.width * 0.55, 48)

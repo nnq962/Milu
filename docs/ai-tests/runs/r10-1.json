@@ -1,0 +1,2224 @@
+{
+  "cases" : [
+    {
+      "id" : "T01",
+      "passed" : true,
+      "title" : "Số tiền kiểu k, trùng khoản đã có hôm nay",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 45000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "",
+                "warning" : "Hôm nay đã có Ăn trưa 45.000đ lúc 12:15."
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn trưa 45k",
+          "seconds" : 2.37731397151947,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T02",
+      "passed" : true,
+      "title" : "Số tiền kiểu nghìn",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 35000,
+                "category" : "Cà phê",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "cà phê 35 nghìn",
+          "seconds" : 2.262840986251831,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T03",
+      "passed" : true,
+      "title" : "Số tiền kiểu 1tr2",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 1200000,
+                "category" : "Giày dép",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "mua giày"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua giày 1tr2",
+          "seconds" : 2.202998995780945,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T04",
+      "passed" : false,
+      "title" : "Số tiền kiểu triệu",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+            "không có thẻ"
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "tiền nhà tháng này 5 triệu",
+          "seconds" : 3.192310929298401,
+          "shortcut" : false,
+          "text" : "Khoản “Tiền nhà” 5.000.000đ này xếp vô mục nào trong nhóm “Nhà cửa” nè? 👀\n• Chọn mục có sẵn: Thuê nhà, Sửa chữa, Đồ gia dụng, Dọn dẹp\n• Hoặc tạo mục mới “Tiền nhà” trong nhóm “Nhà cửa” luôn cho tiện ✨\n\nChốt cái nào thì nhắn Milu nè 🚀",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T05",
+      "passed" : true,
+      "title" : "Số bằng chữ (như giọng nói)",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 30000,
+                "category" : "Ăn sáng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn sáng ba mươi nghìn",
+          "seconds" : 2.368767023086548,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T06",
+      "passed" : true,
+      "title" : "Từ lóng: cành",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 50000,
+                "category" : "Taxi, xe ôm",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "đi grab"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "đi grab 50 cành",
+          "seconds" : 3.424160957336426,
+          "shortcut" : false,
+          "text" : "Okela, Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T07",
+      "passed" : true,
+      "title" : "Từ lóng: củ",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 2000000,
+                "category" : "Quần áo",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Mua áo khoác"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua áo khoác 2 củ",
+          "seconds" : 2.623165011405945,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T08",
+      "passed" : true,
+      "title" : "Từ lóng: nửa củ",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 500000,
+                "category" : "Tiền điện",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "đóng tiền điện"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "đóng tiền điện nửa củ",
+          "seconds" : 2.206976056098938,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T09",
+      "passed" : true,
+      "title" : "Từ lóng: xị",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 300000,
+                "category" : "Ăn tối",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn tối 3 xị",
+          "seconds" : 2.2065229415893555,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T10",
+      "passed" : true,
+      "title" : "Số có dấu chấm và đ",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 25000,
+                "category" : "Cà phê",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "cà phê 25.000đ",
+          "seconds" : 2.1884260177612305,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T11",
+      "passed" : true,
+      "title" : "Trăm rưỡi",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 150000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn trưa 1 trăm rưỡi",
+          "seconds" : 2.1967010498046875,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T12",
+      "passed" : true,
+      "title" : "Số trơn không đơn vị",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 85000,
+                "category" : "Sách",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "mua sách"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua sách 85000",
+          "seconds" : 2.2675440311431885,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T13",
+      "passed" : true,
+      "title" : "Thiếu số tiền rồi trả lời",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ghi ăn trưa",
+          "seconds" : 2.446884036064148,
+          "shortcut" : false,
+          "text" : "Nè, bạn muốn ghi chi phí ăn trưa bao nhiêu nè? 🍜 Cho Milu biết số tiền là okela nha!",
+          "tools" : [
+            "record_transaction"
+          ]
+        },
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 50000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "50k",
+          "seconds" : 2.002161979675293,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T14",
+      "passed" : true,
+      "title" : "Tự sửa số trong câu",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 55000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn trưa 60k à nhầm 55k",
+          "seconds" : 8.87978994846344,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T15",
+      "passed" : true,
+      "title" : "Số tiền lớn",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 25000000,
+                "category" : "Đồ điện tử",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "mua laptop"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua laptop 25 triệu",
+          "seconds" : 2.117414951324463,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T16",
+      "passed" : true,
+      "title" : "Số tiền quá giới hạn",
+      "turns" : [
+        {
+          "asks" : false,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+            "Số tiền quá lớn: Milu ghi tối đa 999.999.999.999đ một khoản."
+          ],
+          "saved" : 0,
+          "say" : "mua nhà 2000 tỷ",
+          "seconds" : 3.0905849933624268,
+          "shortcut" : false,
+          "text" : "Số tiền quá lớn: Milu ghi tối đa 999.999.999.999đ một khoản.",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "T17",
+      "passed" : true,
+      "title" : "Năm chục",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 50000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn trưa năm chục",
+          "seconds" : 2.36423397064209,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H01",
+      "passed" : true,
+      "title" : "Đúng tên mục",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 45000,
+                "category" : "Trà sữa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "trà sữa 45k",
+          "seconds" : 2.1226940155029297,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H02",
+      "passed" : true,
+      "title" : "Trà đá không phải Trà sữa",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "trà đá 10k",
+          "seconds" : 2.3282690048217773,
+          "shortcut" : false,
+          "text" : "Khoản “trà đá” 10.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 🤔\n• Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ\n• Hoặc tạo mục mới “Trà đá” trong nhóm “Ăn uống” luôn cho tiện ✨\n\nBạn chọn xong nhắn Milu một tiếng nha 😉",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H03",
+      "passed" : true,
+      "title" : "Mục chưa có: hỏi lại kèm danh sách và đề xuất mục mới",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn vặt 20k",
+          "seconds" : 2.711532950401306,
+          "shortcut" : false,
+          "text" : "Khoản “ăn vặt” 20.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 👀\n• Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ\n• Hoặc tạo mục mới “Ăn vặt” trong nhóm “Ăn uống” luôn cho tiện ✨\n\nChốt cái nào thì nhắn Milu nè 🚀",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H04",
+      "passed" : true,
+      "title" : "Chọn tạo mục mới rồi Lưu",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn vặt 20k",
+          "seconds" : 2.3666080236434937,
+          "shortcut" : false,
+          "text" : "Khoản “ăn vặt” 20.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 👀\n• Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ\n• Hoặc tạo mục mới “Ăn vặt” trong nhóm “Ăn uống” luôn cho tiện ✨\n\nChốt cái nào thì nhắn Milu nè 🚀",
+          "tools" : [
+            "record_transaction"
+          ]
+        },
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 20000,
+                "category" : "Ăn vặt",
+                "date" : "2026-11-18",
+                "isNew" : true,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "tạo mục Ăn vặt đi",
+          "seconds" : 2.229651927947998,
+          "shortcut" : false,
+          "text" : "Okela, Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        },
+        {
+          "asks" : false,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 1,
+          "shortcut" : false,
+          "tap" : "save",
+          "text" : "(bấm Lưu: đã lưu)",
+          "tools" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H05",
+      "passed" : true,
+      "title" : "Chọn mục có sẵn khi được hỏi",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn vặt 20k",
+          "seconds" : 2.7808910608291626,
+          "shortcut" : false,
+          "text" : "Khoản “ăn vặt” 20.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 🧐\n• Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ\n• Hoặc tạo mục mới “Ăn vặt” trong nhóm “Ăn uống” luôn cho tiện ✨\n\nNhắn Milu lựa chọn của bạn nha, phần còn lại để Milu lo 💪",
+          "tools" : [
+            "record_transaction"
+          ]
+        },
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 20000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "ăn vặt"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "cho vào Ăn trưa",
+          "seconds" : 2.2448290586471558,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H06",
+      "passed" : true,
+      "title" : "Mục rộng: mua áo",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 300000,
+                "category" : "Quần áo",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "mua áo"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua áo 300k",
+          "seconds" : 2.3450629711151123,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H07",
+      "passed" : true,
+      "title" : "Xem phim",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 120000,
+                "category" : "Xem phim",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "xem phim 120k",
+          "seconds" : 2.2518320083618164,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H08",
+      "passed" : true,
+      "title" : "Khám răng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 500000,
+                "category" : "Khám bệnh",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "đi khám răng"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "đi khám răng 500k",
+          "seconds" : 2.3024860620498657,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H09",
+      "passed" : true,
+      "title" : "Học tiếng Nhật",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "học tiếng Nhật 1tr2",
+          "seconds" : 2.686838984489441,
+          "shortcut" : false,
+          "text" : "Khoản “Học tiếng Nhật” 1.200.000đ này xếp vô mục nào trong nhóm “Học tập” nè? 🤔\n• Chọn mục có sẵn: Học phí, Sách, Khoá học\n• Hoặc tạo mục mới “Học tiếng Nhật” trong nhóm “Học tập” luôn cho tiện ✨\n\nBạn chọn xong nhắn Milu một tiếng nha 😉",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H10",
+      "passed" : true,
+      "title" : "Đổ xăng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 80000,
+                "category" : "Xăng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "đổ xăng"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "đổ xăng 80k",
+          "seconds" : 2.2831499576568604,
+          "shortcut" : false,
+          "text" : "Mới chi **80.000đ** cho xăng nha ⛽️",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H11",
+      "passed" : true,
+      "title" : "Mua thuốc",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 50000,
+                "category" : "Thuốc",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Thuốc cảm"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua thuốc cảm 50k",
+          "seconds" : 1.7984189987182617,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H12",
+      "passed" : true,
+      "title" : "Cước điện thoại không phải đồ điện tử",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 100000,
+                "category" : "Điện thoại",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Tiền điện thoại"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "tiền điện thoại tháng này 100k",
+          "seconds" : 3.159366011619568,
+          "shortcut" : false,
+          "text" : "Okela, Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H13",
+      "passed" : true,
+      "title" : "Nạp tiền điện thoại là chi",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 50000,
+                "category" : "Điện thoại",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Nạp tiền điện thoại"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "nạp tiền điện thoại 50k",
+          "seconds" : 2.4673969745635986,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H14",
+      "passed" : true,
+      "title" : "Quà sinh nhật",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 500000,
+                "category" : "Quà tặng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "quà sinh nhật mẹ"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua quà sinh nhật mẹ 500k",
+          "seconds" : 2.6872960329055786,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H15",
+      "passed" : true,
+      "title" : "Thú cưng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 150000,
+                "category" : "Thú cưng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Thức ăn cho mèo"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua thức ăn cho mèo 150k",
+          "seconds" : 2.4035669565200806,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H16",
+      "passed" : true,
+      "title" : "Đám cưới",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 1000000,
+                "category" : "Hiếu hỉ",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "đi đám cưới bạn"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "đi đám cưới bạn 1 triệu",
+          "seconds" : 2.282030940055847,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H17",
+      "passed" : true,
+      "title" : "Gửi xe",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 5000,
+                "category" : "Gửi xe",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "gửi xe 5k",
+          "seconds" : 2.351158022880554,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H18",
+      "passed" : true,
+      "title" : "Đồ cho con",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 400000,
+                "category" : "Con cái",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Mua bỉm cho con"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua bỉm cho con 400k",
+          "seconds" : 2.938318967819214,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H19",
+      "passed" : true,
+      "title" : "Tập gym",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 500000,
+                "category" : "Thể thao",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "đóng tiền tập gym"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "đóng tiền tập gym 500k",
+          "seconds" : 2.2806040048599243,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H20",
+      "passed" : true,
+      "title" : "Nạp game",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 100000,
+                "category" : "Game",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Nạp game"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "nạp game 100k",
+          "seconds" : 2.2638559341430664,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H21",
+      "passed" : true,
+      "title" : "Đồ uống khác: nước mía",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "nước mía 10k",
+          "seconds" : 2.423643112182617,
+          "shortcut" : false,
+          "text" : "Khoản “Nước mía” 10.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 🧐\n• Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ\n• Hoặc tạo mục mới “Nước mía” trong nhóm “Ăn uống” luôn cho tiện ✨\n\nNhắn Milu lựa chọn của bạn nha, phần còn lại để Milu lo 💪",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "H22",
+      "passed" : true,
+      "title" : "Đồ uống khác: sinh tố",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "sinh tố bơ 30k",
+          "seconds" : 2.2853809595108032,
+          "shortcut" : false,
+          "text" : "Khoản “sinh tố bơ” 30.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 🧐\n• Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ\n• Hoặc tạo mục mới “Sinh tố bơ” trong nhóm “Ăn uống” luôn cho tiện ✨\n\nNhắn Milu lựa chọn của bạn nha, phần còn lại để Milu lo 💪",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N01",
+      "passed" : true,
+      "title" : "Lương",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 25000000,
+                "category" : "Lương chính",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "nhận lương"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "nhận lương 25 triệu",
+          "seconds" : 1.9505529403686523,
+          "shortcut" : false,
+          "text" : "Okela, Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N02",
+      "passed" : true,
+      "title" : "Thưởng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 2000000,
+                "category" : "Tiền thưởng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "Thưởng"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "được thưởng 2 triệu",
+          "seconds" : 2.085049033164978,
+          "shortcut" : false,
+          "text" : "Nghe đỉnh ghê!",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N03",
+      "passed" : true,
+      "title" : "Được cho",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 500000,
+                "category" : "Được cho, tặng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "Mẹ cho"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mẹ cho 500k",
+          "seconds" : 2.1491150856018066,
+          "shortcut" : false,
+          "text" : "Okela, Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N04",
+      "passed" : true,
+      "title" : "Bán đồ",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 300000,
+                "category" : "Bán đồ",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "Bán đồ cũ"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "bán đồ cũ được 300k",
+          "seconds" : 2.5396759510040283,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N05",
+      "passed" : true,
+      "title" : "Lãi ngân hàng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 200000,
+                "category" : "Lãi tiết kiệm",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "Lãi ngân hàng"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "lãi ngân hàng tháng này 200k",
+          "seconds" : 2.2945120334625244,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N06",
+      "passed" : true,
+      "title" : "Làm thêm",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 1500000,
+                "category" : "Làm thêm",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "làm thêm được 1tr5",
+          "seconds" : 2.5782470703125,
+          "shortcut" : false,
+          "text" : "Nghe xịn xò quá bạn ơi!",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "N07",
+      "passed" : true,
+      "title" : "Hoàn tiền",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 50000,
+                "category" : "Hoàn tiền",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "Hoàn tiền Shopee"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "được hoàn tiền shopee 50k",
+          "seconds" : 2.0079370737075806,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "K01",
+      "passed" : true,
+      "title" : "Nói tên ví",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "MoMo",
+                "accountChosen" : false,
+                "amount" : 50000,
+                "category" : "Ăn trưa",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn trưa 50k bằng momo",
+          "seconds" : 2.532204031944275,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "K02",
+      "passed" : true,
+      "title" : "Không nói tài khoản: Milu tự chọn",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 70000,
+                "category" : "Ăn tối",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn tối 70k",
+          "seconds" : 2.15511691570282,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "K03",
+      "passed" : true,
+      "title" : "Tên tắt ngân hàng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Vietcombank",
+                "accountChosen" : false,
+                "amount" : 30000,
+                "category" : "Cà phê",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "cà phê 30k quẹt thẻ VCB",
+          "seconds" : 2.645346999168396,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "K04",
+      "passed" : true,
+      "title" : "Tài khoản không có: hỏi lại kèm danh sách",
+      "turns" : [
+        {
+          "asks" : true,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "ăn trưa 50k bằng ví ZaloPay",
+          "seconds" : 2.794389009475708,
+          "shortcut" : false,
+          "text" : "Bạn không có tài khoản nào tên “Ví ZaloPay”. Ghi vào tài khoản nào? 👀\n• Chọn: Ví tiền mặt, Vietcombank, Techcombank, MoMo, Thẻ VPBank Visa\n\nChốt cái nào thì nhắn Milu nè 🚀",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "K05",
+      "passed" : true,
+      "title" : "Thẻ tín dụng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Thẻ VPBank Visa",
+                "accountChosen" : false,
+                "amount" : 500000,
+                "category" : "Quần áo",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "mua áo"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "mua áo 500k bằng thẻ tín dụng",
+          "seconds" : 2.779012084007263,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "K06",
+      "passed" : true,
+      "title" : "Thu vào ngân hàng",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Techcombank",
+                "accountChosen" : false,
+                "amount" : 25000000,
+                "category" : "Lương chính",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "income",
+                "note" : "Nhận lương"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "nhận lương 25 triệu vào techcombank",
+          "seconds" : 2.230615973472595,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "D01",
+      "passed" : true,
+      "title" : "Hôm qua",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 150000,
+                "category" : "Ăn tối",
+                "date" : "2026-11-17",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : ""
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "hôm qua ăn tối 150k",
+          "seconds" : 2.5323450565338135,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "D02",
+      "passed" : true,
+      "title" : "Hôm kia",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 70000,
+                "category" : "Xăng",
+                "date" : "2026-11-16",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Đổ xăng"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "hôm kia đổ xăng 70k",
+          "seconds" : 2.993093967437744,
+          "shortcut" : false,
+          "text" : "Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "D03",
+      "passed" : true,
+      "title" : "Sáng nay",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 40000,
+                "category" : "Ăn sáng",
+                "date" : "2026-11-18",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "ăn phở"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "sáng nay ăn phở 40k",
+          "seconds" : 3.136259913444519,
+          "shortcut" : false,
+          "text" : "Okela, Milu soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "D04",
+      "passed" : true,
+      "title" : "Ngày mai (chưa tới): không ghi",
+      "turns" : [
+        {
+          "asks" : false,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+            "Ngày 19/11 chưa tới: Milu chỉ ghi khoản đã chi hoặc đã nhận."
+          ],
+          "saved" : 0,
+          "say" : "ngày mai đóng tiền nhà 5 triệu",
+          "seconds" : 4.374604940414429,
+          "shortcut" : false,
+          "text" : "Ngày 19/11 chưa tới: Milu chỉ ghi khoản đã chi hoặc đã nhận.\n• Khoản lặp lại hằng tháng thì tạo giao dịch định kỳ: nút + → Thêm giao dịch → Lặp lại.",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "D05",
+      "passed" : true,
+      "title" : "Mấy ngày trước",
+      "turns" : [
+        {
+          "asks" : false,
+          "card" : {
+            "replaces" : false,
+            "rows" : [
+              {
+                "account" : "Ví tiền mặt",
+                "accountChosen" : true,
+                "amount" : 120000,
+                "category" : "Sách",
+                "date" : "2026-11-15",
+                "isNew" : false,
+                "kind" : "expense",
+                "note" : "Mua sách"
+              }
+            ]
+          },
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "3 ngày trước mua sách 120k",
+          "seconds" : 2.938265085220337,
+          "shortcut" : false,
+          "text" : "Soạn xong rồi nè 📝",
+          "tools" : [
+            "record_transaction"
+          ]
+        }
+      ]
+    }
+  ],
+  "date" : "2026-11-18",
+  "passed" : 56,
+  "total" : 57
+}

@@ -116,6 +116,40 @@ enum DraftShortcut {
                                    "thoi khoi", "khong can"]
         if save.contains(key) { return .save }
         if cancel.contains(key) { return .cancel }
-        return nil
+        return saidAtLength(text)
+    }
+
+    /// A few words more that still only say yes or no: "đúng rồi lưu đi", "ok lưu cả 2 khoản nha",
+    /// "thôi không lưu nữa" (eval 2026-11-18: "đúng rồi lưu đi" went to Milu, which said the card
+    /// was unchanged). Any other word ("ok nhưng đổi sang Momo", "bỏ khoản gửi xe") is for Milu.
+    /// "Đừng" and "đúng" read the same without their marks, so the marks are looked at first.
+    private static func saidAtLength(_ text: String) -> Answer? {
+        let said = text.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init)
+        guard (2...7).contains(said.count), !said.contains("chưa"), !said.contains("khoan") else { return nil }
+        let negations: Set<String> = ["không", "ko", "đừng", "dừng"]
+        let negated = said.contains(where: negations.contains)
+        let yes: Set<String> = ["ok", "oke", "okay", "okie", "oki", "okela", "luu", "dung", "chuan", "chot", "vang", "yes",
+                                "u", "uh", "um", "da", "co", "dong"]
+        let no: Set<String> = ["huy", "thoi", "bo", "cancel"]
+        let fillers: Set<String> = ["di", "nhe", "nha", "giup", "minh", "luon", "roi", "nay", "do", "vay", "a", "ah", "ne",
+                                    "oi", "ban", "milu", "cho", "toi", "lai", "the", "het", "ca", "y", "khoan", "em", "anh",
+                                    "nua", "qua", "khoi", "can", "tat"]
+        var saving = false
+        var dropping = false
+        for word in said {
+            if negations.contains(word) { continue }
+            let plain = word.searchKey
+            if plain == "luu", negated {
+                dropping = true
+            } else if yes.contains(plain) {
+                saving = true
+            } else if no.contains(plain) {
+                dropping = true
+            } else if !fillers.contains(plain), Int(plain) == nil {
+                return nil
+            }
+        }
+        if saving == dropping { return nil }
+        return saving ? .save : .cancel
     }
 }

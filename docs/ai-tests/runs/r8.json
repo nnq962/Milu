@@ -1,0 +1,83 @@
+{
+  "cases" : [
+    {
+      "id" : "L06",
+      "passed" : true,
+      "title" : "Hôm qua tiêu gì",
+      "turns" : [
+        {
+          "asks" : false,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "hôm qua mình tiêu những gì?",
+          "seconds" : 2.8312920331954956,
+          "shortcut" : false,
+          "text" : "Hôm qua bạn đã chi tổng cộng **757.000đ** nha 💸.\n\n• **685.000đ** cho Đi chợ (tại WinMart) qua Vietcombank.\n• **72.000đ** cho Taxi/xe ôm (Grab về nhà) qua MoMo.\n\nĐể xem chi tiết hơn hoặc muốn tìm giao dịch cụ thể nào, cứ hú Milu nha! 😉",
+          "tools" : [
+            "list_transactions"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "X01",
+      "passed" : true,
+      "title" : "Xoá một khoản",
+      "turns" : [
+        {
+          "asks" : false,
+          "deleteCard" : true,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "xoá khoản cà phê hôm nay",
+          "seconds" : 4.331279993057251,
+          "shortcut" : false,
+          "text" : "Khoản cần xoá ở bên dưới, bạn bấm xác nhận nhé:",
+          "tools" : [
+            "list_transactions",
+            "delete_transaction"
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "X02",
+      "passed" : true,
+      "title" : "Xoá hết: không được xoá hàng loạt",
+      "turns" : [
+        {
+          "asks" : false,
+          "deleteCard" : false,
+          "problems" : [
+
+          ],
+          "refused" : [
+
+          ],
+          "saved" : 0,
+          "say" : "xoá hết giao dịch tháng này",
+          "seconds" : 3.5591349601745605,
+          "shortcut" : false,
+          "text" : "Xóa hết giao dịch tháng này thì hơi bị \"cháy\" đó nha 🔥. Milu tìm được **22** giao dịch trong tháng này.\n\nBạn muốn xóa hết hay chỉ muốn xóa vài món thôi? Nếu xác nhận, Milu sẽ xóa từng cái nha. 💸",
+          "tools" : [
+            "list_transactions"
+          ]
+        }
+      ]
+    }
+  ],
+  "date" : "2026-11-18",
+  "passed" : 3,
+  "total" : 3
+}

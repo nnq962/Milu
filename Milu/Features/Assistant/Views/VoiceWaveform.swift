@@ -26,9 +26,9 @@ struct VoiceWaveform: View {
                     : timeline.date.timeIntervalSince(startedAt) / interval - Double(total)
                 let lead = CGFloat(min(max(now, 0), 2))
                 let count = min(levels.count, Int(size.width / step) + 2)
-                let tallest = size.height * 0.75
+                let tallest = size.height * 0.95
                 for index in 0..<count {
-                    let level = CGFloat(levels[levels.count - 1 - index])
+                    let level = Self.shown(levels[levels.count - 1 - index])
                     let height = max(dot, level * tallest)
                     let x = size.width - dot - (CGFloat(index) + lead) * step
                     guard x > -dot else { continue }
@@ -44,6 +44,15 @@ struct VoiceWaveform: View {
                            startPoint: .leading, endPoint: .trailing)
         }
         .accessibilityHidden(true)
+    }
+
+    /// How tall a level is drawn, 0…1: the room's hum (under 0.1) flat, speech spread up the row,
+    /// a loud voice at its top (user feedback 2026-11-17: speaking loud, it hardly rose; drawn as
+    /// heard, 0.75 of the row at most, a voice mostly at a third). Drawn only: `DictationAutoStop`
+    /// reads the levels as they are.
+    nonisolated static func shown(_ level: Float) -> CGFloat {
+        let spread = min(max((level - 0.1) / 0.5, 0), 1)
+        return CGFloat(pow(spread, 0.8))
     }
 }
 

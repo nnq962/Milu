@@ -23,6 +23,8 @@ struct ThinkingStep: Identifiable, Equatable {
     let running: String
     /// Once done: "Đã xem chi tiêu tháng 11", also kept with the answer (`ChatMessage.Thought`).
     let done: String
+    /// The tool it is, for the live test of Milu AI (`AILiveTests`) to tell what the model did.
+    var tool: String?
 
     private init(_ verb: String, _ what: String) {
         running = "Đang \(verb) \(what)…"

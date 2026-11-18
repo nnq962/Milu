@@ -12,6 +12,9 @@ struct RemoteAssistant: AssistantService {
     let store: FinanceStore
     /// The app's own facts, for questions about Milu itself (`GetAppInfo`).
     var app = AppFacts()
+    /// The tools the model is given, by name; all when nil. The quick sheet gives the record tool
+    /// alone (user choice 2026-11-17: "Thêm bằng AI" only records).
+    var onlyTools: Set<String>? = nil
 
     /// Rounds of tools before giving up: a question takes one or two.
     private static let maxRounds = 5
@@ -29,35 +32,62 @@ struct RemoteAssistant: AssistantService {
         /// What `record_transaction` knows of the chat: the user's words, to check amounts, and the
         /// cards waiting for "Lưu", this answer's own as they come.
         var turn = RecordTurn(userWords: history.filter { $0.role == .user }.suffix(3).map(\.text) + [question],
-                              open: history.compactMap(\.pendingDraft))
+                              open: history.compactMap(\.pendingDraft),
+                              seen: Set(history.compactMap { message in
+                                  if case .draft(let draft) = message.card { draft.ref } else { nil }
+                              }))
         /// A card was waiting before this question: an answer that says it changed must have changed it.
         let cardWaiting = !turn.open.isEmpty
         /// What Milu refused to record in this answer, and whether its last record call asked
         /// something back (then the model's question stands, the way by hand added to it).
         var refused: [RecordRefusal.Refused] = []
         var asksBack = false
+        /// What the record tool suggested to its last question, for the quick sheet's chips, and the
+        /// question in its own words.
+        var choices: [String] = []
+        var asked: [String] = []
+        /// Its question with answers to pick, as the chat says it (`choiceQuestion`), over the model's.
+        var chatAsk: String?
 
         do {
             for _ in 0..<Self.maxRounds {
-                let reply = try await api.chat(messages, tools: AssistantTools.specs, context: context)
+                let reply = try await api.chat(messages, tools: AssistantTools.specs(only: onlyTools), context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
                     let answer = !refused.isEmpty && !asksBack
                         ? Self.refusedAnswer(refused, actions: actions)
-                        : Self.withHowTo(Self.answerText(text, actions: actions, cardWaiting: cardWaiting, refused: !refused.isEmpty),
+                        : Self.withHowTo(chatAsk ?? Self.answerText(text, actions: actions, cardWaiting: cardWaiting,
+                                                                    refused: !refused.isEmpty,
+                                                                    asked: asksBack && !asked.isEmpty ? asked.joined(separator: " ") : nil,
+                                                                    items: Self.itemNames(store),
+                                                                    cardItems: Self.cardItems(actions, store: store),
+                                                                    accounts: store.accounts.map(\.name)),
                                          refused.compactMap(\.howTo))
-                    return AssistantReply(text: answer, actions: actions, counts: Self.counts(toolsRun))
+                    var result = AssistantReply(text: answer, actions: actions, counts: Self.counts(toolsRun))
+                    result.refused = refused
+                    result.asksBack = asksBack
+                    result.choices = asksBack ? choices : []
+                    result.asked = asksBack && !asked.isEmpty ? asked.joined(separator: " ") : nil
+                    return result
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
                 for call in reply.toolCalls {
                     // Said in the chat as it is done (a stopped answer says no more).
-                    if !Task.isCancelled { onStep(ThinkingStep.tool(call.name, arguments: call.arguments)) }
-                    let output = AssistantTools.named(call.name, app: app, turn: turn)?.run(call.arguments, in: store)
+                    if !Task.isCancelled {
+                        var step = ThinkingStep.tool(call.name, arguments: call.arguments)
+                        step.tool = call.name
+                        onStep(step)
+                    }
+                    let allowed = onlyTools?.contains(call.name) ?? true
+                    let output = (allowed ? AssistantTools.named(call.name, app: app, turn: turn) : nil)?.run(call.arguments, in: store)
                         ?? .failure("Không có công cụ \(call.name)")
                     if let next = output.action { Self.add(next, to: &actions, turn: &turn) }
                     if call.name == RecordTransaction().name {
                         refused = Self.refused(in: output.result, adding: refused)
                         asksBack = output.result["status"] == "needsInfo"
+                        choices = Self.choices(in: output.result)
+                        asked = Self.questions(in: output.result)
+                        chatAsk = Self.choiceQuestion(in: output.result)
                     }
                     toolsRun.insert(call.name)
                     messages.append(.tool(call.name, result: output.result))
@@ -112,7 +142,7 @@ struct RemoteAssistant: AssistantService {
     static let draftReady = "Milu soạn xong rồi, bạn kiểm tra rồi bấm **Lưu** nhé:"
 
     /// Said when the model claimed a card waiting for "Lưu" was changed, and nothing changed it.
-    static let cardUnchanged = "Thẻ ở trên chưa đổi gì đâu. Bạn bấm vào dòng trên thẻ để sửa, hoặc nói lại rõ hơn (ví dụ: “đổi thành 50k”) nhé."
+    static let cardUnchanged = "Các khoản ở trên chưa đổi gì đâu. Bạn bấm vào khoản cần sửa, hoặc nói lại rõ hơn (ví dụ: “đổi thành 50k”) nhé."
 
     /// The model's words, but never a card's code ("#adb0", only for the model), and never a claim
     /// the words cannot keep: "đã ghi" over a card waiting for "Lưu" (nothing is saved until then,
@@ -121,23 +151,99 @@ struct RemoteAssistant: AssistantService {
     /// Over a card, one short sentence of the model's (user choice 2026-11-17: it wrote lines of
     /// bullets saying again what the card shows); all of it when something was refused, as that
     /// is said there.
+    /// Asking back (`asked`, the record tool's own question), with no card made: words of a card
+    /// ("Trà sữa 20.000đ Milu soạn sẵn rồi nè", for "ăn vặt 20k"; or the tool's "Chưa soạn thẻ"
+    /// said out) give way to that question (iPhone and eval, 2026-11-18).
+    ///
+    /// Over a card, words of another item or sum than the card's give way to `draftReady` too: the
+    /// model copied its prompt's example, "Trà sữa 45.000đ Milu soạn sẵn rồi nè" over a Taxi card
+    /// (eval 2026-11-18). `items` are all the user's item names, `cardItems` the card's.
     static func answerText(_ text: String, actions: [AssistantReply.Action], cardWaiting: Bool = false,
-                           refused: Bool = false) -> String {
-        let text = text.replacing(/\s?\*{0,2}#[0-9a-f]{4}\b\*{0,2}/, with: "")
-        guard !text.isEmpty else { return emptyAnswer(actions.first) }
+                           refused: Bool = false, asked: String? = nil, items: [String] = [],
+                           cardItems: [String] = [], accounts: [String] = []) -> String {
+        let text = withoutOpener(text.replacing(/\s?\*{0,2}#[0-9a-f]{4}\b\*{0,2}/, with: ""))
+        guard !text.isEmpty else { return asked ?? emptyAnswer(actions.first) }
         let hasDraft = actions.contains { if case .draft = $0 { true } else { false } }
         let words = " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        if !hasDraft, let asked, words.contains(" soan ") { return asked }
         if hasDraft {
             let saysSaved = [" da ghi ", " da luu ", " ghi xong ", " luu xong ", " da them ", " ghi lai roi ", " ghi roi "]
                 .contains { words.contains($0) } && !words.contains(" ghi chu ")
             if saysSaved { return draftReady }
-            return refused ? text : firstSentence(text)
+            let said = refused ? text : firstSentence(text)
+            if !refused, saysOtherThan(actions, items: items, cardItems: cardItems, in: said)
+                || saysCard(said, accounts: accounts) {
+                return draftReady
+            }
+            return said
+        }
+        // Over a delete waiting for its yes, the app's own line: the model's read as done, "Xong rồi
+        // nè 🗑️", "Gỡ được khoản cà phê rồi nha" (live test 2026-11-18), one way of saying it after
+        // another.
+        if let delete = actions.first(where: { if case .confirmDelete = $0 { true } else { false } }) {
+            return emptyAnswer(delete)
         }
         guard cardWaiting, actions.isEmpty else { return text }
         let saysChanged = [" da cap nhat ", " da duoc cap nhat ", " da sua ", " da duoc sua ", " da doi ", " da duoc doi ",
                            " cap nhat roi ", " sua roi ", " doi roi ", " da ghi ", " da luu "]
             .contains { words.contains($0) }
         return saysChanged ? cardUnchanged : text
+    }
+
+    /// Without "Ủa" or "Ê" first (user choice 2026-11-18: the prompt kept them out most times, not
+    /// always: "Ủa, có 1 giao dịch cà phê hôm nay nè").
+    static func withoutOpener(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines).precomposedStringWithCanonicalMapping
+        guard let opener = trimmed.prefixMatch(of: /(?i)(?:ủa|ê)(?:\s*[,!.…]+\s*|\s+)/) else { return text }
+        let rest = trimmed[opener.range.upperBound...]
+        guard let first = rest.first else { return text }
+        return first.uppercased() + rest.dropFirst()
+    }
+
+    /// "Soạn thẻ xong rồi nè": "thẻ" is no word the user knows here (user 2026-11-18: "user sẽ
+    /// thắc mắc ủa thẻ là cái gì?"), unless it is a credit card or an account's own name.
+    static func saysCard(_ text: String, accounts: [String]) -> Bool {
+        var said = text.lowercased().precomposedStringWithCanonicalMapping
+        for name in accounts { said = said.replacingOccurrences(of: name.lowercased(), with: " ") }
+        said = said.replacingOccurrences(of: "thẻ tín dụng", with: " ")
+        return said.split { !$0.isLetter }.contains("thẻ")
+    }
+
+    /// Whether words over a card name an item or a sum that is not on it.
+    static func saysOtherThan(_ actions: [AssistantReply.Action], items: [String], cardItems: [String],
+                              in text: String) -> Bool {
+        let rows = actions.flatMap { action -> [TransactionDraft.Row] in
+            if case .draft(let draft) = action { draft.liveRows } else { [] }
+        }
+        guard !rows.isEmpty else { return false }
+        func plain(_ text: String) -> String {
+            " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        }
+        let words = plain(text)
+        let onCard = Set(cardItems.map(plain))
+        if items.contains(where: { words.contains(plain($0)) && !onCard.contains(plain($0)) }) { return true }
+        // Sums as the model writes them, "45.000đ": each must be one of the card's, or their total.
+        let amounts = Set(rows.map(\.transaction.amount) + [rows.map(\.transaction.amount).reduce(0, +)])
+        for match in text.matches(of: /(\d{1,3}(?:\.\d{3})+|\d+)\s*(?:đ|₫)/) {
+            if let value = Double(match.output.1.replacingOccurrences(of: ".", with: "")), !amounts.contains(value) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// The names of the items the user picks from, to tell when words name one.
+    static func itemNames(_ store: FinanceStore) -> [String] {
+        // "Khác" is also a word ("tài khoản khác"), not only an item.
+        (store.pickableItems(.expense) + store.pickableItems(.income)).map(\.name).filter { $0.searchKey != "khac" }
+    }
+
+    /// The items on the answer's cards, by name: an item the user has, or one to make on "Lưu".
+    static func cardItems(_ actions: [AssistantReply.Action], store: FinanceStore) -> [String] {
+        actions.flatMap { action -> [String] in
+            guard case .draft(let draft) = action else { return [] }
+            return draft.liveRows.compactMap { $0.newItem?.name ?? store.category(id: $0.transaction.categoryID)?.name }
+        }
     }
 
     /// The answer's first sentence, from its first line that is not a bullet: "Milu soạn xong rồi
@@ -164,6 +270,153 @@ struct RemoteAssistant: AssistantService {
 
     private static func isEmoji(_ character: Character) -> Bool {
         character.unicodeScalars.contains { $0.properties.isEmojiPresentation || ($0.properties.isEmoji && $0.value > 0x2000) }
+    }
+
+    /// The answers a record result suggests to what it asks: items to pick, options (chi or thu,
+    /// a group, an account), and making the item it proposes; a few, each once.
+    static func choices(in result: JSONValue) -> [String] {
+        guard result["status"] == "needsInfo", case .array(let items)? = result["items"] else { return [] }
+        var found: [String] = []
+        for item in items {
+            let offered = (item["suggestions"]?.strings ?? []) + (item["options"]?.strings ?? [])
+            let made = item["canCreate"]?["name"]?.string.flatMap { $0.isEmpty ? nil : "Tạo mục “\($0)”" }
+            for choice in offered + [made].compactMap({ $0 }) where !found.contains(choice) { found.append(choice) }
+        }
+        return Array(found.prefix(6))
+    }
+
+    /// A question back that has answers to pick, as the chat says it, in the app's words (user
+    /// request 2026-11-18: "user làm sao mà nhớ được họ đang có những hạng mục nào"; the chat has no
+    /// chips, and the model's words left the items out, or said a card was made):
+    ///
+    ///     Khoản “ăn vặt” 20.000đ này xếp vô mục nào trong nhóm “Ăn uống” nè? 🤔
+    ///     • Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ
+    ///     • Hoặc tạo mục mới “Ăn vặt” trong nhóm “Ăn uống” luôn cho tiện ✨
+    ///
+    ///     Bạn chọn xong nhắn Milu một tiếng nha 😉
+    ///
+    /// Several asked the same ("trà đá 5k … ăn vặt 70k" in one sentence): one question for all,
+    /// the list once (user 2026-11-18: "sao nó lại response giống hệt nhau thế"), with how to
+    /// answer for each:
+    ///
+    ///     Có 2 khoản Milu chưa biết xếp vô mục nào nè: **Trà đá 5.000đ** và **Ăn vặt 70.000đ** 👀
+    ///     • Chọn mục có sẵn: Ăn sáng, Ăn trưa, Ăn tối, Cà phê, Trà sữa, Đi chợ
+    ///     • Hoặc tạo mục mới “Trà đá”, “Ăn vặt” trong nhóm “Ăn uống” luôn cho tiện ✨
+    ///
+    ///     Bạn nhắn Milu từng khoản nha, kiểu: “trà đá vào Ăn sáng, ăn vặt tạo mới” 😉
+    ///
+    /// In Milu's own young, playful voice (user 2026-11-18: the plain list read "cộc lốc"), the
+    /// emoji and the last line one of a few (`variant`), so asking twice does not read the same;
+    /// never "thẻ", a word the user does not know here (user 2026-11-18).
+    /// Nil when nothing is offered to pick ("bao nhiêu tiền?"): the model's words stand.
+    static func choiceQuestion(in result: JSONValue, variant: Int = Int.random(in: 0..<3)) -> String? {
+        guard result["status"] == "needsInfo", case .array(let items)? = result["items"] else { return nil }
+        struct Asked {
+            var question: String
+            var category: Bool
+            var picks: [String]
+            var newName: String?
+            var groups: [String]
+            var about: String
+        }
+        let asked: [Asked] = items.compactMap { item in
+            guard let ask = item["ask"]?.string, !ask.isEmpty else { return nil }
+            let question = ask.components(separatedBy: CategoryResolver.offerLead).first ?? ask
+            // Options the question says already ("khoản chi hay khoản thu?") are not said again.
+            let picks = ((item["suggestions"]?.strings ?? []) + (item["options"]?.strings ?? []))
+                .filter { !question.searchKey.contains($0.searchKey) }
+            let name = item["canCreate"]?["name"]?.string.flatMap { $0.isEmpty ? nil : $0 }
+            return Asked(question: question, category: item["missing"]?.string == "category", picks: picks,
+                         newName: name, groups: item["canCreate"]?["groups"]?.strings ?? [],
+                         about: item["about"]?.string ?? "")
+        }
+        guard asked.contains(where: { !$0.picks.isEmpty || $0.newName != nil }) else { return nil }
+        let look = ["🤔", "👀", "🧐"][variant % 3]
+        func offer(_ names: [String], groups: [String]) -> String {
+            "• Hoặc tạo mục mới " + names.map { "“\($0)”" }.joined(separator: ", ")
+                + (groups.count == 1 ? " trong nhóm “\(groups[0])”" : "") + " luôn cho tiện ✨"
+        }
+        func listed(_ names: [String]) -> String {
+            names.count < 2 ? names.joined() : names.dropLast().joined(separator: ", ") + " và " + (names.last ?? "")
+        }
+        var blocks: [String] = []
+        var together: [Asked] = []
+        var done = Set<Int>()
+        for (index, one) in asked.enumerated() where !done.contains(index) {
+            // The others asking for an item: asked with it, their lists made one (user 2026-11-18:
+            // with lists not the same, the same question was said twice, word for word).
+            let same = asked.indices.filter { other in
+                !done.contains(other) && one.category && asked[other].category && !asked[other].about.isEmpty
+            }
+            if same.count > 1, !one.about.isEmpty {
+                done.formUnion(same)
+                let group = same.map { asked[$0] }
+                var lines = ["Có \(group.count) khoản Milu chưa biết xếp vô mục nào nè: "
+                             + listed(group.map { "**\($0.about)**" }) + " \(look)"]
+                var picks: [String] = []
+                for pick in group.flatMap(\.picks) where !picks.contains(pick) { picks.append(pick) }
+                together = group.map { var each = $0; each.picks = Self.withoutSharedGroup(each.picks); return each }
+                if !picks.isEmpty { lines.append("• Chọn mục có sẵn: \(Self.withoutSharedGroup(picks).joined(separator: ", "))") }
+                let names = group.compactMap(\.newName)
+                let homes = Set(group.flatMap(\.groups))
+                if !names.isEmpty { lines.append(offer(names, groups: homes.count == 1 ? Array(homes) : [])) }
+                blocks.append(lines.joined(separator: "\n"))
+                continue
+            }
+            done.insert(index)
+            var lines = [one.question]
+            if !one.picks.isEmpty {
+                let picks = one.category ? Self.withoutSharedGroup(one.picks) : one.picks
+                lines.append("• \(one.category ? "Chọn mục có sẵn" : "Chọn"): \(picks.joined(separator: ", "))")
+            }
+            if let name = one.newName { lines.append(offer([name], groups: one.groups)) }
+            if lines.count > 1 { lines[0] += " \(look)" }
+            blocks.append(lines.joined(separator: "\n"))
+        }
+        // The name of what was asked about, its sum left out: "Trà đá 5.000đ" is "trà đá".
+        func named(_ one: Asked) -> String {
+            one.about.split(separator: " ").prefix { Double($0.filter(\.isNumber)) == nil }
+                .joined(separator: " ").lowercased()
+        }
+        let last: String
+        if together.count > 1 {
+            // How to answer for each, in their own names: the first made new when it can be, the
+            // next to an item there is.
+            let (first, second) = (named(together[0]), named(together[1]))
+            let firstTo = together[0].newName != nil ? "tạo mới" : together[0].picks.first.map { "vào \($0)" } ?? ""
+            let secondTo = together[1].picks.first.map { "vào \($0)" } ?? (together[1].newName != nil ? "tạo mới" : "")
+            last = first.isEmpty || second.isEmpty || firstTo.isEmpty || secondTo.isEmpty
+                ? "Bạn nhắn Milu từng khoản xếp vô đâu nha 😉"
+                : "Bạn nhắn Milu từng khoản nha, kiểu: “\(first) \(firstTo), \(second) \(secondTo)” 😉"
+        } else {
+            last = ["Bạn chọn xong nhắn Milu một tiếng nha 😉", "Chốt cái nào thì nhắn Milu nè 🚀",
+                    "Nhắn Milu lựa chọn của bạn nha, phần còn lại để Milu lo 💪"][variant % 3]
+        }
+        return (blocks + [last]).joined(separator: "\n\n")
+    }
+
+    /// Items to pick, without the group they all share: "Trà sữa (Ăn uống), Cà phê (Ăn uống)" is
+    /// "Trà sữa, Cà phê" (iPhone 2026-11-18). Groups that differ are kept, to tell items apart.
+    static func withoutSharedGroup(_ picks: [String]) -> [String] {
+        func group(_ pick: String) -> String? {
+            guard pick.hasSuffix(")"), let open = pick.range(of: " (", options: .backwards) else { return nil }
+            return String(pick[open.upperBound...].dropLast())
+        }
+        let groups = Set(picks.map(group))
+        guard groups.count == 1, let only = groups.first, only != nil else { return picks }
+        return picks.map { pick in
+            pick.range(of: " (", options: .backwards).map { String(pick[..<$0.lowerBound]) } ?? pick
+        }
+    }
+
+    /// What a record result asks, item by item, each once.
+    static func questions(in result: JSONValue) -> [String] {
+        guard result["status"] == "needsInfo", case .array(let items)? = result["items"] else { return [] }
+        var found: [String] = []
+        for item in items {
+            if let ask = item["ask"]?.string, !ask.isEmpty, !found.contains(ask) { found.append(ask) }
+        }
+        return found
     }
 
     /// What a record result refused, new ones after `known`.
@@ -230,6 +483,7 @@ struct RemoteAssistant: AssistantService {
             }
         }
         turn.open.append(draft)
+        turn.seen.insert(draft.ref)
         actions.append(.draft(draft))
     }
 
@@ -268,17 +522,23 @@ struct RemoteAssistant: AssistantService {
             let rows = draft.liveRows
             let state = switch draft.state {
             case .pending: "đang chờ người dùng bấm Lưu, chưa ghi; đổi gì thì gọi record_transaction với replaces"
-            case .saved: "đã lưu, người dùng bấm Xem trên thẻ để sửa"
+            case .saved: "đã lưu, người dùng bấm Xem để sửa"
             case .cancelled: "đã huỷ, không ghi gì"
-            case .replaced: "đã thay bằng thẻ mới"
+            case .replaced: "đã thay bằng bản mới"
             }
             let items: [JSONValue] = rows.map { row in
                 let transaction = row.transaction
                 var item: [String: JSONValue] = [
                     "kind": .string(transaction.kind.rawValue), "amount": ToolMoney.value(transaction.amount),
-                    "category": .string(row.newItem?.name ?? store.categoryName(transaction.categoryID)),
                     "date": .string(ToolDates.text(transaction.date)),
                 ]
+                // An item to make on "Lưu" as the model asks for one, so it sends it back so
+                // (iPhone 2026-11-18: told as "category": "Trà đá", sent back so, it was asked again).
+                if let new = row.newItem {
+                    item["new_category"] = ["name": .string(new.name), "group": .string(store.categoryName(new.groupID))]
+                } else {
+                    item["category"] = .string(store.categoryName(transaction.categoryID))
+                }
                 if !row.accountChosenByApp, let account = store.account(id: transaction.accountID) {
                     item["account"] = .string(account.name)
                 }

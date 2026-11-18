@@ -52,8 +52,13 @@ enum AssistantTools {
         tools(app: app, turn: turn).first { $0.name == name }
     }
 
-    static var specs: [MiluAPI.ToolSpec] {
-        all.map { MiluAPI.ToolSpec(name: $0.name, description: $0.description, parameters: $0.parameters) }
+    static var specs: [MiluAPI.ToolSpec] { specs(only: nil) }
+
+    /// The tools sent to the model; `only` those names when given (the quick sheet sends the record
+    /// tool alone: it records, and answers nothing else).
+    static func specs(only names: Set<String>?) -> [MiluAPI.ToolSpec] {
+        all.filter { names?.contains($0.name) ?? true }
+            .map { MiluAPI.ToolSpec(name: $0.name, description: $0.description, parameters: $0.parameters) }
     }
 }
 
