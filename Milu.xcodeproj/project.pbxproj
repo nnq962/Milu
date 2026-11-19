@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A1C0FFEE00000000000000A3 /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = A1C0FFEE00000000000000A2 /* RiveRuntime */; };
+		A1C0FFEE0000000000000B08 /* MiluWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1C0FFEE0000000000000B01 /* MiluWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -18,22 +19,67 @@
 			remoteGlobalIDString = 568C7C78308E036200F4B02D;
 			remoteInfo = Milu;
 		};
+		A1C0FFEE0000000000000B0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 568C7C71308E036200F4B02D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1C0FFEE0000000000000B09;
+			remoteInfo = MiluWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1C0FFEE0000000000000B07 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1C0FFEE0000000000000B08 /* MiluWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		568C7C79308E036200F4B02D /* Milu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Milu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1C0FFEE0000000000000001 /* MiluTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MiluTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1C0FFEE0000000000000B01 /* MiluWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MiluWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1C0FFEE0000000000000B03 /* Exceptions for "Milu" folder in "MiluWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				App/StorageKey.swift,
+				App/WidgetShared.swift,
+				DesignSystem/Foundations/Palette.swift,
+				Resources/Fonts/Nunito.ttf,
+				Store/Budget.swift,
+				Utilities/Formatting.swift,
+			);
+			target = A1C0FFEE0000000000000B09 /* MiluWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		568C7C7B308E036200F4B02D /* Milu */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1C0FFEE0000000000000B03 /* Exceptions for "Milu" folder in "MiluWidgetExtension" target */,
+			);
 			path = Milu;
 			sourceTree = "<group>";
 		};
 		A1C0FFEE0000000000000002 /* Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		A1C0FFEE0000000000000B02 /* MiluWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MiluWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -54,6 +100,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1C0FFEE0000000000000B05 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -62,6 +115,7 @@
 			children = (
 				568C7C7B308E036200F4B02D /* Milu */,
 				A1C0FFEE0000000000000002 /* Tests */,
+				A1C0FFEE0000000000000B02 /* MiluWidget */,
 				568C7C7A308E036200F4B02D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -71,6 +125,7 @@
 			children = (
 				568C7C79308E036200F4B02D /* Milu.app */,
 				A1C0FFEE0000000000000001 /* MiluTests.xctest */,
+				A1C0FFEE0000000000000B01 /* MiluWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -85,10 +140,12 @@
 				568C7C75308E036200F4B02D /* Sources */,
 				568C7C76308E036200F4B02D /* Frameworks */,
 				568C7C77308E036200F4B02D /* Resources */,
+				A1C0FFEE0000000000000B07 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1C0FFEE0000000000000B0A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				568C7C7B308E036200F4B02D /* Milu */,
@@ -124,6 +181,28 @@
 			productReference = A1C0FFEE0000000000000001 /* MiluTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A1C0FFEE0000000000000B09 /* MiluWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1C0FFEE0000000000000B0C /* Build configuration list for PBXNativeTarget "MiluWidgetExtension" */;
+			buildPhases = (
+				A1C0FFEE0000000000000B04 /* Sources */,
+				A1C0FFEE0000000000000B05 /* Frameworks */,
+				A1C0FFEE0000000000000B06 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1C0FFEE0000000000000B02 /* MiluWidget */,
+			);
+			name = MiluWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MiluWidgetExtension;
+			productReference = A1C0FFEE0000000000000B01 /* MiluWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -140,6 +219,9 @@
 					A1C0FFEE0000000000000003 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = 568C7C78308E036200F4B02D;
+					};
+					A1C0FFEE0000000000000B09 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -162,6 +244,7 @@
 			targets = (
 				568C7C78308E036200F4B02D /* Milu */,
 				A1C0FFEE0000000000000003 /* MiluTests */,
+				A1C0FFEE0000000000000B09 /* MiluWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -175,6 +258,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A1C0FFEE0000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1C0FFEE0000000000000B06 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -198,6 +288,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1C0FFEE0000000000000B04 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -205,6 +302,11 @@
 			isa = PBXTargetDependency;
 			target = 568C7C78308E036200F4B02D /* Milu */;
 			targetProxy = A1C0FFEE0000000000000008 /* PBXContainerItemProxy */;
+		};
+		A1C0FFEE0000000000000B0A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1C0FFEE0000000000000B09 /* MiluWidgetExtension */;
+			targetProxy = A1C0FFEE0000000000000B0B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -333,6 +435,7 @@
 		568C7C85308E036300F4B02D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = group.com.quyetnguyen.milu.app;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Milu.entitlements;
@@ -378,6 +481,7 @@
 		568C7C86308E036300F4B02D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = group.com.quyetnguyen.milu.app;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Milu.entitlements;
@@ -518,8 +622,8 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG MILU_DEV $(inherited)";
+				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = NO;
 			};
 			name = Dev;
@@ -527,8 +631,10 @@
 		A1C0FFEE00000000000000D2 /* Dev */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP_ID = group.com.quyetnguyen.milu.dev;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Milu.Dev.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -590,6 +696,107 @@
 			};
 			name = Dev;
 		};
+		A1C0FFEE0000000000000B0D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = group.com.quyetnguyen.milu.app;
+				CODE_SIGN_ENTITLEMENTS = MiluWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JJ26XK7R5T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MiluWidget.Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Milu;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quyetnguyen.milu.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "Milu Widget Development";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A1C0FFEE0000000000000B0E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = group.com.quyetnguyen.milu.app;
+				CODE_SIGN_ENTITLEMENTS = MiluWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JJ26XK7R5T;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MiluWidget.Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Milu;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quyetnguyen.milu.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "Milu Widget Development";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		A1C0FFEE0000000000000B0F /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP_ID = group.com.quyetnguyen.milu.dev;
+				CODE_SIGN_ENTITLEMENTS = MiluWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BFD7HJ6N92;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MiluWidget.Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Milu Dev";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.quyetnguyen.milu.dev.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Dev;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -619,6 +826,16 @@
 				A1C0FFEE000000000000000A /* Debug */,
 				A1C0FFEE000000000000000B /* Release */,
 				A1C0FFEE00000000000000D3 /* Dev */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1C0FFEE0000000000000B0C /* Build configuration list for PBXNativeTarget "MiluWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1C0FFEE0000000000000B0D /* Debug */,
+				A1C0FFEE0000000000000B0E /* Release */,
+				A1C0FFEE0000000000000B0F /* Dev */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

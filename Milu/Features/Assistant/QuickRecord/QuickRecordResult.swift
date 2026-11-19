@@ -34,6 +34,73 @@ enum QuickRecordResult: Equatable {
     }
 }
 
+/// Words said under a card waiting for "Lưu", to change it (user request 2026-11-19: once the
+/// card showed, a wrong amount meant its form or the whole sentence again). The card stays over
+/// them; what Milu answers does one of three things to it.
+enum QuickRecordFix: Equatable {
+    /// A new card in its place.
+    case changed
+    /// A question first, the card still over it until the answer.
+    case asked
+    /// Not changed: the card back as it was, and why under it.
+    case unchanged(String)
+
+    /// `before`, the card the words were said under.
+    static func of(_ result: QuickRecordResult, refused: [RecordRefusal.Refused],
+                   before: TransactionDraft? = nil) -> QuickRecordFix {
+        switch result {
+        // The same card again (Simulator 2026-11-19: "sửa giúp mình cái đó" came back as it was,
+        // and the sheet seemed not to have heard): nothing to change was understood.
+        case .card(let draft, _) where before.map { sameRows(draft, $0) } ?? false: .unchanged(notUnderstood)
+        case .card: .changed
+        case .asking: .asked
+        // The card still there to save, no form's button beside it: the way by hand is said.
+        case .refused: .unchanged(RecordRefusal.message(refused))
+        // Words Milu made no record of ("sửa giúp mình", a question): the card is the same.
+        case .notRecord: .unchanged(notUnderstood)
+        }
+    }
+
+    static let notUnderstood = "Milu chưa hiểu cần sửa gì. Bạn hãy nói rõ khoản nào và sửa thành gì."
+
+    /// Whether two cards hold the same transactions, whatever their ids: the kind, amount, item,
+    /// account and note of each, and its moment within a few minutes (one said with no time is
+    /// made at the moment the card is, again on a card sent back as it was).
+    static func sameRows(_ one: TransactionDraft, _ other: TransactionDraft) -> Bool {
+        let rows = one.liveRows, others = other.liveRows
+        guard rows.count == others.count else { return false }
+        return zip(rows, others).allSatisfy { row, other in
+            let a = row.transaction, b = other.transaction
+            return a.kind == b.kind && a.amount == b.amount && a.categoryID == b.categoryID
+                && a.accountID == b.accountID && a.note == b.note && row.newItem == other.newItem
+                && abs(a.date.timeIntervalSince(b.date)) < 10 * 60
+        }
+    }
+
+    /// The exchange with the card `id` waiting no more: a newer one took its place, so Milu reads
+    /// one card to change, not two (and in the chat's words, "đã thay bằng bản mới").
+    static func replacing(_ id: UUID, in history: [ChatMessage]) -> [ChatMessage] {
+        history.map { message in
+            guard var draft = message.pendingDraft, draft.id == id else { return message }
+            draft.state = .replaced
+            var message = message
+            message.card = .draft(draft)
+            return message
+        }
+    }
+
+    /// The exchange with the card as it now is: a row changed in its form, or taken off it, or
+    /// why it could not be saved.
+    static func updating(_ draft: TransactionDraft, in history: [ChatMessage]) -> [ChatMessage] {
+        history.map { message in
+            guard case .draft(let old) = message.card, old.id == draft.id else { return message }
+            var message = message
+            message.card = .draft(draft)
+            return message
+        }
+    }
+}
+
 /// The manual form for what Milu could not record, the amount said already in it (user choice
 /// 2026-11-17). None for a goal (which one is the user's to pick on its page) or a repayment (it
 /// goes on a loan already there).

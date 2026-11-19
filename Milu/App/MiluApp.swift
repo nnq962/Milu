@@ -81,6 +81,9 @@ struct MiluApp: App {
         Typography.configureNativeAppearance()
         // Set before launch ends, so a tapped notification that opened the app is heard.
         _ = Reminders.shared
+        // Set before launch ends too, so a widget button that launched the app is heard.
+        // (iOS makes the app on the main thread.)
+        MainActor.assumeIsolated { WidgetShared.onOpen = { @MainActor link in Self.open(link) } }
         // Before anything reads them: a reinstall gets its settings and AI allowance back.
         cloudSettings.start()
         // What the App Store says is owned, and every renewal or refund from now on.
@@ -205,6 +208,13 @@ struct MiluApp: App {
                         .zIndex(1)
                 }
             }
+                // A button on the widget: its form opens as a tapped reminder's does, once the
+                // app's pages are up and nothing is in the way (`ContentView.openFromReminder`).
+                // Heard here, at the root, so a tap that launched the app is not lost before
+                // the pages are built.
+                .onOpenURL { url in
+                    if let link = WidgetShared.Link(url) { Self.open(link) }
+                }
                 // Inside the modifiers below, so the sheet has the app's environment.
                 .sheet(isPresented: $showsNotificationInvite) { NotificationInviteView() }
                 .background { SavedAppearanceSetter().frame(width: 0, height: 0) }
@@ -317,6 +327,18 @@ struct MiluApp: App {
             guard !Task.isCancelled else { return }
             if sync.takeNewData() { store.reload() }
             store.recordDueRecurring()
+        }
+    }
+
+    /// A button on the widget (`OpenMiluIntent`), or a tap beside them (milu://add): its form opens
+    /// as a tapped reminder's does, once the pages are up and nothing is in the way
+    /// (`ContentView.openFromReminder`).
+    private static func open(_ link: WidgetShared.Link) {
+        switch link {
+        case .add: Reminders.shared.router.pending = .addTransaction
+        case .ai: Reminders.shared.router.pending = .quickRecord
+        case .overview: Reminders.shared.router.pending = .overview
+        case .budget: Reminders.shared.router.pending = .budget
         }
     }
 

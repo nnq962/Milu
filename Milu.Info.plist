@@ -20,5 +20,26 @@
 	<array>
 		<string>vi</string>
 	</array>
+	<!-- The widget's buttons open the app with milu://add (Thêm giao dịch) and milu://ai (Thêm
+	     bằng AI), see `WidgetShared`. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>milu</string>
+			</array>
+		</dict>
+	</array>
+	<!-- The folder shared with the widget (`WidgetShared`), per build: Milu Dev has its own. -->
+	<key>MiluAppGroup</key>
+	<string>$(APP_GROUP_ID)</string>
+	<!-- The app's own animations at the screen's rate (120 Hz on ProMotion iPhones), as the
+	     keyboard and iOS's sheets: without it they run at 60 and lag beside them (user report
+	     2026-11-19, "giật giật ở màn 120hz"). -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 </dict>
 </plist>

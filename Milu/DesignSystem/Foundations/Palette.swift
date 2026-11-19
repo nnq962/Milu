@@ -59,6 +59,11 @@ enum Palette {
     static let primaryTint = primary.opacity(0.10)
     /// A faint label-coloured fill for secondary buttons and neutral badges.
     static let fill = label.opacity(0.06)
+    /// The page behind a sheet the app draws itself (`BottomPanel`), dimmed as iOS dims it behind
+    /// its own: no hue, the page's own colours darkened.
+    static let scrim = Color(uiColor: UIColor { traits in
+        UIColor(white: 0, alpha: traits.userInterfaceStyle == .dark ? 0.48 : 0.2)
+    })
     /// Action/DisabledSurface and Action/DisabledInk: a control that cannot be used.
     static let disabledFill = dynamic(0xE5EBED, dark: 0x2B3942)
     static let disabledLabel = dynamic(0x586A74, dark: 0xA3B0B7)

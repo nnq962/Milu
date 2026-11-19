@@ -180,6 +180,12 @@ struct OverviewView: View {
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }
             .navigationDestination(for: CalendarRoute.self) { _ in MoneyCalendarPage() }
             .navigationDestination(for: BudgetRoute.self) { _ in BudgetView() }
+            // The widget's "Chưa đặt hạn mức": Hạn mức chi tiêu, over Tổng quan (`Action.budget`).
+            .onChange(of: Reminders.shared.router.opensBudget, initial: true) { _, opens in
+                guard opens else { return }
+                Reminders.shared.router.opensBudget = false
+                path = NavigationPath([BudgetRoute()])
+            }
             .sheet(item: $confirmingRecurring) { RecurringConfirmSheet(occurrence: $0) }
             .sheet(isPresented: $isShowingPaywall) { PaywallView() }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }

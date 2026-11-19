@@ -96,6 +96,65 @@ struct QuickRecordTests {
         #expect(RemoteAssistant.choices(in: ["status": "draft"]).isEmpty)
     }
 
+    private func card(_ said: String, in store: FinanceStore) throws -> TransactionDraft {
+        guard case .card(let draft, _) = QuickRecordResult.of(MockAssistant(store: store).record(said), said: said) else {
+            throw CancellationError()
+        }
+        return draft
+    }
+
+    /// Words under the card (user request 2026-11-19): a new card takes its place, a question
+    /// keeps it over the question, and anything else leaves it as it was with why.
+    @Test func wordsUnderACardChangeItOrLeaveItAsItWas() throws {
+        let store = store()
+        let draft = try card("cà phê 35k", in: store)
+        #expect(QuickRecordFix.of(.card(draft, note: nil), refused: []) == .changed)
+        // The same card sent back ("sửa giúp mình cái đó"): nothing was changed on it.
+        let again = try card("cà phê 35k", in: store)
+        #expect(again.id != draft.id)
+        #expect(QuickRecordFix.of(.card(again, note: nil), refused: [], before: draft) == .unchanged(QuickRecordFix.notUnderstood))
+        #expect(QuickRecordFix.of(.card(try card("cà phê 40k", in: store), note: nil), refused: [], before: draft) == .changed)
+        #expect(QuickRecordFix.of(.asking("Khoản này thuộc mục nào?", choices: []), refused: []) == .asked)
+        #expect(QuickRecordFix.of(.notRecord, refused: []) == .unchanged(QuickRecordFix.notUnderstood))
+        // Turned into a loan: the card is still there, the way by hand said rather than a form.
+        #expect(QuickRecordFix.of(.refused(QuickRecordForm.loan(.lent, amount: nil).message, form: .loan(.lent, amount: 200_000)),
+                                  refused: [loan]) == .unchanged(RecordRefusal.message([loan])))
+    }
+
+    /// The card a newer one replaced waits no more, so Milu is sent one card to change; the
+    /// others in the exchange are as they were.
+    @Test func aChangedCardWaitsNoMoreForMilu() throws {
+        let store = store()
+        let first = try card("cà phê 35k", in: store)
+        let other = try card("gửi xe 5k", in: store)
+        let history = [ChatMessage(role: .user, text: "cà phê 35k"),
+                       ChatMessage(role: .assistant, text: "…", card: .draft(first)),
+                       ChatMessage(role: .assistant, text: "…", card: .draft(other))]
+        let after = QuickRecordFix.replacing(first.id, in: history)
+        #expect(after.compactMap(\.pendingDraft).map(\.id) == [other.id])
+        guard case .draft(let replaced) = after[1].card else {
+            Issue.record("no card")
+            return
+        }
+        #expect(replaced.state == .replaced)
+        #expect(after[0] == history[0])
+    }
+
+    /// A row changed in its form is the card Milu is sent, not the one it first made.
+    @Test func aCardChangedInItsFormIsTheOneMiluIsSent() throws {
+        let store = store()
+        let first = try card("cà phê 35k", in: store)
+        var row = try #require(first.liveRows.first)
+        row.transaction.amount = 40_000
+        let history = [ChatMessage(role: .user, text: "cà phê 35k"),
+                       ChatMessage(role: .assistant, text: "…", card: .draft(first))]
+        let after = QuickRecordFix.updating(first.replacingRow(row), in: history)
+        #expect(after[1].pendingDraft?.liveRows.first?.transaction.amount == 40_000)
+        let sent = RemoteAssistant.history(after, store: store).map { "\($0)" }.joined()
+        #expect(sent.contains("40.000"))
+        #expect(!sent.contains("35.000"))
+    }
+
     /// The record tool alone: the quick sheet never answers a question, so never takes a lượt.
     @Test func theQuickSheetGivesTheRecordToolAlone() {
         #expect(AssistantTools.specs(only: [RecordTransaction().name]).map(\.name) == [RecordTransaction().name])

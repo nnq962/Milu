@@ -162,11 +162,21 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
 @MainActor
 @Observable
 final class NotificationRouter {
-    enum Action: String { case addTransaction }
+    enum Action: String {
+        case addTransaction
+        /// "Thêm bằng AI", from the widget's "Nói với Milu" (`WidgetShared.Link.ai`).
+        case quickRecord
+        /// Tổng quan, from "Chi tiêu tháng này" (`WidgetShared.Link.overview`).
+        case overview
+        /// Hạn mức chi tiêu on Tổng quan, from "Chi tiêu tháng này" with no limit set.
+        case budget
+    }
     static let actionKey = "action"
     var pending: Action?
     /// New-transaction forms on screen, from anywhere (Làm quen, "Mua ngay", the +).
     var openAddForms = 0
+    /// Tổng quan is asked to open Hạn mức chi tiêu (`Action.budget`); it clears this once open.
+    var opensBudget = false
 }
 
 /// When the reminder comes: at `minutes` after midnight on each of the next days, today too if

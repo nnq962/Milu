@@ -70,16 +70,27 @@ struct ContentView: View {
         pendingAdd = AddWay.allCases.first { $0.option.title == option.title }?.kind
     }
 
-    /// A tapped "Nhắc ghi chi tiêu" opens the add form once nothing stands in its way: not under
-    /// the Face ID lock (its keyboard came up over the lock, audit 2026-11-15), and not while
-    /// another sheet is up (it could not open, and the tap was lost): then as that one closes.
-    /// Gone with the app to the background.
+    /// A tapped "Nhắc ghi chi tiêu", or a button on the widget, opens its form once nothing stands
+    /// in its way: not under the Face ID lock (its keyboard came up over the lock, audit
+    /// 2026-11-15), and not while another sheet is up (it could not open, and the tap was lost):
+    /// then as that one closes. Gone with the app to the background.
     private func openFromReminder() {
-        guard Reminders.shared.router.pending == .addTransaction, !appLock.isLocked else { return }
-        // The add form is the sheet up: the reminder is answered already (audit round 2,
+        guard let action = Reminders.shared.router.pending, !appLock.isLocked else { return }
+        let kind: AddKind
+        switch action {
+        case .addTransaction: kind = .transaction
+        case .quickRecord: kind = .quickRecord
+        case .overview, .budget:
+            // A page, not a form: Tổng quan at once, which opens Hạn mức chi tiêu when asked.
+            Reminders.shared.router.pending = nil
+            selectedTab = .overview
+            if action == .budget { Reminders.shared.router.opensBudget = true }
+            return
+        }
+        // The form asked for is the sheet up: the tap is answered already (audit round 2,
         // 2026-11-15: waited on, a second, empty form came up once it closed). The loan form is
         // not: it is waited on, as any other sheet.
-        if adding == .transaction || Reminders.shared.router.openAddForms > 0 {
+        if adding == kind || (kind == .transaction && Reminders.shared.router.openAddForms > 0) {
             Reminders.shared.router.pending = nil
             return
         }
@@ -95,9 +106,38 @@ struct ContentView: View {
             return
         }
         Reminders.shared.router.pending = nil
-        // A transaction, whatever the + would add on the page behind: left on "Vay nợ", it opened
-        // the loan form (audit round 3, 2026-11-16).
-        adding = .transaction
+        // A transaction (or "Thêm bằng AI"), whatever the + would add on the page behind: left on
+        // "Vay nợ", it opened the loan form (audit round 3, 2026-11-16).
+        present(kind)
+    }
+
+    /// "Thêm bằng AI" in the sheet the app draws (`BottomPanel`) rather than iOS's own: DEBUG
+    /// `MILU_QUICK_PANEL=1`, to compare the two on an iPhone (trial 2026-11-19).
+    private static var quickRecordInPanel: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["MILU_QUICK_PANEL"] != nil
+        #else
+        false
+        #endif
+    }
+
+    /// What + adds, up. "Thêm bằng AI" in the app's own panel: its clear cover comes at once, the
+    /// panel sliding in by itself, where iOS would slide the cover up too.
+    private func present(_ kind: AddKind?) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = kind == .quickRecord && Self.quickRecordInPanel
+        withTransaction(transaction) { adding = kind }
+    }
+
+    /// The forms in iOS's sheet, "Thêm bằng AI" too; in the panel, it has its own
+    /// (`quickRecordShown`).
+    private var sheetAdding: Binding<AddKind?> {
+        Binding(get: { adding == .quickRecord && Self.quickRecordInPanel ? nil : adding }, set: { adding = $0 })
+    }
+
+    private var quickRecordShown: Binding<Bool> {
+        Binding(get: { adding == .quickRecord && Self.quickRecordInPanel },
+                set: { if !$0, adding == .quickRecord { adding = nil } })
     }
 
     /// The form or the chat "Thêm bằng AI" asked for, once it has gone (one sheet at a time).
@@ -144,15 +184,26 @@ struct ContentView: View {
                 guard phase == .background else { return }
                 waitingForSheet?.cancel()
                 waitingForSheet = nil
-                if Reminders.shared.router.pending == .addTransaction { Reminders.shared.router.pending = nil }
+                Reminders.shared.router.pending = nil
             }
+            // The home-screen widget's summary, kept up to date (`WidgetSync`).
+            .background { WidgetSync().frame(width: 0, height: 0) }
+            #if DEBUG
+            // MILU_DEMO: "Thêm bằng AI" opens by itself and runs through its steps
+            // (`QuickRecordSheet.runDemo`), for `FrameLog` to measure on an iPhone.
+            .task {
+                guard ProcessInfo.processInfo.environment["MILU_DEMO"] != nil else { return }
+                try? await Task.sleep(for: .seconds(2))
+                present(.quickRecord)
+            }
+            #endif
             .sheet(isPresented: $isChoosingAdd, onDismiss: {
-                adding = pendingAdd
+                present(pendingAdd)
                 pendingAdd = nil
             }) {
                 OptionSheet(title: Self.addTitle, options: AddWay.allCases.map(\.option)) { choose($0) }
             }
-            .sheet(item: $adding, onDismiss: openAfterQuickRecord) { kind in
+            .sheet(item: sheetAdding, onDismiss: openAfterQuickRecord) { kind in
                 switch kind {
                 case .transaction: AddTransactionView(preferredAccount: addContext.accountID)
                 // On the side "Vay nợ" shows, when it is the page behind; "Cho vay" elsewhere.
@@ -162,6 +213,9 @@ struct ContentView: View {
                 case .transfer(let amount): AddTransactionView(mode: .transfer, amount: amount)
                 case .newLoan(let direction, let amount): LoanEditorView(loan: nil, direction: direction, principal: amount)
                 }
+            }
+            .presentsPanel(isPresented: quickRecordShown, onDismiss: openAfterQuickRecord) {
+                QuickRecordSheet { afterQuickRecord = $0 }
             }
             // The chat, opened from "Thêm bằng AI" with the question in its field, as the pages
             // open it (a cover of its own).

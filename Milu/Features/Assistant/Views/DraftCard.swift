@@ -12,6 +12,9 @@ struct DraftCard: View {
     let draft: TransactionDraft
     let onRow: (UUID) -> Void
     var actions: AnyView? = nil
+    /// Whether a row opens on a tap, the card's tip for it faint when not: while the quick
+    /// sheet's card is being changed by words (user request 2026-11-19).
+    var opensRows = true
 
     @Environment(FinanceStore.self) private var store
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -47,12 +50,20 @@ struct DraftCard: View {
                 actions
                     .padding(.horizontal, RowMetrics.horizontal)
                     .padding(.bottom, Spacing.m)
+                    .transition(Self.quick)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardSurface(radius: CardCorners.card)
         .cardShadow()
     }
+
+    /// The buttons and the tip to tap, going as the card is being changed: gone at once, so they
+    /// are never seen over what comes under the card as it closes up (Simulator, 2026-11-19:
+    /// "Lưu cả 2" faded over the field opening under it); back a beat later, once that has gone.
+    private static let quick = AnyTransition.asymmetric(
+        insertion: .opacity.animation(Motion.gentle(.easeOut(duration: 0.25).delay(0.12))),
+        removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.1))))
 
     // MARK: - Đầu thẻ
 
@@ -237,6 +248,11 @@ struct DraftCard: View {
                 Text(live.count > 1 ? "Bấm vào một khoản để sửa" : "Bấm vào khoản để sửa")
                     .textRole(.caption)
                     .foregroundStyle(Palette.tertiaryLabel)
+                    // Faint while rows do not open, rather than gone: the card keeps its height
+                    // (user request 2026-11-19).
+                    .opacity(opensRows ? 1 : 0.4)
+                    .accessibilityHidden(!opensRows)
+                    .transition(Self.quick)
             }
         }
     }
