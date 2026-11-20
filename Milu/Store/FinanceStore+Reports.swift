@@ -49,8 +49,7 @@ extension FinanceStore {
         totals(of: items.filter { $0.kind == .expense }) { groupID(of: $0.categoryID) }
     }
 
-    /// Income in a stretch of time by group ("Lương", "Thưởng"), largest first: the left side of
-    /// Dòng tiền on Báo cáo.
+    /// Income in a stretch of time by group ("Lương", "Thưởng"), largest first (Milu AI's report tool).
     func incomesByCategory(of items: [FinanceTransaction]) -> [CategoryTotal] {
         totals(of: items.filter { $0.kind == .income }) { groupID(of: $0.categoryID) }
     }

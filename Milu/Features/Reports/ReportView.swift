@@ -3,9 +3,8 @@ import SwiftUI
 
 /// "Báo cáo" (user choice 2026-10-30), opened from the month card on Tổng quan and the totals on
 /// Giao dịch. For a week or a month: spent against the period before, the limit, received and what
-/// is left; where the money came from and went (Dòng tiền); spending by group (each opens the
-/// group); in and out over the latest six periods; and money in and out per account. A part with
-/// nothing in the period is left out; a period with nothing at all says so once, under the totals
+/// is left; spending by group (each opens the group); in and out over the latest six periods; and
+/// money in and out per account. A part with nothing in the period is left out; a period with nothing at all says so once, under the totals
 /// (review 2026-11-08: parts came and went by different rules). Counts as every report does.
 struct ReportView: View {
     @Environment(FinanceStore.self) private var store
@@ -43,12 +42,6 @@ struct ReportView: View {
                     EmptyStateCard(title: "Chưa có thu chi",
                                    message: "Khoản thu, chi trong kỳ này sẽ hiện ở đây.",
                                    picture: IconCatalog.emojiName("📊"))
-                }
-                // Dòng tiền only with both: income alone drew one band into "Còn dư", spending
-                // alone one grey bar fanning out, neither saying more than the totals and the
-                // list (review 2026-11-08).
-                if spent > 0 && received > 0 {
-                    cashFlow(groups, incomes: store.incomesByCategory(of: items), received: received, spent: spent)
                 }
                 if spent > 0 {
                     categories(groups, spent: spent, before: before)
@@ -100,7 +93,7 @@ struct ReportView: View {
     }
 
     /// "Đã thu" and "Còn dư" (or "Chi vượt thu", red with no "-": the words say it, review
-    /// 2026-11-08), the names Dòng tiền gives them too. Side by side; one under the other at the
+    /// 2026-11-08). Side by side; one under the other at the
     /// accessibility sizes, where each half was too narrow for its words.
     @ViewBuilder
     private func footer(received: Double, net: Double) -> some View {
@@ -236,39 +229,6 @@ struct ReportView: View {
 
     private func color(at index: Int) -> Color {
         ChartShades.color(at: index)
-    }
-
-    // MARK: - Dòng tiền
-
-    /// Where the money came from and went (user request 2026-11-08), in place of the ring: the
-    /// first three sources of income ("Thu khác" for the rest) and "Chi vượt thu" when more went
-    /// out than came in (not "Lấy từ số dư": it may have gone on a card or a loan, review
-    /// 2026-11-08); the five largest groups in the list's colours, "Khác" and "Còn dư", the names
-    /// the totals card uses.
-    @ViewBuilder
-    private func cashFlow(_ groups: [CategoryTotal], incomes: [CategoryTotal], received: Double, spent: Double) -> some View {
-            let shownIncomes = 3, shownGroups = ChartShades.steps.count
-            let otherIncome = incomes.dropFirst(shownIncomes).reduce(0) { $0 + $1.amount }
-            let otherSpending = groups.dropFirst(shownGroups).reduce(0) { $0 + $1.amount }
-            let sources = incomes.prefix(shownIncomes).map {
-                CashFlowChart.Node(id: "in-\($0.groupID)", name: $0.name, amount: $0.amount, color: Palette.income, kind: .income)
-            }
-                + (otherIncome > 0 ? [.init(id: "in-other", name: "Thu khác", amount: otherIncome, color: Palette.income, kind: .income)] : [])
-                + (spent > received ? [.init(id: "over", name: "Chi vượt thu", amount: spent - received,
-                                             color: ChartShades.rest, kind: .over)] : [])
-            let sinks = groups.prefix(shownGroups).enumerated().map { index, group in
-                CashFlowChart.Node(id: "out-\(group.groupID)", name: group.name, amount: group.amount,
-                                   color: color(at: index), kind: .spending)
-            }
-                + (otherSpending > 0 ? [.init(id: "out-other", name: "Khác", amount: otherSpending, color: ChartShades.rest, kind: .spending)] : [])
-                + (received > spent ? [.init(id: "kept", name: "Còn dư", amount: received - spent, color: Palette.income, kind: .kept)] : [])
-            OutsideHeaderSection(title: "Dòng tiền") {
-                CashFlowChart(sources: sources, sinks: sinks, resetKey: period)
-                    .card()
-                    // Drawn at once on a new period: the page's ‹ › animate, and the labels slid
-                    // while the canvas, which cannot, jumped (review 2026-11-08).
-                    .transaction { $0.animation = nil }
-            }
     }
 
     // MARK: - Xu hướng
