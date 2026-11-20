@@ -651,7 +651,7 @@ struct TransactionDraftTests {
         let transfer = record(["transactions": [["kind": "transfer", "amount": 500_000, "amount_said": "500k"]]], in: store).result
         let answer = RemoteAssistant.refusedAnswer(RemoteAssistant.refused(in: transfer, adding: []), actions: [])
         #expect(answer == """
-            Milu chưa ghi được chuyển tiền giữa các tài khoản (chuyển khoản, rút tiền, nạp ví): tính năng này chưa có. \
+            Milu chưa ghi được chuyển tiền giữa các tài khoản (chuyển khoản, rút tiền, nạp ví): tính năng này chưa có, Milu sẽ cập nhật sau nha. \
             Bạn ghi tay giúp Milu nhé:
             • Nút + → Thêm giao dịch → Chuyển khoản.
             """)

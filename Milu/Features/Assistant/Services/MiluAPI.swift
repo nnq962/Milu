@@ -69,6 +69,10 @@ nonisolated struct MiluAPI: Sendable {
         var expenseCategories: [String]
         var incomeCategories: [String]
         var accounts: [String]
+        /// What this build's assistant can write besides transactions, whether or not its tool is
+        /// sent this time ("add_account"): the server says so when asked what Milu does, without
+        /// the tool's room in the prompt (2026-11-20).
+        var assistant: [String]? = nil
     }
 
     struct Reply: Decodable, Sendable {

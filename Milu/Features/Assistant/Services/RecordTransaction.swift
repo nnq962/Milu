@@ -11,6 +11,13 @@ struct RecordTurn {
     /// The codes of every card in the chat, waiting or not: one the model names that is none of
     /// these it made up.
     var seen: Set<String> = []
+    /// The cards of accounts waiting for "Lưu" (`AddAccount`), the newest last, and the codes of
+    /// every one in the chat.
+    var openAccounts: [AccountDraft] = []
+    var seenAccounts: Set<String> = []
+    /// Accounts added from a card in this chat: sent again beside a new one, they were copied from
+    /// the chat, not asked for (Simulator 2026-11-20).
+    var addedAccounts: [Account.ID] = []
     var defaults: UserDefaults = .standard
     var now: Date = .now
 }
@@ -77,7 +84,8 @@ struct RecordTransaction: AssistantTool {
     }
 }
 
-/// What Milu does not record, said plainly as what it cannot do yet (user request 2026-11-17: it
+/// What Milu does not record, said plainly as not there yet and coming in an update (user request
+/// 2026-11-20: "báo rằng chưa hỗ trợ và kiểu nói rằng sẽ cập nhật sau") (user request 2026-11-17: it
 /// asked which accounts a transfer was between, then said "Milu bị từ chối rồi nè"), and where the
 /// user does it by hand (the paths as the app shows them).
 enum RecordRefusal {
@@ -91,14 +99,14 @@ enum RecordRefusal {
     }
 
     static let transfer = Kind(
-        reason: "Milu chưa ghi được chuyển tiền giữa các tài khoản (chuyển khoản, rút tiền, nạp ví): tính năng này chưa có.",
+        reason: "Milu chưa ghi được chuyển tiền giữa các tài khoản (chuyển khoản, rút tiền, nạp ví): tính năng này chưa có, Milu sẽ cập nhật sau nha.",
         ways: ["Nút + → Thêm giao dịch → Chuyển khoản."])
     static let loan = Kind(
-        reason: "Milu chưa ghi được khoản vay hay trả nợ: tính năng này chưa có.",
+        reason: "Milu chưa ghi được khoản vay hay trả nợ: tính năng này chưa có, Milu sẽ cập nhật sau nha.",
         ways: ["Khoản vay mới: nút + → Thêm khoản vay.",
                "Trả hay thu nợ: Giao dịch → Vay nợ → chọn khoản vay → Ghi nhận thu nợ / trả nợ."])
     static let goal = Kind(
-        reason: "Milu chưa ghi được tiền bỏ vào hay rút từ hũ tiết kiệm: tính năng này chưa có.",
+        reason: "Milu chưa ghi được tiền bỏ vào hay rút từ hũ tiết kiệm: tính năng này chưa có, Milu sẽ cập nhật sau nha.",
         ways: ["Tài khoản → chọn hũ → Nạp tiền hoặc Rút tiền."])
     static let kinds = [transfer, loan, goal]
     static let futureHowTo = "Khoản lặp lại hằng tháng thì tạo giao dịch định kỳ: nút + → Thêm giao dịch → Lặp lại."

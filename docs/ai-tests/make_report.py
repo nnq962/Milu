@@ -48,6 +48,28 @@ def describe_card(card: dict) -> str:
     return "thẻ chờ Lưu" + (": " + ", ".join(parts) if parts else "")
 
 
+def describe_account_card(card: dict) -> str:
+    parts = []
+    if "rows" in card:
+        parts.append(f"{card['rows']} tài khoản")
+    if "names" in card:
+        parts.append("tên " + ", ".join(" / ".join(names) for names in card["names"]))
+    if "types" in card:
+        kinds = {"cash": "tiền mặt", "bank": "ngân hàng", "ewallet": "ví điện tử"}
+        parts.append("loại " + ", ".join(kinds.get(kind, kind) for kind in card["types"]))
+    if "institutions" in card:
+        parts.append(", ".join(card["institutions"]))
+    if "balances" in card:
+        parts.append("số dư " + ", ".join(("−" if b < 0 else "") + money(abs(b)) for b in card["balances"]))
+    if card.get("notice"):
+        parts.append("ghi rõ Milu đã chọn gì")
+    if card.get("warning"):
+        parts.append("cảnh báo số dư")
+    if card.get("replaces"):
+        parts.append("thay thẻ cũ")
+    return "thẻ tài khoản chờ Lưu" + (": " + ", ".join(parts) if parts else "")
+
+
 def describe(expect: dict) -> str:
     if not expect:
         return ""
@@ -58,6 +80,10 @@ def describe(expect: dict) -> str:
         parts.append(describe_card(expect["card"]))
     if expect.get("noCard"):
         parts.append("không ra thẻ")
+    if "accountCard" in expect:
+        parts.append(describe_account_card(expect["accountCard"]))
+    if expect.get("noAccountCard"):
+        parts.append("không ra thẻ tài khoản")
     if expect.get("asks"):
         parts.append("hỏi lại")
     names = {"transfer": "chuyển tiền", "loan": "vay nợ", "goal": "hũ"}
@@ -77,6 +103,8 @@ def describe(expect: dict) -> str:
         parts.append("“" + "”, “".join(expect["once"]) + "” chỉ nói một lần")
     if "saved" in expect:
         parts.append(f"đã lưu {expect['saved']} khoản")
+    if "accountsAdded" in expect:
+        parts.append(f"đã thêm {expect['accountsAdded']} tài khoản")
     if "newItemSaved" in expect:
         parts.append(f"đã tạo mục “{expect['newItemSaved']}”")
     return "; ".join(parts)
@@ -123,6 +151,21 @@ def seen_card(card) -> str:
     return head + ": " + " | ".join(rows)
 
 
+def seen_account_card(card) -> str:
+    if not card:
+        return ""
+    rows = []
+    for row in card["rows"]:
+        bits = [row["name"], row["type"], row["institution"] or "(không ngân hàng)",
+                ("−" if row["balance"] < 0 else "") + money(abs(row["balance"]))]
+        if row.get("notice"):
+            bits.append(f"ℹ️ {row['notice']}")
+        if row.get("warning"):
+            bits.append(f"⚠️ {row['warning']}")
+        rows.append(" · ".join(bits))
+    return "Thẻ tài khoản" + (" (thay thẻ cũ)" if card["replaces"] else "") + ": " + " | ".join(rows)
+
+
 def report(cases: list[dict], groups: dict, date: str, runs: int) -> str:
     passed = sum(c["passed"] for c in cases)
     lines = [f"# Kết quả test Milu AI ({date})", "",
@@ -146,6 +189,8 @@ def report(cases: list[dict], groups: dict, date: str, runs: int) -> str:
             lines.append(f"  - **Milu:** {text}" if text else "  - **Milu:** *(trống)*")
             if turn.get("card"):
                 lines.append(f"  - {seen_card(turn['card'])}")
+            if turn.get("accountCard"):
+                lines.append(f"  - {seen_account_card(turn['accountCard'])}")
             if turn.get("tools"):
                 lines.append(f"  - Công cụ: {', '.join(turn['tools'])}")
             if turn.get("error"):
@@ -157,7 +202,7 @@ def report(cases: list[dict], groups: dict, date: str, runs: int) -> str:
     for case in cases:
         if case["passed"]:
             last = case["turns"][-1]
-            shown = seen_card(last.get("card")) or last["text"].strip().replace("\n", " ⏎ ")
+            shown = seen_card(last.get("card")) or seen_account_card(last.get("accountCard")) or last["text"].strip().replace("\n", " ⏎ ")
             lines.append(f"| {case['id']} | {case['title']} | {shown[:160].replace('|', '/')} |")
     return "\n".join(lines) + "\n"
 

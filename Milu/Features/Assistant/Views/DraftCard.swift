@@ -314,7 +314,7 @@ struct DashedRule: View {
 
 /// What to look at before "Lưu", gathered in one tinted box: twins saved that day (warning), or
 /// rows that cannot be saved as they are (problem).
-private struct NoticeBox: View {
+struct NoticeBox: View {
     enum Tone { case warning, problem }
     let lines: [String]
     let tone: Tone

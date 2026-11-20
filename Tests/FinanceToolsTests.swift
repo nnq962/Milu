@@ -34,7 +34,7 @@ struct FinanceToolsTests {
         let today = ToolDates.text(.now)
         let monthStart = ToolDates.text(DateInterval.month(of: .now).start)
         let range: JSONValue = ["from": .string(monthStart), "to": .string(today)]
-        for tool in AssistantTools.all where ![RecordTransaction().name, DeleteTransaction().name].contains(tool.name) {
+        for tool in AssistantTools.all where ![RecordTransaction().name, AddAccount().name, DeleteTransaction().name].contains(tool.name) {
             let arguments: JSONValue = switch tool.name {
             case SummarizeTransactions().name: ["from": .string(monthStart), "to": .string(today), "kind": "expense"]
             case ListTransactions().name, ListTransfers().name: range

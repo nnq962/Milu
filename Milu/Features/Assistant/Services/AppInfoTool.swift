@@ -190,10 +190,13 @@ struct GetAppInfo: AssistantTool {
                     // The + opens "Thêm mới" first (2026-11-17); "Thêm bằng AI" is the quick sheet.
                     "Nút + ở thanh dưới: chọn Thêm giao dịch, Thêm khoản vay, hoặc Thêm bằng AI (nói hay gõ một câu như \"cà phê 35k\", Milu soạn sẵn để bấm Lưu ngay, không mở chat, không tốn lượt)",
                     "✨ Hỏi Milu ở góc trên bên phải: trợ lý AI, gõ hoặc chạm micro để nói",
-                    // Nothing recorded before "Lưu" (user choice 2026-11-17).
-                    "Nhờ Hỏi Milu ghi khoản chi, thu: Milu soạn sẵn, người dùng kiểm tra rồi bấm Lưu mới ghi; chưa ghi chuyển khoản, khoản vay, hũ",
                     "Ảnh đại diện ở góc trên bên trái: Cài đặt",
                 ],
+                // "Milu làm được gì?" (user request 2026-11-20): both things Milu writes, and what
+                // is not there yet, said as coming in an update.
+                // Nothing written before "Lưu" (user choices 2026-11-17, 2026-11-20).
+                "assistantCan": "Hỏi Milu: trả lời về chi tiêu, số dư, nợ, hạn mức, hũ; ghi khoản chi, thu (\"cà phê 35k\") và thêm tài khoản tiền mặt, ngân hàng, ví (\"thêm tài khoản Techcombank 5 triệu\"): soạn sẵn, bấm Lưu mới ghi; xoá một giao dịch",
+                "assistantNotYet": "Hỏi Milu chưa hỗ trợ, sẽ cập nhật sau (làm tay trong app): chuyển khoản, vay nợ, hũ, sửa số dư hay xoá tài khoản đã có, hạng mục, hạn mức, định kỳ. Thêm tài khoản mới thì Hỏi Milu làm được",
                 "settings": [
                     "Hạn mức AI, Nâng cấp Milu Pro",
                     "Quản lý tài chính: Hạn mức chi tiêu, Hạng mục, Giao dịch định kỳ, Danh bạ, Báo cáo",

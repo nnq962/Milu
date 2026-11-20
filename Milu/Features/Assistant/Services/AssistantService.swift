@@ -57,6 +57,8 @@ struct ThinkingStep: Identifiable, Equatable {
         // Nothing is recorded here: a card is made for "Lưu" (2026-11-17).
         case RecordTransaction().name: return ThinkingStep("kiểm tra", "khoản cần ghi")
         case DeleteTransaction().name: return ThinkingStep("tìm", "khoản cần xoá")
+        // Nothing is added here either: a card is made for "Lưu" (2026-11-20).
+        case AddAccount().name: return ThinkingStep("kiểm tra", "tài khoản cần thêm")
         case GetAppInfo().name:
             let what = switch arguments["topic"]?.string.flatMap({ GetAppInfo.Topic(rawValue: $0.lowercased()) }) {
             case .aiQuota: "lượt AI của bạn"

@@ -13,6 +13,8 @@ struct AssistantReply {
         case draft(TransactionDraft)
         /// A transaction the user asked to delete; nothing changes until they confirm.
         case confirmDelete(FinanceTransaction)
+        /// Accounts made ready to add, waiting for "Lưu" on their card (user request 2026-11-20).
+        case accountDraft(AccountDraft)
     }
 
     var text: String
@@ -32,6 +34,10 @@ struct AssistantReply {
     /// What the record tool asked, in its own short words, for the quick sheet: the model's own
     /// question ran to lines of bullets saying again what the chips say (Simulator 2026-11-17).
     var asked: String?
+    /// The add_account call that asked back, and its result, kept with the answer so the model
+    /// reads its own question next turn (live test 2026-11-20: "thêm tài khoản mới", said to the
+    /// question about a name already taken, was read as a new request with nothing in it).
+    var askedCall: ChatMessage.AskedCall?
 
     /// The first, its card under the answer's words; the others follow it.
     var action: Action? { actions.first }

@@ -188,7 +188,7 @@ Mỗi case là một cuộc chat mới trên dữ liệu mẫu của app. Chạy
 |---|---|---|---|
 | A01 | Lượt AI | “còn bao nhiêu lượt hỏi AI?” | tra bằng get_app_info |
 | A02 | iCloud | “dữ liệu của mình có lên iCloud không?” | tra bằng get_app_info |
-| A03 | Cách thêm tài khoản | “làm sao để thêm tài khoản ngân hàng?” | tra bằng get_app_info |
+| A03 | Cách thêm tài khoản | “làm sao để thêm tài khoản ngân hàng?” | tra bằng get_app_info; không nói “chưa hỗ trợ” |
 
 ## G · Giọng nói chuyện, câu ngoài lề (5 case)
 
@@ -210,4 +210,55 @@ Mỗi case là một cuộc chat mới trên dữ liệu mẫu của app. Chạy
 | V04 | Câu nói dài như giọng nói | “ừm ghi cho mình khoản ăn trưa năm mươi nghìn nha” | thẻ chờ Lưu: 50.000đ, mục Ăn trưa |
 | V05 | Không dấu nhiều khoản | “an sang 25k, cafe 20k” | thẻ chờ Lưu: 2 khoản, 25.000đ, 20.000đ |
 | V06 | Gõ sai tên app | “grap ve nha 45k” | thẻ chờ Lưu: 45.000đ, mục Taxi, xe ôm |
+
+## B · Thêm tài khoản (tiền mặt, ngân hàng, ví) (19 case)
+
+| ID | Tình huống | Người dùng | Milu phải |
+|---|---|---|---|
+| B01 | Ngân hàng chưa có, có số dư, bấm Lưu | “thêm tài khoản BIDV 5 triệu” | không ra thẻ; thẻ tài khoản chờ Lưu: 1 tài khoản, tên BIDV, loại ngân hàng, BIDV, số dư 5.000.000đ; không nói “đã thêm” |
+|  | ↳ | *(bấm Lưu)* | đã thêm 1 tài khoản |
+| B02 | Trùng tên tài khoản đã có: hỏi trước, rồi đặt tên số 2 | “thêm tài khoản Techcombank 5 triệu” | không ra thẻ tài khoản; hỏi lại; nói “18.250.000” |
+|  | ↳ | “thêm tài khoản mới” | thẻ tài khoản chờ Lưu: tên Techcombank 2, số dư 5.000.000đ, ghi rõ Milu đã chọn gì |
+|  | ↳ | “ok” | đã thêm 1 tài khoản |
+| B03 | Quên số dư: hỏi lại | “tạo ví zalopay” | không ra thẻ tài khoản; hỏi lại; nói “bao nhiêu” |
+|  | ↳ | “500k” | thẻ tài khoản chờ Lưu: tên ZaloPay, loại ví điện tử, số dư 500.000đ |
+| B04 | Số dư 0đ nói bằng lời | “thêm ví shopeepay, chưa có đồng nào” | thẻ tài khoản chờ Lưu: tên ShopeePay, loại ví điện tử, số dư 0đ |
+| B05 | Không nói tên: hỏi loại, rồi trả lời | “thêm tài khoản 3 triệu” | không ra thẻ tài khoản; hỏi lại |
+|  | ↳ | “ngân hàng MB” | thẻ tài khoản chờ Lưu: loại ngân hàng, MB Bank, số dư 3.000.000đ |
+| B06 | Chọn sai loại: ví điện tử ACB thành ngân hàng | “thêm ví điện tử ACB 2 triệu” | thẻ tài khoản chờ Lưu: loại ngân hàng, ACB, số dư 2.000.000đ |
+| B07 | Sửa thẻ bằng lời: số dư rồi tên | “thêm tài khoản BIDV 5 triệu” | thẻ tài khoản chờ Lưu: số dư 5.000.000đ |
+|  | ↳ | “sửa số dư thành 3 triệu” | thẻ tài khoản chờ Lưu: số dư 3.000.000đ, thay thẻ cũ; không nói “đã sửa”, “đã đổi”, “đã cập nhật” |
+|  | ↳ | “đổi tên thành BIDV lương” | thẻ tài khoản chờ Lưu: tên BIDV lương / BIDV Lương, số dư 3.000.000đ, thay thẻ cũ |
+|  | ↳ | *(bấm Lưu)* | đã thêm 1 tài khoản |
+| B08 | Tiền mặt rồi huỷ | “thêm tiền mặt 200k” | thẻ tài khoản chờ Lưu: loại tiền mặt, số dư 200.000đ |
+|  | ↳ | “huỷ” | nói “huỷ” hoặc “hủy”; đã thêm 0 tài khoản |
+| B09 | Hai tài khoản trong một câu | “thêm tài khoản BIDV 10 triệu và ví ZaloPay 500k” | thẻ tài khoản chờ Lưu: 2 tài khoản, loại ngân hàng, ví điện tử, số dư 10.000.000đ, 500.000đ |
+| B10 | Thẻ tín dụng là tài khoản ngân hàng số dư âm | “thêm thẻ tín dụng HSBC đang nợ 4 triệu” | thẻ tài khoản chờ Lưu: loại ngân hàng, HSBC, số dư −4.000.000đ |
+| B11 | Ngân hàng không có trong danh sách | “thêm tài khoản ngân hàng Zorro 1 triệu” | không ra thẻ tài khoản; hỏi lại |
+| B12 | Tiền mặt đặt tên riêng | “thêm tài khoản tiền mặt tên Heo đất, 1 triệu” | thẻ tài khoản chờ Lưu: tên Heo đất / Heo Đất, loại tiền mặt, số dư 1.000.000đ |
+| B13 | Trùng ví đã có rồi thôi | “thêm ví momo 200k” | không ra thẻ tài khoản; hỏi lại; nói “1.120.000” |
+|  | ↳ | “à thôi không cần nữa” | không ra thẻ tài khoản; không nói “đã thêm”; đã thêm 0 tài khoản |
+| B14 | Hỏi khả năng: có thêm tài khoản được không | “milu có thêm tài khoản giúp mình được không” | không ra thẻ tài khoản; không nói “chưa thêm được”, “không thêm được”, “chưa làm được”, “chưa hỗ trợ” |
+| B15 | Câu không liên quan | “hôm nay trời đẹp ghê” | không ra thẻ; không ra thẻ tài khoản |
+| B16 | Xem lại tài khoản vừa soạn | “thêm tài khoản BIDV 5 triệu” | thẻ tài khoản chờ Lưu: số dư 5.000.000đ |
+|  | ↳ | “cho mình xem lại tài khoản vừa soạn” | thẻ tài khoản chờ Lưu: số dư 5.000.000đ, thay thẻ cũ |
+| B17 | Thêm tiếp sau khi vừa lưu: không hỏi lại tài khoản cũ | “thêm tài khoản BIDV 5 triệu” | thẻ tài khoản chờ Lưu: số dư 5.000.000đ |
+|  | ↳ | *(bấm Lưu)* | đã thêm 1 tài khoản |
+|  | ↳ | “thêm ví zalopay 100k” | thẻ tài khoản chờ Lưu: 1 tài khoản, tên ZaloPay, số dư 100.000đ; không nói “BIDV” |
+|  | ↳ | “ok” | đã thêm 2 tài khoản |
+| B18 | Gõ không dấu: them vi zalopay | “them vi zalopay 100k” | không ra thẻ; thẻ tài khoản chờ Lưu: tên ZaloPay, loại ví điện tử, số dư 100.000đ |
+| B19 | Gõ không dấu: tao tai khoan tien mat | “tao tai khoan tien mat 300k” | không ra thẻ; thẻ tài khoản chờ Lưu: loại tiền mặt, số dư 300.000đ |
+
+## C · Milu làm được gì, việc chưa hỗ trợ (8 case)
+
+| ID | Tình huống | Người dùng | Milu phải |
+|---|---|---|---|
+| C01 | Hỏi Milu làm được gì | “Milu làm được gì?” | không ra thẻ; không ra thẻ tài khoản; nói “ghi”; nói “tài khoản”; không nói “chưa hỗ trợ thêm tài khoản”, “chưa thêm được tài khoản” |
+| C02 | Hỏi giúp được những gì | “bạn giúp được mình những gì vậy” | không ra thẻ; không ra thẻ tài khoản; nói “ghi”; nói “tài khoản”; không nói “chưa hỗ trợ thêm tài khoản”, “chưa thêm được tài khoản” |
+| C03 | Xoá tài khoản: chưa hỗ trợ | “xoá tài khoản MoMo giúp mình” | không ra thẻ; không ra thẻ tài khoản; không hiện thẻ xoá; nói “chưa hỗ trợ” hoặc “chưa làm được” hoặc “chưa thể” hoặc “chưa có” hoặc “chưa tạo được” hoặc “chưa ghi được” hoặc “không hỗ trợ” hoặc “không được hỗ trợ”; nói “cập nhật”; nói “bút chì”; không nói “đã xoá”, “đã xóa”, “đã đổi”, “đã sửa”, “đã cập nhật”, “đã đặt”, “đã tạo” |
+| C04 | Đổi số dư tài khoản đã có: chưa hỗ trợ | “sửa số dư Vietcombank thành 50 triệu” | không ra thẻ; không ra thẻ tài khoản; nói “chưa hỗ trợ” hoặc “chưa làm được” hoặc “chưa thể” hoặc “chưa có” hoặc “chưa tạo được” hoặc “chưa ghi được” hoặc “không hỗ trợ” hoặc “không được hỗ trợ”; nói “cập nhật”; nói “bút chì”; không nói “đã xoá”, “đã xóa”, “đã đổi”, “đã sửa”, “đã cập nhật”, “đã đặt”, “đã tạo” |
+| C05 | Đặt hạn mức: chưa hỗ trợ | “đặt hạn mức ăn uống tháng này 3 triệu” | không ra thẻ; nói “chưa hỗ trợ” hoặc “chưa làm được” hoặc “chưa thể” hoặc “chưa có” hoặc “chưa tạo được” hoặc “chưa ghi được” hoặc “không hỗ trợ” hoặc “không được hỗ trợ”; nói “cập nhật”; nói “Hạn mức chi tiêu”; không nói “đã xoá”, “đã xóa”, “đã đổi”, “đã sửa”, “đã cập nhật”, “đã đặt”, “đã tạo” |
+| C06 | Tạo hũ: chưa hỗ trợ | “tạo hũ du lịch 10 triệu” | không ra thẻ; không ra thẻ tài khoản; nói “chưa hỗ trợ” hoặc “chưa làm được” hoặc “chưa thể” hoặc “chưa có” hoặc “chưa tạo được” hoặc “chưa ghi được” hoặc “không hỗ trợ” hoặc “không được hỗ trợ”; nói “cập nhật”; nói “Hũ tiết kiệm”; không nói “đã xoá”, “đã xóa”, “đã đổi”, “đã sửa”, “đã cập nhật”, “đã đặt”, “đã tạo”, “ứng dụng khác”, “app khác” |
+| C07 | Chuyển khoản: chưa hỗ trợ, sẽ cập nhật | “chuyển 500k từ VCB sang MoMo” | không ra thẻ; nói thật chưa ghi được chuyển tiền, chỉ cách ghi tay; nói “cập nhật” |
+| C08 | Đặt lời nhắc: chưa hỗ trợ | “nhắc mình trả tiền điện ngày 5 hàng tháng” | không ra thẻ; nói “chưa hỗ trợ” hoặc “chưa làm được” hoặc “chưa thể” hoặc “chưa có” hoặc “chưa tạo được” hoặc “chưa ghi được” hoặc “không hỗ trợ” hoặc “không được hỗ trợ”; nói “cập nhật”; nói “định kỳ”; không nói “đã xoá”, “đã xóa”, “đã đổi”, “đã sửa”, “đã cập nhật”, “đã đặt”, “đã tạo” |
 

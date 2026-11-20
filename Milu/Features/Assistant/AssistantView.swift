@@ -32,6 +32,8 @@ struct AssistantView: View {
     @State private var viewingTransaction: FinanceTransaction?
     /// A row of a card waiting for "Lưu", open to be changed (`DraftRowEditor`).
     @State private var editingRow: EditingRow?
+    /// An account of a card waiting for "Lưu", open in its form (`AddAccountView(proposed:)`).
+    @State private var editingAccount: Account?
     /// The chat card whose "Xoá" was tapped, until the alert is answered: deleting always asks
     /// first, in chat too (strict review 2026-10-31: it deleted at once).
     @State private var pendingRemoval: ChatMessage?
@@ -112,6 +114,19 @@ struct AssistantView: View {
                 changeDraft(holding: changed.id) { $0.replacingRow(changed) }
             } onRemove: {
                 changeDraft(holding: editing.row.id) { $0.removingRow(editing.row.id) }
+            }
+        }
+        .sheet(item: $editingAccount) { account in
+            AddAccountView(proposed: account) { changed in
+                changeAccountDraft(holding: changed.id) { draft in
+                    guard var row = draft.row(changed.id) else { return draft }
+                    row.account = changed
+                    // Changed by hand: what Milu chose or warned about is the user's now.
+                    row.notice = nil
+                    row.warning = nil
+                    row.problem = nil
+                    return draft.replacingRow(row)
+                }
             }
         }
         .systemAlert("Xoá giao dịch?", isPresented: Binding(
@@ -365,6 +380,7 @@ struct AssistantView: View {
         let renews = "Lượt mới có từ **thứ Hai \(quota.renewsOn.shortDay)** nha."
         let first = switch action {
         case .draft: "Khoản bạn nhờ ghi ở bên dưới, bạn kiểm tra rồi bấm **Lưu** nhé. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
+        case .accountDraft: "Tài khoản bạn nhờ thêm ở bên dưới, bạn kiểm tra rồi bấm **Lưu** nhé. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
         case .confirmDelete: "Khoản cần xoá ở bên dưới, bạn bấm xác nhận là xong. Còn câu hỏi thì tuần này bạn hết lượt rồi 😏 "
         case nil: "Tuần này bạn hỏi Milu hết lượt rồi 😏 "
         }
@@ -470,7 +486,7 @@ struct AssistantView: View {
     /// here, as its buttons do, with no question to Milu and no lượt (user choice 2026-11-17).
     private func answerByShortcut(_ question: String) -> Bool {
         guard let answer = DraftShortcut.match(question),
-              let last = messages.last(where: { $0.role == .assistant }), last.pendingDraft != nil else { return false }
+              let last = messages.last(where: { $0.role == .assistant }), last.waitsForSave else { return false }
         let index = currentIndex
         Haptics.selection()
         dictation.stop()
@@ -479,6 +495,14 @@ struct AssistantView: View {
         }
         let said: String
         switch answer {
+        case .save where last.pendingAccountDraft != nil:
+            let saved = saveAccountDraft(in: last)
+            said = saved?.state == .saved
+                ? (saved?.rows.count ?? 0) > 1 ? "Đã thêm \(saved?.rows.count ?? 0) tài khoản." : "Đã thêm tài khoản."
+                : "Chưa lưu được, bạn xem tài khoản ở trên nhé."
+        case .cancel where last.pendingAccountDraft != nil:
+            setAccountDraft(of: last.id) { $0.state = .cancelled }
+            said = "Đã huỷ, Milu chưa thêm gì."
         case .save:
             let saved = saveDraft(in: last)
             said = saved?.state == .saved
@@ -581,6 +605,7 @@ struct AssistantView: View {
                 switch action {
                 case .draft(let draft): .draft(draft)
                 case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
+                case .accountDraft(let draft): .accountDraft(draft)
                 }
             }
             // Into the chat it was asked in, even if another is open by now. The first card under
@@ -591,10 +616,18 @@ struct AssistantView: View {
                     for case .draft(let draft) in reply.actions {
                         if let replaced = draft.replacing { markReplaced(replaced, inChat: index) }
                     }
+                    for case .accountDraft(let draft) in reply.actions {
+                        if let replaced = draft.replacing { markAccountsReplaced(replaced, inChat: index) }
+                    }
                     chats.conversations[index].messages.append(
-                        ChatMessage(role: .assistant, text: reply.text, card: cards.first, thought: thought))
+                        ChatMessage(role: .assistant, text: reply.text, card: cards.first, thought: thought,
+                                    askedCall: reply.askedCall))
                     for card in cards.dropFirst() {
-                        let line = if case .confirmDelete = card { "Và khoản cần xoá này:" } else { "Và các khoản này, bấm Lưu nếu đúng:" }
+                        let line = switch card {
+                        case .confirmDelete: "Và khoản cần xoá này:"
+                        case .accountDraft: "Và tài khoản này, bấm Lưu nếu đúng:"
+                        default: "Và các khoản này, bấm Lưu nếu đúng:"
+                        }
                         chats.conversations[index].messages.append(ChatMessage(role: .assistant, text: line, card: card))
                     }
                 }
@@ -647,6 +680,15 @@ struct AssistantView: View {
             if let id = messageDraftRowID(message) { viewingTransaction = store.transaction(id: id) }
         case (.remove, .draft):
             pendingRemoval = message
+        case (.confirm, .accountDraft(let draft)) where draft.isPending:
+            let saved = saveAccountDraft(in: message)
+            if let saved, saved.state == .saved {
+                AccessibilityNotification.Announcement(saved.rows.count > 1 ? "Đã thêm \(saved.rows.count) tài khoản" : "Đã thêm tài khoản").post()
+            }
+        case (.cancel, .accountDraft(let draft)) where draft.isPending:
+            setAccountDraft(of: message.id) { $0.state = .cancelled }
+        case (.editRow(let id), .accountDraft(let draft)) where draft.isPending:
+            editingAccount = draft.row(id)?.account
         default:
             break
         }
@@ -697,6 +739,46 @@ struct AssistantView: View {
               var draft = chats.conversations[chat].messages[row].pendingDraft else { return }
         draft.state = .replaced
         chats.conversations[chat].messages[row].card = .draft(draft)
+    }
+
+    /// "Lưu" on a card of accounts: all added, or none with why on the card (`AccountDraftSaver`).
+    @discardableResult
+    private func saveAccountDraft(in message: ChatMessage) -> AccountDraft? {
+        guard let draft = message.pendingAccountDraft else { return nil }
+        let saved = AccountDraftSaver.save(draft, in: store)
+        setAccountDraft(of: message.id) { $0 = saved }
+        if saved.state == .saved { Haptics.milestone() } else { Haptics.warning() }
+        return saved
+    }
+
+    /// Changes the card of accounts of a message, in whichever chat holds it.
+    private func setAccountDraft(of messageID: ChatMessage.ID, _ change: (inout AccountDraft) -> Void) {
+        for chat in chats.conversations.indices {
+            guard let row = chats.conversations[chat].messages.firstIndex(where: { $0.id == messageID }),
+                  case .accountDraft(var draft) = chats.conversations[chat].messages[row].card else { continue }
+            change(&draft)
+            chats.conversations[chat].messages[row].card = .accountDraft(draft)
+            return
+        }
+    }
+
+    /// Changes the card of accounts waiting for "Lưu" that holds this account, wherever it is now.
+    private func changeAccountDraft(holding id: UUID, _ change: (AccountDraft) -> AccountDraft) {
+        for chat in chats.conversations.indices {
+            guard let row = chats.conversations[chat].messages.firstIndex(where: {
+                $0.pendingAccountDraft?.row(id) != nil
+            }), let draft = chats.conversations[chat].messages[row].pendingAccountDraft else { continue }
+            chats.conversations[chat].messages[row].card = .accountDraft(change(draft))
+            return
+        }
+    }
+
+    /// The card of accounts a newer one replaced, said so, if it still waited.
+    private func markAccountsReplaced(_ draftID: UUID, inChat chat: Int) {
+        guard let row = chats.conversations[chat].messages.firstIndex(where: { $0.pendingAccountDraft?.id == draftID }),
+              var draft = chats.conversations[chat].messages[row].pendingAccountDraft else { return }
+        draft.state = .replaced
+        chats.conversations[chat].messages[row].card = .accountDraft(draft)
     }
 
     /// A row of a card waiting for "Lưu", open in its form.

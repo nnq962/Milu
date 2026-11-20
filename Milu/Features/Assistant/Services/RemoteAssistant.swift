@@ -23,6 +23,12 @@ struct RemoteAssistant: AssistantService {
 
     func reply(to question: String, history: [ChatMessage],
                onStep: @escaping (ThinkingStep) -> Void) async throws -> AssistantReply {
+        // "thêm tài khoản mới", said to the question about a name taken: done here, as asked (live
+        // test 2026-11-20: the model asked again which account, one time in two).
+        if let asked = history.last(where: { $0.role == .assistant })?.askedCall,
+           let reply = AccountDraftBuilder.answer(question, to: asked, history: history, store: store) {
+            return reply
+        }
         var messages = Self.history(history, store: store)
         messages.append(.user(question))
         let context = Self.context(for: store)
@@ -35,9 +41,18 @@ struct RemoteAssistant: AssistantService {
                               open: history.compactMap(\.pendingDraft),
                               seen: Set(history.compactMap { message in
                                   if case .draft(let draft) = message.card { draft.ref } else { nil }
-                              }))
+                              }),
+                              openAccounts: history.compactMap(\.pendingAccountDraft),
+                              seenAccounts: Set(history.compactMap { message in
+                                  if case .accountDraft(let draft) = message.card { draft.ref } else { nil }
+                              }),
+                              addedAccounts: history.flatMap { message -> [Account.ID] in
+                                  if case .accountDraft(let draft) = message.card, draft.state == .saved { draft.rows.map(\.id) } else { [] }
+                              })
         /// A card was waiting before this question: an answer that says it changed must have changed it.
-        let cardWaiting = !turn.open.isEmpty
+        let cardWaiting = !turn.open.isEmpty || !turn.openAccounts.isEmpty
+        /// Said when the answer claims it changed what waits, and nothing changed.
+        let unchanged = turn.open.isEmpty && !turn.openAccounts.isEmpty ? Self.accountsUnchanged : Self.cardUnchanged
         /// What Milu refused to record in this answer, and whether its last record call asked
         /// something back (then the model's question stands, the way by hand added to it).
         var refused: [RecordRefusal.Refused] = []
@@ -48,10 +63,18 @@ struct RemoteAssistant: AssistantService {
         var asked: [String] = []
         /// Its question with answers to pick, as the chat says it (`choiceQuestion`), over the model's.
         var chatAsk: String?
+        var askedCall: ChatMessage.AskedCall?
+        // add_account only for a chat about accounts: the model's room is short (`AddAccount.isNeeded`).
+        let specs = AssistantTools.specs(only: onlyTools).filter {
+            $0.name != AddAccount().name || AddAccount.isNeeded(for: question, history: history)
+        }
 
         do {
             for _ in 0..<Self.maxRounds {
-                let reply = try await api.chat(messages, tools: AssistantTools.specs(only: onlyTools), context: context)
+                // Once the app's facts are in, add_account and its rules give their room to them: the
+                // two together left too little of the model's 8.192 tokens (2026-11-20, 8.049).
+                let round = toolsRun.contains(GetAppInfo().name) ? specs.filter { $0.name != AddAccount().name } : specs
+                let reply = try await api.chat(messages, tools: round, context: context)
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
                     let answer = !refused.isEmpty && !asksBack
@@ -61,13 +84,16 @@ struct RemoteAssistant: AssistantService {
                                                                     asked: asksBack && !asked.isEmpty ? asked.joined(separator: " ") : nil,
                                                                     items: Self.itemNames(store),
                                                                     cardItems: Self.cardItems(actions, store: store),
-                                                                    accounts: store.accounts.map(\.name)),
+                                                                    accounts: store.accounts.map(\.name),
+                                                                    unchanged: unchanged),
                                          refused.compactMap(\.howTo))
-                    var result = AssistantReply(text: answer, actions: actions, counts: Self.counts(toolsRun))
+                    let said = actions.isEmpty && refused.isEmpty && !asksBack ? Self.withComingLater(answer) : answer
+                    var result = AssistantReply(text: said, actions: actions, counts: Self.counts(toolsRun))
                     result.refused = refused
                     result.asksBack = asksBack
                     result.choices = asksBack ? choices : []
                     result.asked = asksBack && !asked.isEmpty ? asked.joined(separator: " ") : nil
+                    result.askedCall = asksBack ? askedCall : nil
                     return result
                 }
                 messages.append(.assistant(reply.content, calls: reply.toolCalls))
@@ -88,6 +114,16 @@ struct RemoteAssistant: AssistantService {
                         choices = Self.choices(in: output.result)
                         asked = Self.questions(in: output.result)
                         chatAsk = Self.choiceQuestion(in: output.result)
+                    } else if call.name == AddAccount().name {
+                        refused = Self.refused(in: output.result, adding: refused)
+                        asksBack = output.result["status"] == "needsInfo"
+                        choices = Self.choices(in: output.result)
+                        asked = Self.questions(in: output.result)
+                        // Asked in the app's own words, always: the kind, the bank, the balance or
+                        // a name already taken (user choices 2026-11-20).
+                        chatAsk = AccountDraftBuilder.question(in: output.result)
+                        askedCall = asksBack ? ChatMessage.AskedCall(name: call.name, arguments: call.arguments,
+                                                                     result: output.result) : nil
                     }
                     toolsRun.insert(call.name)
                     messages.append(.tool(call.name, result: output.result))
@@ -127,12 +163,13 @@ struct RemoteAssistant: AssistantService {
         // part of deleting (audit 2026-11-15: every delete took a lượt, and with none left could not
         // be done, against the Terms).
         if tools.contains(DeleteTransaction().name) { tools.remove(ListTransactions().name) }
-        return tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, DeleteTransaction().name, GetAppInfo().name])
+        return tools.isEmpty || !tools.isSubset(of: [RecordTransaction().name, AddAccount().name, DeleteTransaction().name,
+                                                     GetAppInfo().name])
     }
 
     static func emptyAnswer(_ action: AssistantReply.Action?) -> String {
         switch action {
-        case .draft: draftReady
+        case .draft, .accountDraft: draftReady
         case .confirmDelete: "Khoản cần xoá ở bên dưới, bạn bấm xác nhận nhé:"
         case nil: "Mình chưa trả lời được câu này. Bạn hỏi lại theo cách khác nhé."
         }
@@ -143,6 +180,9 @@ struct RemoteAssistant: AssistantService {
 
     /// Said when the model claimed a card waiting for "Lưu" was changed, and nothing changed it.
     static let cardUnchanged = "Các khoản ở trên chưa đổi gì đâu. Bạn bấm vào khoản cần sửa, hoặc nói lại rõ hơn (ví dụ: “đổi thành 50k”) nhé."
+
+    /// The same, over a card of accounts.
+    static let accountsUnchanged = "Tài khoản ở trên chưa đổi gì đâu. Bạn bấm vào tài khoản cần sửa, hoặc nói lại rõ hơn (ví dụ: “sửa số dư thành 3 triệu”) nhé."
 
     /// The model's words, but never a card's code ("#adb0", only for the model), and never a claim
     /// the words cannot keep: "đã ghi" over a card waiting for "Lưu" (nothing is saved until then,
@@ -160,16 +200,23 @@ struct RemoteAssistant: AssistantService {
     /// (eval 2026-11-18). `items` are all the user's item names, `cardItems` the card's.
     static func answerText(_ text: String, actions: [AssistantReply.Action], cardWaiting: Bool = false,
                            refused: Bool = false, asked: String? = nil, items: [String] = [],
-                           cardItems: [String] = [], accounts: [String] = []) -> String {
-        let text = withoutOpener(text.replacing(/\s?\*{0,2}#[0-9a-f]{4}\b\*{0,2}/, with: ""))
+                           cardItems: [String] = [], accounts: [String] = [],
+                           unchanged: String = cardUnchanged) -> String {
+        var text = withoutOpener(text.replacing(/\s?\*{0,2}#[0-9a-f]{4}\b\*{0,2}/, with: ""))
+        // "soạn thẻ thêm tài khoản" with no card: "thẻ" is no word the user knows here (live test
+        // 2026-11-20). Over a card, such words give way to `draftReady` below.
+        if !actions.contains(where: isCard) {
+            text = text.replacing(/(?i)(soạn)\s+(?:sẵn\s+)?(?:cái\s+)?thẻ/, with: { "\($0.output.1) sẵn" })
+        }
         guard !text.isEmpty else { return asked ?? emptyAnswer(actions.first) }
-        let hasDraft = actions.contains { if case .draft = $0 { true } else { false } }
+        let hasDraft = actions.contains(where: Self.isCard)
         let words = " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
         if !hasDraft, let asked, words.contains(" soan ") { return asked }
         if hasDraft {
             let saysSaved = [" da ghi ", " da luu ", " ghi xong ", " luu xong ", " da them ", " ghi lai roi ", " ghi roi "]
                 .contains { words.contains($0) } && !words.contains(" ghi chu ")
-            if saysSaved { return draftReady }
+            // The tool's instruction read out: "Người dùng kiểm tra… rồi bấm Lưu" (live test 2026-11-20).
+            if saysSaved || words.contains(" nguoi dung ") { return draftReady }
             let said = refused ? text : firstSentence(text)
             if !refused, saysOtherThan(actions, items: items, cardItems: cardItems, in: said)
                 || saysCard(said, accounts: accounts) {
@@ -187,7 +234,19 @@ struct RemoteAssistant: AssistantService {
         let saysChanged = [" da cap nhat ", " da duoc cap nhat ", " da sua ", " da duoc sua ", " da doi ", " da duoc doi ",
                            " cap nhat roi ", " sua roi ", " doi roi ", " da ghi ", " da luu "]
             .contains { words.contains($0) }
-        return saysChanged ? cardUnchanged : text
+        return saysChanged ? unchanged : text
+    }
+
+    /// An answer saying Milu cannot do something yet, with that it comes in an update when the model
+    /// left it out (user request 2026-11-20: "báo rằng chưa hỗ trợ và kiểu nói rằng sẽ cập nhật sau").
+    static let comingLater = "Tính năng này Milu sẽ cập nhật sau nha ✨"
+
+    static func withComingLater(_ text: String) -> String {
+        let words = " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        let notYet = [" chua ho tro ", " chua lam duoc ", " chua the ", " chua ghi duoc ", " chua tao duoc ", " chua co tinh nang ",
+                      " khong ho tro ", " khong duoc ho tro "]
+        guard notYet.contains(where: words.contains), !words.contains(" cap nhat ") else { return text }
+        return text + "\n\n" + comingLater
     }
 
     /// Without "Ủa" or "Ê" first (user choice 2026-11-18: the prompt kept them out most times, not
@@ -442,7 +501,7 @@ struct RemoteAssistant: AssistantService {
     /// last, right over the card.
     static func refusedAnswer(_ refused: [RecordRefusal.Refused], actions: [AssistantReply.Action]) -> String {
         let message = RecordRefusal.message(refused)
-        let hasDraft = actions.contains { if case .draft = $0 { true } else { false } }
+        let hasDraft = actions.contains(where: Self.isCard)
         return hasDraft ? message + "\n\n" + restReady : message
     }
 
@@ -465,9 +524,31 @@ struct RemoteAssistant: AssistantService {
         return ([text] + missing.map { "• \($0)" }).joined(separator: "\n")
     }
 
+    /// Whether an action is a card waiting for "Lưu", of transactions or of accounts.
+    static func isCard(_ action: AssistantReply.Action) -> Bool {
+        switch action {
+        case .draft, .accountDraft: true
+        case .confirmDelete: false
+        }
+    }
+
     /// A card into the answer's: one that replaces another made in this answer takes its place;
     /// the record tool's next call sees it as waiting.
     static func add(_ action: AssistantReply.Action, to actions: inout [AssistantReply.Action], turn: inout RecordTurn) {
+        if case .accountDraft(var draft) = action {
+            if let replaced = draft.replacing {
+                turn.openAccounts.removeAll { $0.id == replaced }
+                if let index = actions.firstIndex(where: { if case .accountDraft(let earlier) = $0 { earlier.id == replaced } else { false } }),
+                   case .accountDraft(let earlier) = actions[index] {
+                    draft.replacing = earlier.replacing
+                    actions.remove(at: index)
+                }
+            }
+            turn.openAccounts.append(draft)
+            turn.seenAccounts.insert(draft.ref)
+            actions.append(.accountDraft(draft))
+            return
+        }
         guard case .draft(var draft) = action else {
             actions.append(action)
             return
@@ -498,6 +579,9 @@ struct RemoteAssistant: AssistantService {
         if let waiting = history.last(where: { $0.pendingDraft != nil }), !recentIDs.contains(waiting.id) {
             messages += cardExchange(waiting.card, store: store)
         }
+        if let waiting = history.last(where: { $0.pendingAccountDraft != nil }), !recentIDs.contains(waiting.id) {
+            messages += cardExchange(waiting.card, store: store)
+        }
         for message in recent where message.role != .notice {
             let text = message.text.trimmingCharacters(in: .whitespacesAndNewlines)
             if message.role == .user {
@@ -505,6 +589,11 @@ struct RemoteAssistant: AssistantService {
                 continue
             }
             messages += cardExchange(message.card, store: store)
+            if let asked = message.askedCall {
+                let id = "ask-\(message.id.uuidString.prefix(4).lowercased())"
+                messages += [.assistant("", calls: [MiluAPI.ToolCall(id: id, name: asked.name, arguments: asked.arguments)]),
+                             .tool(asked.name, result: asked.result)]
+            }
             if !text.isEmpty { messages.append(.assistant(text)) }
         }
         return messages
@@ -551,6 +640,21 @@ struct RemoteAssistant: AssistantService {
                                      // a row as it changed the card (iPhone 2026-11-19).
                                      "card_state": .string("[Thẻ #\(draft.ref) · \(state)]"),
                                      "rows": .array(rows.enumerated().map { builder.describe($0.element, number: $0.offset + 1) })])
+        case .accountDraft(let draft):
+            let state = switch draft.state {
+            case .pending: "đang chờ người dùng bấm Lưu, chưa thêm; đổi gì thì gọi add_account với replaces"
+            case .saved: "đã lưu, tài khoản đã có trong tab Tài khoản"
+            case .cancelled: "đã huỷ, không thêm gì"
+            case .replaced: "đã thay bằng bản mới"
+            }
+            let accounts = AccountDraftBuilder(turn: RecordTurn(), store: store)
+            // "Thẻ tài khoản", not "Thẻ": the server's guards for a card of transactions look for
+            // "[Thẻ #", and would tell the model to call record_transaction.
+            return exchange(AddAccount().name, id: "acc-\(draft.ref)",
+                            arguments: ["accounts": AccountDraftBuilder.arguments(of: draft)],
+                            result: ["ok": true, "status": "draft", "card": .string(draft.ref),
+                                     "card_state": .string("[Thẻ tài khoản #\(draft.ref) · \(state)]"),
+                                     "rows": .array(draft.rows.enumerated().map { accounts.describe($0.element, number: $0.offset + 1) })])
         case .recorded(let transaction, let removed):
             return exchange(RecordTransaction().name, id: "rec-\(ToolTransactions.ref(transaction))",
                             arguments: ["kind": .string(transaction.kind.rawValue), "amount": ToolMoney.value(transaction.amount)],
@@ -584,7 +688,8 @@ struct RemoteAssistant: AssistantService {
             userName: profileName?.isEmpty == false ? profileName : nil,
             expenseCategories: names(.expense),
             incomeCategories: names(.income),
-            accounts: store.accounts.map(\.name)
+            accounts: store.accounts.map(\.name),
+            assistant: [AddAccount().name]
         )
     }
 }

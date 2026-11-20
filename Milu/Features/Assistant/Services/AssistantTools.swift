@@ -41,6 +41,7 @@ enum AssistantTools {
             GetMonthlyTrend(),
             ListTransfers(),
             RecordTransaction(turn: turn),
+            AddAccount(turn: turn),
             DeleteTransaction(),
             GetAppInfo(facts: app),
         ]

@@ -15,6 +15,10 @@ struct AddAccountView: View {
     /// Called after "Xoá tài khoản" closes the form; the presenter deletes the account (and, from
     /// its detail screen, leaves it first).
     private var onLeave: ((Leave) -> Void)?
+    /// An account Milu made ready in the chat, changed here before its card's "Lưu": ✓ gives it
+    /// back to the card and adds nothing (user request 2026-11-20).
+    private var proposed: Account?
+    private var onPropose: ((Account) -> Void)?
 
     /// How an edited account leaves the list it was opened from, once the form and the account's
     /// own sheet have closed (`AfterDismiss`): archived when it has history, deleted when it has
@@ -51,6 +55,20 @@ struct AddAccountView: View {
         _name = State(initialValue: type == .cash ? "Tiền mặt" : "")
     }
 
+    init(proposed account: Account, onDone: @escaping (Account) -> Void) {
+        type = account.type
+        original = nil
+        proposed = account
+        onPropose = onDone
+        _institutionID = State(initialValue: account.institutionID)
+        _name = State(initialValue: account.name)
+        _note = State(initialValue: account.detail)
+        _balanceText = State(initialValue: Self.balanceText(account.balance))
+        _isNegative = State(initialValue: account.balance < 0)
+        _openedAt = State(initialValue: min(account.openedAt, .now))
+        _isLocked = State(initialValue: account.isLocked)
+    }
+
     init(account: Account, onLeave: @escaping (Leave) -> Void) {
         type = account.type
         original = account
@@ -80,7 +98,7 @@ struct AddAccountView: View {
     private var hasInstitutions: Bool { !Institution.list(for: type).isEmpty }
 
     private var title: String {
-        if original != nil { return "Sửa tài khoản" }
+        if original != nil || proposed != nil { return "Sửa tài khoản" }
         return switch type {
         case .cash: "Thêm tiền mặt"
         case .eWallet: "Thêm ví điện tử"
@@ -121,7 +139,7 @@ struct AddAccountView: View {
             SheetAmountHeader(title: "Số dư hiện tại") {
                 // An archived account's history is frozen, its balance too, until it is restored.
                 MiluAmountField(text: $balanceText, showsSuggestions: original?.isArchived != true,
-                                focusesOnAppear: original == nil, isNegative: isNegative)
+                                focusesOnAppear: original == nil && proposed == nil, isNegative: isNegative)
                     .disabled(original?.isArchived == true)
             }
         } content: {
@@ -266,6 +284,18 @@ struct AddAccountView: View {
         if original != nil {
             applyEdits()
             dismiss()
+            return
+        }
+        if let proposed, let onPropose {
+            var account = proposed
+            account.name = trimmedName
+            account.balance = balance
+            account.detail = trimmedNote
+            account.institutionID = hasInstitutions ? institutionID : nil
+            account.openedAt = openedAt
+            account.isLocked = isLocked
+            dismiss()
+            onPropose(account)
             return
         }
         let account = Account(

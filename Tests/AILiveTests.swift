@@ -53,6 +53,7 @@ struct AILiveTests {
         }
         let assistant = RemoteAssistant(api: api, store: store)
         let start = store.transactions.count
+        let accountsAtStart = store.accounts.count
         var messages: [ChatMessage] = []
         var turns: [TurnResult] = []
         for turn in item.turns {
@@ -89,8 +90,12 @@ struct AILiveTests {
                     if case .draft(let draft) = action { draft } else { nil }
                 }.first.map { describe($0, in: store) }
                 result.deleteCard = reply.actions.contains { if case .confirmDelete = $0 { true } else { false } }
+                result.accountCard = reply.actions.compactMap { action -> AccountDraft? in
+                    if case .accountDraft(let draft) = action { draft } else { nil }
+                }.first.map(describe)
             }
             result.saved = store.transactions.count - start
+            result.accountsAdded = store.accounts.count - accountsAtStart
             result.problems = check(turn.expect, result, store: store) + Self.general(result, modelSpoke: reply != nil)
             turns.append(result)
             // A turn that failed to reach Milu leaves the rest of the chat meaningless.
@@ -102,6 +107,16 @@ struct AILiveTests {
 
     /// "Lưu" or "Huỷ" on the card still waiting, as its buttons do.
     private func press(_ tap: String, in messages: inout [ChatMessage], store: FinanceStore) -> String {
+        if let row = messages.lastIndex(where: \.waitsForSave), var accounts = messages[row].pendingAccountDraft {
+            if tap == "save" {
+                accounts = AccountDraftSaver.save(accounts, in: store)
+                messages[row].card = .accountDraft(accounts)
+                return accounts.state == .saved ? "(bấm Lưu: đã thêm)" : "(bấm Lưu: chưa lưu được, \(accounts.problem ?? ""))"
+            }
+            accounts.state = .cancelled
+            messages[row].card = .accountDraft(accounts)
+            return "(bấm Huỷ)"
+        }
         guard let row = messages.lastIndex(where: { $0.pendingDraft != nil }),
               var draft = messages[row].pendingDraft else { return "(không có thẻ chờ Lưu để bấm)" }
         if tap == "save" {
@@ -117,7 +132,25 @@ struct AILiveTests {
     /// "ok", "huỷ" typed over a card waiting for "Lưu": the chat's own shortcut (`AssistantView`).
     private func typedShortcut(_ said: String, in messages: inout [ChatMessage], store: FinanceStore) -> String? {
         guard let answer = DraftShortcut.match(said),
-              let last = messages.last(where: { $0.role == .assistant }), last.pendingDraft != nil,
+              let last = messages.last(where: { $0.role == .assistant }), last.waitsForSave else { return nil }
+        if let row = messages.firstIndex(where: { $0.id == last.id }), var accounts = messages[row].pendingAccountDraft {
+            messages.append(ChatMessage(role: .user, text: said))
+            let reply: String
+            switch answer {
+            case .save:
+                accounts = AccountDraftSaver.save(accounts, in: store)
+                reply = accounts.state == .saved
+                    ? accounts.rows.count > 1 ? "Đã thêm \(accounts.rows.count) tài khoản." : "Đã thêm tài khoản."
+                    : "Chưa lưu được, bạn xem tài khoản ở trên nhé."
+            case .cancel:
+                accounts.state = .cancelled
+                reply = "Đã huỷ, Milu chưa thêm gì."
+            }
+            messages[row].card = .accountDraft(accounts)
+            messages.append(ChatMessage(role: .assistant, text: reply, isLocal: true))
+            return reply
+        }
+        guard last.pendingDraft != nil,
               let row = messages.firstIndex(where: { $0.id == last.id }),
               var draft = messages[row].pendingDraft else { return nil }
         messages.append(ChatMessage(role: .user, text: said))
@@ -145,7 +178,15 @@ struct AILiveTests {
             switch action {
             case .draft(let draft): .draft(draft)
             case .confirmDelete(let transaction): .confirmDelete(transaction, state: .pending)
+            case .accountDraft(let draft): .accountDraft(draft)
             }
+        }
+        for case .accountDraft(let draft) in reply.actions {
+            guard let replaced = draft.replacing,
+                  let row = messages.firstIndex(where: { $0.pendingAccountDraft?.id == replaced }),
+                  var old = messages[row].pendingAccountDraft else { continue }
+            old.state = .replaced
+            messages[row].card = .accountDraft(old)
         }
         for case .draft(let draft) in reply.actions {
             guard let replaced = draft.replacing,
@@ -154,7 +195,7 @@ struct AILiveTests {
             old.state = .replaced
             messages[row].card = .draft(old)
         }
-        messages.append(ChatMessage(role: .assistant, text: reply.text, card: cards.first))
+        messages.append(ChatMessage(role: .assistant, text: reply.text, card: cards.first, askedCall: reply.askedCall))
         for card in cards.dropFirst() {
             messages.append(ChatMessage(role: .assistant, text: "Và các khoản này, bấm Lưu nếu đúng:", card: card))
         }
@@ -170,6 +211,14 @@ struct AILiveTests {
                            date: ToolDates.text(transaction.date),
                            note: [transaction.title, transaction.note].filter { !$0.isEmpty }.joined(separator: " · "),
                            warning: row.warning, accountChosen: row.accountChosenByApp)
+        })
+    }
+
+    private func describe(_ draft: AccountDraft) -> AccountCardSeen {
+        AccountCardSeen(replaces: draft.replacing != nil, rows: draft.rows.map { row in
+            AccountRowSeen(name: row.account.name, type: AccountDraftBuilder.typeName(row.account.type),
+                           balance: row.account.balance, institution: row.account.institution?.shortName ?? "",
+                           notice: row.notice, warning: row.warning)
         })
     }
 
@@ -199,6 +248,13 @@ struct AILiveTests {
             if let seenCard = seen.card { problems += check(card, seenCard) } else { problems.append("không có thẻ") }
         }
         if expect.noCard == true, seen.card != nil { problems.append("có thẻ (không được có)") }
+        if let card = expect.accountCard {
+            if let seenCard = seen.accountCard { problems += check(card, seenCard) } else { problems.append("không có thẻ tài khoản") }
+        }
+        if expect.noAccountCard == true, seen.accountCard != nil { problems.append("có thẻ tài khoản (không được có)") }
+        if let added = expect.accountsAdded, added != seen.accountsAdded {
+            problems.append("đã thêm \(seen.accountsAdded) tài khoản (cần \(added))")
+        }
         if let asks = expect.asks, asks != seen.asks { problems.append(asks ? "không hỏi lại" : "hỏi lại (không cần)") }
         for kind in expect.refused ?? [] where !seen.refused.contains(kind) { problems.append("không từ chối \(kind)") }
         if let tools = expect.tool, !tools.contains(where: seen.tools.contains) {
@@ -261,6 +317,38 @@ struct AILiveTests {
         }
         if let chosen = expect.accountChosen, chosen != first.accountChosen {
             problems.append(chosen ? "không ghi Milu tự chọn tài khoản" : "ghi Milu tự chọn tài khoản")
+        }
+        if let replaces = expect.replaces, replaces != card.replaces {
+            problems.append(replaces ? "thẻ mới không thay thẻ cũ" : "thay thẻ cũ (không cần)")
+        }
+        return problems
+    }
+
+    private func check(_ expect: AccountCardExpect, _ card: AccountCardSeen) -> [String] {
+        var problems: [String] = []
+        let rows = card.rows
+        if let count = expect.rows, count != rows.count { problems.append("thẻ \(rows.count) tài khoản (cần \(count))") }
+        for (index, names) in (expect.names ?? []).enumerated() {
+            guard index < rows.count else { break }
+            if !names.contains(where: { $0.searchKey == rows[index].name.searchKey }) {
+                problems.append("tên “\(rows[index].name)” (cần \(names.joined(separator: "/")))")
+            }
+        }
+        for (index, type) in (expect.types ?? []).enumerated() where index < rows.count && rows[index].type != type {
+            problems.append("loại \(rows[index].type) (cần \(type))")
+        }
+        if let balances = expect.balances, balances != rows.map(\.balance) {
+            problems.append("số dư \(rows.map { Int($0.balance) }) (cần \(balances.map { Int($0) }))")
+        }
+        for (index, name) in (expect.institutions ?? []).enumerated() where index < rows.count
+            && rows[index].institution.searchKey != name.searchKey {
+            problems.append("ngân hàng “\(rows[index].institution)” (cần \(name))")
+        }
+        if let noticed = expect.notice, noticed != rows.contains(where: { $0.notice != nil }) {
+            problems.append(noticed ? "không ghi chú Milu đã chọn gì" : "có ghi chú (không cần)")
+        }
+        if let warned = expect.warning, warned != rows.contains(where: { $0.warning != nil }) {
+            problems.append(warned ? "không cảnh báo" : "có cảnh báo (không cần)")
         }
         if let replaces = expect.replaces, replaces != card.replaces {
             problems.append(replaces ? "thẻ mới không thay thẻ cũ" : "thay thẻ cũ (không cần)")
@@ -341,6 +429,11 @@ struct AILiveTests {
         var once: [String]?
         var saved: Int?
         var newItemSaved: String?
+        /// A card of accounts waiting for "Lưu" (`add_account`).
+        var accountCard: AccountCardExpect?
+        var noAccountCard: Bool?
+        /// Accounts added since the case began.
+        var accountsAdded: Int?
         var anyOf: [Expect]?
 
         func without(anyOf _: Bool) -> Expect {
@@ -368,6 +461,32 @@ struct AILiveTests {
         var replaces: Bool?
     }
 
+    private struct AccountCardExpect: Decodable {
+        var rows: Int?
+        /// Each row's name, by order: one of these.
+        var names: [[String]]?
+        var types: [String]?
+        var balances: [Double]?
+        var institutions: [String]?
+        var notice: Bool?
+        var warning: Bool?
+        var replaces: Bool?
+    }
+
+    private struct AccountCardSeen: Encodable {
+        let replaces: Bool
+        let rows: [AccountRowSeen]
+    }
+
+    private struct AccountRowSeen: Encodable {
+        let name: String
+        let type: String
+        let balance: Double
+        let institution: String
+        let notice: String?
+        let warning: String?
+    }
+
     private struct Report: Encodable {
         let date: String
         let passed: Int
@@ -392,6 +511,8 @@ struct AILiveTests {
         var refused: [String] = []
         var card: CardSeen?
         var deleteCard = false
+        var accountCard: AccountCardSeen?
+        var accountsAdded = 0
         var saved = 0
         var seconds: Double?
         var error: String?

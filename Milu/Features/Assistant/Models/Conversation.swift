@@ -14,6 +14,8 @@ struct ChatMessage: Identifiable, Equatable, Codable {
         case confirmDelete(FinanceTransaction, state: DeleteState)
         /// Transactions waiting for "Lưu" (user choice 2026-11-17), then saved, cancelled or replaced.
         case draft(TransactionDraft)
+        /// Accounts waiting for "Lưu" (user request 2026-11-20), then saved, cancelled or replaced.
+        case accountDraft(AccountDraft)
     }
 
     enum DeleteState: String, Equatable, Codable { case pending, deleted, cancelled }
@@ -36,11 +38,19 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     /// Said by the app itself, not the model: "ok" typed under a card saved it here (no
     /// "Sao chép" or "Hỏi lại" under it).
     var isLocal: Bool? = nil
+    /// A tool's question back, as the call and its result (`AssistantReply.askedCall`).
+    var askedCall: AskedCall? = nil
+
+    struct AskedCall: Equatable, Codable {
+        let name: String
+        let arguments: JSONValue
+        let result: JSONValue
+    }
 }
 
 extension ChatMessage {
     private enum CodingKeys: String, CodingKey {
-        case id, role, text, card, thought, date, isLocal
+        case id, role, text, card, thought, date, isLocal, askedCall
     }
 
     /// Read leniently: a card this build cannot read (one a newer build wrote) is dropped alone.
@@ -54,6 +64,7 @@ extension ChatMessage {
         thought = (try? values.decodeIfPresent(Thought.self, forKey: .thought)) ?? nil
         date = (try? values.decodeIfPresent(Date.self, forKey: .date)) ?? .now
         isLocal = (try? values.decodeIfPresent(Bool.self, forKey: .isLocal)) ?? nil
+        askedCall = (try? values.decodeIfPresent(AskedCall.self, forKey: .askedCall)) ?? nil
     }
 
     /// The card waiting for "Lưu" in this message, if it holds one.
@@ -61,6 +72,15 @@ extension ChatMessage {
         if case .draft(let draft) = card, draft.isPending { return draft }
         return nil
     }
+
+    /// The card of accounts waiting for "Lưu" in this message, if it holds one.
+    var pendingAccountDraft: AccountDraft? {
+        if case .accountDraft(let draft) = card, draft.isPending { return draft }
+        return nil
+    }
+
+    /// Whether this message holds a card of either kind waiting for "Lưu".
+    var waitsForSave: Bool { pendingDraft != nil || pendingAccountDraft != nil }
 }
 
 /// One chat thread. A new one starts empty: the page greets with suggestions in its place, and it

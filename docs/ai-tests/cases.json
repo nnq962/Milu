@@ -1,5 +1,5 @@
 {
- "_about": "Bộ test Milu AI chạy như chat thật (Tests/AILiveTests.swift): AI trên máy chủ, công cụ của app trên dữ liệu mẫu (SampleData), lời hiện ra trong chat. Mỗi case là một cuộc chat mới; mỗi lượt là 'say' (người dùng gõ) hoặc 'tap' (save: bấm Lưu, cancel: bấm Huỷ). 'expect' của lượt: card (thẻ chờ Lưu: rows, amounts, amountsInclude, category, notCategory, newItem, account, date: today/yesterday/-N, note, warning, accountChosen, replaces), noCard, asks (Milu hỏi lại), refused (transfer/loan/goal), tool (một trong các công cụ phải được gọi), noTool, deleteCard, has (mỗi nhóm: phải có một trong các chữ), not (không được có), saved (số giao dịch đã vào sổ từ đầu case), newItemSaved, anyOf (đạt một trong các expect). Chữ so khớp không phân biệt dấu, hoa thường. Mọi lượt còn bị kiểm chung: không mở đầu bằng Ủa/Ê, không lộ mã thẻ hay lời nhắc hệ thống, không nói “thẻ” với người dùng (trừ thẻ tín dụng). 'once': chữ chỉ được nói một lần.",
+ "_about": "Bộ test Milu AI chạy như chat thật (Tests/AILiveTests.swift): AI trên máy chủ, công cụ của app trên dữ liệu mẫu (SampleData), lời hiện ra trong chat. Mỗi case là một cuộc chat mới; mỗi lượt là 'say' (người dùng gõ) hoặc 'tap' (save: bấm Lưu, cancel: bấm Huỷ). 'expect' của lượt: card (thẻ chờ Lưu: rows, amounts, amountsInclude, category, notCategory, newItem, account, date: today/yesterday/-N, note, warning, accountChosen, replaces), noCard, asks (Milu hỏi lại), refused (transfer/loan/goal), tool (một trong các công cụ phải được gọi), noTool, deleteCard, has (mỗi nhóm: phải có một trong các chữ), not (không được có), saved (số giao dịch đã vào sổ từ đầu case), newItemSaved, accountCard (thẻ tài khoản chờ Lưu: rows, names (mỗi dòng một danh sách tên được chấp nhận), types cash/bank/ewallet, balances, institutions, notice, warning, replaces), noAccountCard, accountsAdded (số tài khoản đã thêm từ đầu case), anyOf (đạt một trong các expect). Chữ so khớp không phân biệt dấu, hoa thường. Mọi lượt còn bị kiểm chung: không mở đầu bằng Ủa/Ê, không lộ mã thẻ hay lời nhắc hệ thống, không nói “thẻ” với người dùng (trừ thẻ tín dụng). 'once': chữ chỉ được nói một lần.",
  "groups": {
   "T": "Số tiền: cách nói tiền, từ lóng, số bằng chữ, thiếu số tiền",
   "H": "Hạng mục chi: chọn đúng mục, mục rộng, mục chưa có",
@@ -14,7 +14,9 @@
   "X": "Xoá giao dịch",
   "A": "Hỏi về app",
   "G": "Giọng nói chuyện, câu ngoài lề",
-  "V": "Không dấu, viết tắt, gõ sai, giọng nói"
+  "V": "Không dấu, viết tắt, gõ sai, giọng nói",
+  "B": "Thêm tài khoản (tiền mặt, ngân hàng, ví)",
+  "C": "Milu làm được gì, việc chưa hỗ trợ"
  },
  "cases": [
   {
@@ -2094,6 +2096,9 @@
      "expect": {
       "tool": [
        "get_app_info"
+      ],
+      "not": [
+       "chưa hỗ trợ"
       ]
      }
     }
@@ -2277,6 +2282,812 @@
         "Taxi, xe ôm"
        ]
       }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B01",
+   "title": "Ngân hàng chưa có, có số dư, bấm Lưu",
+   "turns": [
+    {
+     "say": "thêm tài khoản BIDV 5 triệu",
+     "expect": {
+      "accountCard": {
+       "rows": 1,
+       "names": [
+        [
+         "BIDV"
+        ]
+       ],
+       "types": [
+        "bank"
+       ],
+       "balances": [
+        5000000
+       ],
+       "institutions": [
+        "BIDV"
+       ]
+      },
+      "noCard": true,
+      "not": [
+       "đã thêm"
+      ]
+     }
+    },
+    {
+     "tap": "save",
+     "expect": {
+      "accountsAdded": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "B02",
+   "title": "Trùng tên tài khoản đã có: hỏi trước, rồi đặt tên số 2",
+   "turns": [
+    {
+     "say": "thêm tài khoản Techcombank 5 triệu",
+     "expect": {
+      "asks": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "18.250.000"
+       ]
+      ]
+     }
+    },
+    {
+     "say": "thêm tài khoản mới",
+     "expect": {
+      "accountCard": {
+       "names": [
+        [
+         "Techcombank 2"
+        ]
+       ],
+       "balances": [
+        5000000
+       ],
+       "notice": true
+      }
+     }
+    },
+    {
+     "say": "ok",
+     "expect": {
+      "accountsAdded": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "B03",
+   "title": "Quên số dư: hỏi lại",
+   "turns": [
+    {
+     "say": "tạo ví zalopay",
+     "expect": {
+      "asks": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "bao nhiêu"
+       ]
+      ]
+     }
+    },
+    {
+     "say": "500k",
+     "expect": {
+      "accountCard": {
+       "names": [
+        [
+         "ZaloPay"
+        ]
+       ],
+       "types": [
+        "ewallet"
+       ],
+       "balances": [
+        500000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B04",
+   "title": "Số dư 0đ nói bằng lời",
+   "turns": [
+    {
+     "say": "thêm ví shopeepay, chưa có đồng nào",
+     "expect": {
+      "accountCard": {
+       "names": [
+        [
+         "ShopeePay"
+        ]
+       ],
+       "types": [
+        "ewallet"
+       ],
+       "balances": [
+        0
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B05",
+   "title": "Không nói tên: hỏi loại, rồi trả lời",
+   "turns": [
+    {
+     "say": "thêm tài khoản 3 triệu",
+     "expect": {
+      "asks": true,
+      "noAccountCard": true
+     }
+    },
+    {
+     "say": "ngân hàng MB",
+     "expect": {
+      "accountCard": {
+       "types": [
+        "bank"
+       ],
+       "institutions": [
+        "MB Bank"
+       ],
+       "balances": [
+        3000000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B06",
+   "title": "Chọn sai loại: ví điện tử ACB thành ngân hàng",
+   "turns": [
+    {
+     "say": "thêm ví điện tử ACB 2 triệu",
+     "expect": {
+      "accountCard": {
+       "types": [
+        "bank"
+       ],
+       "institutions": [
+        "ACB"
+       ],
+       "balances": [
+        2000000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B07",
+   "title": "Sửa thẻ bằng lời: số dư rồi tên",
+   "turns": [
+    {
+     "say": "thêm tài khoản BIDV 5 triệu",
+     "expect": {
+      "accountCard": {
+       "balances": [
+        5000000
+       ]
+      }
+     }
+    },
+    {
+     "say": "sửa số dư thành 3 triệu",
+     "expect": {
+      "accountCard": {
+       "balances": [
+        3000000
+       ],
+       "replaces": true
+      },
+      "not": [
+       "đã sửa",
+       "đã đổi",
+       "đã cập nhật"
+      ]
+     }
+    },
+    {
+     "say": "đổi tên thành BIDV lương",
+     "expect": {
+      "accountCard": {
+       "names": [
+        [
+         "BIDV lương",
+         "BIDV Lương"
+        ]
+       ],
+       "balances": [
+        3000000
+       ],
+       "replaces": true
+      }
+     }
+    },
+    {
+     "tap": "save",
+     "expect": {
+      "accountsAdded": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "B08",
+   "title": "Tiền mặt rồi huỷ",
+   "turns": [
+    {
+     "say": "thêm tiền mặt 200k",
+     "expect": {
+      "accountCard": {
+       "types": [
+        "cash"
+       ],
+       "balances": [
+        200000
+       ]
+      }
+     }
+    },
+    {
+     "say": "huỷ",
+     "expect": {
+      "accountsAdded": 0,
+      "has": [
+       [
+        "huỷ",
+        "hủy"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "B09",
+   "title": "Hai tài khoản trong một câu",
+   "turns": [
+    {
+     "say": "thêm tài khoản BIDV 10 triệu và ví ZaloPay 500k",
+     "expect": {
+      "accountCard": {
+       "rows": 2,
+       "balances": [
+        10000000,
+        500000
+       ],
+       "types": [
+        "bank",
+        "ewallet"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B10",
+   "title": "Thẻ tín dụng là tài khoản ngân hàng số dư âm",
+   "turns": [
+    {
+     "say": "thêm thẻ tín dụng HSBC đang nợ 4 triệu",
+     "expect": {
+      "accountCard": {
+       "types": [
+        "bank"
+       ],
+       "institutions": [
+        "HSBC"
+       ],
+       "balances": [
+        -4000000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B11",
+   "title": "Ngân hàng không có trong danh sách",
+   "turns": [
+    {
+     "say": "thêm tài khoản ngân hàng Zorro 1 triệu",
+     "expect": {
+      "asks": true,
+      "noAccountCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "B12",
+   "title": "Tiền mặt đặt tên riêng",
+   "turns": [
+    {
+     "say": "thêm tài khoản tiền mặt tên Heo đất, 1 triệu",
+     "expect": {
+      "accountCard": {
+       "names": [
+        [
+         "Heo đất",
+         "Heo Đất"
+        ]
+       ],
+       "types": [
+        "cash"
+       ],
+       "balances": [
+        1000000
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B13",
+   "title": "Trùng ví đã có rồi thôi",
+   "turns": [
+    {
+     "say": "thêm ví momo 200k",
+     "expect": {
+      "asks": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "1.120.000"
+       ]
+      ]
+     }
+    },
+    {
+     "say": "à thôi không cần nữa",
+     "expect": {
+      "noAccountCard": true,
+      "accountsAdded": 0,
+      "not": [
+       "đã thêm"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "B14",
+   "title": "Hỏi khả năng: có thêm tài khoản được không",
+   "turns": [
+    {
+     "say": "milu có thêm tài khoản giúp mình được không",
+     "expect": {
+      "noAccountCard": true,
+      "not": [
+       "chưa thêm được",
+       "không thêm được",
+       "chưa làm được",
+       "chưa hỗ trợ"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "B15",
+   "title": "Câu không liên quan",
+   "turns": [
+    {
+     "say": "hôm nay trời đẹp ghê",
+     "expect": {
+      "noAccountCard": true,
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "B16",
+   "title": "Xem lại tài khoản vừa soạn",
+   "turns": [
+    {
+     "say": "thêm tài khoản BIDV 5 triệu",
+     "expect": {
+      "accountCard": {
+       "balances": [
+        5000000
+       ]
+      }
+     }
+    },
+    {
+     "say": "cho mình xem lại tài khoản vừa soạn",
+     "expect": {
+      "accountCard": {
+       "balances": [
+        5000000
+       ],
+       "replaces": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "B17",
+   "title": "Thêm tiếp sau khi vừa lưu: không hỏi lại tài khoản cũ",
+   "turns": [
+    {
+     "say": "thêm tài khoản BIDV 5 triệu",
+     "expect": {
+      "accountCard": {
+       "balances": [
+        5000000
+       ]
+      }
+     }
+    },
+    {
+     "tap": "save",
+     "expect": {
+      "accountsAdded": 1
+     }
+    },
+    {
+     "say": "thêm ví zalopay 100k",
+     "expect": {
+      "accountCard": {
+       "rows": 1,
+       "names": [
+        [
+         "ZaloPay"
+        ]
+       ],
+       "balances": [
+        100000
+       ]
+      },
+      "not": [
+       "BIDV"
+      ]
+     }
+    },
+    {
+     "say": "ok",
+     "expect": {
+      "accountsAdded": 2
+     }
+    }
+   ]
+  },
+  {
+   "id": "B18",
+   "title": "Gõ không dấu: them vi zalopay",
+   "turns": [
+    {
+     "say": "them vi zalopay 100k",
+     "expect": {
+      "accountCard": {
+       "names": [
+        [
+         "ZaloPay"
+        ]
+       ],
+       "types": [
+        "ewallet"
+       ],
+       "balances": [
+        100000
+       ]
+      },
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "B19",
+   "title": "Gõ không dấu: tao tai khoan tien mat",
+   "turns": [
+    {
+     "say": "tao tai khoan tien mat 300k",
+     "expect": {
+      "accountCard": {
+       "types": [
+        "cash"
+       ],
+       "balances": [
+        300000
+       ]
+      },
+      "noCard": true
+     }
+    }
+   ]
+  },
+  {
+   "id": "C01",
+   "title": "Hỏi Milu làm được gì",
+   "turns": [
+    {
+     "say": "Milu làm được gì?",
+     "expect": {
+      "noCard": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "ghi"
+       ],
+       [
+        "tài khoản"
+       ]
+      ],
+      "not": [
+       "chưa hỗ trợ thêm tài khoản",
+       "chưa thêm được tài khoản"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C02",
+   "title": "Hỏi giúp được những gì",
+   "turns": [
+    {
+     "say": "bạn giúp được mình những gì vậy",
+     "expect": {
+      "noCard": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "ghi"
+       ],
+       [
+        "tài khoản"
+       ]
+      ],
+      "not": [
+       "chưa hỗ trợ thêm tài khoản",
+       "chưa thêm được tài khoản"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C03",
+   "title": "Xoá tài khoản: chưa hỗ trợ",
+   "turns": [
+    {
+     "say": "xoá tài khoản MoMo giúp mình",
+     "expect": {
+      "noCard": true,
+      "noAccountCard": true,
+      "deleteCard": false,
+      "has": [
+       [
+        "chưa hỗ trợ",
+        "chưa làm được",
+        "chưa thể",
+        "chưa có",
+        "chưa tạo được",
+        "chưa ghi được",
+        "không hỗ trợ",
+        "không được hỗ trợ"
+       ],
+       [
+        "cập nhật"
+       ],
+       [
+        "bút chì"
+       ]
+      ],
+      "not": [
+       "đã xoá",
+       "đã xóa",
+       "đã đổi",
+       "đã sửa",
+       "đã cập nhật",
+       "đã đặt",
+       "đã tạo"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C04",
+   "title": "Đổi số dư tài khoản đã có: chưa hỗ trợ",
+   "turns": [
+    {
+     "say": "sửa số dư Vietcombank thành 50 triệu",
+     "expect": {
+      "noCard": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "chưa hỗ trợ",
+        "chưa làm được",
+        "chưa thể",
+        "chưa có",
+        "chưa tạo được",
+        "chưa ghi được",
+        "không hỗ trợ",
+        "không được hỗ trợ"
+       ],
+       [
+        "cập nhật"
+       ],
+       [
+        "bút chì"
+       ]
+      ],
+      "not": [
+       "đã xoá",
+       "đã xóa",
+       "đã đổi",
+       "đã sửa",
+       "đã cập nhật",
+       "đã đặt",
+       "đã tạo"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C05",
+   "title": "Đặt hạn mức: chưa hỗ trợ",
+   "turns": [
+    {
+     "say": "đặt hạn mức ăn uống tháng này 3 triệu",
+     "expect": {
+      "noCard": true,
+      "has": [
+       [
+        "chưa hỗ trợ",
+        "chưa làm được",
+        "chưa thể",
+        "chưa có",
+        "chưa tạo được",
+        "chưa ghi được",
+        "không hỗ trợ",
+        "không được hỗ trợ"
+       ],
+       [
+        "cập nhật"
+       ],
+       [
+        "Hạn mức chi tiêu"
+       ]
+      ],
+      "not": [
+       "đã xoá",
+       "đã xóa",
+       "đã đổi",
+       "đã sửa",
+       "đã cập nhật",
+       "đã đặt",
+       "đã tạo"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C06",
+   "title": "Tạo hũ: chưa hỗ trợ",
+   "turns": [
+    {
+     "say": "tạo hũ du lịch 10 triệu",
+     "expect": {
+      "noCard": true,
+      "noAccountCard": true,
+      "has": [
+       [
+        "chưa hỗ trợ",
+        "chưa làm được",
+        "chưa thể",
+        "chưa có",
+        "chưa tạo được",
+        "chưa ghi được",
+        "không hỗ trợ",
+        "không được hỗ trợ"
+       ],
+       [
+        "cập nhật"
+       ],
+       [
+        "Hũ tiết kiệm"
+       ]
+      ],
+      "not": [
+       "đã xoá",
+       "đã xóa",
+       "đã đổi",
+       "đã sửa",
+       "đã cập nhật",
+       "đã đặt",
+       "đã tạo",
+       "ứng dụng khác",
+       "app khác"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C07",
+   "title": "Chuyển khoản: chưa hỗ trợ, sẽ cập nhật",
+   "turns": [
+    {
+     "say": "chuyển 500k từ VCB sang MoMo",
+     "expect": {
+      "noCard": true,
+      "refused": [
+       "transfer"
+      ],
+      "has": [
+       [
+        "cập nhật"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "C08",
+   "title": "Đặt lời nhắc: chưa hỗ trợ",
+   "turns": [
+    {
+     "say": "nhắc mình trả tiền điện ngày 5 hàng tháng",
+     "expect": {
+      "noCard": true,
+      "has": [
+       [
+        "chưa hỗ trợ",
+        "chưa làm được",
+        "chưa thể",
+        "chưa có",
+        "chưa tạo được",
+        "chưa ghi được",
+        "không hỗ trợ",
+        "không được hỗ trợ"
+       ],
+       [
+        "cập nhật"
+       ],
+       [
+        "định kỳ"
+       ]
+      ],
+      "not": [
+       "đã xoá",
+       "đã xóa",
+       "đã đổi",
+       "đã sửa",
+       "đã cập nhật",
+       "đã đặt",
+       "đã tạo"
+      ]
      }
     }
    ]

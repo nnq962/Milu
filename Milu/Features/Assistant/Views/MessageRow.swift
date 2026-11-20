@@ -97,6 +97,12 @@ struct MessageRow: View {
                 }, actions: cardActions)
                 .modifier(PopsIn(hidden: revealing))
             }
+            if case .accountDraft(let draft) = message.card {
+                AccountDraftCard(draft: draft, onRow: { id in
+                    if draft.isPending { onAction(.editRow(id), message) }
+                }, actions: cardActions)
+                .modifier(PopsIn(hidden: revealing))
+            }
             if let status = cardStatus {
                 HStack(spacing: Spacing.xs + 2) {
                     // Saved: the steps' own tick before the words, with a small bounce as "Lưu"
@@ -131,7 +137,11 @@ struct MessageRow: View {
 
     /// A card of several rows or one, saved and not since deleted.
     private var isSaved: Bool {
-        if case .draft(let draft) = message.card { draft.state == .saved && !draft.liveRows.isEmpty } else { false }
+        switch message.card {
+        case .draft(let draft): draft.state == .saved && !draft.liveRows.isEmpty
+        case .accountDraft(let draft): draft.state == .saved
+        default: false
+        }
     }
 
     /// The steps opened or closed, the same way run forwards or backwards (user report 2026-11-18:
@@ -220,7 +230,7 @@ struct MessageRow: View {
         switch message.card {
         case .recorded(let snapshot, _), .confirmDelete(let snapshot, _):
             store.transaction(id: snapshot.id) ?? snapshot
-        case .draft, nil: nil
+        case .draft, .accountDraft, nil: nil
         }
     }
 
@@ -234,6 +244,13 @@ struct MessageRow: View {
             case .pending: nil
             case .saved: draft.liveRows.isEmpty ? "Đã xoá các khoản này." : draft.liveRows.count == 1 ? "Đã lưu." : "Đã lưu \(draft.liveRows.count) khoản."
             case .cancelled: "Đã huỷ, Milu chưa ghi gì."
+            case .replaced: "Đã thay bằng bản mới bên dưới."
+            }
+        case .accountDraft(let draft):
+            switch draft.state {
+            case .pending: nil
+            case .saved: draft.rows.count == 1 ? "Đã thêm tài khoản." : "Đã thêm \(draft.rows.count) tài khoản."
+            case .cancelled: "Đã huỷ, Milu chưa thêm gì."
             case .replaced: "Đã thay bằng bản mới bên dưới."
             }
         default: nil
@@ -262,6 +279,15 @@ struct MessageRow: View {
             AnyView(HStack(spacing: Spacing.s) {
                 cardButton("Huỷ", color: Palette.label) { onAction(.cancel, message) }
                 cardButton(draft.liveRows.count > 1 ? "Lưu cả \(draft.liveRows.count)" : "Lưu",
+                           color: Palette.onPrimary, fill: Palette.primary) {
+                    onAction(.confirm, message)
+                }
+            })
+        case .accountDraft(let draft) where draft.isPending:
+            // Nothing is added before this "Lưu" (user request 2026-11-20).
+            AnyView(HStack(spacing: Spacing.s) {
+                cardButton("Huỷ", color: Palette.label) { onAction(.cancel, message) }
+                cardButton(draft.rows.count > 1 ? "Lưu cả \(draft.rows.count)" : "Lưu",
                            color: Palette.onPrimary, fill: Palette.primary) {
                     onAction(.confirm, message)
                 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum AccountType: String, CaseIterable, Identifiable {
+enum AccountType: String, CaseIterable, Identifiable, Codable {
     case cash, bank, eWallet, credit
 
     var id: Self { self }
@@ -28,7 +28,9 @@ enum AccountType: String, CaseIterable, Identifiable {
     }
 }
 
-struct Account: Identifiable, Hashable {
+/// Codable for the chat's cards of accounts waiting for "Lưu" (`AccountDraft`); the database
+/// keeps its own record.
+struct Account: Identifiable, Hashable, Codable {
     /// Stable across launches: the same id is stored in the database.
     var id = UUID()
     var name: String
