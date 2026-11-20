@@ -6,7 +6,7 @@ extension View {
     func miluSheetStyle(_ detents: Set<PresentationDetent> = [.large]) -> some View {
         self
             .presentationDetents(detents)
-            .presentationBackground(Palette.surface)
+            .sheetGround(Palette.surface)
             .environment(\.isInSheet, true)
             // A sheet opened from a row inside a `HeaderCard` inherits its "already in a card"
             // flag, and every card in it went flat and grey (user report 2026-11-03): a sheet

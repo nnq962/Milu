@@ -287,11 +287,20 @@ struct DraftBuilder {
         }
     }
 
+    /// The model's note, short; none when it is the app's own words about a card sent back as
+    /// if they were the user's: "[Thẻ #9644 · đang chờ người dùng bấm Lưu…]" on a row, a card
+    /// changed in words (iPhone 2026-11-19).
+    static func note(_ text: String?) -> String {
+        let note = String(Category.cleanName(text ?? "").prefix(200))
+        let appWords = ["[Thẻ #", "record_transaction", "replaces", "chờ người dùng bấm"]
+        return appWords.contains(where: { note.localizedCaseInsensitiveContains($0) }) ? "" : note
+    }
+
     // MARK: - One item
 
     /// `proposed`: the rows of the card being changed that make a new item.
     func resolve(_ input: JSONValue, knownAmounts: Set<Double> = [], proposed: [TransactionDraft.Row] = []) -> Outcome {
-        let note = String(Category.cleanName(input["note"]?.string ?? "").prefix(200))
+        let note = Self.note(input["note"]?.string)
         var what = note.isEmpty ? "Khoản này" : "Khoản “\(note)”"
         let categoryText = Category.cleanName(input["category"]?.string ?? "")
         let newCategory = input["new_category"]

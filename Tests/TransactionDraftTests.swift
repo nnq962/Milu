@@ -560,6 +560,14 @@ struct TransactionDraftTests {
         #expect(DraftShortcut.match("khoan đã, đổi sang momo") == nil)
     }
 
+    /// The app's words about a card, sent back by the model as a row's note, are not the note
+    /// (iPhone 2026-11-19: "[Thẻ #9644 · đang chờ người dùng bấm Lưu…]" under "Ăn sáng").
+    @Test func theAppsWordsAboutACardAreNoNote() {
+        #expect(DraftBuilder.note("[Thẻ #9644 · đang chờ người dùng bấm Lưu, chưa ghi; đổi gì thì gọi record_transaction với replaces]") == "")
+        #expect(DraftBuilder.note("Uống với bạn") == "Uống với bạn")
+        #expect(DraftBuilder.note(nil) == "")
+    }
+
     /// The model is told of a card as the call that made it, before Milu's words, never as words
     /// of Milu's own (it copied them); and of one still waiting from further back, first.
     @Test func theHistoryTellsTheModelOfCards() throws {

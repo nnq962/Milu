@@ -119,7 +119,7 @@ struct TransactionsView: View {
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
             .fullScreenCover(isPresented: $isShowingAssistant) {
                 NavigationStack { AssistantView() }
-                    .presentationBackground(Palette.background)
+                    .sheetGround(Palette.background)
             }
             .fullScreenCover(isPresented: $isSearching) {
                 TransactionSearchView(segment: segment)

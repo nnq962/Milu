@@ -547,7 +547,9 @@ struct RemoteAssistant: AssistantService {
             }
             return exchange(RecordTransaction().name, id: "card-\(draft.ref)", arguments: ["transactions": .array(items)],
                             result: ["ok": true, "status": "draft", "card": .string(draft.ref),
-                                     "note": .string("[Thẻ #\(draft.ref) · \(state)]"),
+                                     // Not "note": the model took it for the rows' own and put it on
+                                     // a row as it changed the card (iPhone 2026-11-19).
+                                     "card_state": .string("[Thẻ #\(draft.ref) · \(state)]"),
                                      "rows": .array(rows.enumerated().map { builder.describe($0.element, number: $0.offset + 1) })])
         case .recorded(let transaction, let removed):
             return exchange(RecordTransaction().name, id: "rec-\(ToolTransactions.ref(transaction))",

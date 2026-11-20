@@ -174,7 +174,7 @@ struct OverviewView: View {
             .navigationDestination(for: NetWorthRoute.self) { _ in NetWorthView() }
             .fullScreenCover(isPresented: $isShowingAssistant) {
                 NavigationStack { AssistantView() }
-                    .presentationBackground(Palette.background)
+                    .sheetGround(Palette.background)
             }
             .navigationDestination(for: ReportRoute.self) { ReportView(period: ReportPeriod(.month, containing: $0.month)) }
             .navigationDestination(for: NetWorthPart.self) { NetWorthPartView(part: $0) }

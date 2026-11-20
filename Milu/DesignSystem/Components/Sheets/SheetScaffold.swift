@@ -47,7 +47,7 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
         .modifier(FittedDetent(isOn: fitsContent, height: fittedHeight, step: fitStep))
         // The sheet's own chrome, so no caller has to remember it (review 2026-10-31: five short
         // sheets had no `miluSheetStyle` and could show a scroll bar).
-        .presentationBackground(Palette.surface)
+        .sheetGround(Palette.surface)
         .environment(\.isInSheet, true)
         // Its own cards, even when opened from inside a `HeaderCard` (see `miluSheetStyle`).
         .environment(\.isInHeaderCard, false)
@@ -70,8 +70,31 @@ extension SheetScaffold where Header == EmptyView, Trailing == EmptyView {
          fitsContent: Bool = false, hasChanges: Bool = false, fitStep: CGFloat = 44,
          @ViewBuilder content: () -> Content) {
         self.init(title: title, canConfirm: canConfirm, validate: validate, onConfirm: onConfirm,
-                  fitsContent: fitsContent, hasChanges: hasChanges, fitStep: fitStep, header: { EmptyView() },
-                  content: content, trailing: { EmptyView() })
+                  fitsContent: fitsContent, hasChanges: hasChanges, fitStep: fitStep,
+                  header: { EmptyView() }, content: content, trailing: { EmptyView() })
+    }
+}
+
+extension View {
+    /// A sheet's ground in one of Milu's colours, for every sheet of the app (user choice
+    /// 2026-11-20). On iOS 26 laid in the sheet over iOS's own glass, which then still swells a
+    /// little under a touch, as Apple's sheets do; `presentationBackground` takes the place of
+    /// that glass, and its touch with it (tried on "Thêm mới", "Thêm giao dịch" and "Thêm bằng
+    /// AI" first). Before iOS 26, `presentationBackground` as before.
+    func sheetGround(_ color: Color) -> some View {
+        modifier(SheetGround(color: color))
+    }
+}
+
+private struct SheetGround: ViewModifier {
+    let color: Color
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.background { color.ignoresSafeArea() }
+        } else {
+            content.presentationBackground(color)
+        }
     }
 }
 

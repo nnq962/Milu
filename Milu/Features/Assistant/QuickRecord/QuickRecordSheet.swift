@@ -25,6 +25,8 @@ struct QuickRecordSheet: View {
     @Environment(\.displayScale) private var displayScale
     /// The sheet it is in (`BottomPanel`): its own close, and the screen at full rate for a step.
     @Environment(\.panelControl) private var panelControl
+    /// The page it runs in, put up by UIKit (`QuickRecordController.present`).
+    @Environment(\.quickPageLink) private var quickPageLink
     @State private var dictation = SpeechDictation()
     @State private var phase = Phase.listening
     /// The user's last words, over the answer.
@@ -37,7 +39,12 @@ struct QuickRecordSheet: View {
     @State private var answering: Task<Void, Never>?
     @State private var closing: Task<Void, Never>?
     @State private var editingRow: AssistantView.EditingRow?
-    @FocusState private var isTyping: Bool
+    /// The keyboard on the small field's words (`QuickWordsField`), or on the panel's
+    /// (`panelFocus`).
+    @State private var isTyping = false
+    @FocusState private var panelFocus: Bool
+    /// Sentences sent: each rises from the field into its bubble (`QuickRecordController.fly`).
+    @State private var sends = 0
     /// The voice on its way to words, from ■ or a pause until the server's come: the card has
     /// none yet, and says "Đang chuyển thành chữ".
     @State private var transcribing = false
@@ -77,32 +84,9 @@ struct QuickRecordSheet: View {
         case heardNothing
     }
 
-    /// The native sheet's height (`fitSheet`): its one detent, and the one it slides from.
-    @State private var sheetHeight: CGFloat?
-    @State private var slidingFrom: CGFloat?
-    /// A slide waits for this step's layouts (`fitSheet`); when the last one ends.
-    @State private var isFitting = false
-    @State private var slideEnds: CFTimeInterval = 0
-    /// What is over the field, and the navigation bar over it.
-    @State private var upperHeight: CGFloat = 0
-    @State private var barHeight: CGFloat?
-    /// The small field's box while one types: the words' height, reached on a curve.
-    @State private var fieldBox: CGFloat = ControlHeight.small
     /// Milu's last answer that is not a card, with the words it answers: over the field until
     /// the next answer takes its place, through the next sentence said or typed (`upper`).
     @State private var last: Held?
-    /// The sheet up and laid out, a moment after it appears: until then its height is taken
-    /// as found, and nothing is held (`fitSheet`, `inner`).
-    @State private var settled = false
-    /// The keyboard, and the room iOS gives the content (`innerHeight`).
-    @State private var keyboard = Keys.down
-    @State private var given: CGFloat = 0
-    /// What is over the field is too long for the screen, and scrolls (`upperArea`).
-    @State private var upperScrolls = false
-    /// The field held in place while the sheet slides (`hold`): by how much, since when.
-    @State private var keyBegan: CFTimeInterval = 0
-    @State private var keyShift: CGFloat = 0
-    @State private var keyTick = 0
 
     struct Held {
         let result: Phase
@@ -131,24 +115,16 @@ struct QuickRecordSheet: View {
         .animation(Motion.gentle(Self.step), value: transcribing)
         // Each step at the screen's full rate, fades too (`BottomPanel.moving`).
         .onChange(of: stepNumber) { panelControl?.moving() }
-        // Milu's answer kept for `upper` until the next one; the field's box back to one line
-        // once one no longer types, on the curve it opened on.
+        // Milu's answer kept for `upper` until the next one.
         .onChange(of: phase) { old, new in
-            Self.trace("phase \(String(describing: old).prefix(24)) -> \(String(describing: new).prefix(24)) words \(headerWords ?? "-") upper \(upperHeight)")
+            Self.trace("phase \(String(describing: old).prefix(24)) -> \(String(describing: new).prefix(24))")
             switch new {
             case .result(.card), .saved: last = nil
             case .result, .failed: last = Held(result: new, said: said)
             default: break
             }
-            if new != .typing, fieldBox != Self.fieldButton { fieldBox = Self.fieldButton }
         }
-        .onAppear {
-            listen()
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(800))
-                settled = true
-            }
-        }
+        .onAppear { listen() }
         #if DEBUG
         .task { await runDemo() }
         #endif
@@ -242,11 +218,7 @@ struct QuickRecordSheet: View {
         if restsUnderCard, let fixNote {
             VStack(alignment: .leading, spacing: Spacing.s) {
                 if let fixWords {
-                    Text("“\(fixWords)”")
-                        .textRole(.caption)
-                        .foregroundStyle(Palette.secondaryLabel)
-                        .lineLimit(3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    SaidBubble(text: fixWords)
                 }
                 words(fixNote)
             }
@@ -263,253 +235,187 @@ struct QuickRecordSheet: View {
     /// 2026-11-19: "button các thứ nhấp nháy", an answer drawn by one branch while Milu waited
     /// and by another once one typed under it).
     ///
-    /// The sheet's height follows what is over the field and never the field: a line more typed
-    /// grows the field up into what scrolls over it, as in the chat. It changes only when Milu
+    /// The sheet's height follows what is over the field and never the field, one line tall
+    /// in every step. It changes only when Milu
     /// answers or a record is saved (`fitSheet`), and the field stays where it is on the screen
     /// while it does (`fieldRow`).
     private var nativeSheet: some View {
-        NavigationStack {
-            // What iOS gives the sheet's content: the detent's height under the bar, less the
-            // keyboard while it is up. It comes and goes on iOS's clocks, and nothing in the
-            // sheet is laid out by it: the content is as tall as the sheet's own figures say
-            // (`innerHeight`) and hangs from the top of this room.
-            Color.clear
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                    Self.trace("given \(height) keys \(keyboard) inner \(innerHeight)")
-                    holding { given = height }
-                }
-                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { top in
-                    guard top > 0, keyboard == .down, top != barHeight else { return }
-                    holding { barHeight = top }
-                    fitSheet()
-                }
-                .overlay(alignment: .top) { inner }
-                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                    if keyboard == .down { holding { keyboard = .rising } }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
-                    if keyboard == .rising { holding { keyboard = .up(min(innerBase, given)) } }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                    holding { keyboard = .down }
-                }
-                .navigationTitle("Thêm bằng AI")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { SheetCloseButton() }
-                }
-                .frameProbe("step", value: stepNumber)
-        }
-        .presentationDetents(sheetDetents,
-                             selection: Binding(get: { .height(sheetHeight ?? Self.firstHeight) }, set: { _ in }))
-        .presentationDragIndicator(.hidden)
-        .presentationBackground(Palette.surface)
-        .environment(\.isInSheet, true)
-        .environment(\.isInHeaderCard, false)
+        // Seen nowhere: the page (`QuickRecordController`) shows the step.
+        QuickSheetBridge(
+            state: sheetState,
+            onDraftChange: { if typed != $0 { typed = $0 } },
+            onSend: { send(typed) },
+            onFocus: { if isTyping != $0 { isTyping = $0 } },
+            onTapField: tapField
+        )
+        .frameProbe("step", value: stepNumber)
     }
 
-    /// The sheet's content: what scrolls over the field, and the field at its foot. As tall as
-    /// the sheet's own figures say and no other way, so the keyboard is iOS's business alone,
-    /// as for any sheet: iOS lifts the sheet over it, and what is in the sheet is laid out as
-    /// it was, riding with the sheet's top.
-    ///
-    /// (Tried and dropped, 2026-11-19. Laid out by the room iOS gives, the field at the room's
-    /// foot: as the keyboard went, that room was for some frames the short sheet's less a
-    /// keyboard no longer under it, and the field stood at the bar. The keyboard ignored and
-    /// the field put over it by hand: iOS then laid the content out higher than the bar by an
-    /// amount of its own, which on an iPhone hid the first words under the title, user report
-    /// the same day.)
-    private var inner: some View {
-        VStack(spacing: 0) {
-            upperArea
-            if showsField {
-                fieldRow
-                    .zIndex(1)
-                    .transition(.opacity.animation(Motion.gentle(.easeOut(duration: 0.2))))
-            }
-        }
-        .frame(height: innerHeight, alignment: .top)
-        // Its height is the sheet's own figure: the keyboard is none of its business, nor of
-        // anything in it. Told of the keyboard, what scrolls over the field scrolled its words
-        // away as the keyboard came and brought them back once it was up, the sheet with no
-        // words in it for eight frames (video at 60 a second, 2026-11-19).
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-        // No motion in the sheet comes from outside it: every one is given its own curve
-        // under this (`upper`, `miniField`), and what iOS does to the room is taken at once.
-        .transaction { $0.animation = nil }
+    /// The page as this step has it (`QuickRecordController`).
+    private var sheetState: QuickSheetState {
+        let listens = phase == .listening
+        let waits = phase == .thinking
+        return QuickSheetState(
+            upper: AnyView(nativeUpper),
+            sent: sends,
+            sentWords: said,
+            keepsUpper: fixing != nil,
+            draft: typed,
+            placeholder: fieldHint,
+            fieldLabel: asked != nil ? "Câu trả lời" : fixing != nil ? "Điều cần sửa" : "Khoản muốn ghi",
+            focused: isTyping,
+            canEdit: phase == .typing,
+            isDictating: listens || waits,
+            showsLeading: listens,
+            isLit: waits,
+            showsField: showsField,
+            leading: AnyView(chatRoundButton("xmark", label: "Huỷ nhập giọng nói") { cancelListening() }),
+            stop: AnyView(chatRoundButton("stop.fill", label: "Xong, chuyển thành chữ") { finishListening(sends: false) }),
+            action: AnyView(chatAction),
+            overlay: AnyView(fieldOverlay)
+        )
     }
 
-    /// What is over the field, in the room the field leaves it.
-    ///
-    /// Laid out plainly, not in a scroll view, whenever it fits the sheet with no keyboard up,
-    /// which is nearly always: a scroll view takes the keyboard for its own business whatever
-    /// SwiftUI is told. As the keyboard came it scrolled its words out of sight and brought
-    /// them back once the keyboard was up, the sheet with no words in it for eight frames
-    /// (video at 60 a second, 2026-11-19). Short of room (a card over the keyboard, lines typed
-    /// in the field) it is lifted by what is missing, on the sheet's spring, its foot over the
-    /// field and its top cut under the bar, as the chat's messages go up under a growing field.
-    /// Only a card too long for the screen scrolls.
-    @ViewBuilder
-    private var upperArea: some View {
-        if upperScrolls {
-            ScrollViewReader { reader in
-                ScrollView {
-                    upperContent
-                    Color.clear
-                        .frame(height: 0)
-                        .id(Self.upperFoot)
-                }
-                // Its foot, the buttons, brought over the field as the keyboard cuts its room.
-                .onChange(of: isCut) { _, cut in
-                    guard cut else { return }
-                    withAnimation(Motion.gentle(.spring(Self.sheetSpring))) {
-                        reader.scrollTo(Self.upperFoot, anchor: .bottom)
-                    }
-                }
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
-                .scrollIndicators(.hidden, axes: .vertical)
-            }
-        } else {
-            // Whatever room is left, down to none: as tall as its content it could not give
-            // way, and pushed the field out under the sheet (video, Simulator 2026-11-19).
-            Color.clear
-                .overlay(alignment: .top) {
-                    upperContent
-                        .fixedSize(horizontal: false, vertical: true)
-                        .offset(y: -upperLift)
-                        .animation(Motion.gentle(.spring(Self.sheetSpring)), value: upperLift)
-                }
-                .clipped()
-        }
-    }
-
-    private var upperContent: some View {
+    /// Over the field (user design 2026-11-20, as a chat that keeps only its last exchange): what
+    /// to say; the sentence sent, in its bubble, Milu's answer under it; a card alone, the words
+    /// said to change it and Milu's word on them under it. A sentence sent takes the place of all
+    /// that was there but a card being changed (`QuickRecordController.leaveUpper`).
+    private var nativeUpper: some View {
         VStack(alignment: .leading, spacing: Spacing.l) {
-            upper
-        }
-        .padding(.horizontal, Spacing.page)
-        .padding(.top, Spacing.s)
-        .padding(.bottom, showsField ? 0 : Spacing.l)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .keyboardDismissArea()
-        .animation(Motion.gentle(Self.step), value: phase)
-        .animation(Motion.gentle(Self.step), value: transcribing)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-            upperHeight = height
-            fitSheet()
-            judgeScroll()
-        }
-    }
-
-    /// The room over the field: the content's height less the field's, lines typed and all.
-    /// With no keyboard up, of the height the sheet is about to take as well as the one it has:
-    /// reckoned from the one it has alone, a card just in was lifted out under the bar for the
-    /// frames before the sheet took its height, then let down again (video 2026-11-19).
-    private var upperRoom: CGFloat {
-        var height = innerHeight
-        if keyboard == .down, let sheetHeight {
-            height = max(height, sheetTarget(from: sheetHeight) - (barHeight ?? Self.firstBar))
-        }
-        guard showsField else { return height }
-        return max(height - Self.fieldRoom - (fieldBox - Self.fieldButton), 0)
-    }
-
-    /// By how much what is over the field is longer than its room.
-    private var upperLift: CGFloat { max(upperHeight - upperRoom, 0) }
-
-    /// Whether it must scroll: longer than the tallest a sheet can be on this screen, by the
-    /// screen's own figures. (Judged by the room iOS gives, which trails the sheet's height by a
-    /// layout, it was a scroll view for a frame as each card came in, and everything in it was
-    /// made anew: the words came in a second time, video 2026-11-19.)
-    private func judgeScroll() {
-        let window = UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-            .first
-        guard let window else { return }
-        let most = window.bounds.height - window.safeAreaInsets.top - window.safeAreaInsets.bottom
-            - (barHeight ?? Self.firstBar) - Spacing.l
-        let scrolls = upperHeight + (showsField ? Self.fieldRoom : 0) > most
-        if scrolls != upperScrolls { upperScrolls = scrolls }
-    }
-
-    /// The keyboard, for the content's height alone (`innerHeight`).
-    private enum Keys: Equatable {
-        case down
-        /// On its way up: the room iOS gives is the one to fit in, as it comes.
-        case rising
-        /// Up: the height the content had once the keyboard was there. The room iOS gives is
-        /// not read again until the next one: as the keyboard goes, iOS takes the sheet back
-        /// to its short frame at once and goes on taking the keyboard off it for some frames.
-        case up(CGFloat)
-    }
-
-    /// The content's height by the sheet's own figures: the sheet's less its bar.
-    private var innerBase: CGFloat {
-        max((sheetHeight ?? Self.firstHeight) - (barHeight ?? Self.firstBar), 0)
-    }
-
-    /// The content's height: its own, cut to the room left over the keyboard when it does not
-    /// fit there (a long card being changed, the sheet stopped at the screen's top).
-    private var innerHeight: CGFloat {
-        switch keyboard {
-        case .down: innerBase
-        case .rising: given > 0 ? min(innerBase, given) : innerBase
-        case .up(let room): min(innerBase, room)
-        }
-    }
-
-    /// Cut for the keyboard (`innerHeight`).
-    private var isCut: Bool { innerHeight < innerBase - 1 }
-
-    /// The field with its room. While the sheet slides to a new height it is held where it
-    /// was on the screen (`hold`).
-    private var fieldRow: some View {
-        miniField
-            .padding(.horizontal, Spacing.page)
-            .padding(.top, Self.fieldGap)
-            .padding(.bottom, Self.fieldFoot)
-            .background(Palette.surface)
-            .keyframeAnimator(initialValue: CGFloat.zero, trigger: keyTick) { row, shift in
-                row.offset(y: shift)
-            } keyframes: { _ in
-                KeyframeTrack {
-                    MoveKeyframe(keyShift)
-                    SpringKeyframe(0, duration: 0.8, spring: Self.sheetSpring)
+            if case .saved(let count) = phase {
+                savedView(count)
+                    .transition(leaves)
+            } else if let card = shownCard {
+                nativeCard(card)
+                if let words = wordsUnderCard {
+                    // A bubble of its own for each sentence: the last one's words changed in place
+                    // to the new ones and stood there, fading, as the new one's flyer came (video
+                    // 2026-11-20); now the last one fades and the new one waits for its flyer.
+                    SaidBubble(text: words)
+                        .id(words)
+                        .transition(.opacity.animation(Motion.gentle(.easeOut(duration: 0.15))))
                 }
+                if showsFixNote, let fixNote {
+                    words(fixNote)
+                        .transition(answerArrives)
+                }
+            } else if let words = topWords {
+                SaidBubble(text: words)
+                    .id(sends)
+                    .transition(.opacity.animation(Motion.gentle(.easeOut(duration: 0.15))))
+                if let answer = shownAnswer {
+                    answerBody(answer)
+                }
+            } else {
+                greeting(heardNothing: phase == .heardNothing)
+                    .id(phase == .heardNothing)
+                    .transition(arrives)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(Motion.gentle(Self.step), value: phase)
     }
 
-    private static var upperFoot: String { "QuickRecord.upperFoot" }
+    /// Under the card: the words being sent to change it, then, if they changed nothing, those
+    /// words with Milu's why under them.
+    private var wordsUnderCard: String? {
+        if fixing != nil, phase == .thinking, !transcribing, !said.isEmpty { return said }
+        if showsFixNote { return fixWords }
+        return nil
+    }
 
-    /// Whatever changes the content's height (the sheet to another height, a long card cut for
-    /// the keyboard) goes through here: the field's foot is the content's, and the field is
-    /// held (`hold`) in the very update that moves it. Held an update later, on the height
-    /// seen to have changed, it was a frame out of place first (video at 60 a second,
-    /// 2026-11-19, a card coming in).
-    private func holding(_ change: () -> Void) {
-        let before = innerHeight
-        change()
-        let after = innerHeight
-        if settled, before != after {
-            Self.trace("inner \(after) from \(before) keys \(keyboard)")
-            hold(by: before - after)
+    /// Milu's why under the card, with the words it answers: while the card rests, and while the
+    /// next words are said or typed to it, until they go.
+    private var showsFixNote: Bool {
+        guard fixNote != nil else { return false }
+        if restsUnderCard { return true }
+        return fixing != nil && (phase == .listening || phase == .typing || phase == .heardNothing
+                                 || (phase == .thinking && transcribing))
+    }
+
+    /// The sentence at the top with no card: the one sent; the last one answered while the next
+    /// is said or typed, or while the voice turns into words; none when nothing was heard.
+    private var topWords: String? {
+        switch phase {
+        case .heardNothing: return nil
+        case .thinking where !transcribing: return said.isEmpty ? nil : said
+        default:
+            if let held, !held.said.isEmpty { return held.said }
+            return nil
         }
     }
 
-    /// iOS lays the content out for the sheet's new height at once and slides the sheet's top
-    /// to it after: a field at the content's foot fell out under a sheet still short, or stood
-    /// in the middle of one still tall (video, Simulator 2026-11-19). It is moved back by what
-    /// its place changed, on top of what is still held of a move before, and let go on the
-    /// sheet's own spring from the same frame: on the screen it does not move at all. What is
-    /// over it hangs from the sheet's top and rides with it.
-    private func hold(by change: CGFloat) {
-        guard abs(change) > 0.5 else { return }
-        let elapsed = CACurrentMediaTime() - keyBegan
-        let left = elapsed < 0.7 ? keyShift * (1 - Self.sheetSpring.value(target: 1.0, time: elapsed)) : 0
-        keyShift = left + change
-        keyBegan = CACurrentMediaTime()
-        keyTick += 1
+    /// In the field's words' place: the wave while one speaks, the voice turning into words, then
+    /// Milu at work (the chat's `dictationStatus`).
+    private var fieldOverlay: some View {
+        let swap = AnyTransition.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.1)),
+                                            removal: .opacity.animation(.easeOut(duration: 0.12)))
+        return ZStack(alignment: .leading) {
+            if phase == .listening {
+                HStack(spacing: 0) {
+                    ListeningCountdown(startedAt: dictation.startedAt)
+                    VoiceWaveform(dictation: dictation)
+                }
+                .transition(swap)
+            } else if phase == .thinking {
+                TranscribingStatus(text: transcribing ? Copy.transcribing : Copy.composing,
+                                   spoken: transcribing ? "Milu đang chuyển giọng nói thành chữ" : Copy.composing)
+                    .padding(.leading, Spacing.s)
+                    .transition(swap)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .animation(Motion.gentle(.easeOut(duration: 0.2)), value: transcribing)
+    }
+
+    /// The chat's ✕ and ■ while listening: a glyph on a grey disc (`AssistantView.roundButton`).
+    private func chatRoundButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: IconSize.inline + 2, weight: .semibold))
+                .foregroundStyle(Palette.label)
+                .frame(width: Self.fieldButton, height: Self.fieldButton)
+                .background(Palette.background, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    /// The chat's last button (`AssistantView.actionButton`): the mic; ↑ once there is something
+    /// to send, or while one speaks; dim while Milu works.
+    private var chatAction: some View {
+        let listens = phase == .listening
+        let waits = phase == .thinking
+        let sends = listens || (phase == .typing && !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        return Button {
+            if listens { finishListening() } else if sends { send(typed) } else { speak() }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Palette.primary)
+                    .scaleEffect(sends ? 1 : 0.4)
+                    .opacity(sends ? 1 : 0)
+                Image(systemName: "mic")
+                    .font(.system(size: IconSize.control))
+                    .foregroundStyle(Palette.secondaryLabel)
+                    .scaleEffect(sends ? 0.4 : 1)
+                    .opacity(sends ? 0 : 1)
+                Image(systemName: "arrow.up")
+                    .font(.system(size: IconSize.bar, weight: .semibold))
+                    .foregroundStyle(Palette.onPrimary)
+                    .scaleEffect(sends ? 1 : 0.4)
+                    .opacity(sends ? 1 : 0)
+            }
+            .frame(width: Self.fieldButton, height: Self.fieldButton)
+            .opacity(waits ? 0.4 : 1)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(waits)
+        .animation(Motion.gentle(.spring(duration: 0.3, bounce: 0.25)), value: sends)
+        .animation(Motion.gentle(.easeOut(duration: 0.2)), value: waits)
+        .accessibilityLabel(listens ? "Xong, gửi cho Milu" : sends ? "Gửi cho Milu" : "Nói với Milu")
     }
 
     private static func trace(_ words: @autoclosure () -> String) {
@@ -527,148 +433,22 @@ struct QuickRecordSheet: View {
         #endif
     }
 
-    /// iOS's spring for a sheet going to another detent, measured on its top edge frame by frame
-    /// (video, Simulator 2026-11-19): no bounce, 0.33 s.
-    private static var sheetSpring: Spring { Spring(duration: 0.33, bounce: 0) }
-
-    /// Before anything is measured: the bar, and with it the opening words and the field.
-    private static var firstBar: CGFloat { 70 }
-    private static var firstHeight: CGFloat { 212 }
-    private static var fieldGap: CGFloat { Spacing.l }
-    private static var fieldFoot: CGFloat { Spacing.l }
-    /// The field at one line, with its room over and under it: what the sheet keeps for it,
-    /// however many lines are typed.
-    private static var fieldRoom: CGFloat { fieldGap + fieldButton + 2 * fieldInset + fieldFoot }
-
-    /// The sheet's one detent; its last one beside it for the moment it slides from that one,
-    /// as iOS slides a sheet only to a detent it has (`fitSheet`).
-    private var sheetDetents: Set<PresentationDetent> {
-        let now = PresentationDetent.height(sheetHeight ?? Self.firstHeight)
-        if let slidingFrom { return [.height(slidingFrom), now] }
-        return [now]
+    /// Milu's answer over the field: the last one, kept while the next sentence is said or typed,
+    /// gone once it is sent.
+    private var shownAnswer: Held? {
+        phase == .thinking && !transcribing ? nil : held
     }
 
-    /// While one speaks or types, and while Milu composes, the sheet keeps its height: what is
-    /// over the field then changes little, and a sheet that shrank as a sentence went and grew
-    /// again as its answer came moved twice for one step (video, Simulator 2026-11-19). It only
-    /// grows then, for words longer than their room.
-    private var holdsHeight: Bool {
-        guard settled else { return false }
+    /// Milu's last answer that is not a card, with its words: the one just in as soon as the step
+    /// is its, else the one kept (`last`). Read from `last` alone, the step's first frame drew the
+    /// answer before, and its words, then the new ones: a second sentence sent after "Bạn đang làm
+    /// gì thế", its bubble blinked (user report 2026-11-19).
+    private var held: Held? {
         switch phase {
-        case .listening, .typing, .thinking: return true
-        default: return false
+        case .result(.card), .saved: nil
+        case .result, .failed: Held(result: phase, said: said)
+        default: last
         }
-    }
-
-    /// The bar, what is over the field and the field at one line. While the sheet comes up, its
-    /// height is taken as it is found, at once, as any sheet of the app that fits its content
-    /// (`FittedDetent`): the first layouts are not at the sheet's width yet. After that it is
-    /// slid to, the layouts of one step (a card comes to its height in two or three, a few
-    /// milliseconds apart) as one slide to the last of them.
-    private func fitSheet() {
-        guard barHeight != nil, upperHeight > 0 else { return }
-        guard let shown = sheetHeight, settled else {
-            let target = sheetTarget(from: 0)
-            if target != sheetHeight { sheetHeight = target }
-            judgeScroll()
-            return
-        }
-        guard abs(sheetTarget(from: shown) - shown) >= 1, !isFitting else { return }
-        isFitting = true
-        // The detent the sheet is at, always: with the one of a slide before still there in
-        // its place (a card comes to its height twice, a tenth of a second apart), the sheet
-        // had no detent of its own to slide from, and took the second height in one frame,
-        // 146 points at once (measured frame by frame, 2026-11-19).
-        slidingFrom = shown
-        Task { @MainActor in
-            // The detent it slides from in place before the new one is picked, and the layouts
-            // of this step done.
-            try? await Task.sleep(for: .milliseconds(30))
-            isFitting = false
-            guard let from = sheetHeight else { return }
-            let target = sheetTarget(from: from)
-            guard abs(target - from) >= 1 else {
-                if slideEnds <= CACurrentMediaTime() { slidingFrom = nil }
-                return
-            }
-            slideEnds = CACurrentMediaTime() + 0.7
-            // The content's height goes with it, and the field is held.
-            holding { sheetHeight = target }
-            let ends = slideEnds
-            try? await Task.sleep(for: .milliseconds(700))
-            guard slideEnds == ends else { return }
-            slidingFrom = nil
-        }
-    }
-
-    /// The height asked for now; no less than the one it has while it holds (`holdsHeight`).
-    private func sheetTarget(from current: CGFloat) -> CGFloat {
-        let target = ((barHeight ?? Self.firstBar) + upperHeight + (showsField ? Self.fieldRoom : 0)).rounded()
-        return holdsHeight ? max(target, current) : target
-    }
-
-    /// Over the field: the words at the top, Milu's answer under them; "Đã lưu" alone.
-    @ViewBuilder
-    private var upper: some View {
-        if case .saved(let count) = phase {
-            savedView(count)
-                .transition(leaves)
-        } else {
-            header
-            if let card = shownCard {
-                nativeCard(card)
-                fixNoteBlock
-            }
-            if let last {
-                // Milu at work on the next sentence: its last answer stays, dimmed, until the
-                // new one takes its place, rather than leaving a hole the sheet closes and opens.
-                answerBody(last)
-                    .opacity(phase == .thinking ? 0.35 : 1)
-                    .disabled(phase == .thinking)
-            }
-        }
-    }
-
-    /// The words at the top: those said or typed once they go to Milu, coming in glyph by glyph
-    /// in the place of what to say (user request 2026-11-19); the same words, the same size and
-    /// place, from Milu at work to its answer, so they never give way to a smaller copy of
-    /// themselves (video, Simulator 2026-11-19: two sizes of one sentence faded across).
-    private var header: some View {
-        let words = headerWords
-        // Before any answer, room for two lines from the start: a short sentence moves nothing.
-        let keepsRoom = shownCard == nil && last == nil
-        return ZStack(alignment: .topLeading) {
-            if keepsRoom {
-                greeting(heardNothing: false)
-                    .hidden()
-                    .accessibilityHidden(true)
-            }
-            if let words {
-                RevealingWords(text: words)
-                    .textRole(.body)
-                    .foregroundStyle(Palette.label)
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .id(words)
-                    .transition(.asymmetric(insertion: .identity,
-                                            removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.12)))))
-            } else {
-                greeting(heardNothing: phase == .heardNothing)
-                    .id(phase == .heardNothing)
-                    .transition(arrives)
-            }
-        }
-    }
-
-    /// The words the header shows; none while it says what to say, or that nothing was heard.
-    private var headerWords: String? {
-        if phase == .heardNothing { return nil }
-        // A card keeps its own sentence over it while words change it.
-        if let card = shownCard { return card.said.isEmpty ? nil : card.said }
-        if phase == .thinking, !said.isEmpty { return said }
-        if let last, !last.said.isEmpty { return last.said }
-        return nil
     }
 
     private func greeting(heardNothing: Bool) -> some View {
@@ -695,7 +475,7 @@ struct QuickRecordSheet: View {
         let locked = card.isFixing && phase == .thinking
         if let note = card.note {
             words(note)
-                .transition(rises)
+                .transition(cardArrives)
         }
         DraftCard(draft: card.draft, onRow: { id in
             guard !locked, card.draft.isPending, let row = card.draft.row(id) else { return }
@@ -710,7 +490,7 @@ struct QuickRecordSheet: View {
             }
         }
         .disabled(locked)), opensRows: true)
-        .transition(rises)
+        .transition(cardArrives)
     }
 
     /// Milu's answer that is not a card: its question and the answers to tap, or what it cannot
@@ -720,7 +500,7 @@ struct QuickRecordSheet: View {
         switch answer.result {
         case .result(.asking(let question, let choices)):
             words(question)
-                .transition(rises)
+                .transition(answerArrives)
             if !choices.isEmpty {
                 FlowLayout(spacing: Spacing.s) {
                     ForEach(choices, id: \.self) { choice in
@@ -732,22 +512,17 @@ struct QuickRecordSheet: View {
             }
         case .result(.refused(let message, let form)):
             words(message)
-                .transition(rises)
+                .transition(answerArrives)
             if let form {
                 MiluButton(form.title, role: .primary, fullWidth: true) { open(.form(form)) }
                     .transition(follows)
             }
         case .result(.notRecord):
             words(Copy.notRecord)
-                .transition(rises)
-            MiluButton("Mở Hỏi Milu", role: .primary, fullWidth: true) {
-                onNext(.chat(answer.said))
-                close()
-            }
-            .transition(follows)
+                .transition(answerArrives)
         case .failed(let message):
             words(message)
-                .transition(rises)
+                .transition(answerArrives)
             MiluButton("Thử lại", role: .primary, fullWidth: true) { send(answer.said) }
                 .transition(follows)
         default:
@@ -764,108 +539,6 @@ struct QuickRecordSheet: View {
 
     private static var fieldButton: CGFloat { ControlHeight.small }
     private static var fieldInset: CGFloat { Spacing.s }
-    private static var fieldRadius: CGFloat { fieldButton / 2 + fieldInset }
-
-    /// The chat's field, small (user design 2026-11-19): one line, its button the chat's size.
-    /// Nothing in it moves from one step to the next: the same button at its end, its glyph
-    /// changing in place, and in its middle the hint, the words typed, the wave or "Milu đang
-    /// soạn", one fading out before the next fades in. A tap on it types.
-    private var miniField: some View {
-        let listens = phase == .listening
-        let waiting = phase == .thinking
-        let shape = RoundedRectangle(cornerRadius: Self.fieldRadius, style: .continuous)
-        return fieldMiddle
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // Room for the button, which is laid on the field's foot rather than beside its
-            // words: beside them it stood half-way up a field of two lines (video 2026-11-19),
-            // where the chat's stays on the last line.
-            .padding(.trailing, Self.fieldButton + Spacing.s)
-            .padding(Self.fieldInset)
-            .overlay(alignment: .bottomTrailing) {
-                fieldAction
-                    .padding(Self.fieldInset)
-            }
-        // Milu's sky while it listens or composes, as the chat's field lights up.
-            .background(listens || waiting ? Palette.accentSoft : Palette.fill, in: shape)
-            .overlay {
-                shape
-                    .strokeBorder(Palette.primary, lineWidth: Self.border(displayScale))
-                    .opacity(waiting ? 1 : 0)
-            }
-            .contentShape(shape)
-            .onTapGesture(perform: tapField)
-            .animation(Motion.gentle(Self.step), value: phase)
-            .animation(Motion.gentle(.easeOut(duration: 0.25)), value: fieldBox)
-            // What changes in the field has its curve; where the field is does not, it is the
-            // sheet's to move (`hold`). On the step's curve too, the field's frame and the
-            // button laid on it went to a new place each at its own pace, the disc out of its
-            // field for a few frames (video, Simulator 2026-11-19).
-            .geometryGroup()
-    }
-
-    /// The field's middle: what it holds in this step. As tall as its box (`fieldBox`), the
-    /// words on its foot: a line more is laid out at once and the box opens over it on its
-    /// curve, as the chat's field (`ChatViewController`), so the line being typed never moves.
-    private var fieldMiddle: some View {
-        let typing = phase == .typing
-        return ZStack(alignment: .bottomLeading) {
-            switch phase {
-            case .listening:
-                HStack(spacing: 0) {
-                    ListeningCountdown(startedAt: dictation.startedAt)
-                    VoiceWaveform(dictation: dictation)
-                }
-                .frame(height: Self.fieldButton)
-                .transition(arrives)
-            case .thinking:
-                TranscribingStatus(text: Copy.composing, spoken: Copy.composing)
-                    .frame(height: Self.fieldButton)
-                    .transition(arrives)
-            default:
-                ZStack(alignment: .bottomLeading) {
-                    Text(fieldHint)
-                        .textRole(.body)
-                        .foregroundStyle(Palette.secondaryLabel.opacity(0.7))
-                        .lineLimit(1)
-                        .frame(height: Self.fieldButton)
-                        .opacity(typing && !typed.isEmpty ? 0 : 1)
-                        .accessibilityHidden(typing)
-                    if typing {
-                        miniTextField
-                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                                openField(to: height)
-                            }
-                    }
-                }
-                .transition(arrives)
-            }
-        }
-        .frame(height: fieldBox, alignment: .bottomLeading)
-        .clipped()
-        .padding(.leading, Spacing.s)
-    }
-
-    /// The box to the words' new height, on the chat's curve for its field.
-    private func openField(to height: CGFloat) {
-        let box = max(height, Self.fieldButton)
-        if box != fieldBox { fieldBox = box }
-    }
-
-    /// Typed words, to four lines, then they scroll; as the chat's field, sent as typed. One
-    /// line as tall as the hint's.
-    private var miniTextField: some View {
-        TextField("", text: $typed, axis: .vertical)
-            .textRole(.body)
-            .lineLimit(1...4)
-            .autocorrectionDisabled()
-            .writingToolsDisabledIfAvailable()
-            .focused($isTyping)
-            .submitLabel(.send)
-            .onSubmit { send(typed) }
-            .frame(minHeight: Self.fieldButton)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityLabel(asked != nil ? "Câu trả lời" : fixing != nil ? "Điều cần sửa" : "Khoản muốn ghi")
-    }
 
     /// What the field says while there is nothing in it: by what is over it, not by the step,
     /// so it does not change as one begins to type.
@@ -873,51 +546,8 @@ struct QuickRecordSheet: View {
         if phase == .heardNothing { return Copy.sayAgain }
         if asked != nil { return Copy.answerHint }
         if shownCard != nil { return Copy.fixShort }
-        if last != nil { return Copy.another }
+        if held != nil { return Copy.another }
         return Copy.fieldHint
-    }
-
-    /// At the field's end, one blue disc in every step: ■ while one speaks, ↑ once something is
-    /// typed, the mic otherwise, one glyph shrinking out as the next grows in on the spot (the
-    /// chat's own, `AssistantView.actionButton`; iOS's symbol replace ran one after the other).
-    /// Dim while Milu composes.
-    private var fieldAction: some View {
-        let listens = phase == .listening
-        let waiting = phase == .thinking
-        let sends = phase == .typing && !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let glyph = listens ? 1 : sends ? 2 : 0
-        return Button {
-            if listens {
-                finishListening()
-            } else if sends {
-                send(typed)
-            } else {
-                speak()
-            }
-        } label: {
-            ZStack {
-                Circle().fill(Palette.primary)
-                actionGlyph("mic.fill", shown: glyph == 0)
-                actionGlyph("stop.fill", shown: glyph == 1)
-                actionGlyph("arrow.up", shown: glyph == 2)
-            }
-            .frame(width: Self.fieldButton, height: Self.fieldButton)
-            .opacity(waiting ? 0.4 : 1)
-            .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .disabled(waiting)
-        .animation(Motion.gentle(.spring(duration: 0.3, bounce: 0.25)), value: glyph)
-        .animation(Motion.gentle(.easeOut(duration: 0.2)), value: waiting)
-        .accessibilityLabel(listens ? "Xong, gửi cho Milu" : sends ? "Gửi cho Milu" : "Nói với Milu")
-    }
-
-    private func actionGlyph(_ symbol: String, shown: Bool) -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: IconSize.inline + 2, weight: .semibold))
-            .foregroundStyle(Palette.onPrimary)
-            .scaleEffect(shown ? 1 : 0.4)
-            .opacity(shown ? 1 : 0)
     }
 
     /// The mic: to change the card under it, to answer, or a new sentence from the start.
@@ -1161,7 +791,9 @@ struct QuickRecordSheet: View {
             // (Simulator, 2026-11-17).
             .autocorrectionDisabled()
             .writingToolsDisabledIfAvailable()
-            .focused($isTyping)
+            .focused($panelFocus)
+            .onChange(of: panelFocus) { _, focus in if isTyping != focus { isTyping = focus } }
+            .onChange(of: isTyping) { _, typing in if panelFocus != typing { panelFocus = typing } }
             .submitLabel(.send)
             .onSubmit { send(typed) }
             .accessibilityLabel(asked != nil ? "Câu trả lời" : fixing != nil ? "Điều cần sửa" : "Khoản muốn ghi")
@@ -1309,6 +941,16 @@ struct QuickRecordSheet: View {
                     removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.12))))
     }
 
+    /// Milu's card coming in where the sentence was, as that one fades: at once, rising a
+    /// little, so the two cross rather than leaving the sheet empty a moment while it grows
+    /// (user report 2026-11-20: the card's arrival "chưa mượt", video: the bubble faded, the
+    /// sheet stood empty for a few frames, then the card came 14 points from under).
+    private var cardArrives: AnyTransition {
+        .asymmetric(insertion: .opacity.combined(with: .offset(y: 8))
+                        .animation(Motion.gentle(.smooth(duration: 0.35))),
+                    removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.12))))
+    }
+
     /// What comes under it, a beat later: the suggestions, the buttons.
     private var follows: AnyTransition {
         .asymmetric(insertion: .opacity.animation(Motion.gentle(.easeOut(duration: 0.3).delay(0.22))),
@@ -1375,8 +1017,6 @@ struct QuickRecordSheet: View {
         case .notRecord:
             words(Copy.notRecord)
                 .transition(rises)
-            MiluButton("Mở Hỏi Milu", role: .primary, fullWidth: true) { open(.chat(said)) }
-                .transition(follows)
             againButton("Nói lại")
                 .transition(follows)
         }
@@ -1450,12 +1090,20 @@ struct QuickRecordSheet: View {
     }
 
     /// Milu's words, **bold** and "• " lines kept, as the chat sets them.
+    /// Milu's words, the chat's own (`AnswerWords`): selectable, and shown one word after another
+    /// as they come, as an answer in the chat (user request 2026-11-20: "đồng bộ" with the chat).
     private func words(_ text: String) -> some View {
-        Text(MessageRow.formatted(text))
-            .textRole(.body)
-            .foregroundStyle(Palette.label)
+        let formatted = MessageRow.formatted(text)
+        return AnswerWords(text: formatted, reveals: true)
+            .accessibilityLabel(SpokenText.of(String(formatted.characters)))
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Milu's words coming in: their own word-by-word showing (`words`), no fade over it, as in
+    /// the chat; going, a quick fade.
+    private var answerArrives: AnyTransition {
+        .asymmetric(insertion: .identity, removal: .opacity.animation(Motion.gentle(.easeOut(duration: 0.12))))
     }
 
     /// Starts over: what was said and answered goes, the mic listens again.
@@ -1579,13 +1227,62 @@ struct QuickRecordSheet: View {
         }
         // MILU_DEMO=type: the field tapped as soon as the sheet is up, a sentence typed, its
         // card, a change typed under the card, then closed.
-        if ProcessInfo.processInfo.environment["MILU_DEMO"] == "type" {
-            func type(_ words: String) async {
-                for character in words {
-                    typed.append(character)
-                    await pause(0.03)
-                }
+        func type(_ words: String) async {
+            for character in words {
+                typed.append(character)
+                await pause(0.03)
             }
+        }
+        // MILU_DEMO=lines: the field tapped, a sentence long enough for five lines on one, then
+        // erased, to watch the field grow and the button stay put.
+        if ProcessInfo.processInfo.environment["MILU_DEMO"] == "lines" {
+            await pause(2.5)
+            tapField()
+            await pause(2)
+            // Marks over and under the words first: the line must not move (user report
+            // 2026-11-20, "ạ" typed and the words jumped).
+            await type("ạ ạ Ặ ỹ")
+            await pause(1)
+            await type(" Cà phê sữa đá 35k, gửi xe 5k, bánh mì 20k, trà sữa trân châu 45k, cơm trưa văn phòng 50k, đổ xăng 80k, ạ")
+            await pause(1.5)
+            while !typed.isEmpty {
+                typed.removeLast()
+                await pause(0.015)
+            }
+            return
+        }
+        // MILU_DEMO=gap: a card, then under it a sentence that is not a change, then another,
+        // then a change (user report 2026-11-20: at the second sentence, an empty space).
+        if ProcessInfo.processInfo.environment["MILU_DEMO"] == "gap" {
+            func rests() async -> Bool {
+                for _ in 0..<160 {
+                    if case .result(.card) = phase, fixing == nil { return true }
+                    await pause(0.25)
+                }
+                return false
+            }
+            await pause(2.5)
+            tapField()
+            await pause(2)
+            await type("Ăn sáng hết 40k")
+            await pause(0.8)
+            send(typed)
+            guard await rests() else { return }
+            for words in ["Bạn đang làm gì thế", "Hôm nay trời đẹp ghê", "sửa thành 30k"] {
+                await pause(2.5)
+                tapField()
+                await pause(1.2)
+                await type(words)
+                await pause(0.8)
+                send(typed)
+                await pause(0.5)
+                guard await rests() else { return }
+            }
+            await pause(2.5)
+            if case .result(.card(let draft, _)) = phase { save(draft) }
+            return
+        }
+        if ProcessInfo.processInfo.environment["MILU_DEMO"] == "type" {
             await pause(2.5)
             tapField()
             await pause(3)
@@ -1607,6 +1304,30 @@ struct QuickRecordSheet: View {
         }
         // MILU_DEMO=wrong: a sentence Milu cannot record (the fake voice's first), then a long
         // one typed under its answer, its card, a change typed under the card, then closed.
+        // MILU_DEMO=offtopic: sentences that are not a record one after another, said, said again
+        // and typed, to watch the bubble give way to the next and the voice's two steps.
+        if ProcessInfo.processInfo.environment["MILU_DEMO"] == "offtopic" {
+            func answered() async {
+                for _ in 0..<160 {
+                    if case .result = phase { return }
+                    if case .failed = phase { return }
+                    await pause(0.25)
+                }
+            }
+            await answered()
+            await pause(2)
+            speak()
+            await pause(0.5)
+            await answered()
+            await pause(2)
+            tapField()
+            await pause(1.5)
+            await type("bạn tên là gì")
+            await pause(0.8)
+            send(typed)
+            await answered()
+            return
+        }
         if ProcessInfo.processInfo.environment["MILU_DEMO"] == "wrong" {
             func type(_ words: String) async {
                 for character in words {
@@ -1687,8 +1408,8 @@ struct QuickRecordSheet: View {
     private func fix(typing: Bool) {
         guard case .result(.card(let draft, let note)) = phase, draft.isPending else { return }
         fixing = Fixing(draft: draft, note: note, said: said, history: history)
-        fixNote = nil
-        fixWords = nil
+        // The last words and Milu's why stay under the card until the next words go (user
+        // design 2026-11-20: the last exchange gives way as the next sentence rises).
         asked = nil
         if typing { startTyping() } else { listen() }
     }
@@ -1720,11 +1441,17 @@ struct QuickRecordSheet: View {
 
     /// Slides the sheet away (`BottomPanel`); iOS's dismiss outside one.
     private func close() {
-        if let panelControl { panelControl.close() } else { dismiss() }
+        if let panelControl {
+            panelControl.close()
+        } else if let page = quickPageLink?.page {
+            page.close()
+        } else {
+            dismiss()
+        }
     }
 
     /// ■, or a pause: the words turned into text (the server's when it has them), then sent.
-    private func finishListening() {
+    private func finishListening(sends: Bool = true) {
         guard dictation.isRecording else { return }
         // No words in the card until the server's (the phone's, should it not answer).
         said = ""
@@ -1740,9 +1467,24 @@ struct QuickRecordSheet: View {
             let words = heard.trimmingCharacters(in: .whitespacesAndNewlines)
             if words.isEmpty {
                 phase = .heardNothing
-            } else {
+            } else if sends {
                 send(words)
+            } else {
+                // ■: the words into the field, to change before they go, as in the chat.
+                typed = words
+                startTyping()
             }
+        }
+    }
+
+    /// ✕ while listening: nothing heard is kept; the card as it was when one was changing it, else
+    /// the field to type in.
+    private func cancelListening() {
+        dictation.stop()
+        if fixing != nil {
+            keepCard()
+        } else {
+            phase = .typing
         }
     }
 
@@ -1761,6 +1503,7 @@ struct QuickRecordSheet: View {
         }
         isTyping = false
         said = words
+        sends += 1
         typed = ""
         fixNote = nil
         fixWords = nil
@@ -1919,72 +1662,24 @@ private struct SavedMark: View {
     }
 }
 
-/// Words coming in one after another, each from a blur into its place (user request
-/// 2026-11-19: the words said or typed in the greeting's place, over a chat bubble). Before iOS
-/// 18 they fade in whole; under Reduce Motion, there at once.
-private struct RevealingWords: View {
+/// The words said or typed, in the chat's bubble (`UserBubble`): set as the field sets them, so
+/// they break where they did as they were typed, and the same bubble the sentence rose in from the
+/// field (`QuickRecordController.fly`). Hidden while that one is on its way, and saying where it
+/// is for it to land on.
+private struct SaidBubble: View {
     let text: String
-    @State private var progress: Double = 0
+    @Environment(\.quickSaidHidden) private var hidden
+    @Environment(\.quickSaidFrame) private var report
 
     var body: some View {
-        Group {
-            if #available(iOS 18.0, *) {
-                Text(text).textRenderer(GlyphReveal(progress: progress))
-            } else {
-                Text(text).opacity(progress)
+        UserBubble(text: text)
+            .opacity(hidden ? 0 : 1)
+            // At once: on the step's curve it was still there, fading, as its flyer came.
+            .animation(nil, value: hidden)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(QuickUpper.space)) } action: { frame in
+                report?(frame)
             }
-        }
-        .accessibilityLabel(text)
-        // Its own curve, on the words themselves: the sheet stills what comes from outside.
-        .animation(Motion.gentle(.easeOut(duration: Self.duration(for: text))), value: progress)
-        .onAppear { progress = 1 }
-    }
-
-    /// Longer for more words, never long: the card is on its way.
-    private static func duration(for text: String) -> Double {
-        min(0.45 + Double(text.count) * 0.012, 1.1)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
-/// Each glyph from transparent, a little blurred and low, to its place, one after another
-/// along the lines.
-@available(iOS 18.0, *)
-private struct GlyphReveal: TextRenderer {
-    var progress: Double
-
-    var animatableData: Double {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    /// The share of the time over which the glyphs start; each takes the rest to come in.
-    private static var spread: Double { 0.6 }
-
-    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
-        let slices = layout.flatMap { $0 }.flatMap { $0 }
-        let count = Double(max(slices.count, 1))
-        for (index, slice) in slices.enumerated() {
-            let start = Double(index) / count * Self.spread
-            let shown = min(max((progress - start) / (1 - Self.spread), 0), 1)
-            var glyph = context
-            glyph.opacity = shown
-            if shown < 1 {
-                glyph.addFilter(.blur(radius: (1 - shown) * 3))
-                glyph.translateBy(x: 0, y: (1 - shown) * 4)
-            }
-            glyph.draw(slice)
-        }
-    }
-}
-
-/// While what scrolls over the field shrinks (a line more typed), its foot kept in view: the
-/// card's buttons stay by the field, its top going under the bar, as the chat's messages do.
-private struct KeepsFootInView: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, *) {
-            content.defaultScrollAnchor(.bottom, for: .sizeChanges)
-        } else {
-            content
-        }
-    }
-}

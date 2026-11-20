@@ -42,7 +42,7 @@ struct NotificationInviteView: View {
         .foregroundStyle(Palette.label)
         .presentationDetents([.height(height ?? 560)])
         .presentationDragIndicator(.visible)
-        .presentationBackground(Palette.surface)
+        .sheetGround(Palette.surface)
         .interactiveDismissDisabled(isAsking)
         // Seen once it is on screen (`NotificationInvite`).
         .onAppear { NotificationInvite.markShown() }

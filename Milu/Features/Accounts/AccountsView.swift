@@ -80,7 +80,7 @@ struct AccountsView: View {
             }
             .fullScreenCover(isPresented: $isShowingAssistant) {
                 NavigationStack { AssistantView() }
-                    .presentationBackground(Palette.background)
+                    .sheetGround(Palette.background)
             }
             .sheet(isPresented: $isShowingSettings) { SettingsView() }
             .detailSheets()

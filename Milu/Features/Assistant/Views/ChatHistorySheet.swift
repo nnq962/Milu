@@ -57,7 +57,7 @@ struct ChatHistorySheet: View {
         // On the page colour, not a sheet's white: its white rows would vanish on white, as on
         // the main pages (Simulator 2026-11-09).
         .presentationDetents([.large])
-        .presentationBackground(Palette.background)
+        .sheetGround(Palette.background)
         .scrollIndicators(.hidden, axes: .vertical)
     }
 

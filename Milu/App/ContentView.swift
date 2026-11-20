@@ -15,6 +15,7 @@ struct ContentView: View {
     /// The chat opened from "Thêm bằng AI" with a question in its field.
     @State private var chatPrefill: ChatPrefill?
     @Environment(AppLock.self) private var appLock
+    @Environment(FinanceStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     /// A tapped reminder waiting for the sheet on screen to close (`openFromReminder`).
     @State private var waitingForSheet: Task<Void, Never>?
@@ -132,7 +133,13 @@ struct ContentView: View {
     /// The forms in iOS's sheet, "Thêm bằng AI" too; in the panel, it has its own
     /// (`quickRecordShown`).
     private var sheetAdding: Binding<AddKind?> {
-        Binding(get: { adding == .quickRecord && Self.quickRecordInPanel ? nil : adding }, set: { adding = $0 })
+        Binding(get: { adding == .quickRecord ? nil : adding }, set: { adding = $0 })
+    }
+
+    /// "Thêm bằng AI" in iOS's sheet, put up by UIKit (`QuickRecordController.present`).
+    private var quickRecordInSheet: Binding<Bool> {
+        Binding(get: { adding == .quickRecord && !Self.quickRecordInPanel },
+                set: { if !$0, adding == .quickRecord { adding = nil } })
     }
 
     private var quickRecordShown: Binding<Bool> {
@@ -209,10 +216,15 @@ struct ContentView: View {
                 // On the side "Vay nợ" shows, when it is the page behind; "Cho vay" elsewhere.
                 case .loan: LoanEditorView(loan: nil,
                                            direction: addContext.addsLoan ? addContext.loanDirection : nil)
-                case .quickRecord: QuickRecordSheet { afterQuickRecord = $0 }
+                case .quickRecord: EmptyView()
                 case .transfer(let amount): AddTransactionView(mode: .transfer, amount: amount)
                 case .newLoan(let direction, let amount): LoanEditorView(loan: nil, direction: direction, principal: amount)
                 }
+            }
+            .background {
+                QuickRecordPresenter(isPresented: quickRecordInSheet, store: store,
+                                     onNext: { afterQuickRecord = $0 }, onDismiss: openAfterQuickRecord)
+                    .frame(width: 0, height: 0)
             }
             .presentsPanel(isPresented: quickRecordShown, onDismiss: openAfterQuickRecord) {
                 QuickRecordSheet { afterQuickRecord = $0 }
