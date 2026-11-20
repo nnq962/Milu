@@ -81,14 +81,68 @@ nonisolated struct MiluAPI: Sendable {
     }
 
     /// One turn of the model: words, or tools it wants run.
-    func chat(_ messages: [ChatMessage], tools: [ToolSpec], context: Context) async throws -> Reply {
-        struct Body: Encodable { var messages: [ChatMessage]; var tools: [ToolSpec]; var context: Context }
+    ///
+    /// `onWords`: the answer's words so far, as the model writes them, each time more come (user
+    /// choice 2026-11-20, "Trả lời dần từng chữ"). The server sends them only for an answer
+    /// written from the tools' results; any other comes whole, and `onWords` is not called.
+    func chat(_ messages: [ChatMessage], tools: [ToolSpec], context: Context,
+              onWords: ((String) -> Void)? = nil) async throws -> Reply {
+        struct Body: Encodable {
+            var messages: [ChatMessage]; var tools: [ToolSpec]; var context: Context; var stream: Bool?
+        }
         struct Answer: Decodable { var message: Reply }
         var request = request("v1/chat", timeout: 45)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(Body(messages: messages, tools: tools, context: context))
-        let data = try await send(request)
-        return try JSONDecoder().decode(Answer.self, from: data).message
+        request.httpBody = try JSONEncoder().encode(Body(messages: messages, tools: tools, context: context,
+                                                         stream: onWords == nil ? nil : true))
+        guard let onWords else {
+            let data = try await send(request)
+            return try JSONDecoder().decode(Answer.self, from: data).message
+        }
+        let lines = try await sendForLines(request)
+        var events = ChatEvents()
+        do {
+            for try await line in lines {
+                switch try events.read(line) {
+                case .words(let words): onWords(words)
+                case .reply(let reply): return reply
+                case nil: continue
+                }
+            }
+        } catch let failure as Failure {
+            throw failure
+        } catch {
+            throw Self.failure(for: error)
+        }
+        // Cut off before the last event.
+        throw Failure.interrupted
+    }
+
+    /// The server's events for a chat that streams (`chat(onWords:)`), one line at a time:
+    /// `data: {"delta": …}` for words as they come, `data: {"message": …}` for the turn whole,
+    /// `data: {"error": …, "status": …}` for a failure on the way.
+    struct ChatEvents {
+        /// The words so far.
+        private(set) var words = ""
+
+        enum Event {
+            case words(String)
+            case reply(Reply)
+        }
+
+        mutating func read(_ line: String) throws -> Event? {
+            guard line.hasPrefix("data:") else { return nil }
+            struct Data: Decodable { var delta: String?; var message: Reply?; var status: Int? }
+            let json = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+            guard let data = try? JSONDecoder().decode(Data.self, from: Foundation.Data(json.utf8)) else { return nil }
+            if let message = data.message { return .reply(message) }
+            if let status = data.status {
+                throw [502, 503, 504].contains(status) ? Failure.unreachable : Failure.server(status)
+            }
+            guard let delta = data.delta, !delta.isEmpty else { return nil }
+            words += delta
+            return .words(words)
+        }
     }
 
     // MARK: Speech
@@ -129,22 +183,43 @@ nonisolated struct MiluAPI: Sendable {
         let response: URLResponse
         do {
             (data, response) = try await URLSession.shared.data(for: request)
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch let error as URLError where error.code == .cancelled {
-            throw CancellationError()
-        } catch let error as URLError where Self.offlineCodes.contains(error.code) {
-            throw Failure.offline
-        } catch let error as URLError where error.code == .networkConnectionLost {
-            // Lost mid-way, mostly by Milu going to the background while it waited: the phone is
-            // online (audit round 4, 2026-11-16: it was told to turn on Wi-Fi).
-            throw Failure.interrupted
         } catch {
-            throw Failure.unreachable
+            throw Self.failure(for: error)
         }
+        try Self.check(response)
+        return data
+    }
+
+    /// The body's lines as they come, once the status says it is an answer.
+    private func sendForLines(_ request: URLRequest) async throws -> AsyncLineSequence<URLSession.AsyncBytes> {
+        let bytes: URLSession.AsyncBytes
+        let response: URLResponse
+        do {
+            (bytes, response) = try await URLSession.shared.bytes(for: request)
+        } catch {
+            throw Self.failure(for: error)
+        }
+        try Self.check(response)
+        return bytes.lines
+    }
+
+    /// A request's error as the app tells it.
+    private static func failure(for error: Error) -> Error {
+        switch error {
+        case is CancellationError: return CancellationError()
+        case let error as URLError where error.code == .cancelled: return CancellationError()
+        case let error as URLError where offlineCodes.contains(error.code): return Failure.offline
+        // Lost mid-way, mostly by Milu going to the background while it waited: the phone is
+        // online (audit round 4, 2026-11-16: it was told to turn on Wi-Fi).
+        case let error as URLError where error.code == .networkConnectionLost: return Failure.interrupted
+        default: return Failure.unreachable
+        }
+    }
+
+    private static func check(_ response: URLResponse) throws {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         switch status {
-        case 200: return data
+        case 200: return
         case 401: throw Failure.unauthorized
         case 429: throw Failure.busy
         case 502, 503, 504: throw Failure.unreachable

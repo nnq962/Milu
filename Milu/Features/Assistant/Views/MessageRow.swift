@@ -35,7 +35,8 @@ struct MessageRow: View {
     /// Counted up as its card is saved: the tick by "Đã lưu" bounces.
     @State private var savedBounces = 0
 
-    private var revealing: Bool { revealsAnswer && !revealDone }
+    /// Its words still showing, or still coming in as they are written: no buttons under it yet.
+    private var revealing: Bool { (revealsAnswer && !revealDone) || message.isStreaming }
 
     var body: some View {
         switch message.role {

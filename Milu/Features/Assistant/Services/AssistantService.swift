@@ -10,8 +10,21 @@ protocol AssistantService {
     /// Milu's answer to `question`. `history` is the chat so far, oldest first, without it.
     /// `onStep` hears of each thing Milu does on the phone on the way (a tool it runs), for the
     /// chat to show as it thinks.
+    ///
+    /// `onWords` hears the answer's words so far while they are still being written, each time
+    /// more come, as the chat shows them (user choice 2026-11-20, "Trả lời dần từng chữ"); only
+    /// for an answer nothing changes once written (`RemoteAssistant.streams`). "" takes back what
+    /// it said: the model went on to ask for tools after all. The answer returned is the whole.
+    func reply(to question: String, history: [ChatMessage], onStep: @escaping (ThinkingStep) -> Void,
+               onWords: @escaping (String) -> Void) async throws -> AssistantReply
+}
+
+extension AssistantService {
+    /// The answer whole, its words heard only once it is in.
     func reply(to question: String, history: [ChatMessage],
-               onStep: @escaping (ThinkingStep) -> Void) async throws -> AssistantReply
+               onStep: @escaping (ThinkingStep) -> Void) async throws -> AssistantReply {
+        try await reply(to: question, history: history, onStep: onStep, onWords: { _ in })
+    }
 }
 
 /// One thing Milu does on the phone while it thinks: a tool the model asked for, said as the

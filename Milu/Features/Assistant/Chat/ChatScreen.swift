@@ -147,6 +147,8 @@ struct QuestionWords: UIViewRepresentable {
 ///
 /// `reveals`: an answer just in shows its words one after another, each fading in (user design
 /// 2026-11-15), laid out from the start where they end up; `onRevealed` once all are shown.
+/// Words added while it reveals (an answer coming in as it is written, user choice 2026-11-20)
+/// carry on after the ones shown, which stay as they are.
 struct AnswerWords: UIViewRepresentable {
     let text: AttributedString
     var reveals = false
@@ -157,6 +159,9 @@ struct AnswerWords: UIViewRepresentable {
     final class Coordinator {
         var shown: AttributedString?
         var reveal: WordReveal?
+        /// When each word shown so far began to fade in, kept once they all have: more words
+        /// come after them.
+        var starts: [CFTimeInterval] = []
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -185,16 +190,22 @@ struct AnswerWords: UIViewRepresentable {
         guard coordinator.shown != text else { return }
         let first = coordinator.shown == nil
         coordinator.shown = text
+        let earlier = coordinator.reveal?.starts ?? coordinator.starts
         coordinator.reveal?.stop()
         coordinator.reveal = nil
         let attributed = Self.attributed(text)
         view.attributedText = attributed
-        guard reveals else { return }
-        if first, !UIAccessibility.isReduceMotionEnabled {
-            coordinator.reveal = WordReveal(view: view, text: attributed) { [weak coordinator] in
+        guard reveals else {
+            coordinator.starts = []
+            return
+        }
+        if !UIAccessibility.isReduceMotionEnabled {
+            let reveal = WordReveal(view: view, text: attributed, after: first ? [] : earlier) { [weak coordinator] in
                 coordinator?.reveal = nil
                 onRevealed?()
             }
+            coordinator.reveal = reveal
+            coordinator.starts = reveal.starts
         } else {
             // Not in this update: the row's state changes with it.
             DispatchQueue.main.async { onRevealed?() }
@@ -364,52 +375,62 @@ enum AnswerReveal {
 /// An answer's words shown one after another in its text view: every word starts clear, then
 /// each one's colour goes from clear to whole, frame by frame. Only the colour changes, so the
 /// lines are where they end up from the first frame and the row never changes its height.
+///
+/// `after`: when the words already there began (an answer being written, its text set again
+/// with more words): those carry on as they were, the new ones start after them.
 final class WordReveal: NSObject {
     private weak var view: UITextView?
     private let text: NSAttributedString
     private let words: [NSRange]
+    /// When each word begins to fade in.
+    let starts: [CFTimeInterval]
+    /// How far each is shown, -1 before it is first set.
     private var shown: [CGFloat]
     private let color: UIColor
-    private let stagger: Double
-    private let start = CACurrentMediaTime()
     private var link: CADisplayLink?
     private let done: () -> Void
 
-    init(view: UITextView, text: NSAttributedString, done: @escaping () -> Void) {
+    init(view: UITextView, text: NSAttributedString, after earlier: [CFTimeInterval] = [], done: @escaping () -> Void) {
         self.view = view
         self.text = text
         self.done = done
         words = AnswerReveal.words(in: text.string)
-        shown = Array(repeating: 0, count: words.count)
-        stagger = AnswerReveal.stagger(words.count)
+        let stagger = AnswerReveal.stagger(words.count)
+        let now = CACurrentMediaTime()
+        var starts = Array(earlier.prefix(words.count))
+        var next = starts.last.map { max(now, $0 + stagger) } ?? now + AnswerReveal.lead
+        while starts.count < words.count {
+            starts.append(next)
+            next += stagger
+        }
+        self.starts = starts
+        shown = Array(repeating: -1, count: words.count)
         color = text.length > 0 ? (text.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor ?? .label) : .label
         super.init()
-        let storage = view.textStorage
-        storage.beginEditing()
-        storage.addAttribute(.foregroundColor, value: color.withAlphaComponent(0),
-                             range: NSRange(location: 0, length: storage.length))
-        storage.endEditing()
+        // Every word as it is now, in this frame: the ones already shown stay so.
+        apply(at: now)
         let link = CADisplayLink(target: self, selector: #selector(tick))
         link.add(to: .main, forMode: .common)
         self.link = link
     }
 
     @objc private func tick() {
-        guard let view else { return stop() }
-        let elapsed = CACurrentMediaTime() - start - AnswerReveal.lead
-        guard elapsed > 0 else { return }
-        let storage = view.textStorage
+        guard view != nil else { return stop() }
+        apply(at: CACurrentMediaTime())
+        if shown.allSatisfy({ $0 >= 1 }) { finish() }
+    }
+
+    private func apply(at time: CFTimeInterval) {
+        guard let storage = view?.textStorage else { return }
         storage.beginEditing()
         for index in words.indices where shown[index] < 1 {
-            let progress = (elapsed - Double(index) * stagger) / AnswerReveal.fade
-            // The words after this one have not begun either.
-            if progress <= 0 { break }
-            let eased = 1 - pow(1 - min(progress, 1), 3)
-            shown[index] = progress >= 1 ? 1 : CGFloat(eased)
-            storage.addAttribute(.foregroundColor, value: color.withAlphaComponent(shown[index]), range: words[index])
+            let progress = (time - starts[index]) / AnswerReveal.fade
+            let value = progress >= 1 ? 1 : progress <= 0 ? 0 : CGFloat(1 - pow(1 - progress, 3))
+            guard value != shown[index] else { continue }
+            shown[index] = value
+            storage.addAttribute(.foregroundColor, value: color.withAlphaComponent(value), range: words[index])
         }
         storage.endEditing()
-        if shown.allSatisfy({ $0 >= 1 }) { finish() }
     }
 
     /// All shown: the words set back as they are, then the row told.

@@ -142,6 +142,7 @@ final class ChatViewController: UIViewController {
         watcher.delaysTouchesEnded = false
         watcher.onTouch = { [weak self] in
             self?.holdsToEnd = false
+            self?.followsWriting = false
             self?.stopFollowing()
         }
         collectionView.addGestureRecognizer(watcher)
@@ -529,6 +530,8 @@ final class ChatViewController: UIViewController {
     private func showMessages(of conversation: Conversation, thinking: Bool, slidesAway: Bool = true) {
         // Sliding away: its end shows the chat as it is by then.
         guard !isLeaving else { return }
+        // An answer being written stands where "Đang nghĩ…" was, as an answer that came whole.
+        let thinking = thinking && conversation.messages.last?.isStreaming != true
         let sameChat = shownConversation?.id == conversation.id
         // ✎ a new chat: the one on screen slides up and fades first, then the greeting comes.
         if slidesAway, !sameChat, conversation.messages.isEmpty, shownConversation?.messages.isEmpty == false,
@@ -560,9 +563,13 @@ final class ChatViewController: UIViewController {
         let isAnswer = sameChat && conversation.messages.last.map { $0.role == .assistant && previous[$0.id] == nil } == true
         let newAnswers = isAnswer ? conversation.messages.filter { $0.role == .assistant && previous[$0.id] == nil }.map(\.id) : []
         let answered = newAnswers.first
+        // The answer being written, more of its words in (or the last of them): its row at its
+        // new height at once, the words shown carrying on (`AnswerWords`).
+        let writing = sameChat && !grew && changed.count == 1
+            && (changed[0].isStreaming || previous[changed[0].id]?.isStreaming == true)
         // A card whose state alone changed ("Lưu", "Huỷ", a deletion): as it was, laid over its
         // row, to fade over the card as it now is (`crossOver`).
-        let cardsOnly = sameChat && !grew && !changed.isEmpty && view.window != nil
+        let cardsOnly = sameChat && !grew && !changed.isEmpty && !writing && view.window != nil
             && !UIAccessibility.isReduceMotionEnabled
         let oldCards = cardsOnly ? changed.compactMap { picture(of: .message($0.id)) } : []
         shownConversation = conversation
@@ -593,7 +600,13 @@ final class ChatViewController: UIViewController {
             revealingID = answered
             waitingIDs = Array(newAnswers.dropFirst())
         }
-        if cardsOnly {
+        if writing {
+            UIView.performWithoutAnimation {
+                dataSource.apply(snapshot, animatingDifferences: false)
+                collectionView.layoutIfNeeded()
+            }
+            keepRevealing(changed[0])
+        } else if cardsOnly {
             // The card takes its new height at once, under its picture.
             UIView.performWithoutAnimation {
                 dataSource.apply(snapshot, animatingDifferences: false)
@@ -824,13 +837,44 @@ final class ChatViewController: UIViewController {
         let words = AnswerReveal.words(in: String(MessageRow.formatted(message.text).characters)).count
         // The words, then the card popping up under them.
         let duration = AnswerReveal.duration(words: words) + (message.card == nil ? 0 : 0.35)
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.5) { [weak self] in
-            if self?.revealingID == id { self?.revealingID = nil }
-        }
+        revealWords = words
+        revealEnds = CACurrentMediaTime() + duration
+        followsWriting = true
+        endRevealLater(id)
         if !waitingIDs.isEmpty {
             DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in self?.showWaiting() }
         }
         follow(id, duration: duration)
+    }
+
+    /// How many words the answer being revealed has, and when its last one will be shown.
+    private var revealWords = 0
+    private var revealEnds: CFTimeInterval = 0
+    /// The page follows the answer's words down; a touch on the chat lets it go for this answer.
+    private var followsWriting = false
+
+    /// The answer stops being revealed (`revealsAnswer`) a moment after its last word, once no more
+    /// are coming: a row drawn again after that shows them at once.
+    private func endRevealLater(_ id: UUID) {
+        let wait = revealEnds + 0.5 - CACurrentMediaTime()
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(wait, 0)) { [weak self] in
+            guard let self, self.revealingID == id, self.messagesByID[id]?.isStreaming != true,
+                  CACurrentMediaTime() >= self.revealEnds + 0.45 else { return }
+            self.revealingID = nil
+        }
+    }
+
+    /// More words of the answer being written (user choice 2026-11-20): they show after the ones
+    /// already in (`WordReveal`), the page following them down as it did the first.
+    private func keepRevealing(_ message: ChatMessage) {
+        guard view.window != nil, revealingID == message.id else { return }
+        let words = AnswerReveal.words(in: String(MessageRow.formatted(message.text).characters)).count
+        let now = CACurrentMediaTime()
+        let added = max(words - revealWords, 0)
+        revealEnds = max(revealEnds - AnswerReveal.fade, now) + AnswerReveal.stagger(words) * Double(added) + AnswerReveal.fade
+        revealWords = words
+        endRevealLater(message.id)
+        if followsWriting { follow(message.id, duration: revealEnds - now, wholeRow: true) }
     }
 
     /// The rows waiting under an answer, shown once its words are done, the page following the
@@ -858,15 +902,19 @@ final class ChatViewController: UIViewController {
         let start: CFTimeInterval
         let duration: Double
         let link: CADisplayLink
+        /// Followed to its foot: its words come in as they are written, the row no taller than
+        /// they are by then.
+        var wholeRow = false
     }
 
     private var following: Follow?
 
-    private func follow(_ id: UUID, duration: Double) {
+    private func follow(_ id: UUID, duration: Double, wholeRow: Bool = false) {
         stopFollowing()
         let link = CADisplayLink(target: self, selector: #selector(followTick))
         link.add(to: .main, forMode: .common)
-        following = Follow(id: id, start: CACurrentMediaTime(), duration: max(duration, 0.1), link: link)
+        following = Follow(id: id, start: CACurrentMediaTime(), duration: max(duration, 0.1), link: link,
+                           wholeRow: wholeRow)
     }
 
     /// Each frame: where the words are shown down to, and the page brought up to keep that line
@@ -881,7 +929,7 @@ final class ChatViewController: UIViewController {
         // How far down the words are shown by now: they come in order, line after line.
         let fraction = min(1, (CACurrentMediaTime() - follow.start) / follow.duration)
         let writing = fraction < 1
-        let shownTo = row.height * CGFloat(fraction)
+        let shownTo = follow.wholeRow ? row.height : row.height * CGFloat(fraction)
         let visible = collectionView.bounds.height - barRoom
         let inset = collectionView.contentInset
         let end = collectionView.contentSize.height + inset.bottom - collectionView.bounds.height

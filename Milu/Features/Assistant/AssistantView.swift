@@ -18,6 +18,8 @@ struct AssistantView: View {
     /// The chat that question was asked in: "Đang nghĩ…" and ■ show there only, and ■ says it
     /// stopped there (audit 2026-11-15: another chat opened meanwhile showed both, and got the notice).
     @State private var answeringChatID: Conversation.ID?
+    /// The answer whose words are coming in as they are written (`ChatMessage.isStreaming`).
+    @State private var streamingAnswerID: ChatMessage.ID?
     /// What Milu has done so far on that answer, shown under "Đang nghĩ…".
     @State private var progress = AssistantProgress()
     /// Asking for Milu's answer, until it is in; ■ cancels it.
@@ -351,6 +353,11 @@ struct AssistantView: View {
         // only went, as if nothing had been asked); nowhere when that chat was deleted meanwhile
         // (audit round 3, 2026-11-16: it went into the open chat, which had asked nothing).
         let index = chats.conversations.firstIndex { $0.id == answeringChatID }
+        // Words already in stay, as they are, as in ChatGPT and Claude.
+        if let index, let row = chats.conversations[index].messages.firstIndex(where: { $0.id == streamingAnswerID }) {
+            chats.conversations[index].messages[row].isStreaming = false
+        }
+        streamingAnswerID = nil
         withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
             if let index {
                 chats.conversations[index].messages.append(ChatMessage(role: .notice, text: "Bạn đã dừng câu trả lời"))
@@ -358,6 +365,38 @@ struct AssistantView: View {
             isThinking = false
         }
         answeringChatID = nil
+    }
+
+    /// The words of the answer being written, as far as they are (`AssistantService.reply`'s
+    /// `onWords`): the answer in the chat with its first words, "Đang nghĩ…" giving way to it as
+    /// to any answer, then its words as more come. "" takes it back (tools after all).
+    /// Not before the question has landed (`shortestWait`), and not when the lượt could not be
+    /// taken: that answer gives way to "out of questions".
+    private func showWords(_ words: String, chatID: Conversation.ID, askedAt: Date, paid: Bool,
+                           progress: AssistantProgress) {
+        guard paid, Date.now.timeIntervalSince(askedAt) >= Self.shortestWait,
+              let index = chats.conversations.firstIndex(where: { $0.id == chatID }) else { return }
+        if let id = streamingAnswerID,
+           let row = chats.conversations[index].messages.firstIndex(where: { $0.id == id }) {
+            if words.isEmpty {
+                chats.conversations[index].messages.remove(at: row)
+                streamingAnswerID = nil
+            } else if chats.conversations[index].messages[row].text != words {
+                chats.conversations[index].messages[row].text = words
+            }
+            return
+        }
+        guard !words.isEmpty else { return }
+        // One tick as Milu's words show, as for an answer that comes whole.
+        Haptics.selection()
+        var answer = ChatMessage(role: .assistant, text: words,
+                                 thought: ChatMessage.Thought(seconds: max(1, Int(Date.now.timeIntervalSince(askedAt).rounded())),
+                                                              steps: progress.steps.map(\.done)))
+        answer.isStreaming = true
+        streamingAnswerID = answer.id
+        withAnimation(Motion.gentle(.easeOut(duration: 0.2))) {
+            chats.conversations[index].messages.append(answer)
+        }
     }
 
     /// ✕ and ■ while listening: a glyph on a grey disc.
@@ -472,6 +511,8 @@ struct AssistantView: View {
     /// The least time from the question to its answer: the question's flight (0.41 s) and a beat
     /// of the three dots after it.
     private static let shortestWait: TimeInterval = 0.9
+    /// How often the words of an answer being written are shown anew.
+    private static let wordsEvery: TimeInterval = 0.06
 
     /// Sends what is in the field and asks the assistant (`AssistantServices`) for the answer.
     private func send() {
@@ -558,16 +599,24 @@ struct AssistantView: View {
         // A short trip to another app (to check a figure) does not cut the answer off: iOS gives
         // it a little time in the background (audit round 4, 2026-11-16).
         let backgroundTime = BackgroundTime(name: "milu.answer")
+        streamingAnswerID = nil
         answering = Task {
             defer { backgroundTime.end() }
             var reply: AssistantReply
             /// How long it thought and what it did, for the line over the answer.
             var thought: ChatMessage.Thought?
+            /// The words as they come, shown at most every `wordsEvery` (they come every few
+            /// milliseconds; each showing lays the answer's row out again).
+            let words = WordsPacer(every: Self.wordsEvery) { words in
+                showWords(words, chatID: chatID, askedAt: askedAt, paid: paid, progress: progress)
+            }
+            defer { words.cancel() }
             do {
-                let answer = try await service.reply(to: question, history: history) { step in
+                let answer = try await service.reply(to: question, history: history, onStep: { step in
                     // No animation of the row's layout: its line draws itself in (`ThinkingIndicator`).
                     progress.steps.append(step)
-                }
+                }, onWords: { words.take($0) })
+                words.cancel()
                 // Stopped (■) while the answer was on its way: it is dropped, its card too, as
                 // nothing on it is saved before "Lưu" (2026-11-17).
                 if Task.isCancelled { return }
@@ -577,6 +626,7 @@ struct AssistantView: View {
             } catch is CancellationError {
                 return
             } catch {
+                words.cancel()
                 if Task.isCancelled { return }
                 // No answer came (no connection, the server): the lượt given back.
                 reply = AssistantReply(text: (error as? LocalizedError)?.errorDescription
@@ -593,14 +643,19 @@ struct AssistantView: View {
                 reply = AssistantReply(text: outOfQuestionsReply(after: reply.action), actions: reply.actions)
                 thought = nil
             }
-            // Never before the question has landed: with no connection the error came back at
-            // once and showed while the question was still rising (user report 2026-11-12).
-            let wait = Self.shortestWait - Date.now.timeIntervalSince(askedAt)
-            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
-            if Task.isCancelled { return }
-            // One tick as Milu's words show, an answer or an error alike (user report
-            // 2026-11-12: an answer came silent and an error buzzed twice).
-            Haptics.selection()
+            /// The answer already in the chat, its words shown as they came.
+            let streamed = streamingAnswerID
+            streamingAnswerID = nil
+            if streamed == nil {
+                // Never before the question has landed: with no connection the error came back at
+                // once and showed while the question was still rising (user report 2026-11-12).
+                let wait = Self.shortestWait - Date.now.timeIntervalSince(askedAt)
+                if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+                if Task.isCancelled { return }
+                // One tick as Milu's words show, an answer or an error alike (user report
+                // 2026-11-12: an answer came silent and an error buzzed twice).
+                Haptics.selection()
+            }
             let cards: [ChatMessage.Card] = reply.actions.map { action in
                 switch action {
                 case .draft(let draft): .draft(draft)
@@ -619,9 +674,22 @@ struct AssistantView: View {
                     for case .accountDraft(let draft) in reply.actions {
                         if let replaced = draft.replacing { markAccountsReplaced(replaced, inChat: index) }
                     }
-                    chats.conversations[index].messages.append(
-                        ChatMessage(role: .assistant, text: reply.text, card: cards.first, thought: thought,
-                                    askedCall: reply.askedCall))
+                    if let streamed,
+                       let row = chats.conversations[index].messages.firstIndex(where: { $0.id == streamed }) {
+                        // Its words whole, as the app sets them once in (`RemoteAssistant`), under
+                        // the same line of how long it thought; none over an error.
+                        var answer = chats.conversations[index].messages[row]
+                        answer.text = reply.text
+                        answer.isStreaming = false
+                        answer.card = cards.first
+                        answer.askedCall = reply.askedCall
+                        if thought == nil { answer.thought = nil }
+                        chats.conversations[index].messages[row] = answer
+                    } else {
+                        chats.conversations[index].messages.append(
+                            ChatMessage(role: .assistant, text: reply.text, card: cards.first, thought: thought,
+                                        askedCall: reply.askedCall))
+                    }
                     for card in cards.dropFirst() {
                         let line = switch card {
                         case .confirmDelete: "Và khoản cần xoá này:"
@@ -832,6 +900,54 @@ struct AssistantView: View {
 /// What an answer costs, once it is in: `paid` is whether the question took a lượt as it left
 /// (none were left otherwise), `counts` whether the answer is one that takes one (not recording,
 /// deleting or telling of the app, and not an error).
+/// The words of an answer being written, which come every few milliseconds, passed on at most
+/// once every `every` seconds, the newest each time: the last ones too, a moment later.
+final class WordsPacer {
+    private let every: TimeInterval
+    private let show: (String) -> Void
+    private var shownAt = Date.distantPast
+    private var pending: String?
+    private var later: Task<Void, Never>?
+
+    init(every: TimeInterval, show: @escaping (String) -> Void) {
+        self.every = every
+        self.show = show
+    }
+
+    func take(_ words: String) {
+        // Taken back: at once, nothing older after it.
+        if words.isEmpty {
+            cancel()
+            shownAt = .now
+            return show("")
+        }
+        let wait = every - Date.now.timeIntervalSince(shownAt)
+        if wait <= 0, later == nil {
+            shownAt = .now
+            return show(words)
+        }
+        pending = words
+        guard later == nil else { return }
+        later = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(max(wait, 0)))
+            guard !Task.isCancelled, let self else { return }
+            later = nil
+            if let words = pending {
+                pending = nil
+                shownAt = .now
+                show(words)
+            }
+        }
+    }
+
+    /// Nothing more passed on: the answer is in whole.
+    func cancel() {
+        later?.cancel()
+        later = nil
+        pending = nil
+    }
+}
+
 enum AnswerCharge: Equatable {
     /// Takes none: its lượt, if one was taken, goes back.
     case free

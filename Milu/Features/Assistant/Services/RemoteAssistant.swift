@@ -21,8 +21,8 @@ struct RemoteAssistant: AssistantService {
     /// The chat so far the model reads: enough for "còn tháng trước?" after a question.
     private static let historyLength = 6
 
-    func reply(to question: String, history: [ChatMessage],
-               onStep: @escaping (ThinkingStep) -> Void) async throws -> AssistantReply {
+    func reply(to question: String, history: [ChatMessage], onStep: @escaping (ThinkingStep) -> Void,
+               onWords: @escaping (String) -> Void) async throws -> AssistantReply {
         // "thêm tài khoản mới", said to the question about a name taken: done here, as asked (live
         // test 2026-11-20: the model asked again which account, one time in two).
         if let asked = history.last(where: { $0.role == .assistant })?.askedCall,
@@ -74,7 +74,18 @@ struct RemoteAssistant: AssistantService {
                 // Once the app's facts are in, add_account and its rules give their room to them: the
                 // two together left too little of the model's 8.192 tokens (2026-11-20, 8.049).
                 let round = toolsRun.contains(GetAppInfo().name) ? specs.filter { $0.name != AddAccount().name } : specs
-                let reply = try await api.chat(messages, tools: round, context: context)
+                // Its words shown as they are written only where nothing changes them once written.
+                let streams = Self.streams(toolsRun: toolsRun, actions: actions, refused: refused, asksBack: asksBack,
+                                           cardWaiting: cardWaiting)
+                var saidWords = false
+                let reply = try await api.chat(messages, tools: round, context: context, onWords: streams ? { words in
+                    let shown = Self.shownWhileWriting(words)
+                    guard !shown.isEmpty, !Task.isCancelled else { return }
+                    saidWords = true
+                    onWords(shown)
+                } : nil)
+                // Words, then tools after all: the words go, "Đang nghĩ…" stays for the tools.
+                if saidWords, !reply.toolCalls.isEmpty { onWords("") }
                 guard !reply.toolCalls.isEmpty else {
                     let text = Emoji.drawable(reply.content).trimmingCharacters(in: .whitespacesAndNewlines)
                     let answer = !refused.isEmpty && !asksBack
@@ -153,6 +164,37 @@ struct RemoteAssistant: AssistantService {
         } catch {
             throw AssistantServiceError.server("máy chủ trả lời lỗi")
         }
+    }
+
+    /// Whether this round's words may show as the model writes them (user choice 2026-11-20): an
+    /// answer written from the tools' results (after a tool ran), with no card made or waiting and
+    /// nothing refused or asked back. Over a card, after a refusal or a question back, the words
+    /// are checked once whole (`answerText`, `refusedAnswer`) and may give way to the app's own.
+    static func streams(toolsRun: Set<String>, actions: [AssistantReply.Action], refused: [RecordRefusal.Refused],
+                        asksBack: Bool, cardWaiting: Bool) -> Bool {
+        !toolsRun.isEmpty && actions.isEmpty && refused.isEmpty && !asksBack && !cardWaiting
+    }
+
+    /// The words so far as the chat shows them while they are written: as the server sets them
+    /// once whole (`tidy`), up to the last whole word (a word half in may still be "Ủa" or a
+    /// card's code), then as `answerText` gives them with no card.
+    static func shownWhileWriting(_ words: String) -> String {
+        let tidied = tidy(words)
+        guard let end = tidied.lastIndex(where: \.isWhitespace) else { return "" }
+        let whole = Emoji.drawable(String(tidied[..<end])).trimmingCharacters(in: .whitespacesAndNewlines)
+        // Nothing yet: `answerText` would say it could not answer.
+        guard !whole.isEmpty else { return "" }
+        let shown = answerText(whole, actions: [])
+        return shown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : shown
+    }
+
+    /// The server's own setting of an answer (`chat` in milu-server's server.py): no runs of
+    /// spaces, none before a line's end, every list item "• ". The spaces at the end are kept:
+    /// they tell where the last whole word ends.
+    static func tidy(_ text: String) -> String {
+        text.replacing(/(\S) {2,}/, with: { "\($0.output.1) " })
+            .replacing(/[ \t]+\n/, with: "\n")
+            .replacing(/^[ \t]*(?:[*+\-•]\s+)+/.anchorsMatchLineEndings(), with: "• ")
     }
 
     /// Whether the question takes a lượt: not when every tool it ran only recorded, deleted or

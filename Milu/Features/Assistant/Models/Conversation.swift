@@ -29,7 +29,8 @@ struct ChatMessage: Identifiable, Equatable, Codable {
 
     var id = UUID()
     let role: Role
-    let text: String
+    /// Set again as Milu's words come in while they are written (`isStreaming`).
+    var text: String
     var card: Card? = nil
     /// Milu's answers only; none on an error or on a chat saved before 2026-11-15.
     var thought: Thought? = nil
@@ -40,6 +41,10 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var isLocal: Bool? = nil
     /// A tool's question back, as the call and its result (`AssistantReply.askedCall`).
     var askedCall: AskedCall? = nil
+    /// Milu's words still coming in as the model writes them (user choice 2026-11-20): no
+    /// "Sao chép" or "Hỏi lại" yet, and the chat shows each new word as it comes. Never saved:
+    /// read again, an answer is whole.
+    var isStreaming = false
 
     struct AskedCall: Equatable, Codable {
         let name: String
