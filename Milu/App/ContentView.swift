@@ -81,11 +81,13 @@ struct ContentView: View {
         switch action {
         case .addTransaction: kind = .transaction
         case .quickRecord: kind = .quickRecord
-        case .overview, .budget:
-            // A page, not a form: Tổng quan at once, which opens Hạn mức chi tiêu when asked.
+        case .overview, .budget, .recurring:
+            // A page, not a form: Tổng quan at once, which opens Hạn mức chi tiêu, or a rule's
+            // "Ghi", when asked.
             Reminders.shared.router.pending = nil
             selectedTab = .overview
             if action == .budget { Reminders.shared.router.opensBudget = true }
+            if action == .recurring { Reminders.shared.router.opensRecurring = true }
             return
         }
         // The form asked for is the sheet up: the tap is answered already (audit round 2,

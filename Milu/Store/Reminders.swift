@@ -111,6 +111,10 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
                 ? "\(name) · \(rule.amount.vnd). Milu sẽ tự ghi khi bạn mở app."
                 : "\(name) · \(rule.amount.vnd). Mở Milu để ghi hoặc bỏ qua lần này."
             content.sound = .default
+            // Tapped: Tổng quan, and "Ghi" for this rule when it still waits (user request
+            // 2026-11-20: a tap only opened the app, wherever it was).
+            content.userInfo = [NotificationRouter.actionKey: NotificationRouter.Action.recurring.rawValue,
+                                NotificationRouter.ruleKey: rule.id.uuidString]
             let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
             let id = Self.recurringPrefix + rule.id.uuidString + "." + DailyReminderPlan.dayKey(date)
             try? await center.add(UNNotificationRequest(identifier: id, content: content,
@@ -135,9 +139,41 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
             content.title = alert.title
             content.body = alert.body
             content.sound = .default
+            // Tapped: Hạn mức chi tiêu (user request 2026-11-20: a tap only opened the app).
+            content.userInfo = [NotificationRouter.actionKey: NotificationRouter.Action.budget.rawValue]
             try? await center.add(UNNotificationRequest(identifier: "budget." + alert.key, content: content, trigger: nil))
         }
     }
+
+    #if DEBUG
+    /// Debug only (`MILU_TEST_NOTIFICATION`): a notification 4 seconds from now (after a yes) as a real one of
+    /// that kind is, to tap with the app in the background. `kind`: "add", "budget" or
+    /// "recurring:<rule id>".
+    func scheduleTest(_ kind: String) async {
+        // Asked first on a fresh install: no notification comes before a yes.
+        guard await requestPermission() else { return }
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+        let parts = kind.split(separator: ":", maxSplits: 1).map(String.init)
+        switch parts.first {
+        case "budget":
+            content.title = "Đã dùng 80% hạn mức"
+            content.body = "Thử: bấm để mở Hạn mức chi tiêu"
+            content.userInfo = [NotificationRouter.actionKey: NotificationRouter.Action.budget.rawValue]
+        case "recurring":
+            content.title = "Hôm nay tới hạn 📅"
+            content.body = "Thử: bấm để mở Ghi của khoản định kỳ"
+            content.userInfo = [NotificationRouter.actionKey: NotificationRouter.Action.recurring.rawValue,
+                                NotificationRouter.ruleKey: parts.count > 1 ? parts[1] : ""]
+        default:
+            content.title = "Hôm nay bạn tiêu gì rồi?"
+            content.body = "Thử: bấm để mở form thêm giao dịch"
+            content.userInfo = [NotificationRouter.actionKey: NotificationRouter.Action.addTransaction.rawValue]
+        }
+        try? await center.add(UNNotificationRequest(identifier: "test." + kind, content: content,
+                                                    trigger: UNTimeIntervalNotificationTrigger(timeInterval: 4, repeats: false)))
+    }
+    #endif
 
     func removeAll() {
         center.removeAllPendingNotificationRequests()
@@ -152,9 +188,18 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
         async -> UNNotificationPresentationOptions { [] }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let raw = response.notification.request.content.userInfo[NotificationRouter.actionKey] as? String
+        let info = response.notification.request.content.userInfo
+        let action = info[NotificationRouter.actionKey] as? String
+        let rule = info[NotificationRouter.ruleKey] as? String
+        await MainActor.run { open(action: action, rule: rule) }
+    }
+
+    /// What a tapped notification's `userInfo` asks for, to the router: its action, and for
+    /// "Hôm nay tới hạn" its rule.
+    func open(action raw: String?, rule: String?) {
         guard let action = raw.flatMap(NotificationRouter.Action.init(rawValue:)) else { return }
-        await MainActor.run { router.pending = action }
+        if action == .recurring { router.recurringRule = rule.flatMap(UUID.init(uuidString:)) }
+        router.pending = action
     }
 }
 
@@ -168,15 +213,27 @@ final class NotificationRouter {
         case quickRecord
         /// Tổng quan, from "Chi tiêu tháng này" (`WidgetShared.Link.overview`).
         case overview
-        /// Hạn mức chi tiêu on Tổng quan, from "Chi tiêu tháng này" with no limit set.
+        /// Hạn mức chi tiêu on Tổng quan, from "Chi tiêu tháng này" with no limit set, and from
+        /// a limit's alert.
         case budget
+        /// Tổng quan, and "Ghi" for the rule (`recurringRule`) when it still waits, from "Hôm
+        /// nay tới hạn".
+        case recurring
     }
-    static let actionKey = "action"
+    nonisolated static let actionKey = "action"
+    /// The rule a "Hôm nay tới hạn" is about (`Action.recurring`).
+    nonisolated static let ruleKey = "rule"
     var pending: Action?
     /// New-transaction forms on screen, from anywhere (Làm quen, "Mua ngay", the +).
     var openAddForms = 0
     /// Tổng quan is asked to open Hạn mức chi tiêu (`Action.budget`); it clears this once open.
     var opensBudget = false
+    /// The rule of a tapped "Hôm nay tới hạn" (`Action.recurring`); Tổng quan clears it once it
+    /// has opened its "Ghi", or found nothing waiting.
+    var recurringRule: UUID?
+    /// Tổng quan is asked to look for `recurringRule` (set by `ContentView` once nothing is in
+    /// the way); it clears this.
+    var opensRecurring = false
 }
 
 /// When the reminder comes: at `minutes` after midnight on each of the next days, today too if

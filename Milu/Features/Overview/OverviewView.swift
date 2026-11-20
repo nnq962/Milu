@@ -186,6 +186,19 @@ struct OverviewView: View {
                 Reminders.shared.router.opensBudget = false
                 path = NavigationPath([BudgetRoute()])
             }
+            // A tapped "Hôm nay tới hạn" (`Action.recurring`): Tổng quan at its top, and the rule's
+            // "Ghi" when it still waits; one that records by itself has done so as the app opened.
+            .onChange(of: Reminders.shared.router.opensRecurring, initial: true) { _, opens in
+                guard opens else { return }
+                let router = Reminders.shared.router
+                router.opensRecurring = false
+                let rule = router.recurringRule
+                router.recurringRule = nil
+                path = NavigationPath()
+                if let rule, let waiting = store.waitingRecurring().first(where: { $0.rule.id == rule }) {
+                    confirmingRecurring = waiting
+                }
+            }
             .sheet(item: $confirmingRecurring) { RecurringConfirmSheet(occurrence: $0) }
             .sheet(isPresented: $isShowingPaywall) { PaywallView() }
             .sheet(item: $selectedDay) { DayTransactionsSheet(date: $0.date) }

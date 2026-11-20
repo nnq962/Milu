@@ -123,6 +123,19 @@ struct MiluApp: App {
         #if DEBUG
         // Recurring rules overdue, on an archived account, coming soon (`RecurringDemo`).
         if ProcessInfo.processInfo.arguments.contains("-demoRecurring") { store.seedRecurringDemo() }
+        // A real notification in a few seconds, to tap and see where it leads (`MILU_TEST_NOTIFICATION`).
+        if let test = ProcessInfo.processInfo.environment["MILU_TEST_NOTIFICATION"] {
+            Task { await Reminders.shared.scheduleTest(test) }
+        }
+        // As if a notification had been tapped, 2 seconds after launch, through the tap's own
+        // reading of it (`Reminders.open`): "budget", "addTransaction", "recurring:<rule id>".
+        if let tap = ProcessInfo.processInfo.environment["MILU_TEST_TAP"] {
+            let parts = tap.split(separator: ":", maxSplits: 1).map(String.init)
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2))
+                Reminders.shared.open(action: parts.first, rule: parts.count > 1 ? parts[1] : nil)
+            }
+        }
         #endif
     }
 
