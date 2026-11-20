@@ -47,7 +47,8 @@ struct SheetScaffold<Header: View, Content: View, Trailing: View>: View {
         .modifier(FittedDetent(isOn: fitsContent, height: fittedHeight, step: fitStep))
         // The sheet's own chrome, so no caller has to remember it (review 2026-10-31: five short
         // sheets had no `miluSheetStyle` and could show a scroll bar).
-        .sheetGround(Palette.surface)
+        // Solid when it fits its rows: on its glass iOS drew the ✕ on a flat grey disc.
+        .sheetGround(Palette.surface, solid: fitsContent)
         .environment(\.isInSheet, true)
         // Its own cards, even when opened from inside a `HeaderCard` (see `miluSheetStyle`).
         .environment(\.isInHeaderCard, false)
@@ -81,16 +82,22 @@ extension View {
     /// little under a touch, as Apple's sheets do; `presentationBackground` takes the place of
     /// that glass, and its touch with it (tried on "Thêm mới", "Thêm giao dịch" and "Thêm bằng
     /// AI" first). Before iOS 26, `presentationBackground` as before.
-    func sheetGround(_ color: Color) -> some View {
-        modifier(SheetGround(color: color))
+    ///
+    /// `solid`: a sheet lower than the screen (fitted to its rows, half the screen, a set height)
+    /// takes `presentationBackground` on iOS 26 too, without the swell (user choice 2026-11-20,
+    /// "Giữ nền đặc"): on its glass iOS drew the ✕ as a flat grey disc ("Thêm mới"), where the
+    /// tall sheets and "Thêm bằng AI" have the white glass one, and the three ✕ were unlike.
+    func sheetGround(_ color: Color, solid: Bool = false) -> some View {
+        modifier(SheetGround(color: color, solid: solid))
     }
 }
 
 private struct SheetGround: ViewModifier {
     let color: Color
+    var solid = false
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !solid {
             content.background { color.ignoresSafeArea() }
         } else {
             content.presentationBackground(color)

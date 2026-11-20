@@ -117,8 +117,10 @@ final class QuickRecordController: UIViewController {
         let page = QuickRecordController(store: store)
         page.onNext = onNext
         page.navigationItem.title = "Thêm bằng AI"
-        page.navigationItem.leftBarButtonItem = UIBarButtonItem(
-            systemItem: .close, primaryAction: UIAction { [weak page] _ in page?.close() })
+        let close = UIBarButtonItem(systemItem: .close, primaryAction: UIAction { [weak page] _ in page?.close() })
+        // Milu's blue, as every other sheet's ✕ (`SheetCloseButton`): left alone it was black.
+        close.tintColor = UIColor(Palette.primary)
+        page.navigationItem.leftBarButtonItem = close
         let navigation = UINavigationController(rootViewController: page)
         // Surface/Card over iOS's glass, which still swells under a touch (`sheetGround`).
         navigation.view.backgroundColor = UIColor(Palette.surface)
