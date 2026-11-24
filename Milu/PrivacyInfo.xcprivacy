@@ -6,7 +6,8 @@
   - What leaves the phone goes to Milu's own AI server (MiluAPI) only to answer the user, not
     linked to an account (there is none) and never used to track: the chat's words, the voice
     recorded for the chat, the name Milu calls the user by, and the transactions the assistant
-    reads or records for an answer. Everything else stays on the phone and in the user's iCloud.
+    reads or records for an answer, and a random id the app makes for this phone (counted for the
+    server's limit per phone, 2026-11-24; not the vendor id, not tied to the user). Everything else stays on the phone and in the user's iCloud.
   - UserDefaults holds the app's own settings (CA92.1).
 -->
 <plist version="1.0">
@@ -32,6 +33,18 @@
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeAudioData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<false/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>

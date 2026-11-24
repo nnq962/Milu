@@ -147,6 +147,8 @@ struct RemoteAssistant: AssistantService {
             // Not counted: the answer did not come, and recording and deleting are free (audit
             // round 2, 2026-11-15: a question that also read something kept its lượt).
             return AssistantReply(text: Self.emptyAnswer(actions.first), actions: actions, counts: false)
+        } catch MiluAPI.Failure.tooFast {
+            throw AssistantServiceError.tooFast
         } catch MiluAPI.Failure.busy {
             // The server's hourly limit is shared by everyone: busy, not "you asked too much" to
             // someone who asked once (audit round 3, 2026-11-16).

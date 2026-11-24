@@ -26,12 +26,26 @@ nonisolated struct MiluAPI: Sendable {
         case unreachable
         /// The key was refused.
         case unauthorized
-        /// Too many requests this hour.
+        /// Too many requests this hour, from everyone: the server's own ceiling.
         case busy
+        /// Too many requests this hour from this phone (the server's limit per phone, 2026-11-24).
+        case tooFast
         /// The connection dropped mid-way: the app went to the background, say, not no internet.
         case interrupted
         case server(Int)
     }
+
+    /// This phone's own random id, sent with every request for the server's limit per phone
+    /// (user request 2026-11-24): one phone cannot use up everyone's turns. Made once and kept on
+    /// this phone only (not "ai.", whose keys follow the user through iCloud), never tied to the
+    /// user; a reinstall makes a new one.
+    static let deviceID: String = {
+        let key = "server.deviceID"
+        if let saved = UserDefaults.standard.string(forKey: key), UUID(uuidString: saved) != nil { return saved }
+        let made = UUID().uuidString
+        UserDefaults.standard.set(made, forKey: key)
+        return made
+    }()
 
     // MARK: Chat
 
@@ -175,6 +189,7 @@ nonisolated struct MiluAPI: Sendable {
         var request = URLRequest(url: baseURL.appending(path: path), timeoutInterval: timeout)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(Self.deviceID, forHTTPHeaderField: "X-Milu-Device")
         return request
     }
 
@@ -186,7 +201,7 @@ nonisolated struct MiluAPI: Sendable {
         } catch {
             throw Self.failure(for: error)
         }
-        try Self.check(response)
+        try Self.check(response, body: data)
         return data
     }
 
@@ -198,6 +213,15 @@ nonisolated struct MiluAPI: Sendable {
             (bytes, response) = try await URLSession.shared.bytes(for: request)
         } catch {
             throw Self.failure(for: error)
+        }
+        // Over a limit, the server says whose in a small JSON body.
+        if (response as? HTTPURLResponse)?.statusCode == 429 {
+            var body = Data()
+            for try await byte in bytes {
+                body.append(byte)
+                if body.count > 4096 { break }
+            }
+            try Self.check(response, body: body)
         }
         try Self.check(response)
         return bytes.lines
@@ -216,12 +240,15 @@ nonisolated struct MiluAPI: Sendable {
         }
     }
 
-    private static func check(_ response: URLResponse) throws {
+    private static func check(_ response: URLResponse, body: Data? = nil) throws {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         switch status {
         case 200: return
         case 401: throw Failure.unauthorized
-        case 429: throw Failure.busy
+        case 429:
+            struct Over: Decodable { var scope: String? }
+            let scope = body.flatMap { try? JSONDecoder().decode(Over.self, from: $0) }?.scope
+            throw scope == "device" ? Failure.tooFast : Failure.busy
         case 502, 503, 504: throw Failure.unreachable
         default: throw Failure.server(status)
         }

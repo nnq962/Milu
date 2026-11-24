@@ -84,6 +84,21 @@ struct StreamingAnswerTests {
                                          asksBack: true, cardWaiting: false))
     }
 
+    // MARK: - The limit per phone
+
+    @Test func thePhoneKeepsOneRandomID() {
+        let id = MiluAPI.deviceID
+        #expect(UUID(uuidString: id) != nil)
+        #expect(MiluAPI.deviceID == id)
+        #expect(UserDefaults.standard.string(forKey: "server.deviceID") == id)
+        // Its own key, never one that follows the user through iCloud.
+        #expect(!CloudSettings.isSynced("server.deviceID"))
+    }
+
+    @Test func tooFastIsToldApartFromBusy() {
+        #expect(AssistantServiceError.tooFast.errorDescription != AssistantServiceError.server("đang có nhiều người hỏi cùng lúc").errorDescription)
+    }
+
     // MARK: - Pacing
 
     @Test func wordsArePacedTheLastOnesKept() async throws {

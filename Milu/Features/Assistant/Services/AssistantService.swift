@@ -145,6 +145,8 @@ enum AssistantServiceError: LocalizedError {
     case interrupted
     /// The phone is online, the server is not.
     case unavailable
+    /// This phone asked more than the server takes from one phone in an hour.
+    case tooFast
     case server(String)
 
     var errorDescription: String? {
@@ -152,6 +154,7 @@ enum AssistantServiceError: LocalizedError {
         case .noConnection: "Không có kết nối internet 📵 Bạn bật Wi-Fi hoặc 4G rồi hỏi lại Milu nha."
         case .interrupted: "Kết nối bị ngắt giữa chừng, bạn hỏi lại Milu nhé."
         case .unavailable: "Milu đang tạm nghỉ một chút, bạn thử lại sau ít phút nhé."
+        case .tooFast: "Bạn hỏi Milu dồn dập quá, Milu xin nghỉ một chút 😅 Bạn thử lại sau ít phút nhé."
         case .server(let detail): "Milu chưa trả lời được (\(detail)). Bạn thử lại sau nhé."
         }
     }
