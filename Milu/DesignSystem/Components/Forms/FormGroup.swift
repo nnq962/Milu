@@ -149,7 +149,7 @@ struct FormRowIcon: View {
 
 extension View {
     /// In an HStack lined up on `.firstTextBaseline`: this picture's centre on the middle of the
-    /// capitals of the body text beside it, half Nunito's cap height (0.705 em) above the
+    /// capitals of the body text beside it, half the font's cap height (0.705 em, SF Pro Rounded's as Nunito's) above the
     /// baseline. Centred on the text's box instead, an emoji sat about 4 points low, since that
     /// box keeps more room under the words than over them (user report 2026-11-07).
     func centeredOnTextLine() -> some View {
@@ -166,7 +166,7 @@ extension View {
 }
 
 private struct TextLineCentered: ViewModifier {
-    /// Half the cap height of 16 point Nunito, growing with the text.
+    /// Half the cap height of the 16 point body, growing with the text.
     @ScaledMetric(relativeTo: .body) private var lift: CGFloat = 16 * 0.705 / 2
 
     func body(content: Content) -> some View {

@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Named text roles: the Milu type scale (design system 2026-11-04, `milu.tokens.json`), Nunito
-/// round a 16pt body. Each role is one of Milu's text styles: Display, Heading, Section title,
+/// Named text roles: the Milu type scale (design system 2026-11-04, `milu.tokens.json`), round a
+/// 16pt body, in SF Pro Rounded since 2026-11-24 (Nunito before). Each role is one of Milu's text styles: Display, Heading, Section title,
 /// Body, Control label, Supporting, Caption, Overline and the three money styles.
-/// Use `.textRole(_:)` instead of raw sizes. Nunito at the weight named (see Typography).
+/// Use `.textRole(_:)` instead of raw sizes, at the weight named (see Typography).
 enum TextRole: CaseIterable, Identifiable {
     /// A page's big title in its sky ("Sổ ví của bạn"). Milu / Display, 34 Black
     case hero
@@ -65,14 +65,18 @@ enum TextRole: CaseIterable, Identifiable {
         }
     }
 
+    /// Two steps lighter than Nunito's (Black titles, ExtraBold names and amounts): SF Pro Rounded
+    /// at those weights is heavier and wider, and "Thêm tài khoản của bạn" broke onto two lines
+    /// (Simulator 2026-11-24); one step lighter still, as the user found the words "hơi đậm" on
+    /// the iPhone (2026-11-24).
     var weight: Font.Weight {
         switch self {
-        case .hero, .pageTitle, .heading: .black
+        case .hero, .pageTitle, .heading: .bold
         case .display, .amountEntry, .amountLarge, .title, .bodyStrong, .button, .amount,
-             .buttonCompact, .overline, .tileName: .heavy
-        case .captionStrong: .bold
-        case .accessory, .caption, .footnote: .semibold
-        case .body: .medium
+             .buttonCompact, .overline, .tileName: .semibold
+        case .captionStrong: .medium
+        case .accessory, .caption, .footnote: .medium
+        case .body: .regular
         }
     }
 
@@ -137,7 +141,8 @@ enum TextRole: CaseIterable, Identifiable {
         }
     }
 
-    var font: Font { Typography.font(textStyle, size: size, weight: weight) }
+    /// The role's font at `typeSize`; a view takes it from its own text size with `miluFont(_:)`.
+    func font(at typeSize: DynamicTypeSize) -> Font { Typography.font(textStyle, size: size, weight: weight, at: typeSize) }
 
     /// Vietnamese name shown in the design system screen.
     var name: String {
@@ -165,11 +170,21 @@ enum TextRole: CaseIterable, Identifiable {
 }
 
 extension View {
-    /// Applies a named text role: Nunito at the role's size and weight, its line box and tracking.
+    /// The rounded system font at `size`, scaled with the text size the view is shown at.
+    func miluFont(_ style: Font.TextStyle, size: CGFloat, weight: Font.Weight = .regular) -> some View {
+        modifier(MiluFont(style: style, size: size, weight: weight))
+    }
+
+    /// A role's font alone, without its line box or tracking (the default font of a whole page).
+    func miluFont(_ role: TextRole) -> some View {
+        miluFont(role.textStyle, size: role.size, weight: role.weight)
+    }
+
+    /// Applies a named text role: the role's size and weight, its line box and tracking.
     @ViewBuilder
     func textRole(_ role: TextRole) -> some View {
         let styled = self
-            .font(role.font)
+            .miluFont(role)
             .tracking(role.tracking)
             .textCase(role == .overline ? .uppercase : nil)
             .modifier(MonospacedDigitsIf(enabled: role.isNumeric))
@@ -178,6 +193,19 @@ extension View {
         } else {
             styled
         }
+    }
+}
+
+/// The font set for the text size in the view's environment, so it follows Dynamic Type and a
+/// smaller size set on the view (`shrinksOnlyToFit`), as `Font.custom(_:size:relativeTo:)` did.
+private struct MiluFont: ViewModifier {
+    let style: Font.TextStyle
+    let size: CGFloat
+    let weight: Font.Weight
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    func body(content: Content) -> some View {
+        content.font(Typography.font(style, size: size, weight: weight, at: typeSize))
     }
 }
 

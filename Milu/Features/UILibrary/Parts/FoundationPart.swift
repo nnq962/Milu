@@ -68,7 +68,7 @@ struct FoundationPart: View {
                 }
             }
 
-            SampleCard(label: "Chữ · Nunito · .textRole") {
+            SampleCard(label: "Chữ · SF Pro Rounded · .textRole") {
                 VStack(alignment: .leading, spacing: Spacing.l) {
                     ForEach(TextRole.allCases) { role in
                         VStack(alignment: .leading, spacing: Spacing.xxs) {

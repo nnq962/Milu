@@ -181,7 +181,7 @@ private struct SpeechBubble: View {
 
     var body: some View {
         Text(text)
-            .font(Typography.font(.footnote, size: 13, weight: .bold))
+            .miluFont(.footnote, size: 13, weight: .semibold)
             .foregroundStyle(Palette.label)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)

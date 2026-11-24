@@ -1,5 +1,4 @@
 import AppIntents
-import CoreText
 import SwiftUI
 import WidgetKit
 
@@ -21,7 +20,7 @@ struct WidgetButton: View {
                 .resizable()
                 .frame(width: 20, height: 20)
             Text(title)
-                .font(WidgetFont.nunito(15, .heavy))
+                .font(WidgetFont.rounded(15, .heavy))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
         }
@@ -46,24 +45,19 @@ extension Image {
     }
 }
 
-/// The app's Nunito (`Typography`), bundled with the widget too.
+/// The app's font (`Typography`): SF Pro Rounded, the system's rounded design (2026-11-24).
 enum WidgetFont {
-    private static let registered: Void = {
-        if let url = Bundle.main.url(forResource: "Nunito", withExtension: "ttf") {
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
-        }
-    }()
-
     /// Fixed sizes: the widget is a fixed box, and grown text would push the buttons out.
-    static func nunito(_ size: CGFloat, _ weight: Font.Weight) -> Font {
-        _ = registered
-        let name = switch weight {
-        case .black: "Nunito-Black"
-        case .heavy: "Nunito-ExtraBold"
-        case .bold: "Nunito-Bold"
-        case .semibold: "Nunito-SemiBold"
-        default: "Nunito-Medium"
+    /// Each weight two steps lighter than it was named for Nunito, as the app's (`TextRole.weight`).
+    static func rounded(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        let lighter: Font.Weight = switch weight {
+        case .black: .bold
+        case .heavy: .semibold
+        case .bold: .medium
+        case .semibold: .medium
+        case .medium: .regular
+        default: weight
         }
-        return .custom(name, fixedSize: size)
+        return .system(size: size, weight: lighter, design: .rounded)
     }
 }

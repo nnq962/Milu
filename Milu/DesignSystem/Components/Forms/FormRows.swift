@@ -113,7 +113,7 @@ struct FormValueRowContent: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        // On the words' baseline, not centred: Nunito keeps room above for Vietnamese marks, so a
+        // On the words' baseline, not centred: the font keeps room above for Vietnamese marks, so a
         // › centred on the line sat above the words beside it (user report 2026-11-07).
         HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             // Value at the right of the label; under it at the accessibility sizes, where one

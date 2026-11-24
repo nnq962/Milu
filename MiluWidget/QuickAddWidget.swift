@@ -87,7 +87,7 @@ private struct QuickAddHome: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("HÔM NAY ĐÃ CHI")
-                    .font(WidgetFont.nunito(11, .heavy))
+                    .font(WidgetFont.rounded(11, .heavy))
                     .tracking(1.2)
                     .foregroundStyle(Palette.secondaryLabel)
                     .lineLimit(1)
@@ -95,7 +95,7 @@ private struct QuickAddHome: View {
                 // Hidden as on "Chi tiêu tháng này". Kept left of Milu, who sits on the same line:
                 // "Ghi nhanh" and a "1,3tr" ran under its head (simulator check 2026-11-19).
                 Text(entry.spentText ?? "•••")
-                    .font(WidgetFont.nunito(21, .black))
+                    .font(WidgetFont.rounded(21, .black))
                     .foregroundStyle(entry.spentText == nil ? Palette.tertiaryLabel : Palette.label)
                     .privacySensitive()
                     .widgetAccentable()

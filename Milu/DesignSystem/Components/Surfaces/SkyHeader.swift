@@ -77,13 +77,13 @@ struct SkyHeader: View {
             HStack(spacing: Self.overlineGap) {
                 if showsPaw {
                     Image(systemName: "pawprint.fill")
-                        .font(Typography.font(.caption2, size: Self.overlineSize, weight: .bold))
+                        .miluFont(.caption2, size: Self.overlineSize, weight: .semibold)
                         .accessibilityHidden(true)
                 }
                 // 11, not Milu's 10: the smallest size the HIG reads as legible (review 2026-11-05).
                 Text(overline)
                     .textRole(.overline)
-                    .font(Typography.font(.caption2, size: Self.overlineSize, weight: .heavy))
+                    .miluFont(.caption2, size: Self.overlineSize, weight: .semibold)
                     .tracking(Self.overlineTracking)
             }
             .foregroundStyle(sky.ink)

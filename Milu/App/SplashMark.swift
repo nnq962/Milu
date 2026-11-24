@@ -30,10 +30,10 @@ struct SplashScene<Accessory: View>: View {
                 .resizable()
                 .frame(width: Self.size.width, height: Self.size.height)
                 .accessibilityHidden(true)
-            // Figma's 8 between the lines; SwiftUI's Nunito lines are taller, so none is added.
+            // Figma's 8 between the lines; SwiftUI's lines are taller, so none is added.
             VStack(spacing: 0) {
                 Text("Milu")
-                    .font(Typography.fixedFont(size: 100, weight: .black))
+                    .font(Typography.fixedFont(size: 100, weight: .bold))
                     .tracking(-2.5)
                     .foregroundStyle(Palette.deep)
                 Text(caption)
@@ -59,7 +59,7 @@ struct SplashScene<Accessory: View>: View {
         .clipped()
     }
 
-    /// Figma sets the title on a 115 line; SwiftUI's Nunito line is a little taller, with the
+    /// Figma sets the title on a 115 line; SwiftUI's line is a little taller, with the
     /// letters lower in it. This keeps the letters where the design draws them.
     private static var titleLead: CGFloat { 12 }
 }

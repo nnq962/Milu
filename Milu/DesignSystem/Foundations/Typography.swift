@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import CoreText
 
 /// CSS line boxes from the design, scaled along with the semantic font size.
 private struct DesignLineHeight: ViewModifier {
@@ -27,42 +26,74 @@ extension View {
     }
 }
 
-/// Bundled Nunito, the variable font with Vietnamese (Milu design system 2026-11-04: Nunito for
-/// headings, words, buttons and amounts; SF only where iOS draws the text itself). Semantic styles
-/// keep Dynamic Type scaling.
+/// Apple's SF Pro Rounded, the system font's rounded design (user choice 2026-11-24, after
+/// comparing it with Nunito, Be Vietnam Pro, Quicksand, Baloo 2 and Lexend: round as Nunito was,
+/// tidier, with iOS's own Vietnamese marks and figures, and nothing to bundle). It was Nunito from
+/// 2026-11-04 (Milu design system). Every size scales with Dynamic Type, as the text size the
+/// view is shown at says (`miluFont`), so a view set smaller (`shrinksOnlyToFit`) shrinks its words.
 enum Typography {
-    private static let registered: Void = {
-        guard let url = Bundle.main.url(forResource: "Nunito", withExtension: "ttf") else {
-            assertionFailure("Missing bundled Nunito font")
-            return
-        }
-        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
-    }()
+    /// The rounded system font at `size` points, no scaling. Its figures are proportional, its 1
+    /// narrower than the others but with room each side ("Tháng 11"): SF's own drawing, measured
+    /// 2026-11-24, not even widths; amounts in a column ask for even ones (`monospacedDigit()`).
+    static func uiFont(size: CGFloat, weight: Font.Weight = .regular) -> UIFont {
+        let base = UIFont.systemFont(ofSize: size, weight: uiWeight(weight))
+        guard let rounded = base.fontDescriptor.withDesign(.rounded) else { return base }
+        return UIFont(descriptor: rounded, size: size)
+    }
 
-    static func font(_ style: Font.TextStyle, size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        _ = registered
-        return .custom(instance(for: weight), size: size, relativeTo: style)
+    /// The same, scaled as `style` scales at `traits`' text size (the app's own when nil).
+    static func scaledUIFont(_ style: Font.TextStyle, size: CGFloat, weight: Font.Weight = .regular,
+                             maximumPointSize: CGFloat? = nil, traits: UITraitCollection? = nil) -> UIFont {
+        let metrics = UIFontMetrics(forTextStyle: uiStyle(style))
+        let font = uiFont(size: size, weight: weight)
+        if let maximumPointSize {
+            return metrics.scaledFont(for: font, maximumPointSize: maximumPointSize, compatibleWith: traits)
+        }
+        return metrics.scaledFont(for: font, compatibleWith: traits)
+    }
+
+    /// SwiftUI's rounded system font at `size` scaled for `typeSize`. Use `miluFont` in a view,
+    /// which reads the text size from the view's own environment.
+    static func font(_ style: Font.TextStyle, size: CGFloat, weight: Font.Weight = .regular,
+                     at typeSize: DynamicTypeSize = .large) -> Font {
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(typeSize))
+        let scaled = UIFontMetrics(forTextStyle: uiStyle(style)).scaledValue(for: size, compatibleWith: traits)
+        return .system(size: scaled, weight: weight, design: .rounded)
     }
 
     /// A size that does not scale on its own: for text sized from something already scaled (the
     /// initial inside an avatar that grows with the text).
     static func fixedFont(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        _ = registered
-        return .custom(instance(for: weight), fixedSize: size)
+        .system(size: size, weight: weight, design: .rounded)
     }
 
-    /// Each weight is the Nunito instance of its name (regular 400, medium 500, semibold 600,
-    /// bold 700, heavy ExtraBold 800, black 900). Selects the font's named instance rather than
-    /// asking SwiftUI to synthesize a weight.
-    static func instance(for weight: Font.Weight) -> String {
+    private static func uiWeight(_ weight: Font.Weight) -> UIFont.Weight {
         switch weight {
-        case .ultraLight, .thin, .light: "Nunito-Light"
-        case .medium: "Nunito-Medium"
-        case .semibold: "Nunito-SemiBold"
-        case .bold: "Nunito-Bold"
-        case .heavy: "Nunito-ExtraBold"
-        case .black: "Nunito-Black"
-        default: "Nunito-Regular"
+        case .ultraLight: .ultraLight
+        case .thin: .thin
+        case .light: .light
+        case .medium: .medium
+        case .semibold: .semibold
+        case .bold: .bold
+        case .heavy: .heavy
+        case .black: .black
+        default: .regular
+        }
+    }
+
+    static func uiStyle(_ style: Font.TextStyle) -> UIFont.TextStyle {
+        switch style {
+        case .largeTitle: .largeTitle
+        case .title: .title1
+        case .title2: .title2
+        case .title3: .title3
+        case .headline: .headline
+        case .subheadline: .subheadline
+        case .callout: .callout
+        case .footnote: .footnote
+        case .caption: .caption1
+        case .caption2: .caption2
+        default: .body
         }
     }
 
@@ -71,11 +102,10 @@ enum Typography {
     /// own text size before making one (`ScaledSegmentedPicker`); set once at launch it stayed 14
     /// at every size (HIG review 2026-10-30).
     static func configureSegmentedControls(for size: DynamicTypeSize) {
-        _ = registered
         let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
         let metrics = UIFontMetrics(forTextStyle: .subheadline)
-        guard let medium = UIFont(name: instance(for: .medium), size: 14),
-              let semibold = UIFont(name: instance(for: .semibold), size: 14) else { return }
+        let medium = uiFont(size: 14, weight: .medium)
+        let semibold = uiFont(size: 14, weight: .semibold)
         let segmented = UISegmentedControl.appearance()
         segmented.backgroundColor = Palette.uiFill
         segmented.selectedSegmentTintColor = Palette.uiSurface
@@ -86,14 +116,9 @@ enum Typography {
     }
 
     static func configureNativeAppearance() {
-        _ = registered
-        guard let regular = UIFont(name: instance(for: .regular), size: 10) else {
-            assertionFailure("Nunito registration failed")
-            return
-        }
-        // Only text attributes: iOS owns the tab bar's material, geometry and icons. Nunito
-        // SemiBold 10, as the Milu tab bar.
-        let tabFont = UIFont(name: "Nunito-SemiBold", size: 10) ?? regular
+        // Only text attributes: iOS owns the tab bar's material, geometry and icons. Medium 10,
+        // as the Milu tab bar.
+        let tabFont = uiFont(size: 10, weight: .medium)
         let appearance = UITabBarAppearance()
         for layout in [appearance.stackedLayoutAppearance,
                        appearance.inlineLayoutAppearance,
@@ -107,10 +132,10 @@ enum Typography {
         configureSegmentedControls(for: .large)
 
         let navigation = UINavigationBar.appearance()
-        navigation.titleTextAttributes = [.font: UIFont(name: instance(for: .semibold), size: 17) ?? regular.withSize(17)]
+        navigation.titleTextAttributes = [.font: uiFont(size: 17, weight: .semibold)]
         // A large title, should a page show one (the tabs have none since 2026-11-04): the
         // `pageTitle` role, 24, scaled with Dynamic Type like the rest.
-        let pageTitle = UIFont(name: instance(for: TextRole.pageTitle.weight), size: TextRole.pageTitle.size) ?? regular.withSize(TextRole.pageTitle.size)
+        let pageTitle = uiFont(size: TextRole.pageTitle.size, weight: TextRole.pageTitle.weight)
         // No colour of our own: a bar whose tab is not on screen kept the colour of the old
         // appearance after a switch of theme, dark words on the dark page until scrolled (user
         // report 2026-11-02). iOS's own label colour follows the theme in every bar.
@@ -120,7 +145,7 @@ enum Typography {
         // The line under a native title (Trợ lý AI): the `caption` role, muted. Only an appearance
         // carries it; a transparent one, as iOS 26 bars have no background of their own, with the
         // same title fonts as above.
-        let caption = UIFont(name: instance(for: TextRole.caption.weight), size: TextRole.caption.size) ?? regular.withSize(TextRole.caption.size)
+        let caption = uiFont(size: TextRole.caption.size, weight: TextRole.caption.weight)
         let subtitle: [NSAttributedString.Key: Any] = [
             .font: UIFontMetrics(forTextStyle: .caption1).scaledFont(for: caption),
             .foregroundColor: Palette.uiSecondaryLabel,

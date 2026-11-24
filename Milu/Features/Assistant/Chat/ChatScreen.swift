@@ -84,12 +84,9 @@ struct ChatDateChip: View {
 /// 2026-11-11: with SwiftUI's `Text` in the bubble, the same width still broke some lines
 /// elsewhere, two engines measuring words a hair apart).
 enum ChatWords {
-    /// Nunito Medium at the body size, scaled with Dynamic Type.
+    /// The body's font (Medium at the body size), scaled with Dynamic Type.
     static func font() -> UIFont {
-        _ = Typography.font(.body, size: TextRole.body.size) // registers Nunito
-        let base = UIFont(name: Typography.instance(for: .medium), size: TextRole.body.size)
-            ?? .systemFont(ofSize: TextRole.body.size, weight: .medium)
-        return UIFontMetrics(forTextStyle: .body).scaledFont(for: base)
+        Typography.scaledUIFont(.body, size: TextRole.body.size, weight: TextRole.body.weight)
     }
 
     /// The words' setting on `textView`, the same for the field and the bubble.
@@ -142,7 +139,7 @@ struct QuestionWords: UIViewRepresentable {
 }
 
 /// Milu's answer's words: selectable, as in ChatGPT and Claude (user request 2026-11-11), held to
-/// select a word and dragged for more, with iOS's own Copy. Set as the body text is (Nunito
+/// select a word and dragged for more, with iOS's own Copy. Set as the body text is (SF Pro Rounded
 /// Medium, its 24 line), **bold** and _italic_ kept.
 ///
 /// `reveals`: an answer just in shows its words one after another, each fading in (user design
@@ -219,16 +216,12 @@ struct AnswerWords: UIViewRepresentable {
         return CGSize(width: min(ceil(fits.width), width), height: ceil(fits.height))
     }
 
-    /// The markdown's runs in Nunito at the body size, each line 24 tall (scaled), as
-    /// `textRole(.body)` sets SwiftUI's text.
+    /// The markdown's runs at the body size, each line 24 tall (scaled), as `textRole(.body)`
+    /// sets SwiftUI's text.
     static func attributed(_ text: AttributedString) -> NSAttributedString {
         let metrics = UIFontMetrics(forTextStyle: .body)
-        let size = TextRole.body.size
-        func font(_ name: String) -> UIFont {
-            metrics.scaledFont(for: UIFont(name: name, size: size) ?? .systemFont(ofSize: size))
-        }
         let regular = ChatWords.font()
-        let bold = font(Typography.instance(for: .bold))
+        let bold = Typography.scaledUIFont(.body, size: TextRole.body.size, weight: .semibold)
         let line = metrics.scaledValue(for: TextRole.body.lineHeight ?? 24)
         let paragraph = NSMutableParagraphStyle()
         paragraph.minimumLineHeight = line

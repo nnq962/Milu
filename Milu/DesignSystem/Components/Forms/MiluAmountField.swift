@@ -119,7 +119,7 @@ struct MiluAmountField: View {
                     .foregroundStyle(text.isEmpty ? Color(.placeholderText) : color)
                     .accessibilityHidden(true)
             }
-            .font(Typography.font(TextRole.amountEntry.textStyle, size: heroSize, weight: TextRole.amountEntry.weight))
+            .miluFont(TextRole.amountEntry.textStyle, size: heroSize, weight: TextRole.amountEntry.weight)
             .monospacedDigit()
             // One line, at the size its steps were made for: 52pt is larger than any body text up
             // to the accessibility sizes, and grown again by the text size it wrapped

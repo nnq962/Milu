@@ -108,8 +108,8 @@ struct NotificationInviteView: View {
         .accessibilityLabel("Ví dụ lời nhắc lúc \(time): \(Self.sample.title) \(Self.sample.body)")
     }
 
-    /// The line in bold, its emoji as Milu draws them (`MiluEmoji2D`): Nunito has none, and the
-    /// emoji showed as a box (simulator 2026-11-15).
+    /// The line in bold, its emoji as Milu draws them (`MiluEmoji2D`): the Simulator's font has
+    /// none, and the emoji showed as a box (simulator 2026-11-15).
     private var sampleTitle: some View {
         let words = Self.sample.title.split(separator: " ")
         let emoji = words.last.map(String.init) ?? ""

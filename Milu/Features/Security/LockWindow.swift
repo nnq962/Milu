@@ -213,6 +213,6 @@ struct LockLayer: View {
         .animation(lock.isLocked ? nil : .easeOut(duration: Self.fade), value: lock.isLocked)
         .environment(\.scenePhase, phase)
         .environment(\.locale, .vietnam)
-        .font(TextRole.body.font)
+        .miluFont(.body)
     }
 }

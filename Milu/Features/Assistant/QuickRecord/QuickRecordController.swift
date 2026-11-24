@@ -1043,7 +1043,7 @@ private struct QuickEnvironment: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .font(TextRole.body.font)
+            .miluFont(.body)
             .foregroundStyle(Palette.label)
             .environment(store)
             .environment(\.locale, .vietnam)

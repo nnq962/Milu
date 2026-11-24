@@ -233,7 +233,7 @@ struct MiluApp: App {
                 .background { SavedAppearanceSetter().frame(width: 0, height: 0) }
                 // The body role (16 SemiBold), so a Text with no role still matches the scale
                 // (strict review 2026-10-31: 17 Regular sat outside it).
-                .font(TextRole.body.font)
+                .miluFont(.body)
                 .scrollIndicators(.hidden, axes: .vertical)
                 .environment(store)
                 .environment(quota)

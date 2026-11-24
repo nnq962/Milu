@@ -221,17 +221,17 @@ private struct MonthFigures: View {
         VStack(alignment: .leading, spacing: 6) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(standing.heading)
-                    .font(WidgetFont.nunito(11, .heavy))
+                    .font(WidgetFont.rounded(11, .heavy))
                     .tracking(1.2)
                     .foregroundStyle(Palette.secondaryLabel)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(standing.spentText)
-                        .font(WidgetFont.nunito(32, .heavy))
+                        .font(WidgetFont.rounded(32, .heavy))
                         .foregroundStyle(standing.state == .hidden ? Palette.tertiaryLabel : Palette.label)
                         .widgetAccentable()
                     if let limit = standing.limitText {
                         Text(limit)
-                            .font(WidgetFont.nunito(13, .semibold))
+                            .font(WidgetFont.rounded(13, .semibold))
                             .foregroundStyle(Palette.tertiaryLabel)
                     }
                 }
@@ -250,19 +250,19 @@ private struct MonthFigures: View {
                                 .foregroundStyle(Palette.label)
                         }
                         Text(standing.firstLine)
-                            .font(WidgetFont.nunito(15, .heavy))
+                            .font(WidgetFont.rounded(15, .heavy))
                             .foregroundStyle(standing.firstLineInk)
                             .privacySensitive()
                         Spacer(minLength: 4)
                         if let progress = standing.progress {
                             Text(progress.percentText)
-                                .font(WidgetFont.nunito(13, .bold))
+                                .font(WidgetFont.rounded(13, .bold))
                                 .foregroundStyle(standing.state == .within ? Palette.secondaryLabel : standing.ink)
                                 .privacySensitive()
                         }
                     }
                     Text(standing.secondLine)
-                        .font(WidgetFont.nunito(12, .semibold))
+                        .font(WidgetFont.rounded(12, .semibold))
                         .foregroundStyle(standing.secondLineInk)
                         .privacySensitive()
                 }
@@ -298,13 +298,13 @@ private struct RecentSpending: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("GẦN ĐÂY")
-                .font(WidgetFont.nunito(11, .heavy))
+                .font(WidgetFont.rounded(11, .heavy))
                 .tracking(1.2)
                 .foregroundStyle(Palette.secondaryLabel)
             if let figures = standing.figures {
                 if figures.recent.isEmpty {
                     Text("Chưa có khoản chi nào trong tháng.")
-                        .font(WidgetFont.nunito(12, .semibold))
+                        .font(WidgetFont.rounded(12, .semibold))
                         .foregroundStyle(Palette.secondaryLabel)
                 } else {
                     ForEach(Array(figures.recent.enumerated()), id: \.offset) { _, line in row(line) }
@@ -312,7 +312,7 @@ private struct RecentSpending: View {
             } else {
                 // Hidden: not even what was bought shows on the home screen.
                 Text("Mở Milu để xem.")
-                    .font(WidgetFont.nunito(12, .semibold))
+                    .font(WidgetFont.rounded(12, .semibold))
                     .foregroundStyle(Palette.secondaryLabel)
             }
         }
@@ -323,11 +323,11 @@ private struct RecentSpending: View {
         HStack(spacing: 8) {
             icon(line).frame(width: 24, height: 24)
             Text(line.title)
-                .font(WidgetFont.nunito(13, .semibold))
+                .font(WidgetFont.rounded(13, .semibold))
                 .foregroundStyle(Palette.label)
             Spacer(minLength: 4)
             Text("−" + line.amount.vndCompact)
-                .font(WidgetFont.nunito(13, .bold))
+                .font(WidgetFont.rounded(13, .bold))
                 .foregroundStyle(Palette.negative)
         }
         .lineLimit(1)
@@ -379,10 +379,10 @@ private struct LockMonthRing: View {
             // No limit to measure against: the month's spending itself.
             VStack(spacing: 0) {
                 Text(standing.spentText)
-                    .font(WidgetFont.nunito(14, .heavy))
+                    .font(WidgetFont.rounded(14, .heavy))
                     .privacySensitive()
                 Text("đã chi")
-                    .font(WidgetFont.nunito(10, .bold))
+                    .font(WidgetFont.rounded(10, .bold))
                     .foregroundStyle(.secondary)
             }
             .lineLimit(1)
@@ -395,12 +395,12 @@ private struct LockMonthRing: View {
             } currentValueLabel: {
                 VStack(spacing: -2) {
                     Text(progress?.percentText ?? "")
-                        .font(WidgetFont.nunito(15, .heavy))
+                        .font(WidgetFont.rounded(15, .heavy))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                         .privacySensitive()
                     Text(standing.state == .over ? "vượt" : "đã chi")
-                        .font(WidgetFont.nunito(9, .bold))
+                        .font(WidgetFont.rounded(9, .bold))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -417,7 +417,7 @@ private struct LockMonthLines: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(heading)
-                .font(WidgetFont.nunito(11, .heavy))
+                .font(WidgetFont.rounded(11, .heavy))
                 .tracking(0.6)
                 .foregroundStyle(.secondary)
             HStack(spacing: 4) {
@@ -425,7 +425,7 @@ private struct LockMonthLines: View {
                     Image("hugeicons-square-lock-02").resizable().frame(width: 14, height: 14)
                 }
                 Text(main)
-                    .font(WidgetFont.nunito(16, .heavy))
+                    .font(WidgetFont.rounded(16, .heavy))
                     .privacySensitive()
                     .widgetAccentable()
             }
@@ -435,7 +435,7 @@ private struct LockMonthLines: View {
                     .widgetAccentable()
             }
             Text(detail)
-                .font(WidgetFont.nunito(12, .semibold))
+                .font(WidgetFont.rounded(12, .semibold))
                 .foregroundStyle(.secondary)
                 .privacySensitive()
         }

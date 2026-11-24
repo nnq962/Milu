@@ -52,7 +52,7 @@ struct ProfileAvatarView: View {
             case .initial:
                 if let initial = ProfileName.initial(of: name ?? savedName) {
                     Text(initial)
-                        .font(Typography.fixedFont(size: size * 0.42, weight: .bold))
+                        .font(Typography.fixedFont(size: size * 0.42, weight: .semibold))
                         .foregroundStyle(Palette.primary)
                 } else {
                     Image(systemName: "person.fill")

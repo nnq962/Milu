@@ -1568,7 +1568,7 @@ private struct MiluEnvironment: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .font(TextRole.body.font)
+            .miluFont(.body)
             .foregroundStyle(Palette.label)
             .scrollIndicators(.hidden, axes: .vertical)
             .environment(store)

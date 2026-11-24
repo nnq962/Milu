@@ -189,10 +189,10 @@ struct BottomPanel<Content: View>: View {
     /// ✕ on the left and the title in the middle, as iOS's sheet bar.
     private var header: some View {
         ZStack {
-            // As every sheet's bar title: Nunito SemiBold 17 in iOS's own label colour
+            // As every sheet's bar title: SemiBold 17 in iOS's own label colour
             // (`Typography`'s navigation bar appearance).
             Text(title)
-                .font(.custom(Typography.instance(for: .semibold), fixedSize: 17))
+                .font(Typography.fixedFont(size: 17, weight: .semibold))
                 .foregroundStyle(Color(uiColor: .label))
                 .lineLimit(1)
                 .padding(.horizontal, 56)

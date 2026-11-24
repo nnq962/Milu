@@ -86,8 +86,7 @@ final class SyncPillUIView: UIView {
 
     private func styleLabel(_ label: UILabel) {
         let role = TextRole.captionStrong
-        let base = UIFont(name: Typography.instance(for: role.weight), size: role.size)
-            ?? .systemFont(ofSize: role.size, weight: .bold)
+        let base = Typography.uiFont(size: role.size, weight: role.weight)
         // Grown no further than the largest size before the accessibility ones, and shrunk a little
         // to fit the screen: a passing status in a 38 point capsule (audit round 5, 2026-11-16: from
         // AX1 it ran off both sides of the screen, from AX3 it was cut top and bottom).

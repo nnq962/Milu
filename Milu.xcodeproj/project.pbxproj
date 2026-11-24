@@ -55,7 +55,6 @@
 				App/StorageKey.swift,
 				App/WidgetShared.swift,
 				DesignSystem/Foundations/Palette.swift,
-				Resources/Fonts/Nunito.ttf,
 				Store/Budget.swift,
 				Utilities/Formatting.swift,
 			);
