@@ -20,6 +20,9 @@ struct TransactionsView: View {
     private let than = MiluRiveCharacter.transactions
     @Environment(AddTransactionContext.self) private var addContext: AddTransactionContext?
     @State private var segment: TransactionSegment = .flows
+    /// A slide between the sides under way, and the side picked while it was (`pickSegment`).
+    @State private var isSliding = false
+    @State private var queuedSegment: TransactionSegment?
     @State private var filter: TransactionFilter = .all
     @State private var loanFilter: LoanFilter = .all
     @State private var displayedMonth = Date.now
@@ -54,34 +57,35 @@ struct TransactionsView: View {
                                   milu: { miluLook }, rive: (than, { .transactions(store) }), sky: .plane)
                         VStack(alignment: .leading, spacing: 0) {
                             sectionHead
-                            figuresRow
-                                .padding(.top, Spacing.m)
-                                .padding(.bottom, Spacing.section - Spacing.m)
-                            // The filter with the list it narrows: it leaves the totals as they
-                            // are. A new month or segment: the list fades over to what it shows
-                            // now. It keeps at least a screen's height, so a shorter one leaves
-                            // the page where it is instead of snapping it up.
-                            switch segment {
-                            case .flows:
-                                filterRow { TransactionFilterTabs(selection: $filter) }
-                                listContainer {
-                                    // Its own view: the page's scroll flags and a row tapped no
-                                    // longer rebuild the month's list (review 2026-11-09).
-                                    MonthFlowList(month: displayedMonth, filter: filter, editingItem: $editingItem)
-                                        .equatable()
+                                .padding(.horizontal, Spacing.page)
+                            // Under the heading, each side as one page: Thu chi on the left, Vay nợ
+                            // on the right. Another side picked slides in from its edge as the
+                            // other slides out to its own, side by side, so no frame shows both
+                            // drawn over each other or neither (user choice 2026-11-24). Fades
+                            // were tried first: as a transition the old side stayed drawn under
+                            // the new one on the iPhone until the fade ended, and swapped at once
+                            // then faded in, the bare page flashed between them.
+                            ZStack(alignment: .top) {
+                                switch segment {
+                                case .flows:
+                                    sidePage(.flows)
+                                        .transition(.move(edge: .leading))
+                                case .loans:
+                                    sidePage(.loans)
+                                        .transition(.move(edge: .trailing))
                                 }
-                            case .loans:
-                                filterRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
-                                listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
                             }
+                            // The screen's width, the page's margin inside each side: a side
+                            // slid out goes past the screen's edge, not into the margin.
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .padding(.horizontal, Spacing.page)
                         .padding(.top, Spacing.xxl)
                         .padding(.bottom, Spacing.xxl)
                     }
-                    // A new month or segment fades over; a new filter shows its list at once, no
-                    // animation (user request 2026-11-01: every animation tried felt jerky).
-                    .animation(Motion.gentle(.smooth(duration: 0.3)), value: pageIdentity)
+                    // A new month fades over; a new filter shows its list at once, no animation
+                    // (user request 2026-11-01: every animation tried felt jerky). Another side
+                    // slides in on its own (`pickSegment`).
+                    .animation(Motion.gentle(.smooth(duration: 0.3)), value: monthIdentity)
                 }
                 // Scrolled up, the page goes behind the bar's band, not under its buttons (review
                 // 2026-11-07: "Sổ giao dịch" and "Thu chi" read through Q and Hỏi Milu).
@@ -195,7 +199,7 @@ struct TransactionsView: View {
     private var sectionHead: some View {
         HStack(spacing: Spacing.s) {
             Menu {
-                Picker("Trang", selection: $segment) {
+                Picker("Trang", selection: segmentPicker) {
                     ForEach(TransactionSegment.allCases) { Text($0.title).tag($0) }
                 }
             } label: {
@@ -203,6 +207,8 @@ struct TransactionsView: View {
                     Text(segment.title)
                         .textRole(.heading)
                         .lineLimit(1)
+                        // Its words change at once: the heading stays while the page slides.
+                        .transaction(value: segment) { $0.animation = nil }
                     // SF's ⌄, as the month's and the "›" of "Báo cáo" (user request 2026-11-07),
                     // larger with the heading.
                     Image(systemName: "chevron.down")
@@ -248,6 +254,44 @@ struct TransactionsView: View {
         return "\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
+    /// The month shown, whichever side: what the page animates (another side slides in on its own).
+    private var monthIdentity: String {
+        let parts = Calendar.current.dateComponents([.year, .month], from: displayedMonth)
+        return "\(parts.year ?? 0)-\(parts.month ?? 0)"
+    }
+
+    /// Another side picked: the pages slide (none under Reduce Motion, `Motion.gentle`). One
+    /// picked while a slide is under way waits for it to end, so no third page slides in over the
+    /// one still leaving.
+    private var segmentPicker: Binding<TransactionSegment> {
+        Binding(get: { segment }, set: { pickSegment($0) })
+    }
+
+    private func pickSegment(_ new: TransactionSegment) {
+        if isSliding {
+            queuedSegment = new == segment ? nil : new
+            return
+        }
+        guard new != segment else { return }
+        guard let slide = Motion.gentle(Self.segmentSlide) else {
+            withTransaction(Transaction(animation: nil)) { segment = new }
+            return
+        }
+        isSliding = true
+        withAnimation(slide, completionCriteria: .removed) {
+            segment = new
+        } completion: {
+            isSliding = false
+            if let next = queuedSegment {
+                queuedSegment = nil
+                pickSegment(next)
+            }
+        }
+    }
+
+    /// As the app's other moves: a spring of 0.38 s, no bounce.
+    private static let segmentSlide = Animation.spring(duration: 0.38, bounce: 0)
+
     /// What the list shows, filter included: what the page animates and scrolls back to the filter for.
     private var listIdentity: String {
         if segment == .loans { return "loans-\(loanFilter.rawValue)" }
@@ -259,8 +303,8 @@ struct TransactionsView: View {
     /// the wheels, and "Báo cáo" at its head, then what went out and came in that month side by
     /// side; on Vay nợ what is lent and owed.
     @ViewBuilder
-    private var figuresRow: some View {
-        switch segment {
+    private func figuresRow(_ side: TransactionSegment) -> some View {
+        switch side {
         case .flows:
             VStack(alignment: .leading, spacing: Spacing.l) {
                 // One above the other at the accessibility sizes, where side by side the two ran
@@ -278,6 +322,32 @@ struct TransactionsView: View {
             LoansFigures()
                 .card()
         }
+    }
+
+    /// One side's page under the heading: its figures, then the filter with the list it narrows. The
+    /// filter leaves the totals as they are; a new month fades the list over to what it shows now.
+    /// The list keeps at least a screen's height, so a shorter one leaves the page where it is
+    /// instead of snapping it up.
+    private func sidePage(_ side: TransactionSegment) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            figuresRow(side)
+                .padding(.top, Spacing.m)
+                .padding(.bottom, Spacing.section - Spacing.m)
+            switch side {
+            case .flows:
+                filterRow { TransactionFilterTabs(selection: $filter) }
+                listContainer {
+                    // Its own view: the page's scroll flags and a row tapped no longer rebuild the
+                    // month's list (review 2026-11-09).
+                    MonthFlowList(month: displayedMonth, filter: filter, editingItem: $editingItem)
+                        .equatable()
+                }
+            case .loans:
+                filterRow { TextTabs(selection: $loanFilter, options: LoanFilter.allCases) { $0.title } }
+                listContainer { LoansContent(filter: loanFilter, today: today) { editingLoan = $0 } }
+            }
+        }
+        .padding(.horizontal, Spacing.page)
     }
 
     /// "Báo cáo ›", in the link colour as the month beside it, to the month's report.
