@@ -283,11 +283,18 @@ struct RemoteAssistant: AssistantService {
     /// left it out (user request 2026-11-20: "báo rằng chưa hỗ trợ và kiểu nói rằng sẽ cập nhật sau").
     static let comingLater = "Tính năng này Milu sẽ cập nhật sau nha ✨"
 
+    ///
+    /// Only when its first sentence says so, the answer to what was asked: "chưa hỗ trợ" further on,
+    /// in a list of what Milu does ("• Chuyển tiền, vay nợ thì Milu chưa hỗ trợ"), had the line added
+    /// under the whole list, as if a feature had been asked for (iPhone 2026-11-24, "thiệt không").
     static func withComingLater(_ text: String) -> String {
-        let words = " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        func plain(_ text: String) -> String {
+            " " + text.searchKey.split { !$0.isLetter && !$0.isNumber }.joined(separator: " ") + " "
+        }
+        let first = plain(firstSentence(text))
         let notYet = [" chua ho tro ", " chua lam duoc ", " chua the ", " chua ghi duoc ", " chua tao duoc ", " chua co tinh nang ",
                       " khong ho tro ", " khong duoc ho tro "]
-        guard notYet.contains(where: words.contains), !words.contains(" cap nhat ") else { return text }
+        guard notYet.contains(where: first.contains), !plain(text).contains(" cap nhat ") else { return text }
         return text + "\n\n" + comingLater
     }
 

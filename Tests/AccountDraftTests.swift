@@ -192,6 +192,12 @@ struct AccountDraftTests {
         #expect(RemoteAssistant.withComingLater(said) == said)
         #expect(RemoteAssistant.withComingLater("Milu chưa hỗ trợ việc này, sẽ cập nhật sau nha") == "Milu chưa hỗ trợ việc này, sẽ cập nhật sau nha")
         #expect(RemoteAssistant.withComingLater("Tháng này bạn chi 2 triệu") == "Tháng này bạn chi 2 triệu")
+        // "chưa hỗ trợ" in a list of what Milu does, not the answer to a request (iPhone 2026-11-24).
+        let abilities = "Okela, Milu làm được nhiều thứ xịn xò luôn nè! ✨\n\n• Milu giúp bạn xem tổng chi tiêu, số dư.\n• Còn chuyển tiền giữa các ví, vay nợ thì Milu chưa hỗ trợ, bạn làm tay nha.\n\nCần Milu giúp gì không nè?"
+        #expect(RemoteAssistant.withComingLater(abilities) == abilities)
+        // Said first, it is the answer: the line is added.
+        #expect(RemoteAssistant.withComingLater("Milu chưa hỗ trợ đổi tên tài khoản nha. Bạn vào Tài khoản → chọn tài khoản → bút chì nhé.")
+            .hasSuffix(RemoteAssistant.comingLater))
         #expect(!AddAccount.isNeeded(for: "chuyển 500k từ VCB sang MoMo", history: []))
         #expect(!AddAccount.isNeeded(for: "mua áo 500k bằng thẻ tín dụng", history: []))
         #expect(AddAccount.isNeeded(for: "tạo ví zalopay", history: []))
